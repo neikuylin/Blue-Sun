@@ -17,6 +17,9 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private const string IdSesha = "sesha";
     private const string IdHuman = "human";
 
+    private static readonly Color AvailableColor = Color.white;
+    private static readonly Color OccupiedColor = new Color(100f / 255f, 100f / 255f, 100f / 255f, 1f);
+
     private static readonly Dictionary<string, string[]> CharacterNameAliases = new Dictionary<string, string[]>
     {
         { IdSolana, new[] { "索拉娜头像", "索拉娜", "选择索拉娜头像", "选择索拉娜" } },
@@ -28,6 +31,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private readonly List<SlotInfo> slots = new List<SlotInfo>();
     private readonly Dictionary<string, Sprite> portraitLibrary = new Dictionary<string, Sprite>();
     private readonly Dictionary<string, PortraitLayout> portraitLayoutLibrary = new Dictionary<string, PortraitLayout>();
+    private readonly List<AvatarVisualRef> avatarVisuals = new List<AvatarVisualRef>();
+
     private SlotInfo currentSlot;
 
     private struct PortraitLayout
@@ -46,6 +51,14 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         public GameObject unselectedObject;
         public Image portraitImage;
         public string selectedCharacterId;
+    }
+
+    private class AvatarVisualRef
+    {
+        public string characterId;
+        public Image[] images;
+        public Color[] originalColors;
+        public bool keepOriginalColor;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -82,6 +95,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         slots.Clear();
         portraitLibrary.Clear();
         portraitLayoutLibrary.Clear();
+        avatarVisuals.Clear();
         currentSlot = null;
 
         Transform[] allTransforms = FindObjectsOfType<Transform>(true);
@@ -104,7 +118,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             SlotInfo capturedSlot = slot;
             for (int b = 0; b < slot.selectButtons.Count; b++)
             {
-                slot.selectButtons[b].onClick.AddListener(() => currentSlot = capturedSlot);
+                slot.selectButtons[b].onClick.AddListener(() => SetCurrentSlot(capturedSlot));
             }
         }
 
@@ -113,10 +127,16 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         if (slots.Count > 0)
         {
-            currentSlot = slots[0];
+            SetCurrentSlot(slots[0]);
         }
 
         Debug.Log($"CharacterSelectRuntimeBinder slots={slots.Count}, portraits={portraitLibrary.Count}, layouts={portraitLayoutLibrary.Count}");
+    }
+
+    private void SetCurrentSlot(SlotInfo slot)
+    {
+        currentSlot = slot;
+        RefreshAvatarAvailabilityVisuals();
     }
 
     private void BindAvatarSelectors(Transform[] allTransforms)
@@ -133,6 +153,43 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             if (string.IsNullOrEmpty(characterId))
             {
                 continue;
+            }
+
+            Image[] allImages = tr.GetComponentsInChildren<Image>(true);
+            List<Image> childImages = new List<Image>();
+            for (int ci = 0; ci < allImages.Length; ci++)
+            {
+                if (allImages[ci] == null)
+                {
+                    continue;
+                }
+
+                // Do not recolor the avatar button's own Image, only child images.
+                if (allImages[ci].gameObject == tr.gameObject)
+                {
+                    continue;
+                }
+
+                childImages.Add(allImages[ci]);
+            }
+
+            if (childImages.Count > 0)
+            {
+                Image[] visualImages = childImages.ToArray();
+                Color[] originals = new Color[visualImages.Length];
+                for (int ci = 0; ci < visualImages.Length; ci++)
+                {
+                    originals[ci] = visualImages[ci].color;
+                }
+
+                avatarVisuals.Add(new AvatarVisualRef
+                {
+                    characterId = characterId,
+                    images = visualImages,
+                    originalColors = originals,
+                    // 头像按钮1是不可调用项，保持它本身的暗色，不参与占用变暗逻辑。
+                    keepOriginalColor = tr.name.EndsWith("1"),
+                });
             }
 
             Button button = tr.GetComponent<Button>();
@@ -155,6 +212,38 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                         TryAssignCurrentSlot(capturedId);
                     }
                 });
+            }
+        }
+
+        RefreshAvatarAvailabilityVisuals();
+    }
+
+    private void RefreshAvatarAvailabilityVisuals()
+    {
+        for (int i = 0; i < avatarVisuals.Count; i++)
+        {
+            AvatarVisualRef v = avatarVisuals[i];
+            if (v == null || v.images == null || v.images.Length == 0)
+            {
+                continue;
+            }
+
+            bool occupiedByOther = IsCharacterUsedByOtherSlot(v.characterId, currentSlot);
+            Color targetColor = occupiedByOther ? OccupiedColor : AvailableColor;
+            for (int j = 0; j < v.images.Length; j++)
+            {
+                if (v.images[j] == null)
+                {
+                    continue;
+                }
+
+                if (v.keepOriginalColor && v.originalColors != null && j < v.originalColors.Length)
+                {
+                    v.images[j].color = v.originalColors[j];
+                    continue;
+                }
+
+                v.images[j].color = targetColor;
             }
         }
     }
@@ -204,6 +293,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             {
                 cg = portraitDisplay.gameObject.AddComponent<CanvasGroup>();
             }
+
             cg.interactable = false;
             cg.blocksRaycasts = false;
         }
@@ -326,6 +416,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         {
             panel.gameObject.SetActive(false);
         }
+
+        RefreshAvatarAvailabilityVisuals();
     }
 
     private void ApplyPortraitLayout(Image target, string characterId)
@@ -389,6 +481,25 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
     }
 
+    private bool IsCharacterUsedByOtherSlot(string characterId, SlotInfo targetSlot)
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            SlotInfo slot = slots[i];
+            if (slot == targetSlot)
+            {
+                continue;
+            }
+
+            if (slot.selectedCharacterId == characterId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static Transform FindAnyObjectByName(string objectName)
     {
         Transform[] all = FindObjectsOfType<Transform>(true);
@@ -403,5 +514,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
+
 
 
