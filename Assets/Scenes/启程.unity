@@ -10310,6 +10310,7 @@ GameObject:
   - component: {fileID: 1463521069}
   - component: {fileID: 1463521068}
   - component: {fileID: 1463521070}
+  - component: {fileID: 1463521071}
   m_Layer: 5
   m_Name: "\u672A\u9009\u62E9\u56FE\u7247"
   m_TagString: Untagged
@@ -10430,6 +10431,32 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+      - m_Target: {fileID: 1463521071}
+        m_TargetAssemblyTypeName: OpenCharacterSelect, Assembly-CSharp
+        m_MethodName: OpenPanel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+--- !u!114 &1463521071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1463521066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 767bf7ee493b4044c9bc18ddb10df9de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  characterPanel: {fileID: 2122602656}
+  offset: {x: 300, y: 0}
 --- !u!1 &1463606728
 GameObject:
   m_ObjectHideFlags: 0
