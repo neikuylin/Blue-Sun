@@ -194,6 +194,18 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         if (portraitDisplay != null)
         {
             info.portraitImage = portraitDisplay.GetComponent<Image>();
+            if (info.portraitImage != null)
+            {
+                info.portraitImage.raycastTarget = false;
+            }
+
+            CanvasGroup cg = portraitDisplay.GetComponent<CanvasGroup>();
+            if (cg == null)
+            {
+                cg = portraitDisplay.gameObject.AddComponent<CanvasGroup>();
+            }
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
         }
 
         return info;
@@ -284,10 +296,10 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             return;
         }
 
-        if (IsCharacterUsedByOtherSlot(characterId, currentSlot))
+        SlotInfo occupiedSlot = FindOtherSlotByCharacter(characterId, currentSlot);
+        if (occupiedSlot != null)
         {
-            Debug.Log("Character already selected in another slot: " + characterId);
-            return;
+            ResetSlotToInitialState(occupiedSlot);
         }
 
         if (!portraitLibrary.TryGetValue(characterId, out Sprite portrait) || portrait == null)
@@ -301,6 +313,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         ApplyPortraitLayout(currentSlot.portraitImage, characterId);
         currentSlot.portraitImage.color = Color.white;
         currentSlot.portraitImage.preserveAspect = true;
+        currentSlot.portraitImage.raycastTarget = false;
         currentSlot.portraitImage.gameObject.SetActive(true);
 
         if (currentSlot.unselectedObject != null)
@@ -336,7 +349,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         rt.localScale = layout.localScale;
     }
 
-    private bool IsCharacterUsedByOtherSlot(string characterId, SlotInfo targetSlot)
+    private SlotInfo FindOtherSlotByCharacter(string characterId, SlotInfo targetSlot)
     {
         for (int i = 0; i < slots.Count; i++)
         {
@@ -348,11 +361,32 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
             if (slot.selectedCharacterId == characterId)
             {
-                return true;
+                return slot;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    private static void ResetSlotToInitialState(SlotInfo slot)
+    {
+        if (slot == null)
+        {
+            return;
+        }
+
+        slot.selectedCharacterId = null;
+
+        if (slot.portraitImage != null)
+        {
+            slot.portraitImage.sprite = null;
+            slot.portraitImage.gameObject.SetActive(false);
+        }
+
+        if (slot.unselectedObject != null)
+        {
+            slot.unselectedObject.SetActive(true);
+        }
     }
 
     private static Transform FindAnyObjectByName(string objectName)
@@ -369,3 +403,5 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
+
+
