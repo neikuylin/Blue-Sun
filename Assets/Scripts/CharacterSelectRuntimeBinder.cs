@@ -8,9 +8,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private const string SlotRootName = "玩家栏位按钮";
     private const string AvatarButtonName = "头像按钮";
     private const string UnselectedName = "未选择图片";
-    private const string SelectedImageName = "选择图片";
     private const string PortraitDisplayName = "角色头像显示";
-    private const string PortraitDisplayAltName = "角色头像容器";
     private const string PortraitReferenceRootName = "栏位引用头像";
     private const string CharacterPanelName = "角色选择";
 
@@ -32,7 +30,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private readonly Dictionary<string, PortraitLayout> portraitLayoutLibrary = new Dictionary<string, PortraitLayout>();
     private SlotInfo currentSlot;
 
-
     private struct PortraitLayout
     {
         public Vector2 anchorMin;
@@ -42,10 +39,9 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         public Vector2 sizeDelta;
         public Vector3 localScale;
     }
+
     private class SlotInfo
     {
-        public string name;
-        public Transform root;
         public List<Button> selectButtons = new List<Button>();
         public GameObject unselectedObject;
         public Image portraitImage;
@@ -99,7 +95,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
 
             SlotInfo slot = BuildSlotInfo(tr);
-            if (slot == null || slot.portraitImage == null)
+            if (slot == null || slot.portraitImage == null || slot.selectButtons.Count == 0)
             {
                 continue;
             }
@@ -112,7 +108,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
         }
 
-        BuildPortraitLibrary(allTransforms);
+        BuildPortraitLibrary();
         BindAvatarSelectors(allTransforms);
 
         if (slots.Count > 0)
@@ -140,13 +136,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
 
             Button button = tr.GetComponent<Button>();
-            Toggle toggle = tr.GetComponent<Toggle>();
-
-            if (button == null && toggle == null)
-            {
-                button = EnsureButton(tr);
-            }
-
             if (button != null)
             {
                 button.onClick = new Button.ButtonClickedEvent();
@@ -154,6 +143,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                 button.onClick.AddListener(() => TryAssignCurrentSlot(capturedId));
             }
 
+            Toggle toggle = tr.GetComponent<Toggle>();
             if (toggle != null)
             {
                 toggle.onValueChanged.RemoveAllListeners();
@@ -182,8 +172,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private static SlotInfo BuildSlotInfo(Transform slotRoot)
     {
         SlotInfo info = new SlotInfo();
-        info.name = slotRoot.name;
-        info.root = slotRoot;
 
         Transform unselected = FindChildByName(slotRoot, UnselectedName);
         if (unselected != null)
@@ -202,134 +190,35 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
         }
 
-        Transform selectedState = FindChildByName(slotRoot, SelectedImageName);
-        RectTransform refRect = null;
-        if (selectedState != null)
+        Transform portraitDisplay = FindChildByName(slotRoot, PortraitDisplayName);
+        if (portraitDisplay != null)
         {
-            refRect = selectedState.GetComponent<RectTransform>();
-        }
-        if (refRect == null && unselected != null)
-        {
-            refRect = unselected.GetComponent<RectTransform>();
+            info.portraitImage = portraitDisplay.GetComponent<Image>();
         }
 
-        info.portraitImage = EnsurePortraitDisplay(slotRoot, refRect);
-        HideLegacyAvatarChildren(slotRoot);
         return info;
     }
 
-    private static Image EnsurePortraitDisplay(Transform slotRoot, RectTransform referenceRect)
-    {
-        Transform existing = FindPortraitDisplay(slotRoot);
-        Image img;
-        bool createdNow = false;
-
-        if (existing != null)
-        {
-            img = existing.GetComponent<Image>();
-            if (img == null)
-            {
-                img = existing.gameObject.AddComponent<Image>();
-            }
-        }
-        else
-        {
-            GameObject go = new GameObject(PortraitDisplayName);
-            go.transform.SetParent(slotRoot, false);
-            go.AddComponent<CanvasRenderer>();
-            img = go.AddComponent<Image>();
-            createdNow = true;
-            Debug.LogWarning($"[{slotRoot.name}] missing '{PortraitDisplayName}', created temporary one. You can create it in edit mode and position it manually.");
-        }
-
-        RectTransform rt = img.rectTransform;
-        if (createdNow && referenceRect != null)
-        {
-            rt.anchorMin = referenceRect.anchorMin;
-            rt.anchorMax = referenceRect.anchorMax;
-            rt.pivot = referenceRect.pivot;
-            rt.anchoredPosition = referenceRect.anchoredPosition;
-            rt.sizeDelta = referenceRect.sizeDelta;
-            rt.localScale = Vector3.one;
-        }
-        else if (createdNow)
-        {
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(180f, 179f);
-            rt.localScale = Vector3.one;
-        }
-
-        img.raycastTarget = false;
-        img.preserveAspect = true;
-        img.gameObject.SetActive(false);
-        return img;
-    }
-
-    private static Transform FindPortraitDisplay(Transform slotRoot)
-    {
-        Transform t = FindChildByName(slotRoot, PortraitDisplayName);
-        if (t != null)
-        {
-            return t;
-        }
-
-        return FindChildByName(slotRoot, PortraitDisplayAltName);
-    }
-
-    private void BuildPortraitLibrary(Transform[] allTransforms)
+    private void BuildPortraitLibrary()
     {
         Transform portraitRoot = FindAnyObjectByName(PortraitReferenceRootName);
-        if (portraitRoot != null)
+        if (portraitRoot == null)
         {
-            Image[] images = portraitRoot.GetComponentsInChildren<Image>(true);
-            for (int i = 0; i < images.Length; i++)
-            {
-                Image img = images[i];
-                if (img == null || img.sprite == null)
-                {
-                    continue;
-                }
-
-                string id = ResolveCharacterIdFromObjectName(img.gameObject.name);
-                if (string.IsNullOrEmpty(id) || portraitLibrary.ContainsKey(id))
-                {
-                    continue;
-                }
-
-                portraitLibrary[id] = img.sprite;
-                RectTransform rt = img.rectTransform;
-                portraitLayoutLibrary[id] = new PortraitLayout
-                {
-                    anchorMin = rt.anchorMin,
-                    anchorMax = rt.anchorMax,
-                    pivot = rt.pivot,
-                    anchoredPosition = rt.anchoredPosition,
-                    sizeDelta = rt.sizeDelta,
-                    localScale = rt.localScale,
-                };
-            }
-        }
-
-        if (portraitLibrary.Count > 0)
-        {
+            Debug.LogWarning($"Portrait source root not found: {PortraitReferenceRootName}");
             return;
         }
 
-        // Fallback for old scene setup.
-        for (int i = 0; i < allTransforms.Length; i++)
+        Image[] images = portraitRoot.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
         {
-            Transform tr = allTransforms[i];
-            string id = ResolveCharacterIdFromObjectName(tr.name);
-            if (string.IsNullOrEmpty(id) || portraitLibrary.ContainsKey(id))
+            Image img = images[i];
+            if (img == null || img.sprite == null)
             {
                 continue;
             }
 
-            Image img = tr.GetComponent<Image>();
-            if (img == null || img.sprite == null)
+            string id = ResolveCharacterIdFromObjectName(img.gameObject.name);
+            if (string.IsNullOrEmpty(id) || portraitLibrary.ContainsKey(id))
             {
                 continue;
             }
@@ -372,37 +261,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         return string.Empty;
-    }
-
-    private static Button EnsureButton(Transform root)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        Button btn = root.GetComponent<Button>();
-        if (btn == null)
-        {
-            btn = root.gameObject.AddComponent<Button>();
-            btn.transition = Selectable.Transition.None;
-        }
-
-        if (btn.targetGraphic == null)
-        {
-            Image img = root.GetComponent<Image>();
-            if (img == null)
-            {
-                img = root.GetComponentInChildren<Image>(true);
-            }
-
-            if (img != null)
-            {
-                btn.targetGraphic = img;
-            }
-        }
-
-        return btn;
     }
 
     private static Transform FindChildByName(Transform root, string childName)
@@ -457,7 +315,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
     }
 
-
     private void ApplyPortraitLayout(Image target, string characterId)
     {
         if (target == null)
@@ -478,6 +335,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         rt.sizeDelta = layout.sizeDelta;
         rt.localScale = layout.localScale;
     }
+
     private bool IsCharacterUsedByOtherSlot(string characterId, SlotInfo targetSlot)
     {
         for (int i = 0; i < slots.Count; i++)
@@ -497,26 +355,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return false;
     }
 
-    private static void HideLegacyAvatarChildren(Transform slotRoot)
-    {
-        Transform[] children = slotRoot.GetComponentsInChildren<Transform>(true);
-        for (int i = 0; i < children.Length; i++)
-        {
-            string name = children[i].name;
-            if (!name.Contains("头像"))
-            {
-                continue;
-            }
-
-            if (name.StartsWith(AvatarButtonName))
-            {
-                continue;
-            }
-
-            children[i].gameObject.SetActive(false);
-        }
-    }
-
     private static Transform FindAnyObjectByName(string objectName)
     {
         Transform[] all = FindObjectsOfType<Transform>(true);
@@ -531,4 +369,3 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
-
