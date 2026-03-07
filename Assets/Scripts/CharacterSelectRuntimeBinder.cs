@@ -6,32 +6,38 @@ using UnityEngine.UI;
 public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
     private const string SlotRootName = "玩家栏位按钮";
+    private const string MainSlotRootName = "主角栏位按钮";
     private const string AvatarButtonName = "头像按钮";
     private const string UnselectedName = "未选择图片";
+    private const string SelectedImageName = "选择图片";
     private const string PortraitDisplayName = "角色头像显示";
     private const string PortraitReferenceRootName = "栏位引用头像";
     private const string CharacterPanelName = "角色选择";
+    private const string BackgroundPortraitRootName = "角色背景框立绘";
 
     private const string IdSolana = "solana";
     private const string IdKulus = "kulus";
     private const string IdSesha = "sesha";
-    private const string IdHuman = "human";
+    private const string IdAlice = "alice";
+    private const string IdPlayer = "player";
 
     private static readonly Color AvailableColor = Color.white;
     private static readonly Color OccupiedColor = new Color(100f / 255f, 100f / 255f, 100f / 255f, 1f);
 
     private static readonly Dictionary<string, string[]> CharacterNameAliases = new Dictionary<string, string[]>
     {
-        { IdSolana, new[] { "索拉娜头像", "索拉娜", "选择索拉娜头像", "选择索拉娜" } },
-        { IdKulus, new[] { "库鲁斯头像", "库鲁斯", "选择库鲁斯头像", "选择库鲁斯" } },
-        { IdSesha, new[] { "瑟莎头像", "瑟莎", "选择瑟莎头像", "选择瑟莎" } },
-        { IdHuman, new[] { "人类头像（暂用爱丽丝）", "人类（暂用爱丽丝）", "选择人类头像", "选择人类" } },
+        { IdSolana, new[] { "索拉娜头像", "索拉娜", "选择索拉娜头像", "选择索拉娜", "索拉娜立绘" } },
+        { IdKulus, new[] { "库鲁斯头像", "库鲁斯", "选择库鲁斯头像", "选择库鲁斯", "库鲁斯立绘" } },
+        { IdSesha, new[] { "瑟莎头像", "瑟莎", "选择瑟莎头像", "选择瑟莎", "瑟莎立绘" } },
+        { IdAlice, new[] { "人类头像（暂用爱丽丝）", "人类（暂用爱丽丝）", "选择人类头像", "选择人类", "爱丽丝", "爱丽丝立绘" } },
+        { IdPlayer, new[] { "玩家", "主角", "玩家立绘", "主角立绘" } },
     };
 
     private readonly List<SlotInfo> slots = new List<SlotInfo>();
     private readonly Dictionary<string, Sprite> portraitLibrary = new Dictionary<string, Sprite>();
     private readonly Dictionary<string, PortraitLayout> portraitLayoutLibrary = new Dictionary<string, PortraitLayout>();
     private readonly List<AvatarVisualRef> avatarVisuals = new List<AvatarVisualRef>();
+    private readonly Dictionary<string, List<GameObject>> backgroundPortraitByCharacter = new Dictionary<string, List<GameObject>>();
 
     private SlotInfo currentSlot;
 
@@ -47,6 +53,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private class SlotInfo
     {
+        public bool isMainSlot;
+        public List<Toggle> toggles = new List<Toggle>();
         public List<Button> selectButtons = new List<Button>();
         public GameObject unselectedObject;
         public Image portraitImage;
@@ -96,6 +104,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         portraitLibrary.Clear();
         portraitLayoutLibrary.Clear();
         avatarVisuals.Clear();
+        backgroundPortraitByCharacter.Clear();
         currentSlot = null;
 
         Transform[] allTransforms = FindObjectsOfType<Transform>(true);
@@ -103,13 +112,13 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         for (int i = 0; i < allTransforms.Length; i++)
         {
             Transform tr = allTransforms[i];
-            if (!IsNumberedSlotRoot(tr.name))
+            if (!IsManagedSlotRoot(tr.name))
             {
                 continue;
             }
 
             SlotInfo slot = BuildSlotInfo(tr);
-            if (slot == null || slot.portraitImage == null || slot.selectButtons.Count == 0)
+            if (slot == null || (!slot.isMainSlot && slot.portraitImage == null))
             {
                 continue;
             }
@@ -120,9 +129,30 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             {
                 slot.selectButtons[b].onClick.AddListener(() => SetCurrentSlot(capturedSlot));
             }
+
+            for (int t = 0; t < slot.toggles.Count; t++)
+            {
+                Toggle toggle = slot.toggles[t];
+                if (toggle == null)
+                {
+                    continue;
+                }
+
+                toggle.onValueChanged.AddListener(isOn =>
+                {
+                    if (!isOn)
+                    {
+                        return;
+                    }
+
+                    SetCurrentSlot(capturedSlot);
+                    UpdateBackgroundPortraitForSlot(capturedSlot);
+                });
+            }
         }
 
         BuildPortraitLibrary();
+        BuildBackgroundPortraitLibrary();
         BindAvatarSelectors(allTransforms);
 
         if (slots.Count > 0)
@@ -130,6 +160,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             SetCurrentSlot(slots[0]);
         }
 
+        RefreshBackgroundPortraitFromActiveToggle();
         Debug.Log($"CharacterSelectRuntimeBinder slots={slots.Count}, portraits={portraitLibrary.Count}, layouts={portraitLayoutLibrary.Count}");
     }
 
@@ -164,7 +195,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                     continue;
                 }
 
-                // Do not recolor the avatar button's own Image, only child images.
                 if (allImages[ci].gameObject == tr.gameObject)
                 {
                     continue;
@@ -187,7 +217,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                     characterId = characterId,
                     images = visualImages,
                     originalColors = originals,
-                    // 头像按钮1是不可调用项，保持它本身的暗色，不参与占用变暗逻辑。
                     keepOriginalColor = tr.name.EndsWith("1"),
                 });
             }
@@ -253,6 +282,16 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return name.StartsWith(SlotRootName + " (") && name.EndsWith(")");
     }
 
+    private static bool IsMainSlotRoot(string name)
+    {
+        return name == MainSlotRootName;
+    }
+
+    private static bool IsManagedSlotRoot(string name)
+    {
+        return IsNumberedSlotRoot(name) || IsMainSlotRoot(name);
+    }
+
     private static bool IsAvatarButton(string name)
     {
         return name.StartsWith(AvatarButtonName);
@@ -260,7 +299,32 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private static SlotInfo BuildSlotInfo(Transform slotRoot)
     {
-        SlotInfo info = new SlotInfo();
+        SlotInfo info = new SlotInfo
+        {
+            isMainSlot = IsMainSlotRoot(slotRoot.name)
+        };
+
+        Transform selected = FindChildByName(slotRoot, SelectedImageName);
+        if (selected != null)
+        {
+            Toggle[] selectedToggles = selected.GetComponentsInChildren<Toggle>(true);
+            for (int i = 0; i < selectedToggles.Length; i++)
+            {
+                if (!info.toggles.Contains(selectedToggles[i]))
+                {
+                    info.toggles.Add(selectedToggles[i]);
+                }
+            }
+        }
+
+        Toggle[] allSlotToggles = slotRoot.GetComponentsInChildren<Toggle>(true);
+        for (int i = 0; i < allSlotToggles.Length; i++)
+        {
+            if (!info.toggles.Contains(allSlotToggles[i]))
+            {
+                info.toggles.Add(allSlotToggles[i]);
+            }
+        }
 
         Transform unselected = FindChildByName(slotRoot, UnselectedName);
         if (unselected != null)
@@ -339,12 +403,40 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void BuildBackgroundPortraitLibrary()
+    {
+        Transform backgroundRoot = FindAnyObjectByName(BackgroundPortraitRootName);
+        if (backgroundRoot == null)
+        {
+            Debug.LogWarning($"Background portrait root not found: {BackgroundPortraitRootName}");
+            return;
+        }
+
+        for (int i = 0; i < backgroundRoot.childCount; i++)
+        {
+            Transform child = backgroundRoot.GetChild(i);
+            string characterId = ResolveCharacterIdFromObjectName(child.name);
+            if (string.IsNullOrEmpty(characterId))
+            {
+                continue;
+            }
+
+            if (!backgroundPortraitByCharacter.TryGetValue(characterId, out List<GameObject> list))
+            {
+                list = new List<GameObject>();
+                backgroundPortraitByCharacter[characterId] = list;
+            }
+
+            list.Add(child.gameObject);
+        }
+    }
+
     private static string ResolveCharacterId(string avatarButtonName)
     {
         if (avatarButtonName.EndsWith("2")) return IdSolana;
         if (avatarButtonName.EndsWith("3")) return IdKulus;
         if (avatarButtonName.EndsWith("4")) return IdSesha;
-        if (avatarButtonName.EndsWith("5")) return IdHuman;
+        if (avatarButtonName.EndsWith("5")) return IdAlice;
         if (avatarButtonName.EndsWith("1")) return IdSolana;
         return string.Empty;
     }
@@ -381,7 +473,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void TryAssignCurrentSlot(string characterId)
     {
-        if (currentSlot == null)
+        if (currentSlot == null || currentSlot.isMainSlot || currentSlot.portraitImage == null)
         {
             return;
         }
@@ -418,6 +510,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         RefreshAvatarAvailabilityVisuals();
+        RefreshBackgroundPortraitFromActiveToggle();
     }
 
     private void ApplyPortraitLayout(Image target, string characterId)
@@ -439,6 +532,90 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         rt.anchoredPosition = layout.anchoredPosition;
         rt.sizeDelta = layout.sizeDelta;
         rt.localScale = layout.localScale;
+    }
+
+    private void RefreshBackgroundPortraitFromActiveToggle()
+    {
+        SlotInfo activeSlot = FindToggleOnSlot();
+        if (activeSlot == null)
+        {
+            ShowBackgroundPortrait(string.Empty);
+            return;
+        }
+
+        UpdateBackgroundPortraitForSlot(activeSlot);
+    }
+
+    private SlotInfo FindToggleOnSlot()
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            SlotInfo slot = slots[i];
+            for (int t = 0; t < slot.toggles.Count; t++)
+            {
+                Toggle toggle = slot.toggles[t];
+                if (toggle != null && toggle.isOn)
+                {
+                    return slot;
+                }
+            }
+        }
+
+        return currentSlot;
+    }
+
+    private void UpdateBackgroundPortraitForSlot(SlotInfo slot)
+    {
+        if (slot == null)
+        {
+            ShowBackgroundPortrait(string.Empty);
+            return;
+        }
+
+        string characterId = ResolveCharacterIdForSlot(slot);
+        ShowBackgroundPortrait(characterId);
+    }
+
+    private string ResolveCharacterIdForSlot(SlotInfo slot)
+    {
+        if (slot.isMainSlot)
+        {
+            return IdPlayer;
+        }
+
+        if (!string.IsNullOrEmpty(slot.selectedCharacterId))
+        {
+            return slot.selectedCharacterId;
+        }
+
+        if (slot.portraitImage != null && slot.portraitImage.sprite != null)
+        {
+            foreach (KeyValuePair<string, Sprite> kv in portraitLibrary)
+            {
+                if (kv.Value == slot.portraitImage.sprite)
+                {
+                    return kv.Key;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private void ShowBackgroundPortrait(string characterId)
+    {
+        foreach (KeyValuePair<string, List<GameObject>> kv in backgroundPortraitByCharacter)
+        {
+            bool shouldShow = !string.IsNullOrEmpty(characterId) && kv.Key == characterId;
+            List<GameObject> list = kv.Value;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] != null)
+                {
+                    list[i].SetActive(shouldShow);
+                }
+            }
+        }
     }
 
     private SlotInfo FindOtherSlotByCharacter(string characterId, SlotInfo targetSlot)
@@ -514,6 +691,4 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
-
-
 
