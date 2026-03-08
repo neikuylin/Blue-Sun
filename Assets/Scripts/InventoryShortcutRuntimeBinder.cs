@@ -664,7 +664,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             widget.icon.sprite = hasItem ? data.icon : widget.iconOriginalSprite;
 
             Color c = widget.iconOriginalColor;
-            c.a = hasItem ? widget.iconOriginalColor.a : 0.35f;
+            c.a = widget.iconOriginalColor.a;
             widget.icon.color = c;
             return;
         }
@@ -700,6 +700,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
 
 
 
