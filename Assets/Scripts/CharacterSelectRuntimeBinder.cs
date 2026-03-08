@@ -1,22 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
 public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
     [SerializeField] private string playerCharacterId = "玩家";
-    [SerializeField] private Color availableColor = Color.white;
-    [SerializeField] private Color occupiedColor = new Color(100f / 255f, 100f / 255f, 100f / 255f, 1f);
 
     private readonly List<CharacterSlotView> slots = new List<CharacterSlotView>();
     private readonly List<CharacterSelectEntry> entries = new List<CharacterSelectEntry>();
-    private readonly Dictionary<CharacterSelectEntry, Graphic[]> entryVisuals = new Dictionary<CharacterSelectEntry, Graphic[]>();
     private readonly List<Action> unbindActions = new List<Action>();
-
     private readonly List<ModalCanvasPatch> modalCanvasPatches = new List<ModalCanvasPatch>();
 
     private CharacterSlotView currentSlot;
@@ -98,16 +94,13 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             SetCurrentSlot(slots[0]);
         }
 
-        RefreshAvatarAvailabilityVisuals();
         RefreshDisplayByActiveToggle();
-        Debug.Log($"CharacterSelectRuntimeBinder slots={slots.Count}, entries={entries.Count}");
     }
 
     private void CollectComponents()
     {
         slots.Clear();
         entries.Clear();
-        entryVisuals.Clear();
         currentSlot = null;
 
         CharacterSlotView[] foundSlots = FindObjectsOfType<CharacterSlotView>(true);
@@ -132,52 +125,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
 
             entries.Add(entry);
-            entryVisuals[entry] = ResolveAvailabilityVisuals(entry);
         }
-    }
-
-    private Graphic[] ResolveAvailabilityVisuals(CharacterSelectEntry entry)
-    {
-        List<Graphic> visuals = new List<Graphic>();
-        for (int i = 0; i < entry.availabilityVisuals.Count; i++)
-        {
-            if (entry.availabilityVisuals[i] != null)
-            {
-                visuals.Add(entry.availabilityVisuals[i]);
-            }
-        }
-
-        if (visuals.Count > 0)
-        {
-            return visuals.ToArray();
-        }
-
-        Transform root = null;
-        if (entry.selectButton != null)
-        {
-            root = entry.selectButton.transform;
-        }
-        else if (entry.selectToggle != null)
-        {
-            root = entry.selectToggle.transform;
-        }
-
-        if (root == null)
-        {
-            return Array.Empty<Graphic>();
-        }
-
-        Graphic[] auto = root.GetComponentsInChildren<Graphic>(true);
-        List<Graphic> filtered = new List<Graphic>();
-        for (int i = 0; i < auto.Length; i++)
-        {
-            if (auto[i] != null)
-            {
-                filtered.Add(auto[i]);
-            }
-        }
-
-        return filtered.ToArray();
     }
 
     private void BindSlotListeners()
@@ -231,29 +179,16 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         {
             CharacterSelectEntry entry = entries[i];
             string capturedId = entry.characterId;
+            Button btn = entry.selectButton;
 
-            if (entry.selectButton != null)
+            if (btn == null)
             {
-                Button btn = entry.selectButton;
-                UnityAction onClick = delegate { TryAssignCurrentSlot(capturedId); };
-                btn.onClick.AddListener(onClick);
-                unbindActions.Add(delegate { if (btn != null) btn.onClick.RemoveListener(onClick); });
+                continue;
             }
 
-            if (entry.selectToggle != null)
-            {
-                Toggle toggle = entry.selectToggle;
-                UnityAction<bool> onChanged = delegate (bool isOn)
-                {
-                    if (isOn)
-                    {
-                        TryAssignCurrentSlot(capturedId);
-                    }
-                };
-
-                toggle.onValueChanged.AddListener(onChanged);
-                unbindActions.Add(delegate { if (toggle != null) toggle.onValueChanged.RemoveListener(onChanged); });
-            }
+            UnityAction onClick = delegate { TryAssignCurrentSlot(capturedId); };
+            btn.onClick.AddListener(onClick);
+            unbindActions.Add(delegate { if (btn != null) btn.onClick.RemoveListener(onClick); });
         }
     }
 
@@ -270,7 +205,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private void SetCurrentSlot(CharacterSlotView slot)
     {
         currentSlot = slot;
-        RefreshAvatarAvailabilityVisuals();
     }
 
     private void OnCharacterPanelClosed(OpenCharacterSelect opener)
@@ -285,6 +219,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             ExitModalSelection(false);
         }
     }
+
     private void OnCharacterPanelOpened(OpenCharacterSelect opener)
     {
         if (opener == null || opener.characterPanel == null)
@@ -359,6 +294,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         return null;
     }
+
     private void HandleRightClickClearSlot()
     {
         if (!Input.GetMouseButtonDown(1) || EventSystem.current == null)
@@ -396,7 +332,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             }
 
             ResetSlotToInitialState(slot);
-            RefreshAvatarAvailabilityVisuals();
             RefreshDisplayByActiveToggle();
             return;
         }
@@ -573,6 +508,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         return null;
     }
+
     private void ClearModalCanvasPatches()
     {
         for (int i = modalCanvasPatches.Count - 1; i >= 0; i--)
@@ -615,7 +551,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         CharacterSelectEntry entry = FindEntry(characterId);
         if (entry == null || entry.portraitSource == null || entry.portraitSource.sprite == null)
         {
-            Debug.LogWarning("Entry or portrait source missing for character: " + characterId);
             return;
         }
 
@@ -638,7 +573,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             currentSlot.unselectedObject.SetActive(false);
         }
 
-        RefreshAvatarAvailabilityVisuals();
         RefreshDisplayByActiveToggle();
         ExitModalSelection(true);
     }
@@ -708,24 +642,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             return playerCharacterId;
         }
 
-        if (!string.IsNullOrEmpty(slot.selectedCharacterId))
-        {
-            return slot.selectedCharacterId;
-        }
-
-        if (slot.portraitImage != null && slot.portraitImage.sprite != null)
-        {
-            for (int i = 0; i < entries.Count; i++)
-            {
-                CharacterSelectEntry entry = entries[i];
-                if (entry != null && entry.portraitSource != null && entry.portraitSource.sprite == slot.portraitImage.sprite)
-                {
-                    return entry.characterId;
-                }
-            }
-        }
-
-        return string.Empty;
+        return string.IsNullOrEmpty(slot.selectedCharacterId) ? string.Empty : slot.selectedCharacterId;
     }
 
     private void ShowBackgroundPortrait(string characterId)
@@ -745,34 +662,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                 if (go != null)
                 {
                     go.SetActive(shouldShow);
-                }
-            }
-        }
-    }
-
-    private void RefreshAvatarAvailabilityVisuals()
-    {
-        for (int i = 0; i < entries.Count; i++)
-        {
-            CharacterSelectEntry entry = entries[i];
-            if (entry == null || entry.keepOriginalColor)
-            {
-                continue;
-            }
-
-            bool occupiedByOther = IsCharacterUsedByOtherSlot(entry.characterId, currentSlot);
-            Color target = occupiedByOther ? occupiedColor : availableColor;
-
-            if (!entryVisuals.TryGetValue(entry, out Graphic[] visuals))
-            {
-                continue;
-            }
-
-            for (int j = 0; j < visuals.Length; j++)
-            {
-                if (visuals[j] != null)
-                {
-                    visuals[j].color = target;
                 }
             }
         }
@@ -818,25 +707,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
     }
 
-    private bool IsCharacterUsedByOtherSlot(string characterId, CharacterSlotView targetSlot)
-    {
-        for (int i = 0; i < slots.Count; i++)
-        {
-            CharacterSlotView slot = slots[i];
-            if (slot == targetSlot)
-            {
-                continue;
-            }
-
-            if (string.Equals(slot.selectedCharacterId, characterId, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private CharacterSelectEntry FindEntry(string characterId)
     {
         for (int i = 0; i < entries.Count; i++)
@@ -851,8 +721,4 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
-
-
-
-
 
