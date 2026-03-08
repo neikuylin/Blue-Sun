@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -19,6 +19,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public bool IsEmpty => icon == null && string.IsNullOrEmpty(itemId) && count <= 0;
     }
 
+    private enum SlotKind
+    {
+        Warehouse,
+        Backpack,
+        Equipment
+    }
+
+    private struct SlotRef
+    {
+        public SlotKind kind;
+        public int index;
+    }
+
     private sealed class SlotWidget
     {
         public RectTransform root;
@@ -29,24 +42,64 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Sprite iconOriginalSprite;
     }
 
-    private const string WarehouseContainerPath = "UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
+    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+    {
+        private InventoryShortcutRuntimeBinder owner;
+        private SlotKind kind;
+        private int index;
+
+        public void Configure(InventoryShortcutRuntimeBinder binder, SlotKind slotKind, int slotIndex)
+        {
+            owner = binder;
+            kind = slotKind;
+            index = slotIndex;
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            owner?.HandleBeginDrag(kind, index, eventData);
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            owner?.HandleDrag(eventData);
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            owner?.HandleEndDrag();
+        }
+
+        public void OnDrop(PointerEventData eventData)
+        {
+            owner?.HandleDrop(kind, index);
+        }
+    }
+
+    private const string WarehouseContainerPath = "UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
+    private const string BackpackContainerPath = "UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
+    private const string EquipmentContainerPath = "UI控制器/目录/角色页面/左边栏位/装备栏位";
     private const string QuickAnchorPath = "UI控制器/目录/角色页面/右边栏位/格子区域";
-    private const string RightBarPath = "UI控制器/目录/角色页面/右边栏位";
-    private const string RightBarName = "右边栏位";
-    private const string QuickAnchorName = "格子区域";
     private const string SlotNameKeyword = "格子";
 
     private static InventoryShortcutRuntimeBinder instance;
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
+    private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
+    private readonly List<ItemSlotData> equipmentData = new List<ItemSlotData>();
+
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
+    private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
+    private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
-    private readonly List<Action> unbindActions = new List<Action>();
 
-    private int[] quickToWarehouseIndex = Array.Empty<int>();
-    private int selectedWarehouseIndex = -1;
+    private bool isDragging;
+    private SlotRef draggingSource;
+    private Canvas dragCanvas;
+    private RectTransform dragIconRoot;
+    private Image dragIconImage;
 
-    public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
+    public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -64,43 +117,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static bool TryGetWarehouseSlotData(int index, out ItemSlotData data)
     {
         data = default;
-        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        if (instance == null || index < 0 || index >= instance.backpackData.Count)
         {
             return false;
         }
 
-        data = instance.warehouseData[index];
+        data = instance.backpackData[index];
         return true;
     }
 
     public static bool TrySetWarehouseSlotData(int index, ItemSlotData data)
     {
-        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        if (instance == null || index < 0 || index >= instance.backpackData.Count)
         {
             return false;
         }
 
-        instance.warehouseData[index] = data;
-        instance.RefreshWarehouseSlot(index);
-        instance.RefreshQuickSlotsBySource(index);
-        return true;
-    }
-
-    public static bool TrySwapWarehouseSlotData(int a, int b)
-    {
-        if (instance == null || a < 0 || b < 0 || a >= instance.warehouseData.Count || b >= instance.warehouseData.Count)
-        {
-            return false;
-        }
-
-        ItemSlotData tmp = instance.warehouseData[a];
-        instance.warehouseData[a] = instance.warehouseData[b];
-        instance.warehouseData[b] = tmp;
-
-        instance.RefreshWarehouseSlot(a);
-        instance.RefreshWarehouseSlot(b);
-        instance.RefreshQuickSlotsBySource(a);
-        instance.RefreshQuickSlotsBySource(b);
+        instance.backpackData[index] = data;
+        instance.RefreshBackpackSlot(index);
+        instance.RefreshQuickSlot(index);
         return true;
     }
 
@@ -113,9 +148,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         int remain = count;
 
-        for (int i = 0; i < instance.warehouseData.Count && remain > 0; i++)
+        for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
         {
-            ItemSlotData slot = instance.warehouseData[i];
+            ItemSlotData slot = instance.backpackData[i];
             if (slot.IsEmpty || slot.itemId != itemId)
             {
                 continue;
@@ -131,22 +166,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             slot.count += add;
             slot.icon = icon;
             slot.maxStack = cap;
-            instance.warehouseData[i] = slot;
+            instance.backpackData[i] = slot;
             remain -= add;
-            instance.RefreshWarehouseSlot(i);
-            instance.RefreshQuickSlotsBySource(i);
+            instance.RefreshBackpackSlot(i);
+            instance.RefreshQuickSlot(i);
         }
 
-        for (int i = 0; i < instance.warehouseData.Count && remain > 0; i++)
+        for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
         {
-            if (!instance.warehouseData[i].IsEmpty)
+            if (!instance.backpackData[i].IsEmpty)
             {
                 continue;
             }
 
             int cap = Mathf.Max(1, maxStack);
             int add = Mathf.Min(remain, cap);
-            instance.warehouseData[i] = new ItemSlotData
+            instance.backpackData[i] = new ItemSlotData
             {
                 itemId = itemId,
                 icon = icon,
@@ -154,21 +189,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 maxStack = cap
             };
             remain -= add;
-            instance.RefreshWarehouseSlot(i);
-            instance.RefreshQuickSlotsBySource(i);
+            instance.RefreshBackpackSlot(i);
+            instance.RefreshQuickSlot(i);
         }
 
         return remain;
     }
-
     public static bool RemoveItemAt(int slotIndex, int count)
     {
-        if (instance == null || slotIndex < 0 || slotIndex >= instance.warehouseData.Count || count <= 0)
+        if (instance == null || slotIndex < 0 || slotIndex >= instance.backpackData.Count || count <= 0)
         {
             return false;
         }
 
-        ItemSlotData slot = instance.warehouseData[slotIndex];
+        ItemSlotData slot = instance.backpackData[slotIndex];
         if (slot.IsEmpty || slot.count <= 0)
         {
             return false;
@@ -180,9 +214,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             slot = default;
         }
 
-        instance.warehouseData[slotIndex] = slot;
-        instance.RefreshWarehouseSlot(slotIndex);
-        instance.RefreshQuickSlotsBySource(slotIndex);
+        instance.backpackData[slotIndex] = slot;
+        instance.RefreshBackpackSlot(slotIndex);
+        instance.RefreshQuickSlot(slotIndex);
         return true;
     }
 
@@ -190,14 +224,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (instance == null ||
             fromSlot < 0 || toSlot < 0 ||
-            fromSlot >= instance.warehouseData.Count || toSlot >= instance.warehouseData.Count ||
+            fromSlot >= instance.backpackData.Count || toSlot >= instance.backpackData.Count ||
             fromSlot == toSlot)
         {
             return false;
         }
 
-        ItemSlotData from = instance.warehouseData[fromSlot];
-        ItemSlotData to = instance.warehouseData[toSlot];
+        ItemSlotData from = instance.backpackData[fromSlot];
+        ItemSlotData to = instance.backpackData[toSlot];
         if (from.IsEmpty)
         {
             return false;
@@ -216,22 +250,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                     from = default;
                 }
 
-                instance.warehouseData[fromSlot] = from;
-                instance.warehouseData[toSlot] = to;
-                instance.RefreshWarehouseSlot(fromSlot);
-                instance.RefreshWarehouseSlot(toSlot);
-                instance.RefreshQuickSlotsBySource(fromSlot);
-                instance.RefreshQuickSlotsBySource(toSlot);
+                instance.backpackData[fromSlot] = from;
+                instance.backpackData[toSlot] = to;
+                instance.RefreshBackpackSlot(fromSlot);
+                instance.RefreshBackpackSlot(toSlot);
+                instance.RefreshQuickSlot(fromSlot);
+                instance.RefreshQuickSlot(toSlot);
                 return true;
             }
         }
 
-        instance.warehouseData[fromSlot] = to;
-        instance.warehouseData[toSlot] = from;
-        instance.RefreshWarehouseSlot(fromSlot);
-        instance.RefreshWarehouseSlot(toSlot);
-        instance.RefreshQuickSlotsBySource(fromSlot);
-        instance.RefreshQuickSlotsBySource(toSlot);
+        instance.backpackData[fromSlot] = to;
+        instance.backpackData[toSlot] = from;
+        instance.RefreshBackpackSlot(fromSlot);
+        instance.RefreshBackpackSlot(toSlot);
+        instance.RefreshQuickSlot(fromSlot);
+        instance.RefreshQuickSlot(toSlot);
         return true;
     }
 
@@ -255,144 +289,79 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         UnbindAll();
+
         CollectWarehouseSlots();
+        CollectBackpackSlots();
+        CollectEquipmentSlots();
 
-        if (warehouseSlots.Count == 0)
-        {
-            return;
-        }
-
-        EnsureWarehouseDataSize(warehouseSlots.Count);
-        SeedWarehouseDataFromCurrentUI();
+        EnsureDataSize(warehouseData, warehouseSlots.Count);
+        EnsureDataSize(backpackData, backpackSlots.Count);
+        EnsureDataSize(equipmentData, equipmentSlots.Count);
 
         RectTransform quickAnchor = FindQuickAnchor();
-        if (quickAnchor == null)
+        if (quickAnchor != null)
         {
-            return;
+            ApplyBackpackLayoutToQuickAnchor(quickAnchor);
+            EnsureQuickSlots(quickAnchor);
+            CollectSlotsFromContainer(quickAnchor, quickSlots);
         }
 
-        ApplyWarehouseLayoutToQuickAnchor(quickAnchor);
-        EnsureQuickSlots(quickAnchor);
-        CollectSlotsFromContainer(quickAnchor, quickSlots);
-        if (quickSlots.Count == 0)
-        {
-            return;
-        }
-
-        EnsureQuickMappingSize(quickSlots.Count, warehouseSlots.Count);
-        BindSlotButtons();
-
-        selectedWarehouseIndex = 0;
+        BindDragRelays();
         RefreshAll();
     }
 
     private void CollectWarehouseSlots()
     {
         warehouseSlots.Clear();
-
         GameObject container = GameObject.Find(WarehouseContainerPath);
-        if (container == null)
+        if (container != null)
         {
-            return;
+            CollectSlotsFromContainer(container.transform, warehouseSlots);
         }
+    }
 
-        CollectSlotsFromContainer(container.transform, warehouseSlots);
+    private void CollectBackpackSlots()
+    {
+        backpackSlots.Clear();
+        GameObject container = GameObject.Find(BackpackContainerPath);
+        if (container != null)
+        {
+            CollectSlotsFromContainer(container.transform, backpackSlots);
+        }
+    }
+
+    private void CollectEquipmentSlots()
+    {
+        equipmentSlots.Clear();
+        GameObject container = GameObject.Find(EquipmentContainerPath);
+        if (container != null)
+        {
+            CollectSlotsFromContainer(container.transform, equipmentSlots);
+        }
     }
 
     private RectTransform FindQuickAnchor()
     {
-        GameObject anchorGo = GameObject.Find(QuickAnchorPath);
-        if (anchorGo != null)
-        {
-            return anchorGo.transform as RectTransform;
-        }
-
-        GameObject rightBar = GameObject.Find(RightBarPath);
-        if (rightBar == null)
-        {
-            Transform[] all = FindObjectsOfType<Transform>(true);
-            for (int i = 0; i < all.Length; i++)
-            {
-                if (all[i] != null && all[i].name == RightBarName)
-                {
-                    rightBar = all[i].gameObject;
-                    break;
-                }
-            }
-        }
-
-        if (rightBar == null)
-        {
-            return null;
-        }
-
-        Transform[] children = rightBar.GetComponentsInChildren<Transform>(true);
-        for (int i = 0; i < children.Length; i++)
-        {
-            if (children[i] != null && children[i].name == QuickAnchorName)
-            {
-                return children[i] as RectTransform;
-            }
-        }
-
-        return null;
+        GameObject anchor = GameObject.Find(QuickAnchorPath);
+        return anchor != null ? anchor.transform as RectTransform : null;
     }
 
-    private void EnsureQuickSlots(RectTransform quickAnchor)
+    private void ApplyBackpackLayoutToQuickAnchor(RectTransform quickAnchor)
     {
-        quickSlots.Clear();
-        CollectSlotsFromContainer(quickAnchor, quickSlots);
-        if (quickSlots.Count > 0)
+        if (quickAnchor == null || backpackSlots.Count == 0 || backpackSlots[0].root == null)
         {
             return;
         }
 
-        if (warehouseSlots.Count == 0)
+        RectTransform sourceContainer = backpackSlots[0].root.parent as RectTransform;
+        if (sourceContainer == null)
         {
             return;
         }
 
-        GameObject template = warehouseSlots[0].root != null ? warehouseSlots[0].root.gameObject : null;
-        if (template == null)
-        {
-            return;
-        }
+        quickAnchor.sizeDelta = sourceContainer.sizeDelta;
 
-        GridLayoutGroup grid = quickAnchor.GetComponent<GridLayoutGroup>();
-        if (grid == null)
-        {
-            grid = quickAnchor.gameObject.AddComponent<GridLayoutGroup>();
-        }
-
-        int createCount = warehouseSlots.Count;
-        for (int i = 0; i < createCount; i++)
-        {
-            GameObject go = Instantiate(template, quickAnchor, false);
-            go.name = "快捷格子 (" + (i + 1) + ")";
-            RectTransform rt = go.transform as RectTransform;
-            if (rt != null)
-            {
-                rt.localScale = Vector3.one;
-            }
-        }
-    }
-
-    private void ApplyWarehouseLayoutToQuickAnchor(RectTransform quickAnchor)
-    {
-        if (quickAnchor == null || warehouseSlots.Count == 0 || warehouseSlots[0].root == null)
-        {
-            return;
-        }
-
-        RectTransform warehouseContainer = warehouseSlots[0].root.parent as RectTransform;
-        if (warehouseContainer == null)
-        {
-            return;
-        }
-
-        quickAnchor.sizeDelta = warehouseContainer.sizeDelta;
-
-        GridLayoutGroup source = warehouseContainer.GetComponent<GridLayoutGroup>();
+        GridLayoutGroup source = sourceContainer.GetComponent<GridLayoutGroup>();
         if (source == null)
         {
             return;
@@ -412,6 +381,43 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         target.childAlignment = source.childAlignment;
         target.constraint = source.constraint;
         target.constraintCount = source.constraintCount;
+    }
+
+    private void EnsureQuickSlots(RectTransform quickAnchor)
+    {
+        quickSlots.Clear();
+        CollectSlotsFromContainer(quickAnchor, quickSlots);
+        if (quickSlots.Count == backpackSlots.Count)
+        {
+            return;
+        }
+
+        for (int i = quickAnchor.childCount - 1; i >= 0; i--)
+        {
+            Destroy(quickAnchor.GetChild(i).gameObject);
+        }
+
+        if (backpackSlots.Count == 0)
+        {
+            return;
+        }
+
+        GameObject template = backpackSlots[0].root != null ? backpackSlots[0].root.gameObject : null;
+        if (template == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < backpackSlots.Count; i++)
+        {
+            GameObject go = Instantiate(template, quickAnchor, false);
+            go.name = "快捷格子 (" + (i + 1) + ")";
+            RectTransform rt = go.transform as RectTransform;
+            if (rt != null)
+            {
+                rt.localScale = Vector3.one;
+            }
+        }
     }
 
     private static void CollectSlotsFromContainer(Transform container, List<SlotWidget> target)
@@ -457,11 +463,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private static Image FindBestIconImage(RectTransform slotRoot)
     {
-        if (slotRoot == null)
-        {
-            return null;
-        }
-
         Image[] images = slotRoot.GetComponentsInChildren<Image>(true);
         Image rootImage = slotRoot.GetComponent<Image>();
 
@@ -492,110 +493,268 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return rootImage;
     }
 
-    private void EnsureWarehouseDataSize(int size)
+    private static void EnsureDataSize(List<ItemSlotData> data, int size)
     {
-        while (warehouseData.Count < size)
+        while (data.Count < size)
         {
-            warehouseData.Add(default);
+            data.Add(default);
         }
 
-        while (warehouseData.Count > size)
+        while (data.Count > size)
         {
-            warehouseData.RemoveAt(warehouseData.Count - 1);
-        }
-    }
-
-    private void SeedWarehouseDataFromCurrentUI()
-    {
-        // 调试背包默认从“空数据”开始，避免把占位图标误识别成真实物品。
-        // 如果后续需要从存档恢复，请在外部调用 TrySet/AddItem 等接口写入真实数据。
-    }
-
-    private void EnsureQuickMappingSize(int quickCount, int warehouseCount)
-    {
-        if (quickToWarehouseIndex.Length != quickCount)
-        {
-            int[] next = new int[quickCount];
-            for (int i = 0; i < next.Length; i++)
-            {
-                next[i] = i < warehouseCount ? i : -1;
-            }
-
-            int copy = Mathf.Min(quickToWarehouseIndex.Length, next.Length);
-            for (int i = 0; i < copy; i++)
-            {
-                next[i] = quickToWarehouseIndex[i];
-            }
-
-            quickToWarehouseIndex = next;
-        }
-
-        for (int i = 0; i < quickToWarehouseIndex.Length; i++)
-        {
-            int mapped = quickToWarehouseIndex[i];
-            if (mapped < -1 || mapped >= warehouseCount)
-            {
-                quickToWarehouseIndex[i] = -1;
-            }
+            data.RemoveAt(data.Count - 1);
         }
     }
 
-    private void BindSlotButtons()
+    private void BindDragRelays()
     {
-        for (int i = 0; i < warehouseSlots.Count; i++)
+        BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse);
+        BindDragRelaysForList(backpackSlots, SlotKind.Backpack);
+        BindDragRelaysForList(equipmentSlots, SlotKind.Equipment);
+    }
+
+    private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind)
+    {
+        for (int i = 0; i < slots.Count; i++)
         {
-            int idx = i;
-            Button btn = warehouseSlots[i].button;
-            if (btn == null)
+            RectTransform root = slots[i].root;
+            if (root == null)
             {
                 continue;
             }
 
-            UnityAction onClick = delegate
+            SlotDragRelay relay = root.GetComponent<SlotDragRelay>();
+            if (relay == null)
             {
-                selectedWarehouseIndex = idx;
-                RefreshWarehouseSelectionVisual();
-            };
-
-            btn.onClick.AddListener(onClick);
-            unbindActions.Add(delegate
-            {
-                if (btn != null)
-                {
-                    btn.onClick.RemoveListener(onClick);
-                }
-            });
-        }
-
-        for (int i = 0; i < quickSlots.Count; i++)
-        {
-            int idx = i;
-            Button btn = quickSlots[i].button;
-            if (btn == null)
-            {
-                continue;
+                relay = root.gameObject.AddComponent<SlotDragRelay>();
             }
 
-            UnityAction onClick = delegate
-            {
-                if (selectedWarehouseIndex < 0 || selectedWarehouseIndex >= warehouseSlots.Count)
-                {
-                    return;
-                }
-
-                quickToWarehouseIndex[idx] = selectedWarehouseIndex;
-                RefreshQuickSlot(idx);
-            };
-
-            btn.onClick.AddListener(onClick);
-            unbindActions.Add(delegate
-            {
-                if (btn != null)
-                {
-                    btn.onClick.RemoveListener(onClick);
-                }
-            });
+            relay.Configure(this, kind, i);
         }
+    }
+
+    private void HandleBeginDrag(SlotKind kind, int index, PointerEventData eventData)
+    {
+        if (isDragging)
+        {
+            return;
+        }
+
+        SlotRef source = new SlotRef { kind = kind, index = index };
+        if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty)
+        {
+            return;
+        }
+
+        SlotWidget widget = GetWidget(source);
+        if (widget == null || widget.root == null)
+        {
+            return;
+        }
+
+        EnsureDragVisual(widget.root);
+        if (dragIconImage == null || dragIconRoot == null)
+        {
+            return;
+        }
+
+        dragIconImage.sprite = data.icon;
+        dragIconImage.color = Color.white;
+        dragIconRoot.sizeDelta = widget.root.rect.size;
+        dragIconRoot.gameObject.SetActive(true);
+        UpdateDragVisualPosition(eventData);
+
+        draggingSource = source;
+        isDragging = true;
+    }
+
+    private void HandleDrag(PointerEventData eventData)
+    {
+        if (isDragging)
+        {
+            UpdateDragVisualPosition(eventData);
+        }
+    }
+
+    private void HandleDrop(SlotKind kind, int index)
+    {
+        if (!isDragging)
+        {
+            return;
+        }
+
+        SlotRef target = new SlotRef { kind = kind, index = index };
+        if (draggingSource.kind == target.kind && draggingSource.index == target.index)
+        {
+            return;
+        }
+
+        if (!TryGetSlotData(target, out _))
+        {
+            return;
+        }
+
+        SwapSlotData(draggingSource, target);
+        RefreshByRef(draggingSource);
+        RefreshByRef(target);
+    }
+
+    private void HandleEndDrag()
+    {
+        isDragging = false;
+        if (dragIconRoot != null)
+        {
+            dragIconRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnsureDragVisual(RectTransform fromRoot)
+    {
+        if (dragIconRoot != null && dragIconImage != null)
+        {
+            return;
+        }
+
+        if (dragCanvas == null)
+        {
+            dragCanvas = fromRoot.GetComponentInParent<Canvas>();
+        }
+
+        if (dragCanvas == null)
+        {
+            return;
+        }
+
+        GameObject go = new GameObject("InventoryDragIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+        go.transform.SetParent(dragCanvas.transform, false);
+
+        dragIconRoot = go.GetComponent<RectTransform>();
+        dragIconRoot.anchorMin = new Vector2(0.5f, 0.5f);
+        dragIconRoot.anchorMax = new Vector2(0.5f, 0.5f);
+        dragIconRoot.pivot = new Vector2(0.5f, 0.5f);
+
+        dragIconImage = go.GetComponent<Image>();
+        dragIconImage.raycastTarget = false;
+
+        CanvasGroup cg = go.GetComponent<CanvasGroup>();
+        cg.blocksRaycasts = false;
+        cg.interactable = false;
+
+        go.SetActive(false);
+    }
+
+    private void UpdateDragVisualPosition(PointerEventData eventData)
+    {
+        if (dragCanvas == null || dragIconRoot == null)
+        {
+            return;
+        }
+
+        Camera uiCamera = dragCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : dragCanvas.worldCamera;
+        RectTransform canvasRect = dragCanvas.transform as RectTransform;
+        if (canvasRect == null)
+        {
+            return;
+        }
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, eventData.position, uiCamera, out Vector2 localPos))
+        {
+            dragIconRoot.anchoredPosition = localPos;
+        }
+    }
+
+    private bool TryGetSlotData(SlotRef slot, out ItemSlotData data)
+    {
+        data = default;
+        List<ItemSlotData> list = GetDataList(slot.kind);
+        if (slot.index < 0 || slot.index >= list.Count)
+        {
+            return false;
+        }
+
+        data = list[slot.index];
+        return true;
+    }
+
+    private void SetSlotData(SlotRef slot, ItemSlotData data)
+    {
+        List<ItemSlotData> list = GetDataList(slot.kind);
+        if (slot.index < 0 || slot.index >= list.Count)
+        {
+            return;
+        }
+
+        list[slot.index] = data;
+    }
+
+    private void SwapSlotData(SlotRef a, SlotRef b)
+    {
+        if (!TryGetSlotData(a, out ItemSlotData aData) || !TryGetSlotData(b, out ItemSlotData bData))
+        {
+            return;
+        }
+
+        SetSlotData(a, bData);
+        SetSlotData(b, aData);
+    }
+
+    private List<ItemSlotData> GetDataList(SlotKind kind)
+    {
+        if (kind == SlotKind.Warehouse)
+        {
+            return warehouseData;
+        }
+
+        if (kind == SlotKind.Backpack)
+        {
+            return backpackData;
+        }
+
+        return equipmentData;
+    }
+
+    private SlotWidget GetWidget(SlotRef slot)
+    {
+        List<SlotWidget> list = GetWidgetList(slot.kind);
+        if (slot.index < 0 || slot.index >= list.Count)
+        {
+            return null;
+        }
+
+        return list[slot.index];
+    }
+
+    private List<SlotWidget> GetWidgetList(SlotKind kind)
+    {
+        if (kind == SlotKind.Warehouse)
+        {
+            return warehouseSlots;
+        }
+
+        if (kind == SlotKind.Backpack)
+        {
+            return backpackSlots;
+        }
+
+        return equipmentSlots;
+    }
+
+    private void RefreshByRef(SlotRef slot)
+    {
+        if (slot.kind == SlotKind.Warehouse)
+        {
+            RefreshWarehouseSlot(slot.index);
+            return;
+        }
+
+        if (slot.kind == SlotKind.Backpack)
+        {
+            RefreshBackpackSlot(slot.index);
+            RefreshQuickSlot(slot.index);
+            return;
+        }
+
+        RefreshEquipmentSlot(slot.index);
     }
 
     private void RefreshAll()
@@ -605,50 +764,61 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshWarehouseSlot(i);
         }
 
-        for (int i = 0; i < quickSlots.Count; i++)
+        for (int i = 0; i < backpackSlots.Count; i++)
+        {
+            RefreshBackpackSlot(i);
+        }
+
+        for (int i = 0; i < equipmentSlots.Count; i++)
+        {
+            RefreshEquipmentSlot(i);
+        }
+
+        int mirrorCount = Mathf.Min(quickSlots.Count, backpackData.Count);
+        for (int i = 0; i < mirrorCount; i++)
         {
             RefreshQuickSlot(i);
         }
-
-        RefreshWarehouseSelectionVisual();
     }
 
-    private void RefreshWarehouseSlot(int warehouseIndex)
+    private void RefreshWarehouseSlot(int index)
     {
-        if (warehouseIndex < 0 || warehouseIndex >= warehouseSlots.Count || warehouseIndex >= warehouseData.Count)
+        if (index < 0 || index >= warehouseSlots.Count || index >= warehouseData.Count)
         {
             return;
         }
 
-        ApplyItemToWidget(warehouseSlots[warehouseIndex], warehouseData[warehouseIndex]);
+        ApplyItemToWidget(warehouseSlots[index], warehouseData[index]);
     }
 
-    private void RefreshQuickSlotsBySource(int sourceWarehouseIndex)
+    private void RefreshBackpackSlot(int index)
     {
-        for (int i = 0; i < quickToWarehouseIndex.Length; i++)
-        {
-            if (quickToWarehouseIndex[i] == sourceWarehouseIndex)
-            {
-                RefreshQuickSlot(i);
-            }
-        }
-    }
-
-    private void RefreshQuickSlot(int quickIndex)
-    {
-        if (quickIndex < 0 || quickIndex >= quickSlots.Count)
+        if (index < 0 || index >= backpackSlots.Count || index >= backpackData.Count)
         {
             return;
         }
 
-        int source = quickToWarehouseIndex[quickIndex];
-        if (source < 0 || source >= warehouseData.Count)
+        ApplyItemToWidget(backpackSlots[index], backpackData[index]);
+    }
+
+    private void RefreshEquipmentSlot(int index)
+    {
+        if (index < 0 || index >= equipmentSlots.Count || index >= equipmentData.Count)
         {
-            ApplyItemToWidget(quickSlots[quickIndex], default);
             return;
         }
 
-        ApplyItemToWidget(quickSlots[quickIndex], warehouseData[source]);
+        ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
+    }
+
+    private void RefreshQuickSlot(int index)
+    {
+        if (index < 0 || index >= quickSlots.Count || index >= backpackData.Count)
+        {
+            return;
+        }
+
+        ApplyItemToWidget(quickSlots[index], backpackData[index]);
     }
 
     private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
@@ -670,7 +840,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (widget.iconIsRoot)
         {
             widget.icon.sprite = hasItem ? data.icon : widget.iconOriginalSprite;
-
             Color c = widget.iconOriginalColor;
             c.a = widget.iconOriginalColor.a;
             widget.icon.color = c;
@@ -681,36 +850,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         widget.icon.gameObject.SetActive(hasItem);
     }
 
-    private void RefreshWarehouseSelectionVisual()
-    {
-        for (int i = 0; i < warehouseSlots.Count; i++)
-        {
-            SlotWidget widget = warehouseSlots[i];
-            if (widget == null || widget.root == null)
-            {
-                continue;
-            }
-
-            Vector3 scale = i == selectedWarehouseIndex ? new Vector3(1.05f, 1.05f, 1f) : Vector3.one;
-            widget.root.localScale = scale;
-        }
-    }
-
     private void UnbindAll()
     {
-        for (int i = 0; i < unbindActions.Count; i++)
-        {
-            unbindActions[i]?.Invoke();
-        }
-
-        unbindActions.Clear();
+        HandleEndDrag();
         warehouseSlots.Clear();
+        backpackSlots.Clear();
+        equipmentSlots.Clear();
         quickSlots.Clear();
     }
 }
-
-
-
-
-
 
