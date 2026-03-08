@@ -637,12 +637,22 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private string ResolveCharacterIdForSlot(CharacterSlotView slot)
     {
+        if (!string.IsNullOrEmpty(slot.selectedCharacterId))
+        {
+            return slot.selectedCharacterId;
+        }
+
+        if (!string.IsNullOrEmpty(slot.slotCharacterId))
+        {
+            return slot.slotCharacterId;
+        }
+
         if (slot.isMainSlot)
         {
             return playerCharacterId;
         }
 
-        return string.IsNullOrEmpty(slot.selectedCharacterId) ? string.Empty : slot.selectedCharacterId;
+        return string.Empty;
     }
 
     private void ShowBackgroundPortrait(string characterId)
@@ -721,4 +731,5 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
+
 
