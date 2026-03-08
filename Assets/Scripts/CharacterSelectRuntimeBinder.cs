@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
@@ -66,15 +67,17 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        if (!modalSelectionActive)
+        if (modalSelectionActive)
         {
+            if (currentCharacterPanel == null || !currentCharacterPanel.activeInHierarchy)
+            {
+                ExitModalSelection(false);
+            }
+
             return;
         }
 
-        if (currentCharacterPanel == null || !currentCharacterPanel.activeInHierarchy)
-        {
-            ExitModalSelection(false);
-        }
+        HandleRightClickClearSlot();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -355,6 +358,48 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         return null;
+    }
+    private void HandleRightClickClearSlot()
+    {
+        if (!Input.GetMouseButtonDown(1) || EventSystem.current == null)
+        {
+            return;
+        }
+
+        PointerEventData pointer = new PointerEventData(EventSystem.current)
+        {
+            position = Input.mousePosition
+        };
+
+        List<RaycastResult> hits = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointer, hits);
+
+        for (int i = 0; i < hits.Count; i++)
+        {
+            GameObject hitObject = hits[i].gameObject;
+            if (hitObject == null)
+            {
+                continue;
+            }
+
+            CharacterSlotView slot = FindSlotByTransform(hitObject.transform);
+            if (slot == null || slot.isMainSlot)
+            {
+                continue;
+            }
+
+            bool hasSelection = !string.IsNullOrEmpty(slot.selectedCharacterId) ||
+                                (slot.portraitImage != null && slot.portraitImage.sprite != null);
+            if (!hasSelection)
+            {
+                return;
+            }
+
+            ResetSlotToInitialState(slot);
+            RefreshAvatarAvailabilityVisuals();
+            RefreshDisplayByActiveToggle();
+            return;
+        }
     }
 
     private void EnterModalSelection(OpenCharacterSelect opener)
@@ -806,6 +851,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 }
+
 
 
 
