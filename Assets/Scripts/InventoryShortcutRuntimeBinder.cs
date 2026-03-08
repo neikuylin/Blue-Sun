@@ -76,10 +76,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private const string WarehouseContainerPath = "UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
-    private const string BackpackContainerPath = "UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
-    private const string EquipmentContainerPath = "UI控制器/目录/角色页面/左边栏位/装备栏位";
-    private const string QuickAnchorPath = "UI控制器/目录/角色页面/右边栏位/格子区域";
+    private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
+    private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
+    private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/左边栏位/角色背景框左/装备栏位";
+    private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
     private const string SlotNameKeyword = "格子";
 
     private static InventoryShortcutRuntimeBinder instance;
@@ -339,7 +339,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             CollectSlotsFromContainer(container.transform, equipmentSlots);
         }
     }
-
     private RectTransform FindQuickAnchor()
     {
         GameObject anchor = GameObject.Find(QuickAnchorPath);
@@ -860,6 +859,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
+
+
+
+
 
 
 
