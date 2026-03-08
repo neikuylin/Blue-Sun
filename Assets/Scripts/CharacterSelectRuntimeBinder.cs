@@ -1,73 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
-    private const string SlotRootName = "玩家栏位按钮";
-    private const string MainSlotRootName = "主角栏位按钮";
-    private const string AvatarButtonName = "头像按钮";
-    private const string UnselectedName = "未选择图片";
-    private const string SelectedImageName = "选择图片";
-    private const string PortraitDisplayName = "角色头像显示";
-    private const string PortraitReferenceRootName = "栏位引用头像";
-    private const string CharacterPanelName = "角色选择";
-    private const string BackgroundPortraitRootName = "角色背景框立绘";
+    [SerializeField] private string playerCharacterId = "玩家";
+    [SerializeField] private Color availableColor = Color.white;
+    [SerializeField] private Color occupiedColor = new Color(100f / 255f, 100f / 255f, 100f / 255f, 1f);
 
-    private const string IdSolana = "solana";
-    private const string IdKulus = "kulus";
-    private const string IdSesha = "sesha";
-    private const string IdAlice = "alice";
-    private const string IdPlayer = "player";
+    private readonly List<CharacterSlotView> slots = new List<CharacterSlotView>();
+    private readonly List<CharacterSelectEntry> entries = new List<CharacterSelectEntry>();
+    private readonly Dictionary<CharacterSelectEntry, Graphic[]> entryVisuals = new Dictionary<CharacterSelectEntry, Graphic[]>();
+    private readonly List<Action> unbindActions = new List<Action>();
 
-    private static readonly Color AvailableColor = Color.white;
-    private static readonly Color OccupiedColor = new Color(100f / 255f, 100f / 255f, 100f / 255f, 1f);
-
-    private static readonly Dictionary<string, string[]> CharacterNameAliases = new Dictionary<string, string[]>
-    {
-        { IdSolana, new[] { "索拉娜头像", "索拉娜", "选择索拉娜头像", "选择索拉娜", "索拉娜立绘" } },
-        { IdKulus, new[] { "库鲁斯头像", "库鲁斯", "选择库鲁斯头像", "选择库鲁斯", "库鲁斯立绘" } },
-        { IdSesha, new[] { "瑟莎头像", "瑟莎", "选择瑟莎头像", "选择瑟莎", "瑟莎立绘" } },
-        { IdAlice, new[] { "人类头像（暂用爱丽丝）", "人类（暂用爱丽丝）", "选择人类头像", "选择人类", "爱丽丝", "爱丽丝立绘" } },
-        { IdPlayer, new[] { "玩家", "主角", "玩家立绘", "主角立绘" } },
-    };
-
-    private readonly List<SlotInfo> slots = new List<SlotInfo>();
-    private readonly Dictionary<string, Sprite> portraitLibrary = new Dictionary<string, Sprite>();
-    private readonly Dictionary<string, PortraitLayout> portraitLayoutLibrary = new Dictionary<string, PortraitLayout>();
-    private readonly List<AvatarVisualRef> avatarVisuals = new List<AvatarVisualRef>();
-    private readonly Dictionary<string, List<GameObject>> backgroundPortraitByCharacter = new Dictionary<string, List<GameObject>>();
-
-    private SlotInfo currentSlot;
-
-    private struct PortraitLayout
-    {
-        public Vector2 anchorMin;
-        public Vector2 anchorMax;
-        public Vector2 pivot;
-        public Vector2 anchoredPosition;
-        public Vector2 sizeDelta;
-        public Vector3 localScale;
-    }
-
-    private class SlotInfo
-    {
-        public bool isMainSlot;
-        public List<Toggle> toggles = new List<Toggle>();
-        public List<Button> selectButtons = new List<Button>();
-        public GameObject unselectedObject;
-        public Image portraitImage;
-        public string selectedCharacterId;
-    }
-
-    private class AvatarVisualRef
-    {
-        public string characterId;
-        public Image[] images;
-        public Color[] originalColors;
-        public bool keepOriginalColor;
-    }
+    private CharacterSlotView currentSlot;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -91,6 +40,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        UnbindAll();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -100,45 +50,127 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
+        UnbindAll();
+        CollectComponents();
+        BindSlotListeners();
+        BindEntryListeners();
+
+        if (slots.Count > 0)
+        {
+            SetCurrentSlot(slots[0]);
+        }
+
+        RefreshAvatarAvailabilityVisuals();
+        RefreshDisplayByActiveToggle();
+        Debug.Log($"CharacterSelectRuntimeBinder slots={slots.Count}, entries={entries.Count}");
+    }
+
+    private void CollectComponents()
+    {
         slots.Clear();
-        portraitLibrary.Clear();
-        portraitLayoutLibrary.Clear();
-        avatarVisuals.Clear();
-        backgroundPortraitByCharacter.Clear();
+        entries.Clear();
+        entryVisuals.Clear();
         currentSlot = null;
 
-        Transform[] allTransforms = FindObjectsOfType<Transform>(true);
-
-        for (int i = 0; i < allTransforms.Length; i++)
+        CharacterSlotView[] foundSlots = FindObjectsOfType<CharacterSlotView>(true);
+        for (int i = 0; i < foundSlots.Length; i++)
         {
-            Transform tr = allTransforms[i];
-            if (!IsManagedSlotRoot(tr.name))
-            {
-                continue;
-            }
-
-            SlotInfo slot = BuildSlotInfo(tr);
-            if (slot == null || (!slot.isMainSlot && slot.portraitImage == null))
+            CharacterSlotView slot = foundSlots[i];
+            if (slot == null || (slot.portraitImage == null && !slot.isMainSlot))
             {
                 continue;
             }
 
             slots.Add(slot);
-            SlotInfo capturedSlot = slot;
-            for (int b = 0; b < slot.selectButtons.Count; b++)
+        }
+
+        CharacterSelectEntry[] foundEntries = FindObjectsOfType<CharacterSelectEntry>(true);
+        for (int i = 0; i < foundEntries.Length; i++)
+        {
+            CharacterSelectEntry entry = foundEntries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.characterId))
             {
-                slot.selectButtons[b].onClick.AddListener(() => SetCurrentSlot(capturedSlot));
+                continue;
             }
 
-            for (int t = 0; t < slot.toggles.Count; t++)
+            entries.Add(entry);
+            entryVisuals[entry] = ResolveAvailabilityVisuals(entry);
+        }
+    }
+
+    private Graphic[] ResolveAvailabilityVisuals(CharacterSelectEntry entry)
+    {
+        List<Graphic> visuals = new List<Graphic>();
+        for (int i = 0; i < entry.availabilityVisuals.Count; i++)
+        {
+            if (entry.availabilityVisuals[i] != null)
             {
-                Toggle toggle = slot.toggles[t];
+                visuals.Add(entry.availabilityVisuals[i]);
+            }
+        }
+
+        if (visuals.Count > 0)
+        {
+            return visuals.ToArray();
+        }
+
+        Transform root = null;
+        if (entry.selectButton != null)
+        {
+            root = entry.selectButton.transform;
+        }
+        else if (entry.selectToggle != null)
+        {
+            root = entry.selectToggle.transform;
+        }
+
+        if (root == null)
+        {
+            return Array.Empty<Graphic>();
+        }
+
+        Graphic[] auto = root.GetComponentsInChildren<Graphic>(true);
+        List<Graphic> filtered = new List<Graphic>();
+        for (int i = 0; i < auto.Length; i++)
+        {
+            if (auto[i] != null)
+            {
+                filtered.Add(auto[i]);
+            }
+        }
+
+        return filtered.ToArray();
+    }
+
+    private void BindSlotListeners()
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            CharacterSlotView capturedSlot = slot;
+
+            for (int b = 0; b < slot.selectButtons.Count; b++)
+            {
+                Button btn = slot.selectButtons[b];
+                if (btn == null)
+                {
+                    continue;
+                }
+
+                UnityAction onClick = delegate { SetCurrentSlot(capturedSlot); };
+                btn.onClick.AddListener(onClick);
+                unbindActions.Add(delegate { if (btn != null) btn.onClick.RemoveListener(onClick); });
+            }
+
+            for (int t = 0; t < slot.selectToggles.Count; t++)
+            {
+                Toggle toggle = slot.selectToggles[t];
                 if (toggle == null)
                 {
                     continue;
                 }
 
-                toggle.onValueChanged.AddListener(isOn =>
+                UnityAction<bool> onChanged = delegate (bool isOn)
                 {
                     if (!isOn)
                     {
@@ -146,329 +178,61 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                     }
 
                     SetCurrentSlot(capturedSlot);
-                    UpdateBackgroundPortraitForSlot(capturedSlot);
-                });
+                    RefreshDisplayByActiveToggle();
+                };
+
+                toggle.onValueChanged.AddListener(onChanged);
+                unbindActions.Add(delegate { if (toggle != null) toggle.onValueChanged.RemoveListener(onChanged); });
             }
         }
-
-        BuildPortraitLibrary();
-        BuildBackgroundPortraitLibrary();
-        BindAvatarSelectors(allTransforms);
-
-        if (slots.Count > 0)
-        {
-            SetCurrentSlot(slots[0]);
-        }
-
-        RefreshBackgroundPortraitFromActiveToggle();
-        Debug.Log($"CharacterSelectRuntimeBinder slots={slots.Count}, portraits={portraitLibrary.Count}, layouts={portraitLayoutLibrary.Count}");
     }
 
-    private void SetCurrentSlot(SlotInfo slot)
+    private void BindEntryListeners()
     {
-        currentSlot = slot;
-        RefreshAvatarAvailabilityVisuals();
-    }
-
-    private void BindAvatarSelectors(Transform[] allTransforms)
-    {
-        for (int i = 0; i < allTransforms.Length; i++)
+        for (int i = 0; i < entries.Count; i++)
         {
-            Transform tr = allTransforms[i];
-            if (!IsAvatarButton(tr.name))
+            CharacterSelectEntry entry = entries[i];
+            string capturedId = entry.characterId;
+
+            if (entry.selectButton != null)
             {
-                continue;
+                Button btn = entry.selectButton;
+                UnityAction onClick = delegate { TryAssignCurrentSlot(capturedId); };
+                btn.onClick.AddListener(onClick);
+                unbindActions.Add(delegate { if (btn != null) btn.onClick.RemoveListener(onClick); });
             }
 
-            string characterId = ResolveCharacterId(tr.name);
-            if (string.IsNullOrEmpty(characterId))
+            if (entry.selectToggle != null)
             {
-                continue;
-            }
-
-            Image[] allImages = tr.GetComponentsInChildren<Image>(true);
-            List<Image> childImages = new List<Image>();
-            for (int ci = 0; ci < allImages.Length; ci++)
-            {
-                if (allImages[ci] == null)
-                {
-                    continue;
-                }
-
-                if (allImages[ci].gameObject == tr.gameObject)
-                {
-                    continue;
-                }
-
-                childImages.Add(allImages[ci]);
-            }
-
-            if (childImages.Count > 0)
-            {
-                Image[] visualImages = childImages.ToArray();
-                Color[] originals = new Color[visualImages.Length];
-                for (int ci = 0; ci < visualImages.Length; ci++)
-                {
-                    originals[ci] = visualImages[ci].color;
-                }
-
-                avatarVisuals.Add(new AvatarVisualRef
-                {
-                    characterId = characterId,
-                    images = visualImages,
-                    originalColors = originals,
-                    keepOriginalColor = tr.name.EndsWith("1"),
-                });
-            }
-
-            Button button = tr.GetComponent<Button>();
-            if (button != null)
-            {
-                button.onClick = new Button.ButtonClickedEvent();
-                string capturedId = characterId;
-                button.onClick.AddListener(() => TryAssignCurrentSlot(capturedId));
-            }
-
-            Toggle toggle = tr.GetComponent<Toggle>();
-            if (toggle != null)
-            {
-                toggle.onValueChanged.RemoveAllListeners();
-                string capturedId = characterId;
-                toggle.onValueChanged.AddListener(isOn =>
+                Toggle toggle = entry.selectToggle;
+                UnityAction<bool> onChanged = delegate (bool isOn)
                 {
                     if (isOn)
                     {
                         TryAssignCurrentSlot(capturedId);
                     }
-                });
+                };
+
+                toggle.onValueChanged.AddListener(onChanged);
+                unbindActions.Add(delegate { if (toggle != null) toggle.onValueChanged.RemoveListener(onChanged); });
             }
         }
+    }
 
+    private void UnbindAll()
+    {
+        for (int i = 0; i < unbindActions.Count; i++)
+        {
+            unbindActions[i]?.Invoke();
+        }
+
+        unbindActions.Clear();
+    }
+
+    private void SetCurrentSlot(CharacterSlotView slot)
+    {
+        currentSlot = slot;
         RefreshAvatarAvailabilityVisuals();
-    }
-
-    private void RefreshAvatarAvailabilityVisuals()
-    {
-        for (int i = 0; i < avatarVisuals.Count; i++)
-        {
-            AvatarVisualRef v = avatarVisuals[i];
-            if (v == null || v.images == null || v.images.Length == 0)
-            {
-                continue;
-            }
-
-            bool occupiedByOther = IsCharacterUsedByOtherSlot(v.characterId, currentSlot);
-            Color targetColor = occupiedByOther ? OccupiedColor : AvailableColor;
-            for (int j = 0; j < v.images.Length; j++)
-            {
-                if (v.images[j] == null)
-                {
-                    continue;
-                }
-
-                if (v.keepOriginalColor && v.originalColors != null && j < v.originalColors.Length)
-                {
-                    v.images[j].color = v.originalColors[j];
-                    continue;
-                }
-
-                v.images[j].color = targetColor;
-            }
-        }
-    }
-
-    private static bool IsNumberedSlotRoot(string name)
-    {
-        return name.StartsWith(SlotRootName + " (") && name.EndsWith(")");
-    }
-
-    private static bool IsMainSlotRoot(string name)
-    {
-        return name == MainSlotRootName;
-    }
-
-    private static bool IsManagedSlotRoot(string name)
-    {
-        return IsNumberedSlotRoot(name) || IsMainSlotRoot(name);
-    }
-
-    private static bool IsAvatarButton(string name)
-    {
-        return name.StartsWith(AvatarButtonName);
-    }
-
-    private static SlotInfo BuildSlotInfo(Transform slotRoot)
-    {
-        SlotInfo info = new SlotInfo
-        {
-            isMainSlot = IsMainSlotRoot(slotRoot.name)
-        };
-
-        Transform selected = FindChildByName(slotRoot, SelectedImageName);
-        if (selected != null)
-        {
-            Toggle[] selectedToggles = selected.GetComponentsInChildren<Toggle>(true);
-            for (int i = 0; i < selectedToggles.Length; i++)
-            {
-                if (!info.toggles.Contains(selectedToggles[i]))
-                {
-                    info.toggles.Add(selectedToggles[i]);
-                }
-            }
-        }
-
-        Toggle[] allSlotToggles = slotRoot.GetComponentsInChildren<Toggle>(true);
-        for (int i = 0; i < allSlotToggles.Length; i++)
-        {
-            if (!info.toggles.Contains(allSlotToggles[i]))
-            {
-                info.toggles.Add(allSlotToggles[i]);
-            }
-        }
-
-        Transform unselected = FindChildByName(slotRoot, UnselectedName);
-        if (unselected != null)
-        {
-            info.unselectedObject = unselected.gameObject;
-
-            Button[] unselectedButtons = unselected.GetComponentsInChildren<Button>(true);
-            for (int i = 0; i < unselectedButtons.Length; i++)
-            {
-                if (unselectedButtons[i].name.StartsWith(AvatarButtonName))
-                {
-                    continue;
-                }
-
-                info.selectButtons.Add(unselectedButtons[i]);
-            }
-        }
-
-        Transform portraitDisplay = FindChildByName(slotRoot, PortraitDisplayName);
-        if (portraitDisplay != null)
-        {
-            info.portraitImage = portraitDisplay.GetComponent<Image>();
-            if (info.portraitImage != null)
-            {
-                info.portraitImage.raycastTarget = false;
-            }
-
-            CanvasGroup cg = portraitDisplay.GetComponent<CanvasGroup>();
-            if (cg == null)
-            {
-                cg = portraitDisplay.gameObject.AddComponent<CanvasGroup>();
-            }
-
-            cg.interactable = false;
-            cg.blocksRaycasts = false;
-        }
-
-        return info;
-    }
-
-    private void BuildPortraitLibrary()
-    {
-        Transform portraitRoot = FindAnyObjectByName(PortraitReferenceRootName);
-        if (portraitRoot == null)
-        {
-            Debug.LogWarning($"Portrait source root not found: {PortraitReferenceRootName}");
-            return;
-        }
-
-        Image[] images = portraitRoot.GetComponentsInChildren<Image>(true);
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image img = images[i];
-            if (img == null || img.sprite == null)
-            {
-                continue;
-            }
-
-            string id = ResolveCharacterIdFromObjectName(img.gameObject.name);
-            if (string.IsNullOrEmpty(id) || portraitLibrary.ContainsKey(id))
-            {
-                continue;
-            }
-
-            portraitLibrary[id] = img.sprite;
-            RectTransform rt = img.rectTransform;
-            portraitLayoutLibrary[id] = new PortraitLayout
-            {
-                anchorMin = rt.anchorMin,
-                anchorMax = rt.anchorMax,
-                pivot = rt.pivot,
-                anchoredPosition = rt.anchoredPosition,
-                sizeDelta = rt.sizeDelta,
-                localScale = rt.localScale,
-            };
-        }
-    }
-
-    private void BuildBackgroundPortraitLibrary()
-    {
-        Transform backgroundRoot = FindAnyObjectByName(BackgroundPortraitRootName);
-        if (backgroundRoot == null)
-        {
-            Debug.LogWarning($"Background portrait root not found: {BackgroundPortraitRootName}");
-            return;
-        }
-
-        for (int i = 0; i < backgroundRoot.childCount; i++)
-        {
-            Transform child = backgroundRoot.GetChild(i);
-            string characterId = ResolveCharacterIdFromObjectName(child.name);
-            if (string.IsNullOrEmpty(characterId))
-            {
-                continue;
-            }
-
-            if (!backgroundPortraitByCharacter.TryGetValue(characterId, out List<GameObject> list))
-            {
-                list = new List<GameObject>();
-                backgroundPortraitByCharacter[characterId] = list;
-            }
-
-            list.Add(child.gameObject);
-        }
-    }
-
-    private static string ResolveCharacterId(string avatarButtonName)
-    {
-        if (avatarButtonName.EndsWith("2")) return IdSolana;
-        if (avatarButtonName.EndsWith("3")) return IdKulus;
-        if (avatarButtonName.EndsWith("4")) return IdSesha;
-        if (avatarButtonName.EndsWith("5")) return IdAlice;
-        if (avatarButtonName.EndsWith("1")) return IdSolana;
-        return string.Empty;
-    }
-
-    private static string ResolveCharacterIdFromObjectName(string objectName)
-    {
-        foreach (KeyValuePair<string, string[]> kv in CharacterNameAliases)
-        {
-            for (int i = 0; i < kv.Value.Length; i++)
-            {
-                if (objectName == kv.Value[i] || objectName.Contains(kv.Value[i]))
-                {
-                    return kv.Key;
-                }
-            }
-        }
-
-        return string.Empty;
-    }
-
-    private static Transform FindChildByName(Transform root, string childName)
-    {
-        Transform[] children = root.GetComponentsInChildren<Transform>(true);
-        for (int i = 0; i < children.Length; i++)
-        {
-            if (children[i].name == childName)
-            {
-                return children[i];
-            }
-        }
-
-        return null;
     }
 
     private void TryAssignCurrentSlot(string characterId)
@@ -478,21 +242,22 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotInfo occupiedSlot = FindOtherSlotByCharacter(characterId, currentSlot);
+        CharacterSelectEntry entry = FindEntry(characterId);
+        if (entry == null || entry.portraitSource == null || entry.portraitSource.sprite == null)
+        {
+            Debug.LogWarning("Entry or portrait source missing for character: " + characterId);
+            return;
+        }
+
+        CharacterSlotView occupiedSlot = FindOtherSlotByCharacter(characterId, currentSlot);
         if (occupiedSlot != null)
         {
             ResetSlotToInitialState(occupiedSlot);
         }
 
-        if (!portraitLibrary.TryGetValue(characterId, out Sprite portrait) || portrait == null)
-        {
-            Debug.LogWarning("Portrait not found for character: " + characterId);
-            return;
-        }
-
         currentSlot.selectedCharacterId = characterId;
-        currentSlot.portraitImage.sprite = portrait;
-        ApplyPortraitLayout(currentSlot.portraitImage, characterId);
+        currentSlot.portraitImage.sprite = entry.portraitSource.sprite;
+        ApplyPortraitLayout(currentSlot.portraitImage, entry.portraitSource.rectTransform);
         currentSlot.portraitImage.color = Color.white;
         currentSlot.portraitImage.preserveAspect = true;
         currentSlot.portraitImage.raycastTarget = false;
@@ -503,40 +268,28 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             currentSlot.unselectedObject.SetActive(false);
         }
 
-        Transform panel = FindAnyObjectByName(CharacterPanelName);
-        if (panel != null)
-        {
-            panel.gameObject.SetActive(false);
-        }
-
         RefreshAvatarAvailabilityVisuals();
-        RefreshBackgroundPortraitFromActiveToggle();
     }
 
-    private void ApplyPortraitLayout(Image target, string characterId)
+    private static void ApplyPortraitLayout(Image target, RectTransform source)
     {
-        if (target == null)
-        {
-            return;
-        }
-
-        if (!portraitLayoutLibrary.TryGetValue(characterId, out PortraitLayout layout))
+        if (target == null || source == null)
         {
             return;
         }
 
         RectTransform rt = target.rectTransform;
-        rt.anchorMin = layout.anchorMin;
-        rt.anchorMax = layout.anchorMax;
-        rt.pivot = layout.pivot;
-        rt.anchoredPosition = layout.anchoredPosition;
-        rt.sizeDelta = layout.sizeDelta;
-        rt.localScale = layout.localScale;
+        rt.anchorMin = source.anchorMin;
+        rt.anchorMax = source.anchorMax;
+        rt.pivot = source.pivot;
+        rt.anchoredPosition = source.anchoredPosition;
+        rt.sizeDelta = source.sizeDelta;
+        rt.localScale = source.localScale;
     }
 
-    private void RefreshBackgroundPortraitFromActiveToggle()
+    private void RefreshDisplayByActiveToggle()
     {
-        SlotInfo activeSlot = FindToggleOnSlot();
+        CharacterSlotView activeSlot = FindToggleOnSlot();
         if (activeSlot == null)
         {
             ShowBackgroundPortrait(string.Empty);
@@ -546,14 +299,14 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         UpdateBackgroundPortraitForSlot(activeSlot);
     }
 
-    private SlotInfo FindToggleOnSlot()
+    private CharacterSlotView FindToggleOnSlot()
     {
         for (int i = 0; i < slots.Count; i++)
         {
-            SlotInfo slot = slots[i];
-            for (int t = 0; t < slot.toggles.Count; t++)
+            CharacterSlotView slot = slots[i];
+            for (int t = 0; t < slot.selectToggles.Count; t++)
             {
-                Toggle toggle = slot.toggles[t];
+                Toggle toggle = slot.selectToggles[t];
                 if (toggle != null && toggle.isOn)
                 {
                     return slot;
@@ -564,7 +317,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return currentSlot;
     }
 
-    private void UpdateBackgroundPortraitForSlot(SlotInfo slot)
+    private void UpdateBackgroundPortraitForSlot(CharacterSlotView slot)
     {
         if (slot == null)
         {
@@ -576,11 +329,11 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         ShowBackgroundPortrait(characterId);
     }
 
-    private string ResolveCharacterIdForSlot(SlotInfo slot)
+    private string ResolveCharacterIdForSlot(CharacterSlotView slot)
     {
         if (slot.isMainSlot)
         {
-            return IdPlayer;
+            return playerCharacterId;
         }
 
         if (!string.IsNullOrEmpty(slot.selectedCharacterId))
@@ -590,11 +343,12 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         if (slot.portraitImage != null && slot.portraitImage.sprite != null)
         {
-            foreach (KeyValuePair<string, Sprite> kv in portraitLibrary)
+            for (int i = 0; i < entries.Count; i++)
             {
-                if (kv.Value == slot.portraitImage.sprite)
+                CharacterSelectEntry entry = entries[i];
+                if (entry != null && entry.portraitSource != null && entry.portraitSource.sprite == slot.portraitImage.sprite)
                 {
-                    return kv.Key;
+                    return entry.characterId;
                 }
             }
         }
@@ -604,31 +358,65 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void ShowBackgroundPortrait(string characterId)
     {
-        foreach (KeyValuePair<string, List<GameObject>> kv in backgroundPortraitByCharacter)
+        for (int i = 0; i < entries.Count; i++)
         {
-            bool shouldShow = !string.IsNullOrEmpty(characterId) && kv.Key == characterId;
-            List<GameObject> list = kv.Value;
-            for (int i = 0; i < list.Count; i++)
+            CharacterSelectEntry entry = entries[i];
+            if (entry == null)
             {
-                if (list[i] != null)
+                continue;
+            }
+
+            bool shouldShow = !string.IsNullOrEmpty(characterId) && string.Equals(entry.characterId, characterId, StringComparison.Ordinal);
+            for (int j = 0; j < entry.backgroundPortraits.Count; j++)
+            {
+                GameObject go = entry.backgroundPortraits[j];
+                if (go != null)
                 {
-                    list[i].SetActive(shouldShow);
+                    go.SetActive(shouldShow);
                 }
             }
         }
     }
 
-    private SlotInfo FindOtherSlotByCharacter(string characterId, SlotInfo targetSlot)
+    private void RefreshAvatarAvailabilityVisuals()
+    {
+        for (int i = 0; i < entries.Count; i++)
+        {
+            CharacterSelectEntry entry = entries[i];
+            if (entry == null || entry.keepOriginalColor)
+            {
+                continue;
+            }
+
+            bool occupiedByOther = IsCharacterUsedByOtherSlot(entry.characterId, currentSlot);
+            Color target = occupiedByOther ? occupiedColor : availableColor;
+
+            if (!entryVisuals.TryGetValue(entry, out Graphic[] visuals))
+            {
+                continue;
+            }
+
+            for (int j = 0; j < visuals.Length; j++)
+            {
+                if (visuals[j] != null)
+                {
+                    visuals[j].color = target;
+                }
+            }
+        }
+    }
+
+    private CharacterSlotView FindOtherSlotByCharacter(string characterId, CharacterSlotView targetSlot)
     {
         for (int i = 0; i < slots.Count; i++)
         {
-            SlotInfo slot = slots[i];
+            CharacterSlotView slot = slots[i];
             if (slot == targetSlot)
             {
                 continue;
             }
 
-            if (slot.selectedCharacterId == characterId)
+            if (string.Equals(slot.selectedCharacterId, characterId, StringComparison.Ordinal))
             {
                 return slot;
             }
@@ -637,14 +425,14 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return null;
     }
 
-    private static void ResetSlotToInitialState(SlotInfo slot)
+    private static void ResetSlotToInitialState(CharacterSlotView slot)
     {
         if (slot == null)
         {
             return;
         }
 
-        slot.selectedCharacterId = null;
+        slot.selectedCharacterId = string.Empty;
 
         if (slot.portraitImage != null)
         {
@@ -658,17 +446,17 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
     }
 
-    private bool IsCharacterUsedByOtherSlot(string characterId, SlotInfo targetSlot)
+    private bool IsCharacterUsedByOtherSlot(string characterId, CharacterSlotView targetSlot)
     {
         for (int i = 0; i < slots.Count; i++)
         {
-            SlotInfo slot = slots[i];
+            CharacterSlotView slot = slots[i];
             if (slot == targetSlot)
             {
                 continue;
             }
 
-            if (slot.selectedCharacterId == characterId)
+            if (string.Equals(slot.selectedCharacterId, characterId, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -677,18 +465,21 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return false;
     }
 
-    private static Transform FindAnyObjectByName(string objectName)
+    private CharacterSelectEntry FindEntry(string characterId)
     {
-        Transform[] all = FindObjectsOfType<Transform>(true);
-        for (int i = 0; i < all.Length; i++)
+        for (int i = 0; i < entries.Count; i++)
         {
-            if (all[i].name == objectName)
+            CharacterSelectEntry entry = entries[i];
+            if (entry != null && string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
             {
-                return all[i];
+                return entry;
             }
         }
 
         return null;
     }
 }
+
+
+
 
