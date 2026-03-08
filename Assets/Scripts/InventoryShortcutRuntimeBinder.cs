@@ -27,9 +27,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Color iconOriginalColor;
     }
 
-    private const string WarehouseContainerPath = "UI控制器/仓库页面/背包面板/格子区域/格子容器";
-    private const string QuickAnchorPath = "UI控制器/角色页面/右边栏位/格子区域";
-    private const string RightBarPath = "UI控制器/角色页面/右边栏位";
+    private const string WarehouseContainerPath = "UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
+    private const string QuickAnchorPath = "UI控制器/目录/角色页面/右边栏位/格子区域";
+    private const string RightBarPath = "UI控制器/目录/角色页面/右边栏位";
     private const string RightBarName = "右边栏位";
     private const string QuickAnchorName = "格子区域";
     private const string SlotNameKeyword = "格子";
@@ -137,7 +137,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             return;
         }
-
+        ApplyWarehouseLayoutToQuickAnchor(quickAnchor);
         EnsureQuickSlots(quickAnchor);
         CollectSlotsFromContainer(quickAnchor, quickSlots);
         if (quickSlots.Count == 0)
@@ -237,7 +237,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             grid.childAlignment = TextAnchor.UpperLeft;
         }
 
-        int createCount = Mathf.Min(12, warehouseSlots.Count);
+        int createCount = warehouseSlots.Count;
         for (int i = 0; i < createCount; i++)
         {
             GameObject go = Instantiate(template, quickAnchor, false);
@@ -249,7 +249,42 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             }
         }
     }
+    private void ApplyWarehouseLayoutToQuickAnchor(RectTransform quickAnchor)
+    {
+        if (quickAnchor == null || warehouseSlots.Count == 0 || warehouseSlots[0].root == null)
+        {
+            return;
+        }
 
+        RectTransform warehouseContainer = warehouseSlots[0].root.parent as RectTransform;
+        if (warehouseContainer == null)
+        {
+            return;
+        }
+
+        quickAnchor.sizeDelta = warehouseContainer.sizeDelta;
+
+        GridLayoutGroup source = warehouseContainer.GetComponent<GridLayoutGroup>();
+        if (source == null)
+        {
+            return;
+        }
+
+        GridLayoutGroup target = quickAnchor.GetComponent<GridLayoutGroup>();
+        if (target == null)
+        {
+            target = quickAnchor.gameObject.AddComponent<GridLayoutGroup>();
+        }
+
+        target.padding = source.padding;
+        target.cellSize = source.cellSize;
+        target.spacing = source.spacing;
+        target.startCorner = source.startCorner;
+        target.startAxis = source.startAxis;
+        target.childAlignment = source.childAlignment;
+        target.constraint = source.constraint;
+        target.constraintCount = source.constraintCount;
+    }
     private static void CollectSlotsFromContainer(Transform container, List<SlotWidget> target)
     {
         target.Clear();
@@ -551,3 +586,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
+
+
