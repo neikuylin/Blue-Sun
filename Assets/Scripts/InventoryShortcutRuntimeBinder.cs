@@ -510,6 +510,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse);
         BindDragRelaysForList(backpackSlots, SlotKind.Backpack);
+        BindDragRelaysForList(quickSlots, SlotKind.Backpack);
         BindDragRelaysForList(equipmentSlots, SlotKind.Equipment);
     }
 
@@ -859,4 +860,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
+
+
 
