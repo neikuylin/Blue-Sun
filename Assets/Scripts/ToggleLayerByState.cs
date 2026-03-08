@@ -8,6 +8,14 @@ public class ToggleLayerByState : MonoBehaviour
     [SerializeField] private RectTransform target;
     [SerializeField] private RectTransform background;
 
+    public void Configure(Toggle toggleRef, RectTransform targetRef, RectTransform backgroundRef)
+    {
+        toggle = toggleRef;
+        target = targetRef;
+        background = backgroundRef;
+        ApplyLayer(toggle != null && toggle.isOn);
+    }
+
     private void Reset()
     {
         toggle = GetComponent<Toggle>();
