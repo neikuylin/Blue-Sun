@@ -658,9 +658,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        bool hasItem = data.icon != null;
+        if (widget.button != null)
+        {
+            ColorBlock colors = widget.button.colors;
+            colors.disabledColor = colors.normalColor;
+            widget.button.colors = colors;
+            widget.button.interactable = hasItem;
+        }
+
         if (widget.iconIsRoot)
         {
-            bool hasItem = data.icon != null;
             widget.icon.sprite = hasItem ? data.icon : widget.iconOriginalSprite;
 
             Color c = widget.iconOriginalColor;
@@ -670,7 +678,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         widget.icon.sprite = data.icon;
-        widget.icon.gameObject.SetActive(data.icon != null);
+        widget.icon.gameObject.SetActive(hasItem);
     }
 
     private void RefreshWarehouseSelectionVisual()
@@ -700,6 +708,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
+
 
 
 
