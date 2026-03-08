@@ -26,6 +26,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Image icon;
         public bool iconIsRoot;
         public Color iconOriginalColor;
+        public Sprite iconOriginalSprite;
     }
 
     private const string WarehouseContainerPath = "UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
@@ -448,7 +449,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 button = button,
                 icon = icon,
                 iconIsRoot = icon.transform == child,
-                iconOriginalColor = icon.color
+                iconOriginalColor = icon.color,
+                iconOriginalSprite = icon.sprite
             });
         }
     }
@@ -656,16 +658,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        widget.icon.sprite = data.icon;
-
         if (widget.iconIsRoot)
         {
+            bool hasItem = data.icon != null;
+            widget.icon.sprite = hasItem ? data.icon : widget.iconOriginalSprite;
+
             Color c = widget.iconOriginalColor;
-            c.a = data.icon != null ? widget.iconOriginalColor.a : 0.35f;
+            c.a = hasItem ? widget.iconOriginalColor.a : 0.35f;
             widget.icon.color = c;
             return;
         }
 
+        widget.icon.sprite = data.icon;
         widget.icon.gameObject.SetActive(data.icon != null);
     }
 
@@ -696,4 +700,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         quickSlots.Clear();
     }
 }
+
+
 
