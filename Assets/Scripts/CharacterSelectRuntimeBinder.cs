@@ -16,7 +16,23 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private readonly Dictionary<CharacterSelectEntry, Graphic[]> entryVisuals = new Dictionary<CharacterSelectEntry, Graphic[]>();
     private readonly List<Action> unbindActions = new List<Action>();
 
+    private readonly List<ModalCanvasPatch> modalCanvasPatches = new List<ModalCanvasPatch>();
+
     private CharacterSlotView currentSlot;
+    private bool modalSelectionActive;
+    private GameObject modalOverlay;
+    private GameObject currentCharacterPanel;
+
+    private struct ModalCanvasPatch
+    {
+        public Transform target;
+        public Canvas canvas;
+        public bool canvasAdded;
+        public bool previousOverrideSorting;
+        public int previousSortingOrder;
+        public GraphicRaycaster raycaster;
+        public bool raycasterAdded;
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -34,13 +50,31 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        OpenCharacterSelect.PanelOpened += OnCharacterPanelOpened;
+        OpenCharacterSelect.PanelClosed += OnCharacterPanelClosed;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        OpenCharacterSelect.PanelOpened -= OnCharacterPanelOpened;
+        OpenCharacterSelect.PanelClosed -= OnCharacterPanelClosed;
+        ExitModalSelection(false);
         UnbindAll();
+    }
+
+    private void Update()
+    {
+        if (!modalSelectionActive)
+        {
+            return;
+        }
+
+        if (currentCharacterPanel == null || !currentCharacterPanel.activeInHierarchy)
+        {
+            ExitModalSelection(false);
+        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -50,6 +84,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
+        ExitModalSelection(false);
         UnbindAll();
         CollectComponents();
         BindSlotListeners();
@@ -235,6 +270,296 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         RefreshAvatarAvailabilityVisuals();
     }
 
+    private void OnCharacterPanelClosed(OpenCharacterSelect opener)
+    {
+        if (!modalSelectionActive)
+        {
+            return;
+        }
+
+        if (opener == null || opener.characterPanel == currentCharacterPanel)
+        {
+            ExitModalSelection(false);
+        }
+    }
+    private void OnCharacterPanelOpened(OpenCharacterSelect opener)
+    {
+        if (opener == null || opener.characterPanel == null)
+        {
+            return;
+        }
+
+        currentCharacterPanel = opener.characterPanel;
+
+        CharacterSlotView owner = null;
+        Button openerButton = opener.GetComponent<Button>();
+        if (openerButton != null)
+        {
+            owner = FindSlotByButton(openerButton);
+        }
+
+        if (owner == null)
+        {
+            owner = FindSlotByTransform(opener.transform);
+        }
+
+        if (owner != null)
+        {
+            SetCurrentSlot(owner);
+        }
+
+        EnterModalSelection(opener);
+    }
+
+    private CharacterSlotView FindSlotByButton(Button button)
+    {
+        if (button == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            for (int j = 0; j < slot.selectButtons.Count; j++)
+            {
+                if (slot.selectButtons[j] == button)
+                {
+                    return slot;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private CharacterSlotView FindSlotByTransform(Transform tr)
+    {
+        if (tr == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            if (tr == slot.transform || tr.IsChildOf(slot.transform))
+            {
+                return slot;
+            }
+        }
+
+        return null;
+    }
+
+    private void EnterModalSelection(OpenCharacterSelect opener)
+    {
+        if (opener == null || opener.characterPanel == null)
+        {
+            return;
+        }
+
+        ExitModalSelection(false);
+        modalSelectionActive = true;
+        currentCharacterPanel = opener.characterPanel;
+
+        EnsureModalOverlay(opener.characterPanel);
+        ElevateAllowedForModal(opener);
+    }
+
+    private void EnsureModalOverlay(GameObject panel)
+    {
+        if (panel == null)
+        {
+            return;
+        }
+
+        Canvas rootCanvas = panel.GetComponentInParent<Canvas>();
+        if (rootCanvas == null)
+        {
+            return;
+        }
+
+        if (modalOverlay == null)
+        {
+            modalOverlay = new GameObject("CharacterSelectModalOverlay", typeof(RectTransform), typeof(Image));
+        }
+
+        RectTransform rt = modalOverlay.GetComponent<RectTransform>();
+        rt.SetParent(rootCanvas.transform, false);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        Image image = modalOverlay.GetComponent<Image>();
+        image.color = new Color(0f, 0f, 0f, 0.5f);
+        image.raycastTarget = true;
+
+        modalOverlay.SetActive(true);
+        modalOverlay.transform.SetAsLastSibling();
+    }
+
+    private void ElevateAllowedForModal(OpenCharacterSelect opener)
+    {
+        ClearModalCanvasPatches();
+
+        if (modalOverlay == null)
+        {
+            return;
+        }
+
+        ElevateTransformWithCanvas(opener.characterPanel.transform, 5001);
+
+        if (currentSlot != null)
+        {
+            ElevateTransformWithCanvas(currentSlot.transform, 5002);
+
+            for (int i = 0; i < currentSlot.selectButtons.Count; i++)
+            {
+                if (currentSlot.selectButtons[i] != null)
+                {
+                    ElevateTransformWithCanvas(currentSlot.selectButtons[i].transform, 5003);
+                }
+            }
+        }
+
+        ElevateTransformWithCanvas(opener.transform, 5004);
+    }
+
+    private void ElevateTransformWithCanvas(Transform tr, int sortingOrder)
+    {
+        if (tr == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < modalCanvasPatches.Count; i++)
+        {
+            if (modalCanvasPatches[i].target == tr)
+            {
+                ModalCanvasPatch existing = modalCanvasPatches[i];
+                if (existing.canvas != null)
+                {
+                    existing.canvas.overrideSorting = true;
+                    existing.canvas.sortingOrder = Mathf.Max(existing.canvas.sortingOrder, sortingOrder);
+                }
+
+                modalCanvasPatches[i] = existing;
+                return;
+            }
+        }
+
+        Canvas canvas = tr.GetComponent<Canvas>();
+        bool canvasAdded = false;
+        if (canvas == null)
+        {
+            canvas = tr.gameObject.AddComponent<Canvas>();
+            canvasAdded = true;
+        }
+
+        GraphicRaycaster raycaster = tr.GetComponent<GraphicRaycaster>();
+        bool raycasterAdded = false;
+        if (raycaster == null)
+        {
+            raycaster = tr.gameObject.AddComponent<GraphicRaycaster>();
+            raycasterAdded = true;
+        }
+
+        ModalCanvasPatch patch = new ModalCanvasPatch
+        {
+            target = tr,
+            canvas = canvas,
+            canvasAdded = canvasAdded,
+            previousOverrideSorting = canvas.overrideSorting,
+            previousSortingOrder = canvas.sortingOrder,
+            raycaster = raycaster,
+            raycasterAdded = raycasterAdded
+        };
+
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = sortingOrder;
+        modalCanvasPatches.Add(patch);
+    }
+
+    private void ExitModalSelection(bool closePanel)
+    {
+        if (closePanel && currentCharacterPanel != null)
+        {
+            currentCharacterPanel.SetActive(false);
+            OpenCharacterSelect opener = FindOpenCharacterSelectByPanel(currentCharacterPanel);
+            if (opener != null)
+            {
+                opener.MarkClosedFromOutside();
+            }
+        }
+
+        ClearModalCanvasPatches();
+
+        if (modalOverlay != null)
+        {
+            modalOverlay.SetActive(false);
+        }
+
+        modalSelectionActive = false;
+        currentCharacterPanel = null;
+    }
+
+    private OpenCharacterSelect FindOpenCharacterSelectByPanel(GameObject panel)
+    {
+        if (panel == null)
+        {
+            return null;
+        }
+
+        OpenCharacterSelect[] openers = FindObjectsOfType<OpenCharacterSelect>(true);
+        for (int i = 0; i < openers.Length; i++)
+        {
+            if (openers[i] != null && openers[i].characterPanel == panel)
+            {
+                return openers[i];
+            }
+        }
+
+        return null;
+    }
+    private void ClearModalCanvasPatches()
+    {
+        for (int i = modalCanvasPatches.Count - 1; i >= 0; i--)
+        {
+            ModalCanvasPatch patch = modalCanvasPatches[i];
+            if (patch.target == null)
+            {
+                continue;
+            }
+
+            if (patch.raycasterAdded && patch.raycaster != null)
+            {
+                Destroy(patch.raycaster);
+            }
+
+            if (patch.canvas != null)
+            {
+                if (patch.canvasAdded)
+                {
+                    Destroy(patch.canvas);
+                }
+                else
+                {
+                    patch.canvas.overrideSorting = patch.previousOverrideSorting;
+                    patch.canvas.sortingOrder = patch.previousSortingOrder;
+                }
+            }
+        }
+
+        modalCanvasPatches.Clear();
+    }
+
     private void TryAssignCurrentSlot(string characterId)
     {
         if (currentSlot == null || currentSlot.isMainSlot || currentSlot.portraitImage == null)
@@ -269,6 +594,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         RefreshAvatarAvailabilityVisuals();
+        RefreshDisplayByActiveToggle();
+        ExitModalSelection(true);
     }
 
     private static void ApplyPortraitLayout(Image target, RectTransform source)
