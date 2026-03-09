@@ -14,12 +14,26 @@ public class BattleBootstrap : MonoBehaviour
     private const string BoardName = "20x20右上 开门动画";
     private const string PlayerPlaceholderName = "PlayerPlaceholder";
 
+    [System.Serializable]
+    public class CharacterRootBinding
+    {
+        public string characterId;
+        public string displayName;
+        public Transform root;
+        public Vector2Int cellOffset = Vector2Int.zero;
+        public Vector3 worldOffset = Vector3.zero;
+        public bool useAutoVisualAnchor;
+    }
+
     [Header("Scene References")]
     public Transform playerRoot;
     public Transform dungeonBoard;
 
     [Header("Player Source")]
     public bool usePlayerPlaceholder = false;
+
+    [Header("Character ID Bindings")]
+    public List<CharacterRootBinding> playerBindings = new List<CharacterRootBinding>();
 
     [Header("Placeholder Visual")]
     public Vector3 placeholderScale = new Vector3(0.8f, 1.2f, 0.8f);
@@ -149,6 +163,8 @@ public class BattleBootstrap : MonoBehaviour
 
     private BattleUnit SetupPlayer(BattleGrid grid)
     {
+        string selectedCharacterId = CharacterSelectionState.PrimaryCharacterId;
+        CharacterRootBinding binding = FindPlayerBinding(selectedCharacterId);
         Transform aliceVisual = FindTransformByName(AliceRootName);
 
         if (usePlayerPlaceholder)
@@ -163,9 +179,13 @@ public class BattleBootstrap : MonoBehaviour
 
             AttachAliceVisual(playerRoot, aliceVisual);
         }
+        else if (binding != null && binding.root != null)
+        {
+            playerRoot = binding.root;
+        }
         else if (playerRoot == null)
         {
-            playerRoot = aliceVisual;
+            playerRoot = binding != null && binding.root != null ? binding.root : aliceVisual;
         }
 
         if (playerRoot == null)
@@ -187,10 +207,10 @@ public class BattleBootstrap : MonoBehaviour
         unit.attackDamage = 5;
         unit.footprintSize = 3;
         unit.yawOffset = 0f;
-        unit.cellOffset = usePlayerPlaceholder ? Vector2Int.zero : playerCellOffset;
-        unit.useAutoVisualAnchor = usePlayerPlaceholder ? false : playerUseAutoVisualAnchor;
-        unit.worldOffset = usePlayerPlaceholder ? Vector3.zero : playerWorldOffset;
-        unit.Setup(BattleTeam.Player, "Alice", startCell);
+        unit.cellOffset = usePlayerPlaceholder ? Vector2Int.zero : (binding != null ? binding.cellOffset : playerCellOffset);
+        unit.useAutoVisualAnchor = usePlayerPlaceholder ? false : (binding != null ? binding.useAutoVisualAnchor : playerUseAutoVisualAnchor);
+        unit.worldOffset = usePlayerPlaceholder ? Vector3.zero : (binding != null ? binding.worldOffset : playerWorldOffset);
+        unit.Setup(BattleTeam.Player, ResolvePlayerDisplayName(selectedCharacterId, binding), startCell);
         unit.SetCell(startCell, grid.GetWorldPosition(startCell));
         unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
         grid.RegisterUnit(unit);
@@ -286,6 +306,40 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return null;
+    }
+
+    private CharacterRootBinding FindPlayerBinding(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < playerBindings.Count; i++)
+        {
+            CharacterRootBinding binding = playerBindings[i];
+            if (binding != null && string.Equals(binding.characterId, characterId, System.StringComparison.Ordinal))
+            {
+                return binding;
+            }
+        }
+
+        return null;
+    }
+
+    private static string ResolvePlayerDisplayName(string characterId, CharacterRootBinding binding)
+    {
+        if (binding != null && !string.IsNullOrWhiteSpace(binding.displayName))
+        {
+            return binding.displayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(characterId))
+        {
+            return characterId;
+        }
+
+        return "Alice";
     }
 
     private void CleanupRuntimeObjects()

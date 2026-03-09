@@ -95,6 +95,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         RefreshDisplayByActiveToggle();
+        SyncSelectionState();
     }
 
     private void CollectComponents()
@@ -205,6 +206,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private void SetCurrentSlot(CharacterSlotView slot)
     {
         currentSlot = slot;
+        SyncSelectionState();
     }
 
     private void OnCharacterPanelClosed(OpenCharacterSelect opener)
@@ -574,6 +576,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         RefreshDisplayByActiveToggle();
+        SyncSelectionState();
         ExitModalSelection(true);
     }
 
@@ -599,10 +602,12 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         if (activeSlot == null)
         {
             ShowBackgroundPortrait(string.Empty);
+            SyncSelectionState();
             return;
         }
 
         UpdateBackgroundPortraitForSlot(activeSlot);
+        SyncSelectionState();
     }
 
     private CharacterSlotView FindToggleOnSlot()
@@ -715,6 +720,11 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         {
             slot.unselectedObject.SetActive(true);
         }
+    }
+
+    private void SyncSelectionState()
+    {
+        CharacterSelectionState.UpdateSelections(slots, FindToggleOnSlot(), playerCharacterId);
     }
 
     private CharacterSelectEntry FindEntry(string characterId)
