@@ -19,7 +19,14 @@ public class InventoryDebugWindow : EditorWindow
     [MenuItem("Tools/背包/调试窗口")]
     private static void Open()
     {
-        GetWindow<InventoryDebugWindow>("背包调试");
+        InventoryDebugWindow window = CreateInstance<InventoryDebugWindow>();
+        window.titleContent = new GUIContent("背包调试");
+        window.minSize = new Vector2(360f, 420f);
+        window.maxSize = new Vector2(900f, 1200f);
+        window.position = new Rect(160f, 120f, 420f, 520f);
+        window.minSize = new Vector2(360f, 420f);
+        window.ShowUtility();
+        window.Focus();
     }
 
     private void OnGUI()

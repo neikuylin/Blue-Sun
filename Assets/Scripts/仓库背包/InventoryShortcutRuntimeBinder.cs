@@ -313,36 +313,170 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectWarehouseSlots()
     {
         warehouseSlots.Clear();
-        GameObject container = GameObject.Find(WarehouseContainerPath);
+        Transform container = FindTransformByPath(WarehouseContainerPath);
         if (container != null)
         {
-            CollectSlotsFromContainer(container.transform, warehouseSlots);
+            CollectSlotsFromContainer(container, warehouseSlots);
         }
     }
 
     private void CollectBackpackSlots()
     {
         backpackSlots.Clear();
-        GameObject container = GameObject.Find(BackpackContainerPath);
+        Transform container = FindTransformByPath(BackpackContainerPath);
         if (container != null)
         {
-            CollectSlotsFromContainer(container.transform, backpackSlots);
+            CollectSlotsFromContainer(container, backpackSlots);
         }
     }
 
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
-        GameObject container = GameObject.Find(EquipmentContainerPath);
+        Transform container = FindTransformByPath(EquipmentContainerPath);
         if (container != null)
         {
-            CollectSlotsFromContainer(container.transform, equipmentSlots);
+            CollectSlotsFromContainer(container, equipmentSlots);
         }
     }
     private RectTransform FindQuickAnchor()
     {
-        GameObject anchor = GameObject.Find(QuickAnchorPath);
-        return anchor != null ? anchor.transform as RectTransform : null;
+        return FindTransformByPath(QuickAnchorPath) as RectTransform;
+    }
+
+    private static Transform FindTransformByPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        string[] segments = path.Split('/');
+        if (segments.Length == 0)
+        {
+            return null;
+        }
+
+        Scene activeScene = SceneManager.GetActiveScene();
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        Transform current = null;
+
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
+            {
+                current = roots[i].transform;
+                break;
+            }
+        }
+
+        if (current == null)
+        {
+            return FindTransformByAncestorChain(segments);
+        }
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            current = FindChildByName(current, segments[i]);
+            if (current == null)
+            {
+                return FindTransformByAncestorChain(segments);
+            }
+        }
+
+        return current;
+    }
+
+    private static Transform FindChildByName(Transform parent, string childName)
+    {
+        if (parent == null || string.IsNullOrEmpty(childName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child != null && string.Equals(child.name, childName, StringComparison.Ordinal))
+            {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform FindTransformByAncestorChain(string[] segments)
+    {
+        if (segments == null || segments.Length == 0)
+        {
+            return null;
+        }
+
+        string targetName = segments[segments.Length - 1];
+        Scene activeScene = SceneManager.GetActiveScene();
+        GameObject[] roots = activeScene.GetRootGameObjects();
+
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] == null)
+            {
+                continue;
+            }
+
+            Transform[] transforms = roots[i].GetComponentsInChildren<Transform>(true);
+            for (int j = 0; j < transforms.Length; j++)
+            {
+                Transform candidate = transforms[j];
+                if (candidate == null || !string.Equals(candidate.name, targetName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (MatchesAncestorChain(candidate, segments))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool MatchesAncestorChain(Transform candidate, string[] segments)
+    {
+        if (candidate == null || segments == null || segments.Length == 0)
+        {
+            return false;
+        }
+
+        int index = segments.Length - 2;
+        Transform current = candidate.parent;
+
+        while (index >= 0)
+        {
+            bool found = false;
+            while (current != null)
+            {
+                if (string.Equals(current.name, segments[index], StringComparison.Ordinal))
+                {
+                    found = true;
+                    current = current.parent;
+                    break;
+                }
+
+                current = current.parent;
+            }
+
+            if (!found)
+            {
+                return false;
+            }
+
+            index--;
+        }
+
+        return true;
     }
 
     private void ApplyBackpackLayoutToQuickAnchor(RectTransform quickAnchor)
