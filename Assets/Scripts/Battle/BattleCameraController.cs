@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class BattleCameraController : MonoBehaviour
 {
-    public float moveSpeed = 10f;
+    public float moveSpeed = 18f;
     public float zoomSpeed = 8f;
     public float minZoom = 4f;
     public float maxZoom = 16f;

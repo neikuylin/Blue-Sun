@@ -23,7 +23,7 @@ public class BattleBootstrap : MonoBehaviour
 
     [Header("Player Placement")]
     public Vector2Int playerCellOffset = Vector2Int.zero;
-    public Vector3 playerWorldOffset = new Vector3(1.5f, 0f, 0f);
+    public Vector3 playerWorldOffset = Vector3.zero;
     public bool playerUseAutoVisualAnchor = false;
 
     [Header("Board Placement")]
