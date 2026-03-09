@@ -6,7 +6,7 @@ public class BattleGrid : MonoBehaviour
     public int width = 20;
     public int height = 20;
     public float cellSize = 1f;
-    public float overlayY = 0.02f;
+    public float overlayY = -0.05f;
 
     private readonly Dictionary<Vector2Int, BattleUnit> occupants = new Dictionary<Vector2Int, BattleUnit>();
     private readonly Dictionary<Vector2Int, Renderer> cellRenderers = new Dictionary<Vector2Int, Renderer>();
@@ -66,29 +66,45 @@ public class BattleGrid : MonoBehaviour
         return cell.x >= 0 && cell.x < width && cell.y >= 0 && cell.y < height;
     }
 
-    public bool IsWalkable(Vector2Int cell)
+    public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)
     {
-        return IsInside(cell) && !occupants.ContainsKey(cell);
+        int radius = unit != null ? unit.FootprintRadius : 0;
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!IsInside(cell))
+                {
+                    return false;
+                }
+
+                BattleUnit occupant = GetUnitAt(cell);
+                if (occupant != null && occupant != unit)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public void RegisterUnit(BattleUnit unit)
     {
-        occupants[unit.currentCell] = unit;
+        SetOccupancy(unit, unit.currentCell, true);
     }
 
     public void MoveUnit(BattleUnit unit, Vector2Int destination)
     {
-        occupants.Remove(unit.currentCell);
-        occupants[destination] = unit;
+        SetOccupancy(unit, unit.currentCell, false);
+        SetOccupancy(unit, destination, true);
         unit.SetCell(destination, GetWorldPosition(destination));
     }
 
     public void RemoveUnit(BattleUnit unit)
     {
-        if (occupants.ContainsKey(unit.currentCell) && occupants[unit.currentCell] == unit)
-        {
-            occupants.Remove(unit.currentCell);
-        }
+        SetOccupancy(unit, unit.currentCell, false);
     }
 
     public BattleUnit GetUnitAt(Vector2Int cell)
@@ -117,16 +133,17 @@ public class BattleGrid : MonoBehaviour
         SetColor(cell, activeColor);
     }
 
-    public void HighlightReachable(Vector2Int origin, int moveRange)
+    public void HighlightFootprint(BattleUnit unit, Color color)
     {
-        for (int y = 0; y < height; y++)
+        int radius = unit.FootprintRadius;
+        for (int y = unit.currentCell.y - radius; y <= unit.currentCell.y + radius; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (int x = unit.currentCell.x - radius; x <= unit.currentCell.x + radius; x++)
             {
                 Vector2Int cell = new Vector2Int(x, y);
-                if (ManhattanDistance(origin, cell) <= moveRange && IsWalkable(cell))
+                if (IsInside(cell))
                 {
-                    SetColor(cell, reachableColor);
+                    SetColor(cell, color);
                 }
             }
         }
@@ -147,7 +164,7 @@ public class BattleGrid : MonoBehaviour
 
                 if (ManhattanDistance(activeUnit.currentCell, cell) <= activeUnit.attackRange)
                 {
-                    SetColor(cell, attackColor);
+                    HighlightFootprint(target, attackColor);
                 }
             }
         }
@@ -159,6 +176,68 @@ public class BattleGrid : MonoBehaviour
         if (cellRenderers.TryGetValue(cell, out renderer))
         {
             renderer.material.color = color;
+        }
+    }
+
+    public void HighlightReachable(BattleUnit unit)
+    {
+        Vector2Int origin = unit.currentCell;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (cell == origin)
+                {
+                    continue;
+                }
+
+                if (ManhattanDistance(origin, cell) <= unit.moveRange && IsWalkable(unit, cell))
+                {
+                    HighlightFootprintAt(cell, unit.footprintSize, reachableColor);
+                }
+            }
+        }
+    }
+
+    private void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (IsInside(cell))
+                {
+                    SetColor(cell, color);
+                }
+            }
+        }
+    }
+
+    private void SetOccupancy(BattleUnit unit, Vector2Int centerCell, bool occupied)
+    {
+        int radius = unit.FootprintRadius;
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!IsInside(cell))
+                {
+                    continue;
+                }
+
+                if (occupied)
+                {
+                    occupants[cell] = unit;
+                }
+                else if (occupants.ContainsKey(cell) && occupants[cell] == unit)
+                {
+                    occupants.Remove(cell);
+                }
+            }
         }
     }
 

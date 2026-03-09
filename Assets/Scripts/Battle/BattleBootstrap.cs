@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
+[ExecuteAlways]
 [DefaultExecutionOrder(-100)]
 public class BattleBootstrap : MonoBehaviour
 {
@@ -21,6 +25,11 @@ public class BattleBootstrap : MonoBehaviour
     public Vector3 placeholderScale = new Vector3(0.8f, 1.2f, 0.8f);
     public Vector3 aliceVisualLocalOffset = Vector3.zero;
 
+    [Header("Grid")]
+    public int gridWidth = 20;
+    public int gridHeight = 20;
+    public float gridCellSize = 1f;
+
     [Header("Player Placement")]
     public Vector2Int playerCellOffset = Vector2Int.zero;
     public Vector3 playerWorldOffset = Vector3.zero;
@@ -34,6 +43,10 @@ public class BattleBootstrap : MonoBehaviour
     public float cameraSize = 8f;
     public Vector3 cameraPosition = new Vector3(10f, 14f, -4f);
     public Vector3 cameraEulerAngles = new Vector3(45f, 45f, 0f);
+
+    [Header("Editor Preview")]
+    public bool showEditorGrid = true;
+    public Color editorGridColor = new Color(0.15f, 0.7f, 1f, 0.8f);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AutoCreate()
@@ -55,6 +68,11 @@ public class BattleBootstrap : MonoBehaviour
 
     private void Start()
     {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
         Camera mainCamera = Camera.main;
         if (mainCamera == null)
         {
@@ -62,6 +80,8 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        ResolveReferences();
+        CleanupRuntimeObjects();
         ResolveReferences();
         SetupBattleCamera(mainCamera);
         AlignDungeonBoardToCamera(mainCamera);
@@ -101,6 +121,9 @@ public class BattleBootstrap : MonoBehaviour
     {
         GameObject gridObject = new GameObject("BattleGrid");
         BattleGrid grid = gridObject.AddComponent<BattleGrid>();
+        grid.width = gridWidth;
+        grid.height = gridHeight;
+        grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
     }
@@ -162,6 +185,7 @@ public class BattleBootstrap : MonoBehaviour
         unit.moveRange = 4;
         unit.attackRange = 1;
         unit.attackDamage = 5;
+        unit.footprintSize = 3;
         unit.yawOffset = 0f;
         unit.cellOffset = usePlayerPlaceholder ? Vector2Int.zero : playerCellOffset;
         unit.useAutoVisualAnchor = usePlayerPlaceholder ? false : playerUseAutoVisualAnchor;
@@ -185,6 +209,7 @@ public class BattleBootstrap : MonoBehaviour
         unit.moveRange = 3;
         unit.attackRange = 1;
         unit.attackDamage = 2;
+        unit.footprintSize = 3;
         unit.yawOffset = 0f;
         unit.Setup(BattleTeam.Enemy, "TrainingDummy", new Vector2Int(13, 12));
         unit.FaceToward(grid.GetWorldPosition(new Vector2Int(12, 12)));
@@ -262,4 +287,82 @@ public class BattleBootstrap : MonoBehaviour
 
         return null;
     }
+
+    private void CleanupRuntimeObjects()
+    {
+        DestroyRuntimeObjects("BattleGrid");
+        DestroyRuntimeObjects("TrainingDummy");
+        DestroyRuntimeObjects("UnitVisual");
+
+        DestroyRuntimeObjects(PlayerPlaceholderName);
+    }
+
+    private void DestroyRuntimeObjects(string objectName)
+    {
+        Transform[] transforms = FindObjectsOfType<Transform>();
+        for (int i = transforms.Length - 1; i >= 0; i--)
+        {
+            Transform target = transforms[i];
+            if (target.name != objectName)
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(target.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(target.gameObject);
+            }
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!showEditorGrid || Application.isPlaying)
+        {
+            return;
+        }
+
+        Gizmos.color = editorGridColor;
+
+        float width = gridWidth * gridCellSize;
+        float height = gridHeight * gridCellSize;
+        Vector3 origin = Vector3.zero;
+        float y = -0.05f;
+
+        for (int x = 0; x <= gridWidth; x++)
+        {
+            float xPos = x * gridCellSize;
+            Vector3 from = origin + new Vector3(xPos, y, 0f);
+            Vector3 to = origin + new Vector3(xPos, y, height);
+            Gizmos.DrawLine(from, to);
+        }
+
+        for (int yIndex = 0; yIndex <= gridHeight; yIndex++)
+        {
+            float zPos = yIndex * gridCellSize;
+            Vector3 from = origin + new Vector3(0f, y, zPos);
+            Vector3 to = origin + new Vector3(width, y, zPos);
+            Gizmos.DrawLine(from, to);
+        }
+    }
+
+#if UNITY_EDITOR
+    [ContextMenu("Align Scene View To Battle Camera")]
+    private void AlignSceneViewToBattleCamera()
+    {
+        SceneView sceneView = SceneView.lastActiveSceneView;
+        if (sceneView == null)
+        {
+            return;
+        }
+
+        sceneView.orthographic = true;
+        sceneView.LookAt(cameraPosition, Quaternion.Euler(cameraEulerAngles), cameraSize * 2f);
+        sceneView.Repaint();
+    }
+#endif
 }

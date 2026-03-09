@@ -121,12 +121,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
-        if (!grid.IsWalkable(destination))
+        if (grid.ManhattanDistance(unit.currentCell, destination) > unit.moveRange)
         {
             return;
         }
 
-        if (grid.ManhattanDistance(unit.currentCell, destination) > unit.moveRange)
+        if (!grid.IsWalkable(unit, destination))
         {
             return;
         }
@@ -198,9 +198,9 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        grid.HighlightReachable(activeUnit.currentCell, activeUnit.moveRange);
+        grid.HighlightReachable(activeUnit);
         grid.HighlightAttackTargets(activeUnit);
-        grid.HighlightActive(activeUnit.currentCell);
+        grid.HighlightFootprint(activeUnit, new Color(1.00f, 0.90f, 0.20f, 0.60f));
     }
 
     private void CleanupDeadUnits()
@@ -246,7 +246,7 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                if (!grid.IsWalkable(candidate))
+                if (!grid.IsWalkable(mover, candidate))
                 {
                     continue;
                 }

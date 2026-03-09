@@ -17,6 +17,7 @@ public class BattleUnit : MonoBehaviour
     public int moveRange = 4;
     public int attackRange = 1;
     public int attackDamage = 3;
+    public int footprintSize = 1;
 
     [Header("Presentation")]
     public float yawOffset = 0f;
@@ -75,6 +76,11 @@ public class BattleUnit : MonoBehaviour
         {
             gameObject.SetActive(false);
         }
+    }
+
+    public int FootprintRadius
+    {
+        get { return Mathf.Max(0, footprintSize / 2); }
     }
 
     private Vector3 GetVisualAnchorWorldPosition()
