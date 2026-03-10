@@ -747,18 +747,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de90edcb9f750214e9390fae7d2a4a34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerRoot: {fileID: 1515754017}
+  characterBindingDatabase: {fileID: 0}
   dungeonBoard: {fileID: 0}
-  usePlayerPlaceholder: 0
-  playerBindings: []
   placeholderScale: {x: 0.8, y: 1.2, z: 0.8}
-  aliceVisualLocalOffset: {x: 0, y: 0, z: 0}
+  playerPlaceholderColor: {r: 0.2, g: 0.75, b: 0.35, a: 0.45}
+  enemyPlaceholderColor: {r: 0.85, g: 0.25, b: 0.2, a: 1}
   gridWidth: 20
   gridHeight: 20
   gridCellSize: 1
-  playerCellOffset: {x: 0, y: 0}
-  playerWorldOffset: {x: 0, y: 0, z: 0}
-  playerUseAutoVisualAnchor: 0
+  playerSpawnOrigin: {x: 4, y: 4}
+  playerSpawnSpacing: {x: 4, y: 4}
+  enemySpawnCell: {x: 13, y: 12}
   boardDistance: 18
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8
@@ -2124,7 +2123,7 @@ GameObject:
   - component: {fileID: 2134297881}
   - component: {fileID: 2134297880}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: ID
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

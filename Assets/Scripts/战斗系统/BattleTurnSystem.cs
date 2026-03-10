@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class BattleTurnSystem : MonoBehaviour
 {
@@ -11,11 +12,13 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleUnit activeUnit;
     private int activeIndex = -1;
     private bool waitingForEnemyAction;
+    private TMP_Text activeUnitIdText;
 
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;
         battleCamera = mainCamera;
+        activeUnitIdText = FindActiveUnitIdText();
         units.Clear();
 
         foreach (BattleUnit unit in battleUnits)
@@ -182,12 +185,14 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 activeUnit = candidate;
                 RefreshHighlights();
+                RefreshActiveUnitUi();
                 Debug.Log("Turn: " + activeUnit.unitName);
                 return;
             }
         }
 
         activeUnit = null;
+        RefreshActiveUnitUi();
     }
 
     private void RefreshHighlights()
@@ -206,6 +211,42 @@ public class BattleTurnSystem : MonoBehaviour
     private void CleanupDeadUnits()
     {
         units.RemoveAll(unit => unit == null || !unit.IsAlive);
+    }
+
+    private void RefreshActiveUnitUi()
+    {
+        if (activeUnitIdText == null)
+        {
+            activeUnitIdText = FindActiveUnitIdText();
+        }
+
+        if (activeUnitIdText == null)
+        {
+            return;
+        }
+
+        if (activeUnit == null)
+        {
+            activeUnitIdText.text = string.Empty;
+            return;
+        }
+
+        activeUnitIdText.text = string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId;
+    }
+
+    private static TMP_Text FindActiveUnitIdText()
+    {
+        TMP_Text[] texts = Object.FindObjectsOfType<TMP_Text>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TMP_Text text = texts[i];
+            if (text != null && text.name == "ID")
+            {
+                return text;
+            }
+        }
+
+        return null;
     }
 
     private BattleUnit FindClosestLivingOpponent(BattleUnit source)

@@ -9,6 +9,7 @@ public enum BattleTeam
 public class BattleUnit : MonoBehaviour
 {
     [Header("Identity")]
+    public string characterId = string.Empty;
     public string unitName = "Unit";
     public BattleTeam team = BattleTeam.Player;
 
@@ -37,8 +38,9 @@ public class BattleUnit : MonoBehaviour
         get { return currentHealth > 0; }
     }
 
-    public void Setup(BattleTeam assignedTeam, string assignedName, Vector2Int startCell)
+    public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)
     {
+        characterId = assignedCharacterId;
         team = assignedTeam;
         unitName = assignedName;
         currentCell = startCell;

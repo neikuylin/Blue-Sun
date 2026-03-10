@@ -12,6 +12,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string SceneName = "20x20";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
+    private const string LegacyAliceRootName = "\u7231\u4e3d\u4e1droot";
 
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
@@ -83,6 +84,7 @@ public class BattleBootstrap : MonoBehaviour
 
         ResolveReferences();
         CleanupRuntimeObjects();
+        HideLegacySceneCharacters();
         SetupBattleCamera(mainCamera);
         AlignDungeonBoardToCamera(mainCamera);
 
@@ -189,7 +191,7 @@ public class BattleBootstrap : MonoBehaviour
         unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
         unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
         unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
-        unit.Setup(BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
+        unit.Setup(selection.characterId, BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
         unit.SetCell(startCell, grid.GetWorldPosition(startCell));
         unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
         grid.RegisterUnit(unit);
@@ -214,7 +216,7 @@ public class BattleBootstrap : MonoBehaviour
         unit.cellOffset = Vector2Int.zero;
         unit.useAutoVisualAnchor = false;
         unit.worldOffset = Vector3.zero;
-        unit.Setup(BattleTeam.Enemy, "TrainingDummy", enemySpawnCell);
+        unit.Setup("TrainingDummy", BattleTeam.Enemy, "TrainingDummy", enemySpawnCell);
         unit.SetCell(enemySpawnCell, grid.GetWorldPosition(enemySpawnCell));
         unit.FaceToward(grid.GetWorldPosition(enemySpawnCell + Vector2Int.left));
         grid.RegisterUnit(unit);
@@ -333,6 +335,21 @@ public class BattleBootstrap : MonoBehaviour
         else
         {
             DestroyImmediate(runtimeRoot.gameObject);
+        }
+    }
+
+    private static void HideLegacySceneCharacters()
+    {
+        Transform[] transforms = FindObjectsOfType<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform target = transforms[i];
+            if (target == null || target.name != LegacyAliceRootName)
+            {
+                continue;
+            }
+
+            target.gameObject.SetActive(false);
         }
     }
 

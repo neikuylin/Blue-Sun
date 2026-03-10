@@ -43,9 +43,3 @@ MonoBehaviour:
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}
     useAutoVisualAnchor: 1
-  - characterId: 
-    displayName: 
-    modelPrefab: {fileID: 0}
-    cellOffset: {x: 0, y: 0}
-    worldOffset: {x: 0, y: 0, z: 0}
-    useAutoVisualAnchor: 1
