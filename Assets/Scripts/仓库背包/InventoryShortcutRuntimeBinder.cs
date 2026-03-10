@@ -8,7 +8,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class InventoryShortcutRuntimeBinder : MonoBehaviour
 {
-    private const string DebugPrefix = "[背包联动]";
     [Serializable]
     public struct ItemSlotData
     {
@@ -333,11 +332,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             CollectSlotsFromContainer(quickAnchor, quickSlots);
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, quickSlots.Count);
             EnsureBackpackDataSize(backpackWidgetCount);
-            Debug.Log($"{DebugPrefix} 角色页背包镜像 目标={GetHierarchyPath(quickAnchor)} 数据数={backpackData.Count} 显示格数={quickSlots.Count}");
-        }
-        else
-        {
-            Debug.LogWarning($"{DebugPrefix} 未找到角色页背包镜像容器: {QuickAnchorPath}");
         }
 
         RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
@@ -348,11 +342,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             CollectSlotsFromContainer(battleBackpackAnchor, battleBackpackSlots);
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
             EnsureBackpackDataSize(backpackWidgetCount);
-            Debug.Log($"{DebugPrefix} 战斗背包镜像 目标={GetHierarchyPath(battleBackpackAnchor)} 模板={(backpackSlotTemplate != null)} 数据数={backpackData.Count} 显示格数={battleBackpackSlots.Count}");
-        }
-        else
-        {
-            Debug.LogWarning($"{DebugPrefix} 未找到战斗背包容器: {BattleBackpackContainerPath}");
         }
 
         BindDragRelays();
@@ -428,7 +417,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         backpackSlotTemplate.SetActive(false);
         DontDestroyOnLoad(backpackSlotTemplate);
         CacheBackpackLayout(source.transform.parent as RectTransform);
-        Debug.Log($"{DebugPrefix} 已缓存背包格子模板: {GetHierarchyPath(source.transform)}");
     }
 
     private void CacheBackpackLayout(RectTransform sourceContainer)
@@ -677,7 +665,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         int desiredCount = backpackSlots.Count > 0 ? backpackSlots.Count : backpackData.Count;
         if (cache.Count == desiredCount)
         {
-            Debug.Log($"{DebugPrefix} 镜像格子数量已匹配 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 当前={cache.Count} 期望={desiredCount}");
             return;
         }
 
@@ -688,7 +675,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (desiredCount <= 0 || (backpackSlots.Count == 0 && backpackSlotTemplate == null))
         {
-            Debug.LogWarning($"{DebugPrefix} 无法生成镜像格子 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 期望={desiredCount} 源格数={backpackSlots.Count} 数据数={backpackData.Count} 模板={(backpackSlotTemplate != null)}");
             return;
         }
 
@@ -711,26 +697,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 rt.localScale = Vector3.one;
             }
         }
-
-        Debug.Log($"{DebugPrefix} 已生成镜像格子 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 数量={desiredCount}");
-    }
-
-    private static string GetHierarchyPath(Transform target)
-    {
-        if (target == null)
-        {
-            return "(null)";
-        }
-
-        string path = target.name;
-        Transform current = target.parent;
-        while (current != null)
-        {
-            path = current.name + "/" + path;
-            current = current.parent;
-        }
-
-        return path;
     }
 
     private static void SetActiveRecursively(GameObject target, bool active)
