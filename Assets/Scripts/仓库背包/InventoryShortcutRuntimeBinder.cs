@@ -81,6 +81,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/左边栏位/角色背景框左/装备栏位";
     private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
     private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
+    private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
+    private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string SlotNameKeyword = "格子";
 
     private static InventoryShortcutRuntimeBinder instance;
@@ -344,6 +346,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             EnsureBackpackDataSize(backpackWidgetCount);
         }
 
+        EnsureBattleBackpackDrag();
+
         BindDragRelays();
         RefreshAll();
     }
@@ -472,6 +476,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform FindBattleBackpackAnchor()
     {
         return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
+    }
+
+    private void EnsureBattleBackpackDrag()
+    {
+        RectTransform dragTarget = FindTransformByPath(BattleBackpackContentPath) as RectTransform;
+        RectTransform dragHandle = FindTransformByPath(BattleBackpackDragHandlePath) as RectTransform;
+        if (dragTarget == null || dragHandle == null)
+        {
+            return;
+        }
+
+        UIDragPanel dragPanel = dragHandle.GetComponent<UIDragPanel>();
+        if (dragPanel == null)
+        {
+            dragPanel = dragHandle.gameObject.AddComponent<UIDragPanel>();
+        }
+
+        dragPanel.SetDragTarget(dragTarget);
     }
 
     private static Transform FindTransformByPath(string path)
