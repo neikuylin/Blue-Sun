@@ -8,6 +8,7 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class InventoryShortcutRuntimeBinder : MonoBehaviour
 {
+    private const string DebugPrefix = "[背包联动]";
     [Serializable]
     public struct ItemSlotData
     {
@@ -80,6 +81,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
     private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/左边栏位/角色背景框左/装备栏位";
     private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
+    private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
     private const string SlotNameKeyword = "格子";
 
     private static InventoryShortcutRuntimeBinder instance;
@@ -92,12 +94,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
+    private readonly List<SlotWidget> battleBackpackSlots = new List<SlotWidget>();
 
     private bool isDragging;
     private SlotRef draggingSource;
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
     private Image dragIconImage;
+    private GameObject backpackSlotTemplate;
+    private bool hasCachedBackpackLayout;
+    private Vector2 cachedBackpackContainerSize;
+    private RectOffset cachedBackpackPadding = new RectOffset();
+    private Vector2 cachedBackpackCellSize;
+    private Vector2 cachedBackpackSpacing;
+    private GridLayoutGroup.Corner cachedBackpackStartCorner;
+    private GridLayoutGroup.Axis cachedBackpackStartAxis;
+    private TextAnchor cachedBackpackChildAlignment;
+    private GridLayoutGroup.Constraint cachedBackpackConstraint;
+    private int cachedBackpackConstraintCount;
 
     public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
 
@@ -136,6 +150,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.backpackData[index] = data;
         instance.RefreshBackpackSlot(index);
         instance.RefreshQuickSlot(index);
+        instance.RefreshBattleBackpackSlot(index);
         return true;
     }
 
@@ -170,6 +185,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             remain -= add;
             instance.RefreshBackpackSlot(i);
             instance.RefreshQuickSlot(i);
+            instance.RefreshBattleBackpackSlot(i);
         }
 
         for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
@@ -191,6 +207,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             remain -= add;
             instance.RefreshBackpackSlot(i);
             instance.RefreshQuickSlot(i);
+            instance.RefreshBattleBackpackSlot(i);
         }
 
         return remain;
@@ -217,6 +234,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.backpackData[slotIndex] = slot;
         instance.RefreshBackpackSlot(slotIndex);
         instance.RefreshQuickSlot(slotIndex);
+        instance.RefreshBattleBackpackSlot(slotIndex);
         return true;
     }
 
@@ -256,6 +274,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 instance.RefreshBackpackSlot(toSlot);
                 instance.RefreshQuickSlot(fromSlot);
                 instance.RefreshQuickSlot(toSlot);
+                instance.RefreshBattleBackpackSlot(fromSlot);
+                instance.RefreshBattleBackpackSlot(toSlot);
                 return true;
             }
         }
@@ -266,6 +286,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.RefreshBackpackSlot(toSlot);
         instance.RefreshQuickSlot(fromSlot);
         instance.RefreshQuickSlot(toSlot);
+        instance.RefreshBattleBackpackSlot(fromSlot);
+        instance.RefreshBattleBackpackSlot(toSlot);
         return true;
     }
 
@@ -288,22 +310,49 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
+        CacheBackpackSlotTemplate();
         UnbindAll();
 
         CollectWarehouseSlots();
         CollectBackpackSlots();
         CollectEquipmentSlots();
+        CollectBattleBackpackSlots();
 
         EnsureDataSize(warehouseData, warehouseSlots.Count);
-        EnsureDataSize(backpackData, backpackSlots.Count);
         EnsureDataSize(equipmentData, equipmentSlots.Count);
+
+        int backpackWidgetCount = Mathf.Max(backpackSlots.Count, quickSlots.Count);
+        backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
+        EnsureBackpackDataSize(backpackWidgetCount);
 
         RectTransform quickAnchor = FindQuickAnchor();
         if (quickAnchor != null)
         {
-            ApplyBackpackLayoutToQuickAnchor(quickAnchor);
-            EnsureQuickSlots(quickAnchor);
+            ApplyBackpackLayoutToMirrorAnchor(quickAnchor);
+            EnsureMirrorSlots(quickAnchor, quickSlots, "快捷格子");
             CollectSlotsFromContainer(quickAnchor, quickSlots);
+            backpackWidgetCount = Mathf.Max(backpackWidgetCount, quickSlots.Count);
+            EnsureBackpackDataSize(backpackWidgetCount);
+            Debug.Log($"{DebugPrefix} 角色页背包镜像 目标={GetHierarchyPath(quickAnchor)} 数据数={backpackData.Count} 显示格数={quickSlots.Count}");
+        }
+        else
+        {
+            Debug.LogWarning($"{DebugPrefix} 未找到角色页背包镜像容器: {QuickAnchorPath}");
+        }
+
+        RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
+        if (battleBackpackAnchor != null)
+        {
+            ApplyBackpackLayoutToMirrorAnchor(battleBackpackAnchor);
+            EnsureMirrorSlots(battleBackpackAnchor, battleBackpackSlots, "战斗背包格子");
+            CollectSlotsFromContainer(battleBackpackAnchor, battleBackpackSlots);
+            backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
+            EnsureBackpackDataSize(backpackWidgetCount);
+            Debug.Log($"{DebugPrefix} 战斗背包镜像 目标={GetHierarchyPath(battleBackpackAnchor)} 模板={(backpackSlotTemplate != null)} 数据数={backpackData.Count} 显示格数={battleBackpackSlots.Count}");
+        }
+        else
+        {
+            Debug.LogWarning($"{DebugPrefix} 未找到战斗背包容器: {BattleBackpackContainerPath}");
         }
 
         BindDragRelays();
@@ -330,6 +379,83 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void CacheBackpackSlotTemplate()
+    {
+        if (backpackSlots.Count > 0 && backpackSlots[0].root != null)
+        {
+            StoreBackpackTemplate(backpackSlots[0].root.gameObject);
+            return;
+        }
+
+        Transform container = FindTransformByPath(BackpackContainerPath);
+        if (container == null || container.childCount == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < container.childCount; i++)
+        {
+            RectTransform child = container.GetChild(i) as RectTransform;
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (!child.name.Contains(SlotNameKeyword) && child.GetComponent<Button>() == null)
+            {
+                continue;
+            }
+
+            StoreBackpackTemplate(child.gameObject);
+            return;
+        }
+    }
+
+    private void StoreBackpackTemplate(GameObject source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (backpackSlotTemplate != null)
+        {
+            Destroy(backpackSlotTemplate);
+        }
+
+        backpackSlotTemplate = Instantiate(source);
+        backpackSlotTemplate.name = "BackpackSlotTemplate";
+        backpackSlotTemplate.SetActive(false);
+        DontDestroyOnLoad(backpackSlotTemplate);
+        CacheBackpackLayout(source.transform.parent as RectTransform);
+        Debug.Log($"{DebugPrefix} 已缓存背包格子模板: {GetHierarchyPath(source.transform)}");
+    }
+
+    private void CacheBackpackLayout(RectTransform sourceContainer)
+    {
+        if (sourceContainer == null)
+        {
+            return;
+        }
+
+        cachedBackpackContainerSize = sourceContainer.sizeDelta;
+        GridLayoutGroup source = sourceContainer.GetComponent<GridLayoutGroup>();
+        if (source == null)
+        {
+            return;
+        }
+
+        hasCachedBackpackLayout = true;
+        cachedBackpackPadding = new RectOffset(source.padding.left, source.padding.right, source.padding.top, source.padding.bottom);
+        cachedBackpackCellSize = source.cellSize;
+        cachedBackpackSpacing = source.spacing;
+        cachedBackpackStartCorner = source.startCorner;
+        cachedBackpackStartAxis = source.startAxis;
+        cachedBackpackChildAlignment = source.childAlignment;
+        cachedBackpackConstraint = source.constraint;
+        cachedBackpackConstraintCount = source.constraintCount;
+    }
+
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
@@ -339,9 +465,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             CollectSlotsFromContainer(container, equipmentSlots);
         }
     }
+
+    private void CollectBattleBackpackSlots()
+    {
+        battleBackpackSlots.Clear();
+        Transform container = FindTransformByPath(BattleBackpackContainerPath);
+        if (container != null)
+        {
+            CollectSlotsFromContainer(container, battleBackpackSlots);
+        }
+    }
+
     private RectTransform FindQuickAnchor()
     {
         return FindTransformByPath(QuickAnchorPath) as RectTransform;
+    }
+
+    private RectTransform FindBattleBackpackAnchor()
+    {
+        return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
     }
 
     private static Transform FindTransformByPath(string path)
@@ -479,77 +621,130 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
-    private void ApplyBackpackLayoutToQuickAnchor(RectTransform quickAnchor)
+    private void ApplyBackpackLayoutToMirrorAnchor(RectTransform anchor)
     {
-        if (quickAnchor == null || backpackSlots.Count == 0 || backpackSlots[0].root == null)
+        if (anchor == null)
         {
             return;
         }
 
-        RectTransform sourceContainer = backpackSlots[0].root.parent as RectTransform;
-        if (sourceContainer == null)
+        RectTransform sourceContainer = backpackSlots.Count > 0 && backpackSlots[0].root != null
+            ? backpackSlots[0].root.parent as RectTransform
+            : null;
+        GridLayoutGroup source = sourceContainer != null ? sourceContainer.GetComponent<GridLayoutGroup>() : null;
+
+        if (sourceContainer == null && !hasCachedBackpackLayout)
         {
             return;
         }
 
-        quickAnchor.sizeDelta = sourceContainer.sizeDelta;
+        anchor.sizeDelta = sourceContainer != null ? sourceContainer.sizeDelta : cachedBackpackContainerSize;
 
-        GridLayoutGroup source = sourceContainer.GetComponent<GridLayoutGroup>();
-        if (source == null)
-        {
-            return;
-        }
-
-        GridLayoutGroup target = quickAnchor.GetComponent<GridLayoutGroup>();
+        GridLayoutGroup target = anchor.GetComponent<GridLayoutGroup>();
         if (target == null)
         {
-            target = quickAnchor.gameObject.AddComponent<GridLayoutGroup>();
+            target = anchor.gameObject.AddComponent<GridLayoutGroup>();
         }
 
-        target.padding = source.padding;
-        target.cellSize = source.cellSize;
-        target.spacing = source.spacing;
-        target.startCorner = source.startCorner;
-        target.startAxis = source.startAxis;
-        target.childAlignment = source.childAlignment;
-        target.constraint = source.constraint;
-        target.constraintCount = source.constraintCount;
+        if (source != null)
+        {
+            target.padding = source.padding;
+            target.cellSize = source.cellSize;
+            target.spacing = source.spacing;
+            target.startCorner = source.startCorner;
+            target.startAxis = source.startAxis;
+            target.childAlignment = source.childAlignment;
+            target.constraint = source.constraint;
+            target.constraintCount = source.constraintCount;
+            CacheBackpackLayout(sourceContainer);
+            return;
+        }
+
+        target.padding = new RectOffset(cachedBackpackPadding.left, cachedBackpackPadding.right, cachedBackpackPadding.top, cachedBackpackPadding.bottom);
+        target.cellSize = cachedBackpackCellSize;
+        target.spacing = cachedBackpackSpacing;
+        target.startCorner = cachedBackpackStartCorner;
+        target.startAxis = cachedBackpackStartAxis;
+        target.childAlignment = cachedBackpackChildAlignment;
+        target.constraint = cachedBackpackConstraint;
+        target.constraintCount = cachedBackpackConstraintCount;
     }
 
-    private void EnsureQuickSlots(RectTransform quickAnchor)
+    private void EnsureMirrorSlots(RectTransform anchor, List<SlotWidget> cache, string slotNamePrefix)
     {
-        quickSlots.Clear();
-        CollectSlotsFromContainer(quickAnchor, quickSlots);
-        if (quickSlots.Count == backpackSlots.Count)
+        cache.Clear();
+        CollectSlotsFromContainer(anchor, cache);
+        int desiredCount = backpackSlots.Count > 0 ? backpackSlots.Count : backpackData.Count;
+        if (cache.Count == desiredCount)
         {
+            Debug.Log($"{DebugPrefix} 镜像格子数量已匹配 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 当前={cache.Count} 期望={desiredCount}");
             return;
         }
 
-        for (int i = quickAnchor.childCount - 1; i >= 0; i--)
+        for (int i = anchor.childCount - 1; i >= 0; i--)
         {
-            Destroy(quickAnchor.GetChild(i).gameObject);
+            Destroy(anchor.GetChild(i).gameObject);
         }
 
-        if (backpackSlots.Count == 0)
+        if (desiredCount <= 0 || (backpackSlots.Count == 0 && backpackSlotTemplate == null))
         {
+            Debug.LogWarning($"{DebugPrefix} 无法生成镜像格子 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 期望={desiredCount} 源格数={backpackSlots.Count} 数据数={backpackData.Count} 模板={(backpackSlotTemplate != null)}");
             return;
         }
 
-        GameObject template = backpackSlots[0].root != null ? backpackSlots[0].root.gameObject : null;
+        GameObject template = backpackSlots.Count > 0 && backpackSlots[0].root != null
+            ? backpackSlots[0].root.gameObject
+            : backpackSlotTemplate;
         if (template == null)
         {
             return;
         }
 
-        for (int i = 0; i < backpackSlots.Count; i++)
+        for (int i = 0; i < desiredCount; i++)
         {
-            GameObject go = Instantiate(template, quickAnchor, false);
-            go.name = "快捷格子 (" + (i + 1) + ")";
+            GameObject go = Instantiate(template, anchor, false);
+            go.name = slotNamePrefix + " (" + (i + 1) + ")";
+            SetActiveRecursively(go, true);
             RectTransform rt = go.transform as RectTransform;
             if (rt != null)
             {
                 rt.localScale = Vector3.one;
             }
+        }
+
+        Debug.Log($"{DebugPrefix} 已生成镜像格子 {slotNamePrefix} 目标={GetHierarchyPath(anchor)} 数量={desiredCount}");
+    }
+
+    private static string GetHierarchyPath(Transform target)
+    {
+        if (target == null)
+        {
+            return "(null)";
+        }
+
+        string path = target.name;
+        Transform current = target.parent;
+        while (current != null)
+        {
+            path = current.name + "/" + path;
+            current = current.parent;
+        }
+
+        return path;
+    }
+
+    private static void SetActiveRecursively(GameObject target, bool active)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.SetActive(active);
+        Transform root = target.transform;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            SetActiveRecursively(root.GetChild(i).gameObject, active);
         }
     }
 
@@ -639,11 +834,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void EnsureBackpackDataSize(int size)
+    {
+        while (backpackData.Count < size)
+        {
+            backpackData.Add(default);
+        }
+    }
+
     private void BindDragRelays()
     {
         BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse);
         BindDragRelaysForList(backpackSlots, SlotKind.Backpack);
         BindDragRelaysForList(quickSlots, SlotKind.Backpack);
+        BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack);
         BindDragRelaysForList(equipmentSlots, SlotKind.Equipment);
     }
 
@@ -885,6 +1089,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             RefreshBackpackSlot(slot.index);
             RefreshQuickSlot(slot.index);
+            RefreshBattleBackpackSlot(slot.index);
             return;
         }
 
@@ -912,6 +1117,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         for (int i = 0; i < mirrorCount; i++)
         {
             RefreshQuickSlot(i);
+        }
+
+        int battleMirrorCount = Mathf.Min(battleBackpackSlots.Count, backpackData.Count);
+        for (int i = 0; i < battleMirrorCount; i++)
+        {
+            RefreshBattleBackpackSlot(i);
         }
     }
 
@@ -955,6 +1166,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ApplyItemToWidget(quickSlots[index], backpackData[index]);
     }
 
+    private void RefreshBattleBackpackSlot(int index)
+    {
+        if (index < 0 || index >= battleBackpackSlots.Count || index >= backpackData.Count)
+        {
+            return;
+        }
+
+        ApplyItemToWidget(battleBackpackSlots[index], backpackData[index]);
+    }
+
     private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
     {
         if (widget == null || widget.icon == null)
@@ -991,6 +1212,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         backpackSlots.Clear();
         equipmentSlots.Clear();
         quickSlots.Clear();
+        battleBackpackSlots.Clear();
     }
 }
 
