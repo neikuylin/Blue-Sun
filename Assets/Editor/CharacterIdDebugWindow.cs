@@ -21,71 +21,45 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
         if (GUILayout.Button("刷新"))
         {
+            if (Application.isPlaying)
+            {
+                CharacterSelectionState.CaptureFromCurrentScene();
+            }
+
             Repaint();
         }
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawRuntimeState();
         EditorGUILayout.Space(8f);
-        DrawCharacterEntries();
-        EditorGUILayout.Space(8f);
         DrawCharacterSlots();
-        EditorGUILayout.Space(8f);
-        DrawBattleBindings();
         EditorGUILayout.EndScrollView();
     }
 
     private static void DrawRuntimeState()
     {
-        EditorGUILayout.LabelField("运行时选择状态", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("运行时捕捉", EditorStyles.boldLabel);
         EditorGUILayout.LabelField("是否正在运行", Application.isPlaying ? "是" : "否");
-        EditorGUILayout.LabelField("主选角色 ID", string.IsNullOrEmpty(CharacterSelectionState.PrimaryCharacterId) ? "（空）" : CharacterSelectionState.PrimaryCharacterId);
-        EditorGUILayout.LabelField("当前激活角色 ID", string.IsNullOrEmpty(CharacterSelectionState.ActiveCharacterId) ? "（空）" : CharacterSelectionState.ActiveCharacterId);
+        EditorGUILayout.LabelField("当前槽位捕捉ID", string.IsNullOrEmpty(CharacterSelectionState.ActiveCharacterId) ? "（空）" : CharacterSelectionState.ActiveCharacterId);
 
         var slots = CharacterSelectionState.SlotSelections;
-        EditorGUILayout.LabelField("已捕获槽位数", slots.Count.ToString());
+        EditorGUILayout.LabelField("已捕捉槽位数", slots.Count.ToString());
         for (int i = 0; i < slots.Count; i++)
         {
             var slot = slots[i];
-            EditorGUILayout.LabelField(slot.slotName, string.IsNullOrEmpty(slot.characterId) ? "（空）" : slot.characterId);
-        }
-    }
-
-    private static void DrawCharacterEntries()
-    {
-        EditorGUILayout.LabelField("启程场景角色入口", EditorStyles.boldLabel);
-        CharacterSelectEntry[] entries = Object.FindObjectsOfType<CharacterSelectEntry>(true);
-        if (entries.Length == 0)
-        {
-            EditorGUILayout.HelpBox("当前打开的场景里没有找到 CharacterSelectEntry。", MessageType.Info);
-            return;
-        }
-
-        for (int i = 0; i < entries.Length; i++)
-        {
-            CharacterSelectEntry entry = entries[i];
-            if (entry == null)
+            string label = slot.slotName + (slot.isMainSlot ? " [主槽位]" : "");
+            if (slot.isActiveSlot)
             {
-                continue;
+                label += " [当前]";
             }
 
-            using (new EditorGUILayout.VerticalScope("box"))
-            {
-                EditorGUILayout.ObjectField("对象", entry, typeof(CharacterSelectEntry), true);
-                string newId = EditorGUILayout.TextField("角色 ID", entry.characterId);
-                if (newId != entry.characterId)
-                {
-                    Undo.RecordObject(entry, "修改角色 ID");
-                    entry.characterId = newId;
-                    EditorUtility.SetDirty(entry);
-                }
-            }
+            EditorGUILayout.LabelField(label, string.IsNullOrEmpty(slot.characterId) ? "（空）" : slot.characterId);
         }
     }
 
     private static void DrawCharacterSlots()
     {
-        EditorGUILayout.LabelField("启程场景角色槽位", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("启程场景槽位", EditorStyles.boldLabel);
         CharacterSlotView[] slots = Object.FindObjectsOfType<CharacterSlotView>(true);
         if (slots.Length == 0)
         {
@@ -105,39 +79,10 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             {
                 EditorGUILayout.ObjectField("对象", slot, typeof(CharacterSlotView), true);
                 EditorGUILayout.Toggle("主槽位", slot.isMainSlot);
-                string newId = EditorGUILayout.TextField("默认槽位 ID", slot.slotCharacterId);
-                if (newId != slot.slotCharacterId)
-                {
-                    Undo.RecordObject(slot, "修改槽位角色 ID");
-                    slot.slotCharacterId = newId;
-                    EditorUtility.SetDirty(slot);
-                }
+                EditorGUILayout.LabelField("当前解析ID", string.IsNullOrEmpty(CharacterSelectionState.ResolveCharacterId(slot)) ? "（空）" : CharacterSelectionState.ResolveCharacterId(slot));
+                EditorGUILayout.LabelField("selectedCharacterId", string.IsNullOrEmpty(slot.selectedCharacterId) ? "（空）" : slot.selectedCharacterId);
+                EditorGUILayout.LabelField("slotCharacterId", string.IsNullOrEmpty(slot.slotCharacterId) ? "（空）" : slot.slotCharacterId);
             }
-        }
-    }
-
-    private static void DrawBattleBindings()
-    {
-        EditorGUILayout.LabelField("20x20 战斗绑定", EditorStyles.boldLabel);
-        BattleBootstrap bootstrap = Object.FindObjectOfType<BattleBootstrap>(true);
-        if (bootstrap == null)
-        {
-            EditorGUILayout.HelpBox("当前打开的场景里没有找到 BattleBootstrap。", MessageType.Info);
-            return;
-        }
-
-        SerializedObject serializedObject = new SerializedObject(bootstrap);
-        SerializedProperty bindings = serializedObject.FindProperty("playerBindings");
-        if (bindings != null)
-        {
-            EditorGUILayout.PropertyField(bindings, true);
-            serializedObject.ApplyModifiedProperties();
-        }
-
-        if (GUILayout.Button("选中 BattleBootstrap"))
-        {
-            Selection.activeObject = bootstrap.gameObject;
-            EditorGUIUtility.PingObject(bootstrap.gameObject);
         }
     }
 }

@@ -724,7 +724,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void SyncSelectionState()
     {
-        CharacterSelectionState.UpdateSelections(slots, FindToggleOnSlot(), playerCharacterId);
+        CharacterSelectionState.UpdateSelections(slots, FindToggleOnSlot());
     }
 
     private CharacterSelectEntry FindEntry(string characterId)

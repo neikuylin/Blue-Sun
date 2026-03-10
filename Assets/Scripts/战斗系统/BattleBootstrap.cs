@@ -163,7 +163,7 @@ public class BattleBootstrap : MonoBehaviour
 
     private BattleUnit SetupPlayer(BattleGrid grid)
     {
-        string selectedCharacterId = CharacterSelectionState.PrimaryCharacterId;
+        string selectedCharacterId = CharacterSelectionState.ActiveCharacterId;
         CharacterRootBinding binding = FindPlayerBinding(selectedCharacterId);
         Transform aliceVisual = FindTransformByName(AliceRootName);
 

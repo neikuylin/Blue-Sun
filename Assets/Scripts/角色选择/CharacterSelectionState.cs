@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class CharacterSelectionState : MonoBehaviour
@@ -16,11 +17,9 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
     private static CharacterSelectionState instance;
 
-    [SerializeField] private string primaryCharacterId = string.Empty;
     [SerializeField] private string activeCharacterId = string.Empty;
     [SerializeField] private List<SlotSelection> slotSelections = new List<SlotSelection>();
 
-    public static string PrimaryCharacterId => instance != null ? instance.primaryCharacterId : string.Empty;
     public static string ActiveCharacterId => instance != null ? instance.activeCharacterId : string.Empty;
     public static IReadOnlyList<SlotSelection> SlotSelections => instance != null ? instance.slotSelections : Array.Empty<SlotSelection>();
 
@@ -37,7 +36,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
         instance = go.AddComponent<CharacterSelectionState>();
     }
 
-    public static void UpdateSelections(IEnumerable<CharacterSlotView> slots, CharacterSlotView activeSlot, string playerCharacterId)
+    public static void UpdateSelections(IEnumerable<CharacterSlotView> slots, CharacterSlotView activeSlot)
     {
         if (instance == null)
         {
@@ -50,8 +49,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
         }
 
         instance.slotSelections.Clear();
-        instance.activeCharacterId = ResolveCharacterId(activeSlot, playerCharacterId);
-        instance.primaryCharacterId = string.Empty;
+        instance.activeCharacterId = ResolveCharacterId(activeSlot);
 
         if (slots == null)
         {
@@ -65,30 +63,49 @@ public sealed class CharacterSelectionState : MonoBehaviour
                 continue;
             }
 
-            string characterId = ResolveCharacterId(slot, playerCharacterId);
-            bool isActive = slot == activeSlot;
-
             instance.slotSelections.Add(new SlotSelection
             {
                 slotName = slot.name,
-                characterId = characterId,
+                characterId = ResolveCharacterId(slot),
                 isMainSlot = slot.isMainSlot,
-                isActiveSlot = isActive
+                isActiveSlot = slot == activeSlot
             });
-
-            if (string.IsNullOrEmpty(instance.primaryCharacterId) && !slot.isMainSlot && !string.IsNullOrEmpty(characterId))
-            {
-                instance.primaryCharacterId = characterId;
-            }
-        }
-
-        if (string.IsNullOrEmpty(instance.primaryCharacterId))
-        {
-            instance.primaryCharacterId = instance.activeCharacterId;
         }
     }
 
-    private static string ResolveCharacterId(CharacterSlotView slot, string playerCharacterId)
+    public static void CaptureFromCurrentScene()
+    {
+        CharacterSlotView[] slots = FindObjectsOfType<CharacterSlotView>(true);
+        CharacterSlotView activeSlot = null;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            for (int j = 0; j < slot.selectToggles.Count; j++)
+            {
+                Toggle toggle = slot.selectToggles[j];
+                if (toggle != null && toggle.isOn)
+                {
+                    activeSlot = slot;
+                    break;
+                }
+            }
+
+            if (activeSlot != null)
+            {
+                break;
+            }
+        }
+
+        UpdateSelections(slots, activeSlot);
+    }
+
+    public static string ResolveCharacterId(CharacterSlotView slot)
     {
         if (slot == null)
         {
@@ -103,11 +120,6 @@ public sealed class CharacterSelectionState : MonoBehaviour
         if (!string.IsNullOrEmpty(slot.slotCharacterId))
         {
             return slot.slotCharacterId;
-        }
-
-        if (slot.isMainSlot)
-        {
-            return playerCharacterId;
         }
 
         return string.Empty;
