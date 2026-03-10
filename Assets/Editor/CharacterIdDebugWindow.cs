@@ -135,6 +135,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("\u89d2\u8272ID"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("\u663e\u793a\u540d"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("\u6a21\u578b\u9884\u5236\u4f53"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("\u683c\u5b50\u504f\u79fb"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("\u4e16\u754c\u504f\u79fb"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("\u81ea\u52a8\u89c6\u89c9\u951a\u70b9"));
@@ -148,6 +149,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("characterId").stringValue = string.Empty;
             added.FindPropertyRelative("displayName").stringValue = string.Empty;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
+            added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
             added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
@@ -227,6 +229,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("characterId").stringValue = knownIds[i];
             added.FindPropertyRelative("displayName").stringValue = knownIds[i];
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
+            added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
             added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;

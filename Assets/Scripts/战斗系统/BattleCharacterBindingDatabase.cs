@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Animations;
 
 [CreateAssetMenu(fileName = "BattleCharacterBindings", menuName = "\u6218\u6597/\u89d2\u8272\u6a21\u578b\u7ed1\u5b9a\u5e93")]
 public sealed class BattleCharacterBindingDatabase : ScriptableObject
@@ -13,6 +14,7 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
         public string characterId;
         public string displayName;
         public GameObject modelPrefab;
+        public RuntimeAnimatorController animatorController;
         public Vector2Int cellOffset = Vector2Int.zero;
         public Vector3 worldOffset = Vector3.zero;
         public bool useAutoVisualAnchor = true;

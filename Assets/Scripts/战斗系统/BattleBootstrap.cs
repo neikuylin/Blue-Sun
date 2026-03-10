@@ -229,10 +229,28 @@ public class BattleBootstrap : MonoBehaviour
         {
             GameObject instance = Instantiate(binding.modelPrefab, worldPosition, Quaternion.identity, runtimeRoot);
             instance.name = characterId + "_Unit";
+            ApplyAnimatorBinding(instance, binding);
             return instance;
         }
 
         return CreatePlaceholderUnitRoot(characterId + "_Placeholder", runtimeRoot, worldPosition, playerPlaceholderColor);
+    }
+
+    private static void ApplyAnimatorBinding(GameObject instance, BattleCharacterBindingDatabase.BindingEntry binding)
+    {
+        if (instance == null || binding == null || binding.animatorController == null)
+        {
+            return;
+        }
+
+        Animator animator = instance.GetComponentInChildren<Animator>(true);
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.runtimeAnimatorController = binding.animatorController;
+        animator.enabled = true;
     }
 
     private GameObject CreatePlaceholderUnitRoot(string rootName, Transform parent, Vector3 worldPosition, Color color)
