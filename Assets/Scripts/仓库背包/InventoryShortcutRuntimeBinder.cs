@@ -1059,7 +1059,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (kind == SlotKind.Backpack)
         {
-            return backpackSlots;
+            if (backpackSlots.Count > 0)
+            {
+                return backpackSlots;
+            }
+
+            if (quickSlots.Count > 0)
+            {
+                return quickSlots;
+            }
+
+            return battleBackpackSlots;
         }
 
         return equipmentSlots;
