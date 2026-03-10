@@ -86,6 +86,13 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         ExitModalSelection(false);
         UnbindAll();
         CollectComponents();
+
+        if (slots.Count == 0 && entries.Count == 0)
+        {
+            currentSlot = null;
+            return;
+        }
+
         BindSlotListeners();
         BindEntryListeners();
 
@@ -724,6 +731,11 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void SyncSelectionState()
     {
+        if (slots.Count == 0)
+        {
+            return;
+        }
+
         CharacterSelectionState.UpdateSelections(slots, FindToggleOnSlot());
     }
 

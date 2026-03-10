@@ -10,46 +10,33 @@ using UnityEditor;
 public class BattleBootstrap : MonoBehaviour
 {
     private const string SceneName = "20x20";
-    private const string AliceRootName = "爱丽丝root";
-    private const string BoardName = "20x20右上 开门动画";
-    private const string PlayerPlaceholderName = "PlayerPlaceholder";
+    private const string RuntimeRootName = "BattleRuntime";
+    private const string GridObjectName = "BattleGrid";
 
-    [System.Serializable]
-    public class CharacterRootBinding
-    {
-        public string characterId;
-        public string displayName;
-        public Transform root;
-        public Vector2Int cellOffset = Vector2Int.zero;
-        public Vector3 worldOffset = Vector3.zero;
-        public bool useAutoVisualAnchor;
-    }
+    [Header("Binding Database")]
+    public BattleCharacterBindingDatabase characterBindingDatabase;
 
     [Header("Scene References")]
-    public Transform playerRoot;
     public Transform dungeonBoard;
 
-    [Header("Player Source")]
-    public bool usePlayerPlaceholder = false;
-
-    [Header("Character ID Bindings")]
-    public List<CharacterRootBinding> playerBindings = new List<CharacterRootBinding>();
-
-    [Header("Placeholder Visual")]
+    [Header("Placeholder")]
     public Vector3 placeholderScale = new Vector3(0.8f, 1.2f, 0.8f);
-    public Vector3 aliceVisualLocalOffset = Vector3.zero;
+    public Color playerPlaceholderColor = new Color(0.20f, 0.75f, 0.35f, 0.45f);
+    public Color enemyPlaceholderColor = new Color(0.85f, 0.25f, 0.20f, 1f);
 
     [Header("Grid")]
     public int gridWidth = 20;
     public int gridHeight = 20;
     public float gridCellSize = 1f;
 
-    [Header("Player Placement")]
-    public Vector2Int playerCellOffset = Vector2Int.zero;
-    public Vector3 playerWorldOffset = Vector3.zero;
-    public bool playerUseAutoVisualAnchor = false;
+    [Header("Player Spawn")]
+    public Vector2Int playerSpawnOrigin = new Vector2Int(4, 4);
+    public Vector2Int playerSpawnSpacing = new Vector2Int(4, 4);
 
-    [Header("Board Placement")]
+    [Header("Enemy Spawn")]
+    public Vector2Int enemySpawnCell = new Vector2Int(13, 12);
+
+    [Header("Board")]
     public float boardDistance = 18f;
     public Vector3 boardOffset = new Vector3(0f, -2f, 0f);
 
@@ -96,44 +83,43 @@ public class BattleBootstrap : MonoBehaviour
 
         ResolveReferences();
         CleanupRuntimeObjects();
-        ResolveReferences();
         SetupBattleCamera(mainCamera);
         AlignDungeonBoardToCamera(mainCamera);
 
-        BattleGrid grid = CreateGrid();
-        List<BattleUnit> units = CreateUnits(grid);
+        Transform runtimeRoot = CreateRuntimeRoot();
+        BattleGrid grid = CreateGrid(runtimeRoot);
+        List<BattleUnit> units = CreateUnits(grid, runtimeRoot);
         if (units.Count < 2)
         {
             Debug.LogWarning("BattleBootstrap: not enough units for turn-based combat.");
             return;
         }
 
-        BattleTurnSystem turnSystem = gameObject.AddComponent<BattleTurnSystem>();
+        BattleTurnSystem turnSystem = ResetTurnSystems();
+
         turnSystem.Initialize(grid, mainCamera, units);
     }
 
     private void ResolveReferences()
     {
-        if (dungeonBoard == null)
+        if (characterBindingDatabase == null)
         {
-            dungeonBoard = FindTransformByName(BoardName);
-        }
-
-        if (usePlayerPlaceholder)
-        {
-            playerRoot = FindTransformByName(PlayerPlaceholderName);
-            return;
-        }
-
-        if (playerRoot == null)
-        {
-            playerRoot = FindTransformByName(AliceRootName);
+            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         }
     }
 
-    private BattleGrid CreateGrid()
+    private Transform CreateRuntimeRoot()
     {
-        GameObject gridObject = new GameObject("BattleGrid");
+        GameObject runtimeRoot = new GameObject(RuntimeRootName);
+        runtimeRoot.transform.SetParent(transform, false);
+        return runtimeRoot.transform;
+    }
+
+    private BattleGrid CreateGrid(Transform runtimeRoot)
+    {
+        GameObject gridObject = new GameObject(GridObjectName);
+        gridObject.transform.SetParent(runtimeRoot, false);
+
         BattleGrid grid = gridObject.AddComponent<BattleGrid>();
         grid.width = gridWidth;
         grid.height = gridHeight;
@@ -142,17 +128,21 @@ public class BattleBootstrap : MonoBehaviour
         return grid;
     }
 
-    private List<BattleUnit> CreateUnits(BattleGrid grid)
+    private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
     {
         List<BattleUnit> units = new List<BattleUnit>();
+        List<CharacterSelectionState.SlotSelection> playerSelections = GetSelectedPlayers();
 
-        BattleUnit player = SetupPlayer(grid);
-        if (player != null)
+        for (int i = 0; i < playerSelections.Count; i++)
         {
-            units.Add(player);
+            BattleUnit player = SetupPlayer(grid, runtimeRoot, playerSelections[i], i);
+            if (player != null)
+            {
+                units.Add(player);
+            }
         }
 
-        BattleUnit enemy = SetupEnemy(grid);
+        BattleUnit enemy = SetupEnemy(grid, runtimeRoot);
         if (enemy != null)
         {
             units.Add(enemy);
@@ -161,85 +151,92 @@ public class BattleBootstrap : MonoBehaviour
         return units;
     }
 
-    private BattleUnit SetupPlayer(BattleGrid grid)
+    private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()
     {
-        string selectedCharacterId = CharacterSelectionState.ActiveCharacterId;
-        CharacterRootBinding binding = FindPlayerBinding(selectedCharacterId);
-        Transform aliceVisual = FindTransformByName(AliceRootName);
-
-        if (usePlayerPlaceholder)
+        List<CharacterSelectionState.SlotSelection> result = new List<CharacterSelectionState.SlotSelection>();
+        IReadOnlyList<CharacterSelectionState.SlotSelection> selections = CharacterSelectionState.SlotSelections;
+        for (int i = 0; i < selections.Count; i++)
         {
-            if (playerRoot == null || playerRoot.name != PlayerPlaceholderName)
+            CharacterSelectionState.SlotSelection selection = selections[i];
+            if (string.IsNullOrWhiteSpace(selection.characterId))
             {
-                playerRoot = CreateUnitRoot(
-                    PlayerPlaceholderName,
-                    grid.GetWorldPosition(new Vector2Int(8, 7)),
-                    new Color(0.20f, 0.75f, 0.35f, 0.45f)).transform;
+                continue;
             }
 
-            AttachAliceVisual(playerRoot, aliceVisual);
-        }
-        else if (binding != null && binding.root != null)
-        {
-            playerRoot = binding.root;
-        }
-        else if (playerRoot == null)
-        {
-            playerRoot = binding != null && binding.root != null ? binding.root : aliceVisual;
+            result.Add(selection);
         }
 
-        if (playerRoot == null)
+        return result;
+    }
+
+    private BattleUnit SetupPlayer(BattleGrid grid, Transform runtimeRoot, CharacterSelectionState.SlotSelection selection, int index)
+    {
+        BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
+        Vector2Int startCell = GetPlayerSpawnCell(index);
+        GameObject unitObject = CreatePlayerObject(selection.characterId, binding, runtimeRoot, grid.GetWorldPosition(startCell));
+        if (unitObject == null)
         {
-            Debug.LogWarning("BattleBootstrap: player root not found.");
             return null;
         }
 
-        BattleUnit unit = playerRoot.GetComponent<BattleUnit>();
-        if (unit == null)
-        {
-            unit = playerRoot.gameObject.AddComponent<BattleUnit>();
-        }
-
-        Vector2Int startCell = grid.WorldToCell(playerRoot.position);
+        BattleUnit unit = EnsureBattleUnit(unitObject);
         unit.maxHealth = 18;
         unit.moveRange = 4;
         unit.attackRange = 1;
         unit.attackDamage = 5;
         unit.footprintSize = 3;
         unit.yawOffset = 0f;
-        unit.cellOffset = usePlayerPlaceholder ? Vector2Int.zero : (binding != null ? binding.cellOffset : playerCellOffset);
-        unit.useAutoVisualAnchor = usePlayerPlaceholder ? false : (binding != null ? binding.useAutoVisualAnchor : playerUseAutoVisualAnchor);
-        unit.worldOffset = usePlayerPlaceholder ? Vector3.zero : (binding != null ? binding.worldOffset : playerWorldOffset);
-        unit.Setup(BattleTeam.Player, ResolvePlayerDisplayName(selectedCharacterId, binding), startCell);
+        unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
+        unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
+        unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
+        unit.Setup(BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
         unit.SetCell(startCell, grid.GetWorldPosition(startCell));
         unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
         grid.RegisterUnit(unit);
         return unit;
     }
 
-    private BattleUnit SetupEnemy(BattleGrid grid)
+    private BattleUnit SetupEnemy(BattleGrid grid, Transform runtimeRoot)
     {
-        GameObject enemyObject = CreateUnitRoot(
+        GameObject enemyObject = CreatePlaceholderUnitRoot(
             "TrainingDummy",
-            grid.GetWorldPosition(new Vector2Int(13, 12)),
-            new Color(0.85f, 0.25f, 0.20f, 1f));
+            runtimeRoot,
+            grid.GetWorldPosition(enemySpawnCell),
+            enemyPlaceholderColor);
 
-        BattleUnit unit = enemyObject.AddComponent<BattleUnit>();
+        BattleUnit unit = EnsureBattleUnit(enemyObject);
         unit.maxHealth = 12;
         unit.moveRange = 3;
         unit.attackRange = 1;
         unit.attackDamage = 2;
         unit.footprintSize = 3;
         unit.yawOffset = 0f;
-        unit.Setup(BattleTeam.Enemy, "TrainingDummy", new Vector2Int(13, 12));
-        unit.FaceToward(grid.GetWorldPosition(new Vector2Int(12, 12)));
+        unit.cellOffset = Vector2Int.zero;
+        unit.useAutoVisualAnchor = false;
+        unit.worldOffset = Vector3.zero;
+        unit.Setup(BattleTeam.Enemy, "TrainingDummy", enemySpawnCell);
+        unit.SetCell(enemySpawnCell, grid.GetWorldPosition(enemySpawnCell));
+        unit.FaceToward(grid.GetWorldPosition(enemySpawnCell + Vector2Int.left));
         grid.RegisterUnit(unit);
         return unit;
     }
 
-    private GameObject CreateUnitRoot(string rootName, Vector3 worldPosition, Color color)
+    private GameObject CreatePlayerObject(string characterId, BattleCharacterBindingDatabase.BindingEntry binding, Transform runtimeRoot, Vector3 worldPosition)
+    {
+        if (binding != null && binding.modelPrefab != null)
+        {
+            GameObject instance = Instantiate(binding.modelPrefab, worldPosition, Quaternion.identity, runtimeRoot);
+            instance.name = characterId + "_Unit";
+            return instance;
+        }
+
+        return CreatePlaceholderUnitRoot(characterId + "_Placeholder", runtimeRoot, worldPosition, playerPlaceholderColor);
+    }
+
+    private GameObject CreatePlaceholderUnitRoot(string rootName, Transform parent, Vector3 worldPosition, Color color)
     {
         GameObject root = new GameObject(rootName);
+        root.transform.SetParent(parent, false);
         root.transform.position = worldPosition;
         root.transform.localScale = Vector3.one;
 
@@ -251,22 +248,50 @@ public class BattleBootstrap : MonoBehaviour
         visual.transform.localScale = placeholderScale;
 
         Renderer renderer = visual.GetComponent<Renderer>();
-        renderer.material.color = color;
+        if (renderer != null)
+        {
+            renderer.material.color = color;
+        }
 
         return root;
     }
 
-    private void AttachAliceVisual(Transform placeholderRoot, Transform aliceVisual)
+    private static BattleUnit EnsureBattleUnit(GameObject target)
     {
-        if (placeholderRoot == null || aliceVisual == null || aliceVisual == placeholderRoot)
+        BattleUnit unit = target.GetComponent<BattleUnit>();
+        if (unit == null)
         {
-            return;
+            unit = target.AddComponent<BattleUnit>();
         }
 
-        aliceVisual.SetParent(placeholderRoot, false);
-        aliceVisual.localPosition = aliceVisualLocalOffset;
-        aliceVisual.localRotation = Quaternion.identity;
-        aliceVisual.localScale = Vector3.one;
+        return unit;
+    }
+
+    private Vector2Int GetPlayerSpawnCell(int index)
+    {
+        int column = index % 2;
+        int row = index / 2;
+        return playerSpawnOrigin + new Vector2Int(column * playerSpawnSpacing.x, row * playerSpawnSpacing.y);
+    }
+
+    private BattleCharacterBindingDatabase.BindingEntry FindBinding(string characterId)
+    {
+        if (characterBindingDatabase == null)
+        {
+            return null;
+        }
+
+        return characterBindingDatabase.FindBinding(characterId);
+    }
+
+    private static string ResolvePlayerDisplayName(string characterId, BattleCharacterBindingDatabase.BindingEntry binding)
+    {
+        if (binding != null && !string.IsNullOrWhiteSpace(binding.displayName))
+        {
+            return binding.displayName;
+        }
+
+        return string.IsNullOrWhiteSpace(characterId) ? "Player" : characterId;
     }
 
     private void SetupBattleCamera(Camera mainCamera)
@@ -286,7 +311,6 @@ public class BattleBootstrap : MonoBehaviour
     {
         if (dungeonBoard == null)
         {
-            Debug.LogWarning("BattleBootstrap: dungeon board not found.");
             return;
         }
 
@@ -294,83 +318,40 @@ public class BattleBootstrap : MonoBehaviour
         dungeonBoard.position = mainCamera.transform.position + mainCamera.transform.forward * boardDistance + boardOffset;
     }
 
-    private Transform FindTransformByName(string objectName)
-    {
-        Transform[] transforms = FindObjectsOfType<Transform>();
-        foreach (Transform current in transforms)
-        {
-            if (current.name == objectName)
-            {
-                return current;
-            }
-        }
-
-        return null;
-    }
-
-    private CharacterRootBinding FindPlayerBinding(string characterId)
-    {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        for (int i = 0; i < playerBindings.Count; i++)
-        {
-            CharacterRootBinding binding = playerBindings[i];
-            if (binding != null && string.Equals(binding.characterId, characterId, System.StringComparison.Ordinal))
-            {
-                return binding;
-            }
-        }
-
-        return null;
-    }
-
-    private static string ResolvePlayerDisplayName(string characterId, CharacterRootBinding binding)
-    {
-        if (binding != null && !string.IsNullOrWhiteSpace(binding.displayName))
-        {
-            return binding.displayName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(characterId))
-        {
-            return characterId;
-        }
-
-        return "Alice";
-    }
-
     private void CleanupRuntimeObjects()
     {
-        DestroyRuntimeObjects("BattleGrid");
-        DestroyRuntimeObjects("TrainingDummy");
-        DestroyRuntimeObjects("UnitVisual");
+        Transform runtimeRoot = transform.Find(RuntimeRootName);
+        if (runtimeRoot == null)
+        {
+            return;
+        }
 
-        DestroyRuntimeObjects(PlayerPlaceholderName);
+        if (Application.isPlaying)
+        {
+            Destroy(runtimeRoot.gameObject);
+        }
+        else
+        {
+            DestroyImmediate(runtimeRoot.gameObject);
+        }
     }
 
-    private void DestroyRuntimeObjects(string objectName)
+    private BattleTurnSystem ResetTurnSystems()
     {
-        Transform[] transforms = FindObjectsOfType<Transform>();
-        for (int i = transforms.Length - 1; i >= 0; i--)
+        BattleTurnSystem[] existing = GetComponents<BattleTurnSystem>();
+        for (int i = 0; i < existing.Length; i++)
         {
-            Transform target = transforms[i];
-            if (target.name != objectName)
-            {
-                continue;
-            }
-
             if (Application.isPlaying)
             {
-                Destroy(target.gameObject);
+                Destroy(existing[i]);
             }
             else
             {
-                DestroyImmediate(target.gameObject);
+                DestroyImmediate(existing[i]);
             }
         }
+
+        return gameObject.AddComponent<BattleTurnSystem>();
     }
 
     private void OnDrawGizmos()
