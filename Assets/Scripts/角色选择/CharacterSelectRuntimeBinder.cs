@@ -8,6 +8,9 @@ using UnityEngine.UI;
 
 public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
+    private static readonly Color AvailableEntryColor = Color.white;
+    private static readonly Color OccupiedEntryColor = new Color32(100, 100, 100, 255);
+
     [SerializeField] private string playerCharacterId = "玩家";
 
     private readonly List<CharacterSlotView> slots = new List<CharacterSlotView>();
@@ -101,6 +104,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             SetCurrentSlot(slots[0]);
         }
 
+        RefreshEntryAvailabilityVisuals();
         RefreshDisplayByActiveToggle();
         SyncSelectionState();
     }
@@ -582,6 +586,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             currentSlot.unselectedObject.SetActive(false);
         }
 
+        RefreshEntryAvailabilityVisuals();
         RefreshDisplayByActiveToggle();
         SyncSelectionState();
         ExitModalSelection(true);
@@ -605,6 +610,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void RefreshDisplayByActiveToggle()
     {
+        RefreshEntryAvailabilityVisuals();
+
         CharacterSlotView activeSlot = FindToggleOnSlot();
         if (activeSlot == null)
         {
@@ -706,6 +713,74 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void RefreshEntryAvailabilityVisuals()
+    {
+        for (int i = 0; i < entries.Count; i++)
+        {
+            CharacterSelectEntry entry = entries[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            bool occupiedByAnySlot = IsCharacterUsedInAnySlot(entry.characterId);
+            ApplyEntryDisplayColor(entry, occupiedByAnySlot ? OccupiedEntryColor : AvailableEntryColor);
+        }
+    }
+
+    private bool IsCharacterUsedInAnySlot(string characterId)
+    {
+        if (string.IsNullOrEmpty(characterId))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            string resolvedId = ResolveCharacterIdForSlot(slot);
+            if (string.Equals(resolvedId, characterId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void ApplyEntryDisplayColor(CharacterSelectEntry entry, Color color)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.selectButton != null)
+        {
+            Image[] childImages = entry.selectButton.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < childImages.Length; i++)
+            {
+                Image image = childImages[i];
+                if (image == null)
+                {
+                    continue;
+                }
+
+                if (image.gameObject == entry.selectButton.gameObject)
+                {
+                    continue;
+                }
+
+                image.color = color;
+            }
+        }
     }
 
     private static void ResetSlotToInitialState(CharacterSlotView slot)
