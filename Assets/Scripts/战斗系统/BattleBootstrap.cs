@@ -69,6 +69,9 @@ public class BattleBootstrap : MonoBehaviour
     public float timelineSpacing = 0f;
     public float activeTimelineExtraSpacing = 0f;
     public float activeTimelineScale = 1.1f;
+    [Header("时间轴预览")]
+    public int timelinePreviewRoundCount = 3;
+    public float timelineRoundSeparatorSpacing = 32f;
 
     [Header("Timeline Colors")]
     public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
@@ -130,6 +133,8 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.timelineSpacing = timelineSpacing;
         turnSystem.activeTimelineExtraSpacing = activeTimelineExtraSpacing;
         turnSystem.activeTimelineScale = activeTimelineScale;
+        turnSystem.previewRoundCount = Mathf.Max(1, timelinePreviewRoundCount);
+        turnSystem.roundSeparatorSpacing = Mathf.Max(0f, timelineRoundSeparatorSpacing);
         turnSystem.playerTimelineColor = playerTimelineColor;
         turnSystem.enemyTimelineColor = enemyTimelineColor;
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
