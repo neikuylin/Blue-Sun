@@ -854,6 +854,7 @@ GameObject:
   - component: {fileID: 837212763}
   - component: {fileID: 837212765}
   - component: {fileID: 837212766}
+  - component: {fileID: 837212767}
   m_Layer: 5
   m_Name: "\u80CC\u5305"
   m_TagString: Untagged
@@ -978,7 +979,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!114 &837212766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -992,6 +993,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AllowSwitchOff: 1
+--- !u!114 &837212767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 837212761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b7d8a8f6f5c4e4bb94e2d1c6a9f1023, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  toggle: {fileID: 837212765}
+  target: {fileID: 923847630}
 --- !u!1 &888451732
 GameObject:
   m_ObjectHideFlags: 0
