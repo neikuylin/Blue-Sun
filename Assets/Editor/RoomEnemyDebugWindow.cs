@@ -11,10 +11,10 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
     private Vector2 scroll;
     private string newEnemyId = "NewEnemy";
 
-    [MenuItem("Tools/Battle/Room Enemy Debugger")]
+    [MenuItem("Tools/战斗/房间敌人调试器")]
     private static void Open()
     {
-        RoomEnemyDebugWindow window = GetWindow<RoomEnemyDebugWindow>("Room Enemies");
+        RoomEnemyDebugWindow window = GetWindow<RoomEnemyDebugWindow>("房间敌人");
         window.minSize = new Vector2(720f, 520f);
         window.Show();
         window.Focus();
@@ -25,21 +25,21 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         BattleBootstrap bootstrap = FindBootstrapInScene();
         CharacterStatDatabase statDatabase = EnsureStatDatabase();
 
-        EditorGUILayout.LabelField("Current Room Enemy Debugger", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("当前房间敌人调试器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "Edit the current scene BattleBootstrap room-enemy list. Adding an enemy also ensures a matching stat entry exists for the same ID.",
+            "编辑当前场景 BattleBootstrap 的房间敌人列表。新增敌人时，会同时确保角色属性库中存在同 ID 条目。",
             MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("Refresh"))
+            if (GUILayout.Button("刷新"))
             {
                 Repaint();
             }
 
             using (new EditorGUI.DisabledScope(bootstrap == null))
             {
-                if (GUILayout.Button("Save Scene"))
+                if (GUILayout.Button("保存场景"))
                 {
                     SaveScene(bootstrap);
                 }
@@ -48,13 +48,13 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
 
         if (bootstrap == null)
         {
-            EditorGUILayout.HelpBox("No BattleBootstrap was found in the currently open scene.", MessageType.Warning);
+            EditorGUILayout.HelpBox("当前打开场景没有找到 BattleBootstrap。", MessageType.Warning);
             return;
         }
 
         if (statDatabase == null)
         {
-            EditorGUILayout.HelpBox("Failed to create or load CharacterStatDatabase.", MessageType.Error);
+            EditorGUILayout.HelpBox("加载或创建 CharacterStatDatabase 失败。", MessageType.Error);
             return;
         }
 
@@ -68,12 +68,12 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
 
     private void DrawAddPanel(BattleBootstrap bootstrap, CharacterStatDatabase statDatabase)
     {
-        EditorGUILayout.LabelField("Add Enemy", EditorStyles.boldLabel);
-        newEnemyId = EditorGUILayout.TextField("Create ID", newEnemyId);
+        EditorGUILayout.LabelField("新增敌人", EditorStyles.boldLabel);
+        newEnemyId = EditorGUILayout.TextField("创建ID", newEnemyId);
 
         using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(newEnemyId)))
         {
-            if (GUILayout.Button("Add To Room"))
+            if (GUILayout.Button("添加到房间"))
             {
                 AddEnemyEntry(bootstrap, statDatabase, newEnemyId.Trim());
                 newEnemyId = string.Empty;
@@ -88,14 +88,14 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
 
         if (enemySpawns == null)
         {
-            EditorGUILayout.HelpBox("BattleBootstrap.enemySpawns failed to serialize.", MessageType.Error);
+            EditorGUILayout.HelpBox("BattleBootstrap.enemySpawns 序列化失败。", MessageType.Error);
             return;
         }
 
         if (enemySpawns.arraySize == 0)
         {
-            EditorGUILayout.HelpBox("The room enemy list is empty. Runtime will fall back to the default enemy.", MessageType.Info);
-            if (GUILayout.Button("Import Default Enemy"))
+            EditorGUILayout.HelpBox("当前房间敌人列表为空。运行时会回退生成默认敌人。", MessageType.Info);
+            if (GUILayout.Button("导入默认敌人"))
             {
                 AddEnemyEntry(bootstrap, statDatabase, DefaultEnemyId);
             }
@@ -114,8 +114,8 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(enemyId) ? $"Enemy {i + 1}" : enemyId, EditorStyles.boldLabel);
-                    if (GUILayout.Button("Delete", GUILayout.Width(72f)))
+                    EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(enemyId) ? $"敌人 {i + 1}" : enemyId, EditorStyles.boldLabel);
+                    if (GUILayout.Button("删除", GUILayout.Width(72f)))
                     {
                         enemySpawns.DeleteArrayElementAtIndex(i);
                         bootstrapObject.ApplyModifiedProperties();
@@ -125,15 +125,15 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                 }
 
                 EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(enemyIdProperty, new GUIContent("Enemy ID"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("spawnCell"), new GUIContent("Spawn Cell"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("team"), new GUIContent("Team"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("isPlayerControlled"), new GUIContent("Player Controlled"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("maxHealth"), new GUIContent("Health"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("moveRange"), new GUIContent("Move Range"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackRange"), new GUIContent("Attack Range"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackDamage"), new GUIContent("Attack Damage"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("footprintSize"), new GUIContent("Footprint Size"));
+                EditorGUILayout.PropertyField(enemyIdProperty, new GUIContent("敌人ID"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("spawnCell"), new GUIContent("出生格"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("team"), new GUIContent("阵营"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("isPlayerControlled"), new GUIContent("玩家操控"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("maxHealth"), new GUIContent("生命值"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("moveRange"), new GUIContent("移动范围"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackRange"), new GUIContent("攻击范围"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackDamage"), new GUIContent("攻击伤害"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("footprintSize"), new GUIContent("占地尺寸"));
                 bool enemyChanged = EditorGUI.EndChangeCheck();
 
                 string resolvedEnemyId = enemyIdProperty.stringValue.Trim();
@@ -144,7 +144,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                 }
                 else
                 {
-                    EditorGUILayout.HelpBox("Fill in Enemy ID first so the stats can bind to the same ID entry.", MessageType.Warning);
+                    EditorGUILayout.HelpBox("请先填写敌人ID，属性才能绑定到同 ID 条目。", MessageType.Warning);
                 }
 
                 if (enemyChanged)
@@ -165,18 +165,18 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
     {
         if (statEntry == null)
         {
-            EditorGUILayout.HelpBox("Failed to create or load a stat entry.", MessageType.Error);
+            EditorGUILayout.HelpBox("加载或创建属性条目失败。", MessageType.Error);
             return;
         }
 
         EditorGUILayout.Space(4f);
-        EditorGUILayout.LabelField("Stats", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("属性", EditorStyles.boldLabel);
 
         EditorGUI.BeginChangeCheck();
-        int strength = EditorGUILayout.IntField("Strength", statEntry.strength);
-        int agility = EditorGUILayout.IntField("Agility", statEntry.agility);
-        int intelligence = EditorGUILayout.IntField("Intelligence", statEntry.intelligence);
-        int endurance = EditorGUILayout.IntField("Endurance", statEntry.endurance);
+        int strength = EditorGUILayout.IntField("力量", statEntry.strength);
+        int agility = EditorGUILayout.IntField("敏捷", statEntry.agility);
+        int intelligence = EditorGUILayout.IntField("智力", statEntry.intelligence);
+        int endurance = EditorGUILayout.IntField("耐力", statEntry.endurance);
         bool statChanged = EditorGUI.EndChangeCheck();
 
         if (!statChanged)
@@ -199,7 +199,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             return;
         }
 
-        Undo.RecordObject(bootstrap, "Add Room Enemy");
+        Undo.RecordObject(bootstrap, "新增房间敌人");
 
         if (bootstrap.enemySpawns == null)
         {
