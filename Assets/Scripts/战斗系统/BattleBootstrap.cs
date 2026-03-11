@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
@@ -12,10 +12,13 @@ public class BattleBootstrap : MonoBehaviour
     private const string SceneName = "20x20";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
-    private const string LegacyAliceRootName = "\u7231\u4e3d\u4e1droot";
+    private const string LegacyAliceRootName = "爱丽丝root";
 
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
+
+    [Header("Stat Database")]
+    public CharacterStatDatabase characterStatDatabase;
 
     [Header("Scene References")]
     public Transform dungeonBoard;
@@ -98,7 +101,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         BattleTurnSystem turnSystem = ResetTurnSystems();
-
         turnSystem.Initialize(grid, mainCamera, units);
     }
 
@@ -107,6 +109,11 @@ public class BattleBootstrap : MonoBehaviour
         if (characterBindingDatabase == null)
         {
             characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
+        }
+
+        if (characterStatDatabase == null)
+        {
+            characterStatDatabase = CharacterStatDatabase.LoadDefault();
         }
     }
 
@@ -174,6 +181,7 @@ public class BattleBootstrap : MonoBehaviour
     private BattleUnit SetupPlayer(BattleGrid grid, Transform runtimeRoot, CharacterSelectionState.SlotSelection selection, int index)
     {
         BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
+        CharacterStatDatabase.StatEntry statEntry = FindStats(selection.characterId);
         Vector2Int startCell = GetPlayerSpawnCell(index);
         GameObject unitObject = CreatePlayerObject(selection.characterId, binding, runtimeRoot, grid.GetWorldPosition(startCell));
         if (unitObject == null)
@@ -191,6 +199,7 @@ public class BattleBootstrap : MonoBehaviour
         unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
         unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
         unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
+        unit.ApplyStats(statEntry);
         unit.Setup(selection.characterId, BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
         unit.SetCell(startCell, grid.GetWorldPosition(startCell));
         unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
@@ -200,8 +209,9 @@ public class BattleBootstrap : MonoBehaviour
 
     private BattleUnit SetupEnemy(BattleGrid grid, Transform runtimeRoot)
     {
+        const string enemyId = "TrainingDummy";
         GameObject enemyObject = CreatePlaceholderUnitRoot(
-            "TrainingDummy",
+            enemyId,
             runtimeRoot,
             grid.GetWorldPosition(enemySpawnCell),
             enemyPlaceholderColor);
@@ -216,7 +226,8 @@ public class BattleBootstrap : MonoBehaviour
         unit.cellOffset = Vector2Int.zero;
         unit.useAutoVisualAnchor = false;
         unit.worldOffset = Vector3.zero;
-        unit.Setup("TrainingDummy", BattleTeam.Enemy, "TrainingDummy", enemySpawnCell);
+        unit.ApplyStats(FindStats(enemyId));
+        unit.Setup(enemyId, BattleTeam.Enemy, enemyId, enemySpawnCell);
         unit.SetCell(enemySpawnCell, grid.GetWorldPosition(enemySpawnCell));
         unit.FaceToward(grid.GetWorldPosition(enemySpawnCell + Vector2Int.left));
         grid.RegisterUnit(unit);
@@ -302,6 +313,16 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return characterBindingDatabase.FindBinding(characterId);
+    }
+
+    private CharacterStatDatabase.StatEntry FindStats(string characterId)
+    {
+        if (characterStatDatabase == null)
+        {
+            return null;
+        }
+
+        return characterStatDatabase.FindEntry(characterId);
     }
 
     private static string ResolvePlayerDisplayName(string characterId, BattleCharacterBindingDatabase.BindingEntry binding)

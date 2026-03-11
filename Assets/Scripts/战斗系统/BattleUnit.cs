@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public enum BattleTeam
 {
@@ -19,6 +19,10 @@ public class BattleUnit : MonoBehaviour
     public int attackRange = 1;
     public int attackDamage = 3;
     public int footprintSize = 1;
+    public int strength;
+    public int agility;
+    public int intelligence;
+    public int endurance;
 
     [Header("Presentation")]
     public float yawOffset = 0f;
@@ -51,6 +55,23 @@ public class BattleUnit : MonoBehaviour
             anchorOffset = useAutoVisualAnchor ? transform.position - GetVisualAnchorWorldPosition() : Vector3.zero;
             initialized = true;
         }
+    }
+
+    public void ApplyStats(CharacterStatDatabase.StatEntry statEntry)
+    {
+        if (statEntry == null)
+        {
+            strength = 0;
+            agility = 0;
+            intelligence = 0;
+            endurance = 0;
+            return;
+        }
+
+        strength = statEntry.strength;
+        agility = statEntry.agility;
+        intelligence = statEntry.intelligence;
+        endurance = statEntry.endurance;
     }
 
     public void SetCell(Vector2Int cell, Vector3 worldPosition)

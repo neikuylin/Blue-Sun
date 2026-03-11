@@ -14,22 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    strength: 0
-    agility: 0
-    intelligence: 0
-    endurance: 0
-  - characterId: 
-    strength: 0
-    agility: 0
-    intelligence: 0
-    endurance: 0
-  - characterId: 
-    strength: 0
-    agility: 0
-    intelligence: 0
-    endurance: 0
-  - characterId: 
-    strength: 0
-    agility: 0
-    intelligence: 0
-    endurance: 0
+    strength: 3
+    agility: 3
+    intelligence: 3
+    endurance: 3
+  - characterId: "\u7D22\u62C9\u5A1C"
+    strength: 3
+    agility: 4
+    intelligence: 5
+    endurance: 3
+  - characterId: "\u5E93\u9C81\u65AF"
+    strength: 4
+    agility: 3
+    intelligence: 3
+    endurance: 5
+  - characterId: "\u745F\u838E"
+    strength: 3
+    agility: 6
+    intelligence: 3
+    endurance: 3
+  - characterId: "\u7231\u4E3D\u4E1D"
+    strength: 5
+    agility: 4
+    intelligence: 4
+    endurance: 4

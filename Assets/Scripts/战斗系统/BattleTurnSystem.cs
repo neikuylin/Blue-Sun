@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -6,6 +6,7 @@ using TMPro;
 public class BattleTurnSystem : MonoBehaviour
 {
     private readonly List<BattleUnit> units = new List<BattleUnit>();
+    private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -20,15 +21,22 @@ public class BattleTurnSystem : MonoBehaviour
         battleCamera = mainCamera;
         activeUnitIdText = FindActiveUnitIdText();
         units.Clear();
+        initiativeTieBreakers.Clear();
 
+        int index = 0;
         foreach (BattleUnit unit in battleUnits)
         {
-            if (unit != null)
+            if (unit == null)
             {
-                units.Add(unit);
+                continue;
             }
+
+            units.Add(unit);
+            initiativeTieBreakers[unit] = index;
+            index++;
         }
 
+        SortUnitsByInitiative();
         BeginNextTurn();
     }
 
@@ -174,6 +182,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (units.Count == 0)
         {
             activeUnit = null;
+            RefreshActiveUnitUi();
             return;
         }
 
@@ -186,7 +195,7 @@ public class BattleTurnSystem : MonoBehaviour
                 activeUnit = candidate;
                 RefreshHighlights();
                 RefreshActiveUnitUi();
-                Debug.Log("Turn: " + activeUnit.unitName);
+                Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.agility + ")");
                 return;
             }
         }
@@ -211,6 +220,50 @@ public class BattleTurnSystem : MonoBehaviour
     private void CleanupDeadUnits()
     {
         units.RemoveAll(unit => unit == null || !unit.IsAlive);
+    }
+
+    private void SortUnitsByInitiative()
+    {
+        units.Sort(CompareInitiative);
+        activeIndex = -1;
+    }
+
+    private int CompareInitiative(BattleUnit left, BattleUnit right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return 0;
+        }
+
+        if (left == null)
+        {
+            return 1;
+        }
+
+        if (right == null)
+        {
+            return -1;
+        }
+
+        int agilityCompare = right.agility.CompareTo(left.agility);
+        if (agilityCompare != 0)
+        {
+            return agilityCompare;
+        }
+
+        int leftIndex;
+        int rightIndex;
+        if (!initiativeTieBreakers.TryGetValue(left, out leftIndex))
+        {
+            leftIndex = int.MaxValue;
+        }
+
+        if (!initiativeTieBreakers.TryGetValue(right, out rightIndex))
+        {
+            rightIndex = int.MaxValue;
+        }
+
+        return leftIndex.CompareTo(rightIndex);
     }
 
     private void RefreshActiveUnitUi()
