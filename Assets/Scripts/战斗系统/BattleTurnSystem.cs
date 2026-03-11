@@ -36,6 +36,7 @@ public class BattleTurnSystem : MonoBehaviour
             index++;
         }
 
+        RandomizeTieBreakers();
         SortUnitsByInitiative();
         BeginNextTurn();
     }
@@ -220,6 +221,19 @@ public class BattleTurnSystem : MonoBehaviour
     private void CleanupDeadUnits()
     {
         units.RemoveAll(unit => unit == null || !unit.IsAlive);
+    }
+
+    private void RandomizeTieBreakers()
+    {
+        for (int i = units.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            BattleUnit current = units[i];
+            BattleUnit swapped = units[swapIndex];
+            int currentTieBreaker = initiativeTieBreakers[current];
+            initiativeTieBreakers[current] = initiativeTieBreakers[swapped];
+            initiativeTieBreakers[swapped] = currentTieBreaker;
+        }
     }
 
     private void SortUnitsByInitiative()
