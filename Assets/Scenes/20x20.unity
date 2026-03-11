@@ -841,6 +841,15 @@ MonoBehaviour:
     attackRange: 1
     attackDamage: 2
     footprintSize: 3
+  - enemyId: "\u5047\u4EBA"
+    spawnCell: {x: 15, y: 12}
+    team: 1
+    isPlayerControlled: 0
+    maxHealth: 12
+    moveRange: 3
+    attackRange: 1
+    attackDamage: 2
+    footprintSize: 3
   boardDistance: 18
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8
@@ -849,6 +858,9 @@ MonoBehaviour:
   timelineSpacing: 0
   activeTimelineExtraSpacing: 20
   activeTimelineScale: 1.2
+  playerTimelineColor: {r: 0.2, g: 0.75, b: 0.35, a: 1}
+  enemyTimelineColor: {r: 0.85, g: 0.25, b: 0.2, a: 1}
+  activePlayerTimelineColor: {r: 1, g: 1, b: 1, a: 1}
   showEditorGrid: 1
   editorGridColor: {r: 0.15, g: 0.7, b: 1, a: 0.8}
 --- !u!1 &837212761
@@ -2144,6 +2156,7 @@ MonoBehaviour:
   characterId: 
   unitName: Alice
   team: 0
+  isPlayerControlled: 1
   maxHealth: 18
   moveRange: 4
   attackRange: 1
