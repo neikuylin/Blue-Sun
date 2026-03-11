@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5678c9dc85ce90f4789ee8b426780a5b, type: 3}
+  m_Name: TurnTimelineButtonDatabase
+  m_EditorClassIdentifier: 
+  entries:
+  - characterId: "\u73A9\u5BB6"
+    buttonPrefab: {fileID: 1897544189827781924, guid: bd951a486ae418a4e8e9fb6dde3db49c, type: 3}
+  - characterId: 
+    buttonPrefab: {fileID: 0}
+  - characterId: 
+    buttonPrefab: {fileID: 0}
+  - characterId: 
+    buttonPrefab: {fileID: 0}
+  - characterId: "\u5E93\u9C81\u65AF"
+    buttonPrefab: {fileID: 6865471211406326464, guid: a2328a4619af74a4cb88eeba3223f685, type: 3}
+  - characterId: "\u7231\u4E3D\u4E1D"
+    buttonPrefab: {fileID: 744769008664342432, guid: fc5cca71e4667c744a86dee59ff41794, type: 3}
+  - characterId: "\u745F\u838E"
+    buttonPrefab: {fileID: 2696990675278890324, guid: 9c532c73e242c3048b629e6f378e63f4, type: 3}
+  - characterId: "\u7D22\u62C9\u5A1C"
+    buttonPrefab: {fileID: 6381898633761553930, guid: 5638c9082d5d4984093ceca103f90fcd, type: 3}

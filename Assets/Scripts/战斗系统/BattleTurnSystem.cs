@@ -1,12 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class BattleTurnSystem : MonoBehaviour
 {
+    private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
+
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
+    private readonly List<GameObject> timelineInstances = new List<GameObject>();
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -14,12 +17,16 @@ public class BattleTurnSystem : MonoBehaviour
     private int activeIndex = -1;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
+    private Transform timelineAnchor;
+    private TurnTimelineButtonDatabase timelineDatabase;
 
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;
         battleCamera = mainCamera;
         activeUnitIdText = FindActiveUnitIdText();
+        timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+        timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
         initiativeTieBreakers.Clear();
 
@@ -38,22 +45,19 @@ public class BattleTurnSystem : MonoBehaviour
 
         RandomizeTieBreakers();
         SortUnitsByInitiative();
+        RefreshTimeline();
         BeginNextTurn();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
     {
-        if (changedUnit == null)
-        {
-            return;
-        }
-
-        if (!units.Contains(changedUnit))
+        if (changedUnit == null || !units.Contains(changedUnit))
         {
             return;
         }
 
         RebuildTurnOrderPreserveCurrent();
+        RefreshTimeline();
     }
 
     private void Update()
@@ -190,6 +194,7 @@ public class BattleTurnSystem : MonoBehaviour
     {
         waitingForEnemyAction = false;
         RebuildTurnOrderPreserveCurrent();
+        RefreshTimeline();
         BeginNextTurn();
     }
 
@@ -200,6 +205,7 @@ public class BattleTurnSystem : MonoBehaviour
         {
             activeUnit = null;
             RefreshActiveUnitUi();
+            RefreshTimeline();
             return;
         }
 
@@ -212,6 +218,7 @@ public class BattleTurnSystem : MonoBehaviour
                 activeUnit = candidate;
                 RefreshHighlights();
                 RefreshActiveUnitUi();
+                RefreshTimeline();
                 Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.Agility + ")");
                 return;
             }
@@ -219,6 +226,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         activeUnit = null;
         RefreshActiveUnitUi();
+        RefreshTimeline();
     }
 
     private void RefreshHighlights()
@@ -339,6 +347,68 @@ public class BattleTurnSystem : MonoBehaviour
         activeUnitIdText.text = string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId;
     }
 
+    private void RefreshTimeline()
+    {
+        if (timelineAnchor == null)
+        {
+            timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+        }
+
+        if (timelineDatabase == null)
+        {
+            timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
+        }
+
+        ClearTimelineInstances();
+        if (timelineAnchor == null || timelineDatabase == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
+            if (prefab == null)
+            {
+                continue;
+            }
+
+            GameObject instance = Instantiate(prefab, timelineAnchor, false);
+            instance.name = string.IsNullOrWhiteSpace(unit.characterId)
+                ? prefab.name
+                : unit.characterId + "_时间轴";
+
+            if (unit == activeUnit)
+            {
+                instance.transform.localScale = Vector3.one * 1.1f;
+            }
+
+            timelineInstances.Add(instance);
+        }
+    }
+
+    private void ClearTimelineInstances()
+    {
+        for (int i = 0; i < timelineInstances.Count; i++)
+        {
+            GameObject instance = timelineInstances[i];
+            if (instance == null)
+            {
+                continue;
+            }
+
+            Destroy(instance);
+        }
+
+        timelineInstances.Clear();
+    }
+
     private static TMP_Text FindActiveUnitIdText()
     {
         TMP_Text[] texts = Object.FindObjectsOfType<TMP_Text>(true);
@@ -348,6 +418,66 @@ public class BattleTurnSystem : MonoBehaviour
             if (text != null && text.name == "ID")
             {
                 return text;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform FindTransformByPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        string[] segments = path.Split('/');
+        if (segments.Length == 0)
+        {
+            return null;
+        }
+
+        GameObject[] roots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+        Transform current = null;
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && string.Equals(roots[i].name, segments[0], System.StringComparison.Ordinal))
+            {
+                current = roots[i].transform;
+                break;
+            }
+        }
+
+        if (current == null)
+        {
+            return null;
+        }
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            current = FindChildByName(current, segments[i]);
+            if (current == null)
+            {
+                return null;
+            }
+        }
+
+        return current;
+    }
+
+    private static Transform FindChildByName(Transform parent, string childName)
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child != null && string.Equals(child.name, childName, System.StringComparison.Ordinal))
+            {
+                return child;
             }
         }
 

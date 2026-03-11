@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -6,30 +6,33 @@ using UnityEngine;
 public sealed class CharacterIdDebugWindow : EditorWindow
 {
     private const string AssetFolder = "Assets/Resources";
-    private const string AssetPath = AssetFolder + "/BattleCharacterBindings.asset";
+    private const string BindingAssetPath = AssetFolder + "/BattleCharacterBindings.asset";
+    private const string TimelineAssetPath = AssetFolder + "/TurnTimelineButtonDatabase.asset";
 
     private Vector2 scroll;
-    private SerializedObject databaseObject;
+    private SerializedObject bindingDatabaseObject;
+    private SerializedObject timelineDatabaseObject;
 
-    [MenuItem("Tools/\u89d2\u8272ID/\u8c03\u8bd5\u7ed1\u5b9a\u5de5\u5177")]
+    [MenuItem("Tools/角色ID/调试绑定工具")]
     private static void Open()
     {
-        CharacterIdDebugWindow window = GetWindow<CharacterIdDebugWindow>("\u89d2\u8272ID\u5de5\u5177");
-        window.minSize = new Vector2(620f, 520f);
+        CharacterIdDebugWindow window = GetWindow<CharacterIdDebugWindow>("角色ID工具");
+        window.minSize = new Vector2(680f, 620f);
         window.Show();
         window.Focus();
     }
 
     private void OnGUI()
     {
-        BattleCharacterBindingDatabase database = EnsureDatabase();
+        BattleCharacterBindingDatabase bindingDatabase = EnsureBindingDatabase();
+        TurnTimelineButtonDatabase timelineDatabase = EnsureTimelineDatabase();
 
-        EditorGUILayout.LabelField("\u89d2\u8272ID\u8c03\u8bd5\u4e0e\u6218\u6597\u6a21\u578b\u7ed1\u5b9a", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("角色ID调试与绑定工具", EditorStyles.boldLabel);
         EditorGUILayout.Space(4f);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("\u5237\u65b0"))
+            if (GUILayout.Button("刷新"))
             {
                 if (Application.isPlaying)
                 {
@@ -39,9 +42,9 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 Repaint();
             }
 
-            if (GUILayout.Button("\u540c\u6b65\u5df2\u77e5ID\u5230\u7ed1\u5b9a\u8868"))
+            if (GUILayout.Button("同步已知ID到绑定表"))
             {
-                SyncKnownIds(database);
+                SyncKnownIds(bindingDatabase);
             }
         }
 
@@ -50,43 +53,45 @@ public sealed class CharacterIdDebugWindow : EditorWindow
         EditorGUILayout.Space(8f);
         DrawCharacterSlots();
         EditorGUILayout.Space(8f);
-        DrawBindingTable(database);
+        DrawTimelineBindingTable(timelineDatabase);
+        EditorGUILayout.Space(8f);
+        DrawBindingTable(bindingDatabase);
         EditorGUILayout.EndScrollView();
     }
 
     private static void DrawRuntimeState()
     {
-        EditorGUILayout.LabelField("\u8fd0\u884c\u65f6\u6355\u6349", EditorStyles.boldLabel);
-        EditorGUILayout.LabelField("\u662f\u5426\u6b63\u5728\u8fd0\u884c", Application.isPlaying ? "\u662f" : "\u5426");
-        EditorGUILayout.LabelField("\u5f53\u524d\u69fd\u4f4d\u6355\u6349ID", string.IsNullOrEmpty(CharacterSelectionState.ActiveCharacterId) ? "\uff08\u7a7a\uff09" : CharacterSelectionState.ActiveCharacterId);
+        EditorGUILayout.LabelField("运行时捕捉", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("是否正在运行", Application.isPlaying ? "是" : "否");
+        EditorGUILayout.LabelField("当前槽位捕捉ID", string.IsNullOrEmpty(CharacterSelectionState.ActiveCharacterId) ? "（空）" : CharacterSelectionState.ActiveCharacterId);
 
         IReadOnlyList<CharacterSelectionState.SlotSelection> slots = CharacterSelectionState.SlotSelections;
-        EditorGUILayout.LabelField("\u5df2\u6355\u6349\u69fd\u4f4d\u6570", slots.Count.ToString());
+        EditorGUILayout.LabelField("已捕捉槽位数", slots.Count.ToString());
         for (int i = 0; i < slots.Count; i++)
         {
             CharacterSelectionState.SlotSelection slot = slots[i];
             string label = slot.slotName;
             if (slot.isMainSlot)
             {
-                label += " [\u4e3b\u69fd\u4f4d]";
+                label += " [主槽位]";
             }
 
             if (slot.isActiveSlot)
             {
-                label += " [\u5f53\u524d]";
+                label += " [当前]";
             }
 
-            EditorGUILayout.LabelField(label, string.IsNullOrEmpty(slot.characterId) ? "\uff08\u7a7a\uff09" : slot.characterId);
+            EditorGUILayout.LabelField(label, string.IsNullOrEmpty(slot.characterId) ? "（空）" : slot.characterId);
         }
     }
 
     private static void DrawCharacterSlots()
     {
-        EditorGUILayout.LabelField("\u542f\u7a0b\u573a\u666f\u69fd\u4f4d", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("启程场景槽位", EditorStyles.boldLabel);
         CharacterSlotView[] slots = UnityEngine.Object.FindObjectsOfType<CharacterSlotView>(true);
         if (slots.Length == 0)
         {
-            EditorGUILayout.HelpBox("\u5f53\u524d\u6253\u5f00\u7684\u573a\u666f\u91cc\u6ca1\u6709\u627e\u5230 CharacterSlotView\u3002", MessageType.Info);
+            EditorGUILayout.HelpBox("当前打开的场景里没有找到 CharacterSlotView。", MessageType.Info);
             return;
         }
 
@@ -100,31 +105,74 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
             using (new EditorGUILayout.VerticalScope("box"))
             {
-                EditorGUILayout.ObjectField("\u5bf9\u8c61", slot, typeof(CharacterSlotView), true);
-                EditorGUILayout.Toggle("\u4e3b\u69fd\u4f4d", slot.isMainSlot);
-                EditorGUILayout.LabelField("\u5f53\u524d\u89e3\u6790ID", string.IsNullOrEmpty(CharacterSelectionState.ResolveCharacterId(slot)) ? "\uff08\u7a7a\uff09" : CharacterSelectionState.ResolveCharacterId(slot));
-                EditorGUILayout.LabelField("selectedCharacterId", string.IsNullOrEmpty(slot.selectedCharacterId) ? "\uff08\u7a7a\uff09" : slot.selectedCharacterId);
-                EditorGUILayout.LabelField("slotCharacterId", string.IsNullOrEmpty(slot.slotCharacterId) ? "\uff08\u7a7a\uff09" : slot.slotCharacterId);
+                EditorGUILayout.ObjectField("对象", slot, typeof(CharacterSlotView), true);
+                EditorGUILayout.Toggle("主槽位", slot.isMainSlot);
+                EditorGUILayout.LabelField("当前解析ID", string.IsNullOrEmpty(CharacterSelectionState.ResolveCharacterId(slot)) ? "（空）" : CharacterSelectionState.ResolveCharacterId(slot));
+                EditorGUILayout.LabelField("selectedCharacterId", string.IsNullOrEmpty(slot.selectedCharacterId) ? "（空）" : slot.selectedCharacterId);
+                EditorGUILayout.LabelField("slotCharacterId", string.IsNullOrEmpty(slot.slotCharacterId) ? "（空）" : slot.slotCharacterId);
             }
+        }
+    }
+
+    private void DrawTimelineBindingTable(TurnTimelineButtonDatabase database)
+    {
+        EditorGUILayout.LabelField("回合时间轴按钮绑定", EditorStyles.boldLabel);
+        if (database == null)
+        {
+            EditorGUILayout.HelpBox("时间轴按钮资产创建失败。", MessageType.Error);
+            return;
+        }
+
+        if (timelineDatabaseObject == null || timelineDatabaseObject.targetObject != database)
+        {
+            timelineDatabaseObject = new SerializedObject(database);
+        }
+
+        timelineDatabaseObject.Update();
+        SerializedProperty entries = timelineDatabaseObject.FindProperty("entries");
+        EnsureKnownTimelineIdsInProperty(entries);
+
+        for (int i = 0; i < entries.arraySize; i++)
+        {
+            SerializedProperty entry = entries.GetArrayElementAtIndex(i);
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("buttonPrefab"), new GUIContent("时间轴按钮预制体"));
+            }
+        }
+
+        if (GUILayout.Button("新增空时间轴绑定"))
+        {
+            entries.InsertArrayElementAtIndex(entries.arraySize);
+            SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
+            added.FindPropertyRelative("characterId").stringValue = string.Empty;
+            added.FindPropertyRelative("buttonPrefab").objectReferenceValue = null;
+        }
+
+        if (timelineDatabaseObject.ApplyModifiedProperties())
+        {
+            EditorUtility.SetDirty(database);
+            AssetDatabase.SaveAssets();
         }
     }
 
     private void DrawBindingTable(BattleCharacterBindingDatabase database)
     {
-        EditorGUILayout.LabelField("\u6218\u6597\u6a21\u578b\u7ed1\u5b9a", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("战斗模型绑定", EditorStyles.boldLabel);
         if (database == null)
         {
-            EditorGUILayout.HelpBox("\u7ed1\u5b9a\u8d44\u4ea7\u521b\u5efa\u5931\u8d25\u3002", MessageType.Error);
+            EditorGUILayout.HelpBox("绑定资产创建失败。", MessageType.Error);
             return;
         }
 
-        if (databaseObject == null || databaseObject.targetObject != database)
+        if (bindingDatabaseObject == null || bindingDatabaseObject.targetObject != database)
         {
-            databaseObject = new SerializedObject(database);
+            bindingDatabaseObject = new SerializedObject(database);
         }
 
-        databaseObject.Update();
-        SerializedProperty entries = databaseObject.FindProperty("entries");
+        bindingDatabaseObject.Update();
+        SerializedProperty entries = bindingDatabaseObject.FindProperty("entries");
         EnsureKnownIdsInProperty(entries);
 
         for (int i = 0; i < entries.arraySize; i++)
@@ -132,17 +180,17 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
             using (new EditorGUILayout.VerticalScope("box"))
             {
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("\u89d2\u8272ID"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("\u663e\u793a\u540d"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("\u6a21\u578b\u9884\u5236\u4f53"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("显示名"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("模型预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("\u683c\u5b50\u504f\u79fb"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("\u4e16\u754c\u504f\u79fb"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("\u81ea\u52a8\u89c6\u89c9\u951a\u70b9"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("格子偏移"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("世界偏移"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("自动视觉锚点"));
             }
         }
 
-        if (GUILayout.Button("\u65b0\u589e\u7a7a\u7ed1\u5b9a"))
+        if (GUILayout.Button("新增空绑定"))
         {
             entries.InsertArrayElementAtIndex(entries.arraySize);
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
@@ -155,31 +203,51 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
         }
 
-        if (databaseObject.ApplyModifiedProperties())
+        if (bindingDatabaseObject.ApplyModifiedProperties())
         {
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
         }
     }
 
-    private static BattleCharacterBindingDatabase EnsureDatabase()
+    private static BattleCharacterBindingDatabase EnsureBindingDatabase()
     {
-        BattleCharacterBindingDatabase database = AssetDatabase.LoadAssetAtPath<BattleCharacterBindingDatabase>(AssetPath);
+        BattleCharacterBindingDatabase database = AssetDatabase.LoadAssetAtPath<BattleCharacterBindingDatabase>(BindingAssetPath);
         if (database != null)
         {
             return database;
         }
 
+        EnsureAssetFolder();
+        database = CreateInstance<BattleCharacterBindingDatabase>();
+        AssetDatabase.CreateAsset(database, BindingAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static TurnTimelineButtonDatabase EnsureTimelineDatabase()
+    {
+        TurnTimelineButtonDatabase database = AssetDatabase.LoadAssetAtPath<TurnTimelineButtonDatabase>(TimelineAssetPath);
+        if (database != null)
+        {
+            return database;
+        }
+
+        EnsureAssetFolder();
+        database = CreateInstance<TurnTimelineButtonDatabase>();
+        AssetDatabase.CreateAsset(database, TimelineAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static void EnsureAssetFolder()
+    {
         if (!AssetDatabase.IsValidFolder(AssetFolder))
         {
             AssetDatabase.CreateFolder("Assets", "Resources");
         }
-
-        database = CreateInstance<BattleCharacterBindingDatabase>();
-        AssetDatabase.CreateAsset(database, AssetPath);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-        return database;
     }
 
     private static void SyncKnownIds(BattleCharacterBindingDatabase database)
@@ -211,6 +279,23 @@ public sealed class CharacterIdDebugWindow : EditorWindow
         {
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
+        }
+    }
+
+    private static void EnsureKnownTimelineIdsInProperty(SerializedProperty entries)
+    {
+        List<string> knownIds = CollectKnownIds(null);
+        for (int i = 0; i < knownIds.Count; i++)
+        {
+            if (ContainsCharacterId(entries, knownIds[i]))
+            {
+                continue;
+            }
+
+            entries.InsertArrayElementAtIndex(entries.arraySize);
+            SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
+            added.FindPropertyRelative("characterId").stringValue = knownIds[i];
+            added.FindPropertyRelative("buttonPrefab").objectReferenceValue = null;
         }
     }
 
@@ -253,7 +338,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
     private static List<string> CollectKnownIds(BattleCharacterBindingDatabase database)
     {
         HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        ids.Add("\u73a9\u5bb6");
+        ids.Add("玩家");
 
         CharacterSelectEntry[] entries = UnityEngine.Object.FindObjectsOfType<CharacterSelectEntry>(true);
         for (int i = 0; i < entries.Length; i++)
