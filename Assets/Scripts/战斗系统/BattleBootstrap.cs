@@ -49,6 +49,11 @@ public class BattleBootstrap : MonoBehaviour
     public Vector3 cameraPosition = new Vector3(10f, 14f, -4f);
     public Vector3 cameraEulerAngles = new Vector3(45f, 45f, 0f);
 
+    [Header("Timeline")]
+    public float timelineSpacing = 0f;
+    public float activeTimelineExtraSpacing = 0f;
+    public float activeTimelineScale = 1.1f;
+
     [Header("Editor Preview")]
     public bool showEditorGrid = true;
     public Color editorGridColor = new Color(0.15f, 0.7f, 1f, 0.8f);
@@ -101,6 +106,9 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         BattleTurnSystem turnSystem = ResetTurnSystems();
+        turnSystem.timelineSpacing = timelineSpacing;
+        turnSystem.activeTimelineExtraSpacing = activeTimelineExtraSpacing;
+        turnSystem.activeTimelineScale = activeTimelineScale;
         turnSystem.Initialize(grid, mainCamera, units);
     }
 

@@ -8,12 +8,15 @@ using UnityEngine.UI;
 public class BattleTurnSystem : MonoBehaviour
 {
     private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
-    private const float TimelineSpacing = 0f;
 
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
     private readonly List<GameObject> timelineInstances = new List<GameObject>();
+
+    [HideInInspector] public float timelineSpacing = 0f;
+    [HideInInspector] public float activeTimelineExtraSpacing = 0f;
+    [HideInInspector] public float activeTimelineScale = 1.1f;
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -463,6 +466,7 @@ public class BattleTurnSystem : MonoBehaviour
             GameObject instance = Instantiate(prefab, timelineAnchor, false);
             instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
 
+            bool isActive = i == currentRoundIndex;
             RectTransform rect = instance.transform as RectTransform;
             if (rect != null)
             {
@@ -471,12 +475,12 @@ public class BattleTurnSystem : MonoBehaviour
                 rect.anchorMax = new Vector2(0f, 1f);
                 rect.pivot = new Vector2(0f, 1f);
                 rect.anchoredPosition = new Vector2(cursorX, 0f);
-                cursorX += width + TimelineSpacing;
+                cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
             }
 
-            if (i == currentRoundIndex)
+            if (isActive)
             {
-                instance.transform.localScale = Vector3.one * 1.1f;
+                instance.transform.localScale = Vector3.one * activeTimelineScale;
                 SetTimelineInstanceColor(instance, Color.white);
             }
 

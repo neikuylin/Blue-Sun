@@ -823,7 +823,7 @@ MonoBehaviour:
   characterStatDatabase: {fileID: 0}
   dungeonBoard: {fileID: 0}
   placeholderScale: {x: 0.8, y: 1.2, z: 0.8}
-  playerPlaceholderColor: {r: 0.2, g: 0.75, b: 0.35, a: 0.45}
+  playerPlaceholderColor: {r: 0.15873085, g: 0.8207547, b: 0.33842304, a: 1}
   enemyPlaceholderColor: {r: 0.85, g: 0.25, b: 0.2, a: 1}
   gridWidth: 20
   gridHeight: 20
@@ -836,6 +836,9 @@ MonoBehaviour:
   cameraSize: 8
   cameraPosition: {x: 10, y: 14, z: -4}
   cameraEulerAngles: {x: 45, y: 45, z: 0}
+  timelineSpacing: 0
+  activeTimelineExtraSpacing: 20
+  activeTimelineScale: 1.2
   showEditorGrid: 1
   editorGridColor: {r: 0.15, g: 0.7, b: 1, a: 0.8}
 --- !u!1 &837212761
