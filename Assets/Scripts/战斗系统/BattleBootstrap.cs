@@ -72,6 +72,8 @@ public class BattleBootstrap : MonoBehaviour
     [Header("时间轴预览")]
     public int timelinePreviewRoundCount = 3;
     public float timelineRoundSeparatorSpacing = 32f;
+    public Sprite timelineRoundSeparatorSprite;
+    public Vector2 timelineRoundSeparatorSize = new Vector2(32f, 125f);
 
     [Header("Timeline Colors")]
     public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
@@ -135,6 +137,8 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.activeTimelineScale = activeTimelineScale;
         turnSystem.previewRoundCount = Mathf.Max(1, timelinePreviewRoundCount);
         turnSystem.roundSeparatorSpacing = Mathf.Max(0f, timelineRoundSeparatorSpacing);
+        turnSystem.roundSeparatorSprite = timelineRoundSeparatorSprite;
+        turnSystem.roundSeparatorSize = timelineRoundSeparatorSize;
         turnSystem.playerTimelineColor = playerTimelineColor;
         turnSystem.enemyTimelineColor = enemyTimelineColor;
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;

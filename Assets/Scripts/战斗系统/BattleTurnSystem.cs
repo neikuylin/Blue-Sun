@@ -20,6 +20,8 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public float activeTimelineScale = 1.1f;
     [HideInInspector] public int previewRoundCount = 3;
     [HideInInspector] public float roundSeparatorSpacing = 32f;
+    [HideInInspector] public Sprite roundSeparatorSprite;
+    [HideInInspector] public Vector2 roundSeparatorSize = new Vector2(32f, 125f);
 
     [HideInInspector] public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
@@ -598,9 +600,43 @@ public class BattleTurnSystem : MonoBehaviour
 
             if (roundIndex < timelineRounds.Count - 1)
             {
-                cursorX += roundSeparatorSpacing;
+                cursorX += CreateRoundSeparator(cursorX);
             }
         }
+    }
+
+    private float CreateRoundSeparator(float cursorX)
+    {
+        if (roundSeparatorSprite == null || timelineAnchor == null)
+        {
+            return roundSeparatorSpacing;
+        }
+
+        float separatorX = cursorX + roundSeparatorSpacing;
+
+        GameObject separatorObject = new GameObject("回合分隔", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        separatorObject.transform.SetParent(timelineAnchor, false);
+
+        RectTransform rect = separatorObject.transform as RectTransform;
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = roundSeparatorSize;
+            rect.anchoredPosition = new Vector2(separatorX, 0f);
+        }
+
+        Image image = separatorObject.GetComponent<Image>();
+        if (image != null)
+        {
+            image.sprite = roundSeparatorSprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+
+        timelineInstances.Add(separatorObject);
+        return roundSeparatorSpacing + roundSeparatorSize.x;
     }
 
     private List<List<BattleUnit>> BuildTimelineRounds()
