@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - characterId: "\u73A9\u5BB6"
     displayName: "\u73A9\u5BB6"
-    modelPrefab: {fileID: 919132149155446097, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+    modelPrefab: {fileID: 0}
     animatorController: {fileID: 9100000, guid: c309a5bf0fab12248965ac32a969e9b3, type: 2}
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}
@@ -43,7 +43,7 @@ MonoBehaviour:
     useAutoVisualAnchor: 1
   - characterId: "\u7D22\u62C9\u5A1C"
     displayName: "\u7D22\u62C9\u5A1C"
-    modelPrefab: {fileID: 0}
+    modelPrefab: {fileID: 919132149155446097, guid: a1ea871064bf4ec43b9cf33cfaa551f1, type: 3}
     animatorController: {fileID: 0}
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}

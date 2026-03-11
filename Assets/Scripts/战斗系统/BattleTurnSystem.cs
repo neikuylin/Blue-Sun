@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -11,12 +11,15 @@ public class BattleTurnSystem : MonoBehaviour
 
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
+    private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
     private readonly List<GameObject> timelineInstances = new List<GameObject>();
 
     [HideInInspector] public float timelineSpacing = 0f;
     [HideInInspector] public float activeTimelineExtraSpacing = 0f;
     [HideInInspector] public float activeTimelineScale = 1.1f;
+    [HideInInspector] public int previewRoundCount = 3;
+    [HideInInspector] public float roundSeparatorSpacing = 32f;
 
     [HideInInspector] public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
@@ -37,9 +40,11 @@ public class BattleTurnSystem : MonoBehaviour
         battleCamera = mainCamera;
         activeUnitIdText = FindActiveUnitIdText();
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+        EnsureTimelineMask();
         timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
         currentRoundOrder.Clear();
+        upcomingRoundOrders.Clear();
         initiativeTieBreakers.Clear();
         timelineInstances.Clear();
         activeUnit = null;
@@ -66,6 +71,8 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ReorderRemainingRound();
+        InvalidateFutureRounds();
+        EnsureUpcomingRounds(Mathf.Max(0, previewRoundCount - 1));
         RefreshTimeline();
     }
 
@@ -195,6 +202,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (!defender.IsAlive)
         {
             grid.RemoveUnit(defender);
+            InvalidateFutureRounds();
             Debug.Log(defender.unitName + " is defeated.");
         }
     }
@@ -237,11 +245,19 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        List<BattleUnit> livingUnits = CollectLivingUnits(units);
-        RandomizeTieBreakers(livingUnits);
-        livingUnits.Sort(CompareInitiative);
-        currentRoundOrder.AddRange(livingUnits);
+        EnsureUpcomingRounds(1);
+        if (upcomingRoundOrders.Count == 0)
+        {
+            currentRoundIndex = -1;
+            activeUnit = null;
+            return;
+        }
+
+        currentRoundOrder.AddRange(upcomingRoundOrders[0]);
+        upcomingRoundOrders.RemoveAt(0);
+        CacheCurrentRoundTieBreakers();
         currentRoundIndex = 0;
+        EnsureUpcomingRounds(Mathf.Max(0, previewRoundCount - 1));
     }
 
     private void BeginCurrentTurn()
@@ -312,6 +328,7 @@ public class BattleTurnSystem : MonoBehaviour
         currentRoundOrder.Clear();
         currentRoundOrder.AddRange(prefix);
         currentRoundOrder.AddRange(remaining);
+        CacheCurrentRoundTieBreakers();
         currentRoundIndex = Mathf.Min(prefix.Count - 1, currentRoundOrder.Count - 1);
     }
 
@@ -332,6 +349,23 @@ public class BattleTurnSystem : MonoBehaviour
     {
         units.RemoveAll(unit => unit == null || !unit.IsAlive);
         currentRoundOrder.RemoveAll(unit => unit == null || !unit.IsAlive);
+
+        for (int i = upcomingRoundOrders.Count - 1; i >= 0; i--)
+        {
+            List<BattleUnit> round = upcomingRoundOrders[i];
+            if (round == null)
+            {
+                upcomingRoundOrders.RemoveAt(i);
+                continue;
+            }
+
+            round.RemoveAll(unit => unit == null || !unit.IsAlive);
+            if (round.Count == 0)
+            {
+                upcomingRoundOrders.RemoveAt(i);
+            }
+        }
+
         if (currentRoundOrder.Count == 0)
         {
             currentRoundIndex = -1;
@@ -356,12 +390,63 @@ public class BattleTurnSystem : MonoBehaviour
         return result;
     }
 
+    private void InvalidateFutureRounds()
+    {
+        upcomingRoundOrders.Clear();
+    }
+
+    private void EnsureUpcomingRounds(int minimumCount)
+    {
+        CleanupDeadUnits();
+        while (upcomingRoundOrders.Count < minimumCount)
+        {
+            List<BattleUnit> roundOrder = CreateRoundOrderSnapshot();
+            if (roundOrder.Count == 0)
+            {
+                break;
+            }
+
+            upcomingRoundOrders.Add(roundOrder);
+        }
+    }
+
+    private List<BattleUnit> CreateRoundOrderSnapshot()
+    {
+        List<BattleUnit> livingUnits = CollectLivingUnits(units);
+        Dictionary<BattleUnit, int> tieBreakers = CreateTieBreakers(livingUnits);
+        livingUnits.Sort((left, right) => CompareInitiative(left, right, tieBreakers));
+        return livingUnits;
+    }
+
+    private void CacheCurrentRoundTieBreakers()
+    {
+        initiativeTieBreakers.Clear();
+        for (int i = 0; i < currentRoundOrder.Count; i++)
+        {
+            BattleUnit unit = currentRoundOrder[i];
+            if (unit != null && !initiativeTieBreakers.ContainsKey(unit))
+            {
+                initiativeTieBreakers[unit] = i;
+            }
+        }
+    }
+
     private void RandomizeTieBreakers(List<BattleUnit> targetUnits)
     {
         initiativeTieBreakers.Clear();
+        Dictionary<BattleUnit, int> generated = CreateTieBreakers(targetUnits);
+        foreach (KeyValuePair<BattleUnit, int> pair in generated)
+        {
+            initiativeTieBreakers[pair.Key] = pair.Value;
+        }
+    }
+
+    private static Dictionary<BattleUnit, int> CreateTieBreakers(List<BattleUnit> targetUnits)
+    {
+        Dictionary<BattleUnit, int> tieBreakers = new Dictionary<BattleUnit, int>();
         for (int i = 0; i < targetUnits.Count; i++)
         {
-            initiativeTieBreakers[targetUnits[i]] = i;
+            tieBreakers[targetUnits[i]] = i;
         }
 
         for (int i = targetUnits.Count - 1; i > 0; i--)
@@ -369,13 +454,20 @@ public class BattleTurnSystem : MonoBehaviour
             int swapIndex = Random.Range(0, i + 1);
             BattleUnit current = targetUnits[i];
             BattleUnit swapped = targetUnits[swapIndex];
-            int currentTieBreaker = initiativeTieBreakers[current];
-            initiativeTieBreakers[current] = initiativeTieBreakers[swapped];
-            initiativeTieBreakers[swapped] = currentTieBreaker;
+            int currentTieBreaker = tieBreakers[current];
+            tieBreakers[current] = tieBreakers[swapped];
+            tieBreakers[swapped] = currentTieBreaker;
         }
+
+        return tieBreakers;
     }
 
     private int CompareInitiative(BattleUnit left, BattleUnit right)
+    {
+        return CompareInitiative(left, right, initiativeTieBreakers);
+    }
+
+    private static int CompareInitiative(BattleUnit left, BattleUnit right, Dictionary<BattleUnit, int> tieBreakerLookup)
     {
         if (ReferenceEquals(left, right))
         {
@@ -400,12 +492,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         int leftIndex;
         int rightIndex;
-        if (!initiativeTieBreakers.TryGetValue(left, out leftIndex))
+        if (tieBreakerLookup == null || !tieBreakerLookup.TryGetValue(left, out leftIndex))
         {
             leftIndex = int.MaxValue;
         }
 
-        if (!initiativeTieBreakers.TryGetValue(right, out rightIndex))
+        if (tieBreakerLookup == null || !tieBreakerLookup.TryGetValue(right, out rightIndex))
         {
             rightIndex = int.MaxValue;
         }
@@ -439,6 +531,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (timelineAnchor == null)
         {
             timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+            EnsureTimelineMask();
         }
 
         if (timelineDatabase == null)
@@ -453,50 +546,119 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float cursorX = 0f;
-        for (int i = currentRoundIndex; i < currentRoundOrder.Count; i++)
+        List<List<BattleUnit>> timelineRounds = BuildTimelineRounds();
+        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
         {
-            BattleUnit unit = currentRoundOrder[i];
-            if (unit == null || !unit.IsAlive)
+            List<BattleUnit> round = timelineRounds[roundIndex];
+            for (int i = 0; i < round.Count; i++)
             {
-                continue;
+                BattleUnit unit = round[i];
+                if (unit == null || !unit.IsAlive)
+                {
+                    continue;
+                }
+
+                GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
+                if (prefab == null)
+                {
+                    continue;
+                }
+
+                GameObject instance = Instantiate(prefab, timelineAnchor, false);
+                instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
+
+                TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
+                if (teamTint == null)
+                {
+                    teamTint = instance.AddComponent<TurnTimelineTeamTint>();
+                }
+
+                bool isActive = roundIndex == 0 && i == 0;
+                Color timelineColor = ResolveTimelineColor(unit, isActive);
+                teamTint.Apply(timelineColor);
+
+                RectTransform rect = instance.transform as RectTransform;
+                if (rect != null)
+                {
+                    float width = ResolveTimelineItemWidth(rect);
+                    rect.anchorMin = new Vector2(0f, 1f);
+                    rect.anchorMax = new Vector2(0f, 1f);
+                    rect.pivot = new Vector2(0f, 1f);
+                    rect.anchoredPosition = new Vector2(cursorX, 0f);
+                    cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
+                }
+
+                if (isActive)
+                {
+                    instance.transform.localScale = Vector3.one * activeTimelineScale;
+                }
+
+                timelineInstances.Add(instance);
             }
 
-            GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
-            if (prefab == null)
+            if (roundIndex < timelineRounds.Count - 1)
             {
-                continue;
+                cursorX += roundSeparatorSpacing;
+            }
+        }
+    }
+
+    private List<List<BattleUnit>> BuildTimelineRounds()
+    {
+        List<List<BattleUnit>> rounds = new List<List<BattleUnit>>();
+
+        if (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
+        {
+            List<BattleUnit> currentRemaining = new List<BattleUnit>();
+            for (int i = currentRoundIndex; i < currentRoundOrder.Count; i++)
+            {
+                BattleUnit unit = currentRoundOrder[i];
+                if (unit != null && unit.IsAlive)
+                {
+                    currentRemaining.Add(unit);
+                }
             }
 
-            GameObject instance = Instantiate(prefab, timelineAnchor, false);
-            instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
-
-            TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
-            if (teamTint == null)
+            if (currentRemaining.Count > 0)
             {
-                teamTint = instance.AddComponent<TurnTimelineTeamTint>();
+                rounds.Add(currentRemaining);
+            }
+        }
+
+        int desiredRoundCount = Mathf.Max(1, previewRoundCount);
+        EnsureUpcomingRounds(Mathf.Max(0, desiredRoundCount - rounds.Count));
+        for (int i = 0; i < upcomingRoundOrders.Count && rounds.Count < desiredRoundCount; i++)
+        {
+            List<BattleUnit> previewRound = new List<BattleUnit>();
+            List<BattleUnit> sourceRound = upcomingRoundOrders[i];
+            for (int j = 0; j < sourceRound.Count; j++)
+            {
+                BattleUnit unit = sourceRound[j];
+                if (unit != null && unit.IsAlive)
+                {
+                    previewRound.Add(unit);
+                }
             }
 
-            bool isActive = i == currentRoundIndex;
-            Color timelineColor = ResolveTimelineColor(unit, isActive);
-            teamTint.Apply(timelineColor);
-
-            RectTransform rect = instance.transform as RectTransform;
-            if (rect != null)
+            if (previewRound.Count > 0)
             {
-                float width = ResolveTimelineItemWidth(rect);
-                rect.anchorMin = new Vector2(0f, 1f);
-                rect.anchorMax = new Vector2(0f, 1f);
-                rect.pivot = new Vector2(0f, 1f);
-                rect.anchoredPosition = new Vector2(cursorX, 0f);
-                cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
+                rounds.Add(previewRound);
             }
+        }
 
-            if (isActive)
-            {
-                instance.transform.localScale = Vector3.one * activeTimelineScale;
-            }
+        return rounds;
+    }
 
-            timelineInstances.Add(instance);
+    private void EnsureTimelineMask()
+    {
+        if (timelineAnchor == null)
+        {
+            return;
+        }
+
+        if (timelineAnchor.GetComponent<RectMask2D>() == null)
+        {
+            timelineAnchor.gameObject.AddComponent<RectMask2D>();
         }
     }
 
