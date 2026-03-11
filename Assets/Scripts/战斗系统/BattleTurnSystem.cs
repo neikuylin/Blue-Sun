@@ -18,6 +18,10 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public float activeTimelineExtraSpacing = 0f;
     [HideInInspector] public float activeTimelineScale = 1.1f;
 
+    [HideInInspector] public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
+    [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
+    [HideInInspector] public Color activePlayerTimelineColor = Color.white;
+
     private BattleGrid grid;
     private Camera battleCamera;
     private BattleUnit activeUnit;
@@ -72,7 +76,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (activeUnit.team == BattleTeam.Player)
+        if (activeUnit.isPlayerControlled)
         {
             HandlePlayerInput();
             return;
@@ -466,7 +470,16 @@ public class BattleTurnSystem : MonoBehaviour
             GameObject instance = Instantiate(prefab, timelineAnchor, false);
             instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
 
+            TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
+            if (teamTint == null)
+            {
+                teamTint = instance.AddComponent<TurnTimelineTeamTint>();
+            }
+
             bool isActive = i == currentRoundIndex;
+            Color timelineColor = ResolveTimelineColor(unit, isActive);
+            teamTint.Apply(timelineColor);
+
             RectTransform rect = instance.transform as RectTransform;
             if (rect != null)
             {
@@ -481,28 +494,25 @@ public class BattleTurnSystem : MonoBehaviour
             if (isActive)
             {
                 instance.transform.localScale = Vector3.one * activeTimelineScale;
-                SetTimelineInstanceColor(instance, Color.white);
             }
 
             timelineInstances.Add(instance);
         }
     }
 
-    private static void SetTimelineInstanceColor(GameObject instance, Color color)
+    private Color ResolveTimelineColor(BattleUnit unit, bool isActive)
     {
-        if (instance == null)
+        if (unit == null)
         {
-            return;
+            return playerTimelineColor;
         }
 
-        Image[] images = instance.GetComponentsInChildren<Image>(true);
-        for (int i = 0; i < images.Length; i++)
+        if (unit.team == BattleTeam.Player)
         {
-            if (images[i] != null)
-            {
-                images[i].color = color;
-            }
+            return isActive ? activePlayerTimelineColor : playerTimelineColor;
         }
+
+        return enemyTimelineColor;
     }
 
     private static float ResolveTimelineItemWidth(RectTransform rect)

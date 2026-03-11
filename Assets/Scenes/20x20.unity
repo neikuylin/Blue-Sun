@@ -831,6 +831,16 @@ MonoBehaviour:
   playerSpawnOrigin: {x: 4, y: 4}
   playerSpawnSpacing: {x: 4, y: 4}
   enemySpawnCell: {x: 13, y: 12}
+  enemySpawns:
+  - enemyId: "\u5047\u4EBA"
+    spawnCell: {x: 13, y: 12}
+    team: 1
+    isPlayerControlled: 0
+    maxHealth: 12
+    moveRange: 3
+    attackRange: 1
+    attackDamage: 2
+    footprintSize: 3
   boardDistance: 18
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8

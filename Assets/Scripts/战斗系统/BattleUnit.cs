@@ -12,6 +12,7 @@ public class BattleUnit : MonoBehaviour
     public string characterId = string.Empty;
     public string unitName = "Unit";
     public BattleTeam team = BattleTeam.Player;
+    public bool isPlayerControlled = true;
 
     [Header("Stats")]
     public int maxHealth = 10;

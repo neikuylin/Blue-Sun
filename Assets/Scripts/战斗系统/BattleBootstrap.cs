@@ -9,10 +9,25 @@ using UnityEditor;
 [DefaultExecutionOrder(-100)]
 public class BattleBootstrap : MonoBehaviour
 {
+    [System.Serializable]
+    public sealed class EnemySpawnEntry
+    {
+        public string enemyId = EnemyId;
+        public Vector2Int spawnCell = new Vector2Int(13, 12);
+        public BattleTeam team = BattleTeam.Enemy;
+        public bool isPlayerControlled;
+        public int maxHealth = 12;
+        public int moveRange = 3;
+        public int attackRange = 1;
+        public int attackDamage = 2;
+        public int footprintSize = 3;
+    }
+
     private const string SceneName = "20x20";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string LegacyAliceRootName = "爱丽丝root";
+    private const string EnemyId = "假人";
 
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
@@ -39,6 +54,7 @@ public class BattleBootstrap : MonoBehaviour
 
     [Header("Enemy Spawn")]
     public Vector2Int enemySpawnCell = new Vector2Int(13, 12);
+    public List<EnemySpawnEntry> enemySpawns = new List<EnemySpawnEntry>();
 
     [Header("Board")]
     public float boardDistance = 18f;
@@ -53,6 +69,11 @@ public class BattleBootstrap : MonoBehaviour
     public float timelineSpacing = 0f;
     public float activeTimelineExtraSpacing = 0f;
     public float activeTimelineScale = 1.1f;
+
+    [Header("Timeline Colors")]
+    public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
+    public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
+    public Color activePlayerTimelineColor = Color.white;
 
     [Header("Editor Preview")]
     public bool showEditorGrid = true;
@@ -109,6 +130,9 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.timelineSpacing = timelineSpacing;
         turnSystem.activeTimelineExtraSpacing = activeTimelineExtraSpacing;
         turnSystem.activeTimelineScale = activeTimelineScale;
+        turnSystem.playerTimelineColor = playerTimelineColor;
+        turnSystem.enemyTimelineColor = enemyTimelineColor;
+        turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
         turnSystem.Initialize(grid, mainCamera, units);
     }
 
@@ -159,10 +183,14 @@ public class BattleBootstrap : MonoBehaviour
             }
         }
 
-        BattleUnit enemy = SetupEnemy(grid, runtimeRoot);
-        if (enemy != null)
+        List<EnemySpawnEntry> enemyEntries = GetEnemySpawnEntries();
+        for (int i = 0; i < enemyEntries.Count; i++)
         {
-            units.Add(enemy);
+            BattleUnit enemy = SetupEnemy(grid, runtimeRoot, enemyEntries[i], i);
+            if (enemy != null)
+            {
+                units.Add(enemy);
+            }
         }
 
         return units;
@@ -191,7 +219,7 @@ public class BattleBootstrap : MonoBehaviour
         BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
         CharacterStatDatabase.StatEntry statEntry = FindStats(selection.characterId);
         Vector2Int startCell = GetPlayerSpawnCell(index);
-        GameObject unitObject = CreatePlayerObject(selection.characterId, binding, runtimeRoot, grid.GetWorldPosition(startCell));
+        GameObject unitObject = CreateUnitObject(selection.characterId, binding, runtimeRoot, grid.GetWorldPosition(startCell), playerPlaceholderColor);
         if (unitObject == null)
         {
             return null;
@@ -209,40 +237,93 @@ public class BattleBootstrap : MonoBehaviour
         unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
         unit.ApplyStats(statEntry);
         unit.Setup(selection.characterId, BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
+        unit.isPlayerControlled = true;
         unit.SetCell(startCell, grid.GetWorldPosition(startCell));
         unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
         grid.RegisterUnit(unit);
         return unit;
     }
 
-    private BattleUnit SetupEnemy(BattleGrid grid, Transform runtimeRoot)
+    private List<EnemySpawnEntry> GetEnemySpawnEntries()
     {
-        const string enemyId = "TrainingDummy";
-        GameObject enemyObject = CreatePlaceholderUnitRoot(
-            enemyId,
+        List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
+        if (enemySpawns != null)
+        {
+            for (int i = 0; i < enemySpawns.Count; i++)
+            {
+                EnemySpawnEntry entry = enemySpawns[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.enemyId))
+                {
+                    continue;
+                }
+
+                entries.Add(entry);
+            }
+        }
+
+        if (entries.Count == 0)
+        {
+            entries.Add(CreateDefaultEnemyEntry());
+        }
+
+        return entries;
+    }
+
+    private EnemySpawnEntry CreateDefaultEnemyEntry()
+    {
+        return new EnemySpawnEntry
+        {
+            enemyId = EnemyId,
+            spawnCell = enemySpawnCell,
+            team = BattleTeam.Enemy,
+            isPlayerControlled = false,
+            maxHealth = 12,
+            moveRange = 3,
+            attackRange = 1,
+            attackDamage = 2,
+            footprintSize = 3
+        };
+    }
+
+    private BattleUnit SetupEnemy(BattleGrid grid, Transform runtimeRoot, EnemySpawnEntry enemyEntry, int index)
+    {
+        if (enemyEntry == null || string.IsNullOrWhiteSpace(enemyEntry.enemyId))
+        {
+            return null;
+        }
+
+        Vector2Int spawnCell = enemyEntry.spawnCell;
+        BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(enemyEntry.enemyId);
+        Color placeholderColor = enemyEntry.team == BattleTeam.Enemy ? enemyPlaceholderColor : playerPlaceholderColor;
+        GameObject enemyObject = CreateUnitObject(
+            enemyEntry.enemyId,
+            binding,
             runtimeRoot,
-            grid.GetWorldPosition(enemySpawnCell),
-            enemyPlaceholderColor);
+            grid.GetWorldPosition(spawnCell),
+            placeholderColor);
+        enemyObject.name = enemyEntry.enemyId + "_" + index;
 
         BattleUnit unit = EnsureBattleUnit(enemyObject);
-        unit.maxHealth = 12;
-        unit.moveRange = 3;
-        unit.attackRange = 1;
-        unit.attackDamage = 2;
-        unit.footprintSize = 3;
+        unit.maxHealth = enemyEntry.maxHealth;
+        unit.moveRange = enemyEntry.moveRange;
+        unit.attackRange = enemyEntry.attackRange;
+        unit.attackDamage = enemyEntry.attackDamage;
+        unit.footprintSize = enemyEntry.footprintSize;
         unit.yawOffset = 0f;
-        unit.cellOffset = Vector2Int.zero;
-        unit.useAutoVisualAnchor = false;
-        unit.worldOffset = Vector3.zero;
-        unit.ApplyStats(FindStats(enemyId));
-        unit.Setup(enemyId, BattleTeam.Enemy, enemyId, enemySpawnCell);
-        unit.SetCell(enemySpawnCell, grid.GetWorldPosition(enemySpawnCell));
-        unit.FaceToward(grid.GetWorldPosition(enemySpawnCell + Vector2Int.left));
+        unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
+        unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
+        unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
+        unit.ApplyStats(FindStats(enemyEntry.enemyId));
+        unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolvePlayerDisplayName(enemyEntry.enemyId, binding), spawnCell);
+        unit.isPlayerControlled = enemyEntry.isPlayerControlled;
+        unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
+        Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
+        unit.FaceToward(grid.GetWorldPosition(facingCell));
         grid.RegisterUnit(unit);
         return unit;
     }
 
-    private GameObject CreatePlayerObject(string characterId, BattleCharacterBindingDatabase.BindingEntry binding, Transform runtimeRoot, Vector3 worldPosition)
+    private GameObject CreateUnitObject(string characterId, BattleCharacterBindingDatabase.BindingEntry binding, Transform runtimeRoot, Vector3 worldPosition, Color placeholderColor)
     {
         if (binding != null && binding.modelPrefab != null)
         {
@@ -252,7 +333,7 @@ public class BattleBootstrap : MonoBehaviour
             return instance;
         }
 
-        return CreatePlaceholderUnitRoot(characterId + "_Placeholder", runtimeRoot, worldPosition, playerPlaceholderColor);
+        return CreatePlaceholderUnitRoot(characterId + "_Placeholder", runtimeRoot, worldPosition, placeholderColor);
     }
 
     private static void ApplyAnimatorBinding(GameObject instance, BattleCharacterBindingDatabase.BindingEntry binding)

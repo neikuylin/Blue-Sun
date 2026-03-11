@@ -15,8 +15,10 @@ public sealed class TurnTimelineButtonDatabase : ScriptableObject
     }
 
     [SerializeField] private List<Entry> entries = new List<Entry>();
+    [SerializeField] private GameObject defaultButtonPrefab;
 
     public List<Entry> Entries => entries;
+    public GameObject DefaultButtonPrefab => defaultButtonPrefab;
 
     public Entry FindEntry(string characterId)
     {
@@ -45,7 +47,12 @@ public sealed class TurnTimelineButtonDatabase : ScriptableObject
     public GameObject FindButtonPrefab(string characterId)
     {
         Entry entry = FindEntry(characterId);
-        return entry != null ? entry.buttonPrefab : null;
+        if (entry != null && entry.buttonPrefab != null)
+        {
+            return entry.buttonPrefab;
+        }
+
+        return defaultButtonPrefab;
     }
 
     public static TurnTimelineButtonDatabase LoadDefault()

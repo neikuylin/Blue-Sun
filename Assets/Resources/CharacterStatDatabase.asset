@@ -38,7 +38,7 @@ MonoBehaviour:
     agility: 4
     intelligence: 4
     endurance: 4
-  - characterId: TrainingDummy
+  - characterId: "\u5047\u4EBA"
     strength: 0
     agility: 0
     intelligence: 0
