@@ -2,23 +2,25 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class BattleTurnSystem : MonoBehaviour
 {
     private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
 
     private readonly List<BattleUnit> units = new List<BattleUnit>();
+    private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
     private readonly List<GameObject> timelineInstances = new List<GameObject>();
 
     private BattleGrid grid;
     private Camera battleCamera;
     private BattleUnit activeUnit;
-    private int activeIndex = -1;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
     private Transform timelineAnchor;
     private TurnTimelineButtonDatabase timelineDatabase;
+    private int currentRoundIndex = -1;
 
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
@@ -28,25 +30,23 @@ public class BattleTurnSystem : MonoBehaviour
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
         timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
+        currentRoundOrder.Clear();
         initiativeTieBreakers.Clear();
+        timelineInstances.Clear();
+        activeUnit = null;
+        waitingForEnemyAction = false;
+        currentRoundIndex = -1;
 
-        int index = 0;
         foreach (BattleUnit unit in battleUnits)
         {
-            if (unit == null)
+            if (unit != null)
             {
-                continue;
+                units.Add(unit);
             }
-
-            units.Add(unit);
-            initiativeTieBreakers[unit] = index;
-            index++;
         }
 
-        RandomizeTieBreakers();
-        SortUnitsByInitiative();
-        RefreshTimeline();
-        BeginNextTurn();
+        StartNewRound();
+        BeginCurrentTurn();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
@@ -56,7 +56,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        RebuildTurnOrderPreserveCurrent();
+        ReorderRemainingRound();
         RefreshTimeline();
     }
 
@@ -193,15 +193,13 @@ public class BattleTurnSystem : MonoBehaviour
     private void EndTurn()
     {
         waitingForEnemyAction = false;
-        RebuildTurnOrderPreserveCurrent();
-        RefreshTimeline();
-        BeginNextTurn();
+        AdvanceTurn();
     }
 
-    private void BeginNextTurn()
+    private void AdvanceTurn()
     {
         CleanupDeadUnits();
-        if (units.Count == 0)
+        if (currentRoundOrder.Count == 0)
         {
             activeUnit = null;
             RefreshActiveUnitUi();
@@ -209,10 +207,40 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < units.Count; i++)
+        currentRoundIndex++;
+        if (currentRoundIndex >= currentRoundOrder.Count)
         {
-            activeIndex = (activeIndex + 1) % units.Count;
-            BattleUnit candidate = units[activeIndex];
+            StartNewRound();
+        }
+
+        BeginCurrentTurn();
+    }
+
+    private void StartNewRound()
+    {
+        CleanupDeadUnits();
+        currentRoundOrder.Clear();
+
+        if (units.Count == 0)
+        {
+            currentRoundIndex = -1;
+            activeUnit = null;
+            return;
+        }
+
+        List<BattleUnit> livingUnits = CollectLivingUnits(units);
+        RandomizeTieBreakers(livingUnits);
+        livingUnits.Sort(CompareInitiative);
+        currentRoundOrder.AddRange(livingUnits);
+        currentRoundIndex = 0;
+    }
+
+    private void BeginCurrentTurn()
+    {
+        CleanupDeadUnits();
+        while (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
+        {
+            BattleUnit candidate = currentRoundOrder[currentRoundIndex];
             if (candidate != null && candidate.IsAlive)
             {
                 activeUnit = candidate;
@@ -222,11 +250,60 @@ public class BattleTurnSystem : MonoBehaviour
                 Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.Agility + ")");
                 return;
             }
+
+            currentRoundIndex++;
+        }
+
+        if (units.Count > 0)
+        {
+            StartNewRound();
+            if (currentRoundOrder.Count > 0)
+            {
+                BeginCurrentTurn();
+                return;
+            }
         }
 
         activeUnit = null;
         RefreshActiveUnitUi();
         RefreshTimeline();
+    }
+
+    private void ReorderRemainingRound()
+    {
+        CleanupDeadUnits();
+        if (currentRoundOrder.Count == 0 || currentRoundIndex < 0 || currentRoundIndex >= currentRoundOrder.Count)
+        {
+            return;
+        }
+
+        List<BattleUnit> prefix = new List<BattleUnit>();
+        for (int i = 0; i <= currentRoundIndex && i < currentRoundOrder.Count; i++)
+        {
+            BattleUnit unit = currentRoundOrder[i];
+            if (unit != null && unit.IsAlive)
+            {
+                prefix.Add(unit);
+            }
+        }
+
+        List<BattleUnit> remaining = new List<BattleUnit>();
+        for (int i = currentRoundIndex + 1; i < currentRoundOrder.Count; i++)
+        {
+            BattleUnit unit = currentRoundOrder[i];
+            if (unit != null && unit.IsAlive)
+            {
+                remaining.Add(unit);
+            }
+        }
+
+        RandomizeTieBreakers(remaining);
+        remaining.Sort(CompareInitiative);
+
+        currentRoundOrder.Clear();
+        currentRoundOrder.AddRange(prefix);
+        currentRoundOrder.AddRange(remaining);
+        currentRoundIndex = Mathf.Min(prefix.Count - 1, currentRoundOrder.Count - 1);
     }
 
     private void RefreshHighlights()
@@ -245,47 +322,48 @@ public class BattleTurnSystem : MonoBehaviour
     private void CleanupDeadUnits()
     {
         units.RemoveAll(unit => unit == null || !unit.IsAlive);
+        currentRoundOrder.RemoveAll(unit => unit == null || !unit.IsAlive);
+        if (currentRoundOrder.Count == 0)
+        {
+            currentRoundIndex = -1;
+            return;
+        }
+
+        currentRoundIndex = Mathf.Clamp(currentRoundIndex, 0, currentRoundOrder.Count - 1);
     }
 
-    private void RandomizeTieBreakers()
+    private static List<BattleUnit> CollectLivingUnits(List<BattleUnit> source)
     {
-        for (int i = units.Count - 1; i > 0; i--)
+        List<BattleUnit> result = new List<BattleUnit>();
+        for (int i = 0; i < source.Count; i++)
+        {
+            BattleUnit unit = source[i];
+            if (unit != null && unit.IsAlive)
+            {
+                result.Add(unit);
+            }
+        }
+
+        return result;
+    }
+
+    private void RandomizeTieBreakers(List<BattleUnit> targetUnits)
+    {
+        initiativeTieBreakers.Clear();
+        for (int i = 0; i < targetUnits.Count; i++)
+        {
+            initiativeTieBreakers[targetUnits[i]] = i;
+        }
+
+        for (int i = targetUnits.Count - 1; i > 0; i--)
         {
             int swapIndex = Random.Range(0, i + 1);
-            BattleUnit current = units[i];
-            BattleUnit swapped = units[swapIndex];
+            BattleUnit current = targetUnits[i];
+            BattleUnit swapped = targetUnits[swapIndex];
             int currentTieBreaker = initiativeTieBreakers[current];
             initiativeTieBreakers[current] = initiativeTieBreakers[swapped];
             initiativeTieBreakers[swapped] = currentTieBreaker;
         }
-    }
-
-    private void RebuildTurnOrderPreserveCurrent()
-    {
-        CleanupDeadUnits();
-
-        if (units.Count == 0)
-        {
-            activeIndex = -1;
-            return;
-        }
-
-        BattleUnit current = activeUnit;
-        SortUnitsByInitiative();
-
-        if (current == null)
-        {
-            activeIndex = -1;
-            return;
-        }
-
-        int index = units.IndexOf(current);
-        activeIndex = index >= 0 ? index : -1;
-    }
-
-    private void SortUnitsByInitiative()
-    {
-        units.Sort(CompareInitiative);
     }
 
     private int CompareInitiative(BattleUnit left, BattleUnit right)
@@ -360,14 +438,14 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ClearTimelineInstances();
-        if (timelineAnchor == null || timelineDatabase == null)
+        if (timelineAnchor == null || timelineDatabase == null || currentRoundIndex < 0)
         {
             return;
         }
 
-        for (int i = 0; i < units.Count; i++)
+        for (int i = currentRoundIndex; i < currentRoundOrder.Count; i++)
         {
-            BattleUnit unit = units[i];
+            BattleUnit unit = currentRoundOrder[i];
             if (unit == null || !unit.IsAlive)
             {
                 continue;
@@ -380,11 +458,8 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             GameObject instance = Instantiate(prefab, timelineAnchor, false);
-            instance.name = string.IsNullOrWhiteSpace(unit.characterId)
-                ? prefab.name
-                : unit.characterId + "_时间轴";
-
-            if (unit == activeUnit)
+            instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
+            if (i == currentRoundIndex)
             {
                 instance.transform.localScale = Vector3.one * 1.1f;
             }
@@ -398,12 +473,10 @@ public class BattleTurnSystem : MonoBehaviour
         for (int i = 0; i < timelineInstances.Count; i++)
         {
             GameObject instance = timelineInstances[i];
-            if (instance == null)
+            if (instance != null)
             {
-                continue;
+                Destroy(instance);
             }
-
-            Destroy(instance);
         }
 
         timelineInstances.Clear();
@@ -437,7 +510,7 @@ public class BattleTurnSystem : MonoBehaviour
             return null;
         }
 
-        GameObject[] roots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+        GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
         Transform current = null;
         for (int i = 0; i < roots.Length; i++)
         {
