@@ -20,7 +20,7 @@ public class BattleUnit : MonoBehaviour
     public int attackDamage = 3;
     public int footprintSize = 1;
     public int strength;
-    public int agility;
+    [SerializeField] private int agility;
     public int intelligence;
     public int endurance;
 
@@ -40,6 +40,11 @@ public class BattleUnit : MonoBehaviour
     public bool IsAlive
     {
         get { return currentHealth > 0; }
+    }
+
+    public int Agility
+    {
+        get { return agility; }
     }
 
     public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)
@@ -62,16 +67,26 @@ public class BattleUnit : MonoBehaviour
         if (statEntry == null)
         {
             strength = 0;
-            agility = 0;
+            SetAgilityInternal(0, false);
             intelligence = 0;
             endurance = 0;
             return;
         }
 
         strength = statEntry.strength;
-        agility = statEntry.agility;
+        SetAgilityInternal(statEntry.agility, false);
         intelligence = statEntry.intelligence;
         endurance = statEntry.endurance;
+    }
+
+    public void SetAgility(int value)
+    {
+        SetAgilityInternal(value, true);
+    }
+
+    public void AddAgility(int delta)
+    {
+        SetAgilityInternal(agility + delta, true);
     }
 
     public void SetCell(Vector2Int cell, Vector3 worldPosition)
@@ -104,6 +119,22 @@ public class BattleUnit : MonoBehaviour
     public int FootprintRadius
     {
         get { return Mathf.Max(0, footprintSize / 2); }
+    }
+
+    private void SetAgilityInternal(int value, bool notifyTurnSystem)
+    {
+        agility = value;
+
+        if (!notifyTurnSystem)
+        {
+            return;
+        }
+
+        BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
+        if (turnSystem != null)
+        {
+            turnSystem.NotifyUnitInitiativeChanged(this);
+        }
     }
 
     private Vector3 GetVisualAnchorWorldPosition()

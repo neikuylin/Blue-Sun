@@ -25,7 +25,11 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         CharacterStatDatabase database = EnsureDatabase();
 
         EditorGUILayout.LabelField("角色ID属性绑定", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("按角色ID维护四维属性。当前只做查看和编辑，暂未接入运行时逻辑。", MessageType.Info);
+        EditorGUILayout.HelpBox(
+            Application.isPlaying
+                ? "当前为 Play Mode。修改会同时写入资产，并同步到当前战斗中的同 ID 单位。"
+                : "当前只修改资产。进入 Play Mode 后可实时同步到战斗单位。",
+            MessageType.Info);
         EditorGUILayout.Space(4f);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -81,10 +85,31 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                     }
                 }
 
+                EditorGUI.BeginChangeCheck();
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("strength"), new GUIContent("力量"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("agility"), new GUIContent("敏捷"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("intelligence"), new GUIContent("智力"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("endurance"), new GUIContent("耐力"));
+                bool changed = EditorGUI.EndChangeCheck();
+
+                if (Application.isPlaying)
+                {
+                    DrawRuntimeSyncInfo(entry);
+                }
+
+                if (changed)
+                {
+                    databaseObject.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(database);
+                    AssetDatabase.SaveAssets();
+
+                    if (Application.isPlaying)
+                    {
+                        ApplyEntryToRuntime(entry);
+                    }
+
+                    GUI.changed = false;
+                }
             }
         }
 
@@ -99,6 +124,67 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
         }
+    }
+
+    private static void DrawRuntimeSyncInfo(SerializedProperty entry)
+    {
+        string characterId = entry.FindPropertyRelative("characterId").stringValue;
+        BattleUnit[] units = FindBattleUnits(characterId);
+        string text = units.Length > 0
+            ? "战斗内已检测到同 ID 单位，修改会立即生效。"
+            : "战斗内未检测到同 ID 单位，当前只会修改资产。";
+        EditorGUILayout.HelpBox(text, units.Length > 0 ? MessageType.None : MessageType.Warning);
+    }
+
+    private static void ApplyEntryToRuntime(SerializedProperty entry)
+    {
+        string characterId = entry.FindPropertyRelative("characterId").stringValue;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return;
+        }
+
+        BattleUnit[] units = FindBattleUnits(characterId);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            unit.strength = entry.FindPropertyRelative("strength").intValue;
+            unit.SetAgility(entry.FindPropertyRelative("agility").intValue);
+            unit.intelligence = entry.FindPropertyRelative("intelligence").intValue;
+            unit.endurance = entry.FindPropertyRelative("endurance").intValue;
+            EditorUtility.SetDirty(unit);
+        }
+    }
+
+    private static BattleUnit[] FindBattleUnits(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return Array.Empty<BattleUnit>();
+        }
+
+        BattleUnit[] allUnits = UnityEngine.Object.FindObjectsOfType<BattleUnit>(true);
+        List<BattleUnit> matches = new List<BattleUnit>();
+        for (int i = 0; i < allUnits.Length; i++)
+        {
+            BattleUnit unit = allUnits[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
+            {
+                matches.Add(unit);
+            }
+        }
+
+        return matches.ToArray();
     }
 
     private static CharacterStatDatabase EnsureDatabase()
@@ -210,6 +296,15 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             if (!string.IsNullOrWhiteSpace(slots[i].slotCharacterId))
             {
                 ids.Add(slots[i].slotCharacterId);
+            }
+        }
+
+        BattleUnit[] battleUnits = UnityEngine.Object.FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < battleUnits.Length; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(battleUnits[i].characterId))
+            {
+                ids.Add(battleUnits[i].characterId);
             }
         }
 

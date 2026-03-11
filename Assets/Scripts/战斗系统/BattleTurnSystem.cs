@@ -41,6 +41,21 @@ public class BattleTurnSystem : MonoBehaviour
         BeginNextTurn();
     }
 
+    public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
+    {
+        if (changedUnit == null)
+        {
+            return;
+        }
+
+        if (!units.Contains(changedUnit))
+        {
+            return;
+        }
+
+        RebuildTurnOrderPreserveCurrent();
+    }
+
     private void Update()
     {
         if (activeUnit == null || !activeUnit.IsAlive)
@@ -174,6 +189,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void EndTurn()
     {
         waitingForEnemyAction = false;
+        RebuildTurnOrderPreserveCurrent();
         BeginNextTurn();
     }
 
@@ -196,7 +212,7 @@ public class BattleTurnSystem : MonoBehaviour
                 activeUnit = candidate;
                 RefreshHighlights();
                 RefreshActiveUnitUi();
-                Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.agility + ")");
+                Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.Agility + ")");
                 return;
             }
         }
@@ -236,10 +252,32 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
+    private void RebuildTurnOrderPreserveCurrent()
+    {
+        CleanupDeadUnits();
+
+        if (units.Count == 0)
+        {
+            activeIndex = -1;
+            return;
+        }
+
+        BattleUnit current = activeUnit;
+        SortUnitsByInitiative();
+
+        if (current == null)
+        {
+            activeIndex = -1;
+            return;
+        }
+
+        int index = units.IndexOf(current);
+        activeIndex = index >= 0 ? index : -1;
+    }
+
     private void SortUnitsByInitiative()
     {
         units.Sort(CompareInitiative);
-        activeIndex = -1;
     }
 
     private int CompareInitiative(BattleUnit left, BattleUnit right)
@@ -259,7 +297,7 @@ public class BattleTurnSystem : MonoBehaviour
             return -1;
         }
 
-        int agilityCompare = right.agility.CompareTo(left.agility);
+        int agilityCompare = right.Agility.CompareTo(left.Agility);
         if (agilityCompare != 0)
         {
             return agilityCompare;
