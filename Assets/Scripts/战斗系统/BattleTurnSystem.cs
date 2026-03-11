@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class BattleTurnSystem : MonoBehaviour
 {
     private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
+    private const float TimelineSpacing = 0f;
 
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
@@ -443,6 +445,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        float cursorX = 0f;
         for (int i = currentRoundIndex; i < currentRoundOrder.Count; i++)
         {
             BattleUnit unit = currentRoundOrder[i];
@@ -459,13 +462,64 @@ public class BattleTurnSystem : MonoBehaviour
 
             GameObject instance = Instantiate(prefab, timelineAnchor, false);
             instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
+
+            RectTransform rect = instance.transform as RectTransform;
+            if (rect != null)
+            {
+                float width = ResolveTimelineItemWidth(rect);
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = new Vector2(0f, 1f);
+                rect.pivot = new Vector2(0f, 1f);
+                rect.anchoredPosition = new Vector2(cursorX, 0f);
+                cursorX += width + TimelineSpacing;
+            }
+
             if (i == currentRoundIndex)
             {
                 instance.transform.localScale = Vector3.one * 1.1f;
+                SetTimelineInstanceColor(instance, Color.white);
             }
 
             timelineInstances.Add(instance);
         }
+    }
+
+    private static void SetTimelineInstanceColor(GameObject instance, Color color)
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        Image[] images = instance.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i] != null)
+            {
+                images[i].color = color;
+            }
+        }
+    }
+
+    private static float ResolveTimelineItemWidth(RectTransform rect)
+    {
+        if (rect == null)
+        {
+            return 100f;
+        }
+
+        LayoutElement layoutElement = rect.GetComponent<LayoutElement>();
+        if (layoutElement != null && layoutElement.preferredWidth > 0f)
+        {
+            return layoutElement.preferredWidth;
+        }
+
+        if (rect.sizeDelta.x > 0f)
+        {
+            return rect.sizeDelta.x;
+        }
+
+        return 100f;
     }
 
     private void ClearTimelineInstances()
