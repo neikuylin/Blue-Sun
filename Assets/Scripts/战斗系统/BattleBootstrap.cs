@@ -16,11 +16,6 @@ public class BattleBootstrap : MonoBehaviour
         public Vector2Int spawnCell = new Vector2Int(13, 12);
         public BattleTeam team = BattleTeam.Enemy;
         public bool isPlayerControlled;
-        public int maxHealth = 12;
-        public int moveRange = 3;
-        public int attackRange = 1;
-        public int attackDamage = 2;
-        public int footprintSize = 3;
     }
 
     private const string SceneName = "20x20";
@@ -285,12 +280,7 @@ public class BattleBootstrap : MonoBehaviour
             enemyId = EnemyId,
             spawnCell = enemySpawnCell,
             team = BattleTeam.Enemy,
-            isPlayerControlled = false,
-            maxHealth = 12,
-            moveRange = 3,
-            attackRange = 1,
-            attackDamage = 2,
-            footprintSize = 3
+            isPlayerControlled = false
         };
     }
 
@@ -313,11 +303,10 @@ public class BattleBootstrap : MonoBehaviour
         enemyObject.name = enemyEntry.enemyId + "_" + index;
 
         BattleUnit unit = EnsureBattleUnit(enemyObject);
-        unit.maxHealth = enemyEntry.maxHealth;
-        unit.moveRange = enemyEntry.moveRange;
-        unit.attackRange = enemyEntry.attackRange;
-        unit.attackDamage = enemyEntry.attackDamage;
-        unit.footprintSize = enemyEntry.footprintSize;
+        unit.maxHealth = 12;
+        unit.attackRange = 1;
+        unit.attackDamage = 2;
+        unit.footprintSize = 3;
         unit.yawOffset = 0f;
         unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
         unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;

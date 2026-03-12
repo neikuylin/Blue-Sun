@@ -37,7 +37,6 @@ public class BattleUnit : MonoBehaviour
     public int currentHealth;
     public int currentActionPoints;
     public Vector2Int currentCell;
-    public bool hasAttackedThisTurn;
 
     private Vector3 anchorOffset;
     private bool initialized;
@@ -95,17 +94,6 @@ public class BattleUnit : MonoBehaviour
     public void BeginTurn()
     {
         currentActionPoints = maxActionPoints;
-        hasAttackedThisTurn = false;
-    }
-
-    public bool CanAttackThisTurn()
-    {
-        return !hasAttackedThisTurn;
-    }
-
-    public void MarkAttackUsed()
-    {
-        hasAttackedThisTurn = true;
     }
 
     public bool CanSpendActionPoints(int amount)

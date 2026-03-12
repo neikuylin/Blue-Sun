@@ -25,7 +25,7 @@ public sealed class CharacterStatDatabase : ScriptableObject
 
         public int ResolveMoveDistance()
         {
-            return moveDistance > 0 ? moveDistance : Mathf.Max(0, agility + 3);
+            return Mathf.Max(0, agility + 3);
         }
     }
 

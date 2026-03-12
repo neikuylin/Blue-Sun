@@ -49,9 +49,9 @@ MonoBehaviour:
     actionPoints: 4
     moveDistance: 7
   - characterId: "\u5047\u4EBA"
-    strength: 0
-    agility: 0
-    intelligence: 0
-    endurance: 0
+    strength: 2
+    agility: 2
+    intelligence: 2
+    endurance: 2
     actionPoints: 4
     moveDistance: 3

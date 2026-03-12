@@ -108,8 +108,7 @@ public sealed class IdListWindow : EditorWindow
             statDatabase.Entries.Add(new CharacterStatDatabase.StatEntry
             {
                 characterId = id,
-                actionPoints = 4,
-                moveDistance = 3
+                actionPoints = 4
             });
             EditorUtility.SetDirty(statDatabase);
             changed = true;

@@ -129,11 +129,6 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("spawnCell"), new GUIContent("\u51FA\u751F\u683C"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("team"), new GUIContent("\u9635\u8425"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("isPlayerControlled"), new GUIContent("\u73A9\u5BB6\u64CD\u63A7"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("maxHealth"), new GUIContent("\u751F\u547D\u503C"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("moveRange"), new GUIContent("\u79FB\u52A8\u8303\u56F4"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackRange"), new GUIContent("\u653B\u51FB\u8303\u56F4"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("attackDamage"), new GUIContent("\u653B\u51FB\u4F24\u5BB3"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("footprintSize"), new GUIContent("\u5360\u5730\u5C3A\u5BF8"));
                 bool enemyChanged = EditorGUI.EndChangeCheck();
 
                 string resolvedEnemyId = enemyIdProperty.stringValue.Trim();
@@ -178,7 +173,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
         int endurance = EditorGUILayout.IntField("\u8010\u529B", statEntry.endurance);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
-        int moveDistance = EditorGUILayout.IntField("\u79FB\u52A8\u8DDD\u79BB", statEntry.moveDistance);
+        EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", Mathf.Max(0, agility + 3).ToString());
         bool statChanged = EditorGUI.EndChangeCheck();
 
         if (!statChanged)
@@ -191,7 +186,6 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         statEntry.intelligence = intelligence;
         statEntry.endurance = endurance;
         statEntry.actionPoints = actionPoints;
-        statEntry.moveDistance = moveDistance;
         EditorUtility.SetDirty(statDatabase);
         AssetDatabase.SaveAssets();
     }
@@ -215,12 +209,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             enemyId = enemyId,
             spawnCell = CalculateNextSpawnCell(bootstrap),
             team = BattleTeam.Enemy,
-            isPlayerControlled = false,
-            maxHealth = 12,
-            moveRange = 3,
-            attackRange = 1,
-            attackDamage = 2,
-            footprintSize = 3
+            isPlayerControlled = false
         };
 
         bootstrap.enemySpawns.Add(entry);
@@ -257,8 +246,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         CharacterStatDatabase.StatEntry created = new CharacterStatDatabase.StatEntry
         {
             characterId = enemyId,
-            actionPoints = 4,
-            moveDistance = 3
+            actionPoints = 4
         };
         statDatabase.Entries.Add(created);
         EditorUtility.SetDirty(statDatabase);

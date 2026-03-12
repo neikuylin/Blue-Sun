@@ -207,7 +207,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryAttack(BattleUnit attacker, BattleUnit defender)
     {
-        if (attacker == null || !attacker.CanAttackThisTurn())
+        if (attacker == null)
         {
             return;
         }
@@ -225,7 +225,6 @@ public class BattleTurnSystem : MonoBehaviour
     private void ExecuteAttack(BattleUnit attacker, BattleUnit defender)
     {
         attacker.FaceToward(defender.transform.position);
-        attacker.MarkAttackUsed();
         defender.ApplyDamage(attacker.attackDamage);
         Debug.Log(attacker.unitName + " attacks " + defender.unitName + " for " + attacker.attackDamage + " damage.");
 
