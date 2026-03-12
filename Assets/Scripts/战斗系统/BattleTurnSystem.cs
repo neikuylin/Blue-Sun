@@ -19,6 +19,8 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
     private readonly List<GameObject> timelineInstances = new List<GameObject>();
     private readonly Dictionary<GameObject, BattleUnit> timelineInstanceUnits = new Dictionary<GameObject, BattleUnit>();
+    private readonly Dictionary<GameObject, TimelineSlotKey> timelineInstanceKeys = new Dictionary<GameObject, TimelineSlotKey>();
+    private readonly List<TimelineSlot> lastTimelineUnitSlots = new List<TimelineSlot>();
 
     [HideInInspector] public float timelineSpacing = 0f;
     [HideInInspector] public float activeTimelineExtraSpacing = 0f;
@@ -49,6 +51,7 @@ public class BattleTurnSystem : MonoBehaviour
     private TurnTimelineButtonDatabase timelineDatabase;
     private Coroutine timelineAnimationRoutine;
     private BattleUnit timelineLeadUnit;
+    private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
     private bool movementModeActive;
     private bool hasMovementHoverPreview;
@@ -76,8 +79,10 @@ public class BattleTurnSystem : MonoBehaviour
         activeUnit = null;
         waitingForEnemyAction = false;
         currentRoundIndex = -1;
+        absoluteRoundIndex = -1;
         movementModeActive = false;
         timelineLeadUnit = null;
+        lastTimelineUnitSlots.Clear();
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -330,6 +335,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        absoluteRoundIndex++;
         currentRoundOrder.AddRange(upcomingRoundOrders[0]);
         upcomingRoundOrders.RemoveAt(0);
         CacheCurrentRoundTieBreakers();
@@ -656,42 +662,25 @@ public class BattleTurnSystem : MonoBehaviour
     private void BuildTimelineImmediate(List<List<BattleUnit>> timelineRounds)
     {
         ClearTimelineInstances();
-        float cursorX = 0f;
-        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
+        List<TimelineSlot> slots = BuildTimelineSlots(timelineRounds);
+        lastTimelineUnitSlots.Clear();
+        for (int i = 0; i < slots.Count; i++)
         {
-            List<BattleUnit> round = timelineRounds[roundIndex];
-            for (int i = 0; i < round.Count; i++)
+            TimelineSlot slot = slots[i];
+            if (slot.isSeparator)
             {
-                BattleUnit unit = round[i];
-                if (unit == null || !unit.IsAlive)
-                {
-                    continue;
-                }
-
-                bool isActive = roundIndex == 0 && i == 0;
-                GameObject instance = CreateTimelineUnitInstance(unit, isActive, cursorX);
-                if (instance == null)
-                {
-                    continue;
-                }
-
-                RectTransform rect = instance.transform as RectTransform;
-                if (rect != null)
-                {
-                    float width = ResolveTimelineItemWidth(rect);
-                    cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
-                }
+                CreateRoundSeparator(slot.x);
+                continue;
             }
 
-            if (roundIndex < timelineRounds.Count - 1)
-            {
-                cursorX += CreateRoundSeparator(cursorX);
-            }
+            CreateTimelineUnitInstance(slot);
+            lastTimelineUnitSlots.Add(slot);
         }
     }
 
-    private GameObject CreateTimelineUnitInstance(BattleUnit unit, bool isActive, float cursorX)
+    private GameObject CreateTimelineUnitInstance(TimelineSlot slot)
     {
+        BattleUnit unit = slot.unit;
         GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
         if (prefab == null)
         {
@@ -707,7 +696,7 @@ public class BattleTurnSystem : MonoBehaviour
             teamTint = instance.AddComponent<TurnTimelineTeamTint>();
         }
 
-        teamTint.Apply(ResolveTimelineColor(unit, isActive));
+        teamTint.Apply(ResolveTimelineColor(unit, slot.isActive));
 
         RectTransform rect = instance.transform as RectTransform;
         if (rect != null)
@@ -715,12 +704,13 @@ public class BattleTurnSystem : MonoBehaviour
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(cursorX, 0f);
+            rect.anchoredPosition = new Vector2(slot.x, 0f);
         }
 
-        instance.transform.localScale = isActive ? Vector3.one * activeTimelineScale : Vector3.one;
+        instance.transform.localScale = slot.isActive ? Vector3.one * activeTimelineScale : Vector3.one;
         timelineInstances.Add(instance);
         timelineInstanceUnits[instance] = unit;
+        timelineInstanceKeys[instance] = slot.key;
         return instance;
     }
 
@@ -728,28 +718,24 @@ public class BattleTurnSystem : MonoBehaviour
     {
         RemoveTimelineSeparators();
         List<TimelineSlot> desiredSlots = BuildTimelineSlots(timelineRounds);
+        List<TimelineSlot> desiredUnitSlots = ExtractUnitTimelineSlots(desiredSlots);
         List<GameObject> currentInstances = GetCurrentTimelineUnitInstances();
-        List<BattleUnit> currentUnits = new List<BattleUnit>();
-        for (int i = 0; i < currentInstances.Count; i++)
+        if (currentInstances.Count != lastTimelineUnitSlots.Count)
         {
-            BattleUnit mappedUnit;
-            if (timelineInstanceUnits.TryGetValue(currentInstances[i], out mappedUnit))
-            {
-                currentUnits.Add(mappedUnit);
-            }
-            else
-            {
-                currentUnits.Add(null);
-            }
+            BuildTimelineImmediate(timelineRounds);
+            timelineLeadUnit = newLeadUnit;
+            timelineAnimationRoutine = null;
+            yield break;
         }
 
-        int[] matchedDesiredIndices = MatchTimelineSlotsFromRight(currentUnits, desiredSlots);
-        HashSet<BattleUnit> desiredUnitSet = new HashSet<BattleUnit>();
-        for (int i = 0; i < desiredSlots.Count; i++)
+        int[] matchedDesiredIndices = MatchTimelineSlotsByKey(lastTimelineUnitSlots, desiredUnitSlots);
+        TimelineSlotKey desiredHeadKey = desiredUnitSlots.Count > 0 ? desiredUnitSlots[0].key : default(TimelineSlotKey);
+        HashSet<TimelineSlotKey> desiredKeys = new HashSet<TimelineSlotKey>();
+        for (int i = 0; i < desiredUnitSlots.Count; i++)
         {
-            if (desiredSlots[i].unit != null)
+            if (!desiredUnitSlots[i].isSeparator)
             {
-                desiredUnitSet.Add(desiredSlots[i].unit);
+                desiredKeys.Add(desiredUnitSlots[i].key);
             }
         }
 
@@ -768,19 +754,18 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            BattleUnit unit = currentUnits[i];
+            TimelineSlot currentSlot = lastTimelineUnitSlots[i];
             int matchedIndex = matchedDesiredIndices[i];
-            bool stillInQueue = matchedIndex >= 0 && matchedIndex < desiredSlots.Count;
+            bool stillInQueue = matchedIndex >= 0 && matchedIndex < desiredUnitSlots.Count;
             animatedRects.Add(rect);
             startPositions.Add(rect.anchoredPosition);
             if (stillInQueue)
             {
-                targetPositions.Add(new Vector2(desiredSlots[matchedIndex].x, 0f));
+                targetPositions.Add(new Vector2(desiredUnitSlots[matchedIndex].x, 0f));
             }
             else
             {
-                bool unitStillAppearsLater = unit != null && desiredUnitSet.Contains(unit);
-                if (unitStillAppearsLater)
+                if (currentSlot.key.IsBefore(desiredHeadKey))
                 {
                     float exitX = -(Mathf.Max(rect.rect.width, rect.sizeDelta.x, 100f) + 40f);
                     targetPositions.Add(new Vector2(exitX, rect.anchoredPosition.y));
@@ -793,7 +778,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             startScales.Add(rect.localScale);
-            targetScales.Add(stillInQueue && matchedIndex == 0 ? Vector3.one * activeTimelineScale : Vector3.one);
+            targetScales.Add(stillInQueue && desiredUnitSlots[matchedIndex].isActive ? Vector3.one * activeTimelineScale : Vector3.one);
         }
 
         float duration = Mathf.Max(0.01f, timelineShiftDuration);
@@ -829,6 +814,7 @@ public class BattleTurnSystem : MonoBehaviour
         for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
         {
             List<BattleUnit> round = timelineRounds[roundIndex];
+            int unitIndexInRound = roundIndex == 0 ? Mathf.Max(0, currentRoundIndex) : 0;
             for (int i = 0; i < round.Count; i++)
             {
                 BattleUnit unit = round[i];
@@ -845,13 +831,21 @@ public class BattleTurnSystem : MonoBehaviour
 
                 float width = ResolveTimelinePrefabWidth(prefab);
                 bool isActive = roundIndex == 0 && i == 0;
-                slots.Add(new TimelineSlot(unit, cursorX, isActive));
+                slots.Add(TimelineSlot.CreateUnit(
+                    unit,
+                    cursorX,
+                    isActive,
+                    absoluteRoundIndex + roundIndex,
+                    unitIndexInRound));
+                unitIndexInRound++;
                 cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
             }
 
             if (roundIndex < timelineRounds.Count - 1)
             {
-                cursorX += GetRoundSeparatorWidth();
+                float separatorWidth = GetRoundSeparatorWidth();
+                slots.Add(TimelineSlot.CreateSeparator(cursorX + roundSeparatorSpacing));
+                cursorX += separatorWidth;
             }
         }
 
@@ -911,14 +905,125 @@ public class BattleTurnSystem : MonoBehaviour
         return matches;
     }
 
-    private float CreateRoundSeparator(float cursorX)
+    private static bool TryMatchTimelineShiftByRound(List<TimelineSlotKey> currentKeys, List<TimelineSlot> desiredSlots, out int[] matches)
+    {
+        matches = null;
+        int currentCount = currentKeys != null ? currentKeys.Count : 0;
+        int desiredCount = desiredSlots != null ? desiredSlots.Count : 0;
+        if (currentCount == 0 || desiredCount == 0 || desiredCount > currentCount)
+        {
+            return false;
+        }
+
+        int maxShift = desiredCount == currentCount ? currentCount - 1 : currentCount - desiredCount;
+        for (int shift = 1; shift <= maxShift; shift++)
+        {
+            bool isShiftMatch = true;
+            int matchedCount = currentCount - shift;
+            if (matchedCount <= 0)
+            {
+                continue;
+            }
+
+            for (int desiredIndex = 0; desiredIndex < matchedCount; desiredIndex++)
+            {
+                if (!currentKeys[desiredIndex + shift].Equals(desiredSlots[desiredIndex].key))
+                {
+                    isShiftMatch = false;
+                    break;
+                }
+            }
+
+            if (!isShiftMatch)
+            {
+                continue;
+            }
+
+            matches = new int[currentCount];
+            for (int i = 0; i < currentCount; i++)
+            {
+                matches[i] = i >= shift ? i - shift : -1;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static List<TimelineSlot> ExtractUnitTimelineSlots(List<TimelineSlot> slots)
+    {
+        List<TimelineSlot> result = new List<TimelineSlot>();
+        if (slots == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (!slots[i].isSeparator)
+            {
+                result.Add(slots[i]);
+            }
+        }
+
+        return result;
+    }
+
+    private static bool TryMatchTimelineSlotsAsLeftShift(List<BattleUnit> currentUnits, List<TimelineSlot> desiredSlots, out int[] matches)
+    {
+        matches = null;
+        int currentCount = currentUnits != null ? currentUnits.Count : 0;
+        int desiredCount = desiredSlots != null ? desiredSlots.Count : 0;
+        if (currentCount == 0 || desiredCount == 0 || desiredCount > currentCount)
+        {
+            return false;
+        }
+
+        int maxShift = desiredCount == currentCount ? currentCount - 1 : currentCount - desiredCount;
+        for (int shift = 1; shift <= maxShift; shift++)
+        {
+            bool isShiftMatch = true;
+            int matchedCount = currentCount - shift;
+            if (matchedCount <= 0)
+            {
+                continue;
+            }
+
+            for (int desiredIndex = 0; desiredIndex < matchedCount; desiredIndex++)
+            {
+                BattleUnit currentUnit = currentUnits[desiredIndex + shift];
+                BattleUnit desiredUnit = desiredSlots[desiredIndex].unit;
+                if (currentUnit != desiredUnit)
+                {
+                    isShiftMatch = false;
+                    break;
+                }
+            }
+
+            if (!isShiftMatch)
+            {
+                continue;
+            }
+
+            matches = new int[currentCount];
+            for (int i = 0; i < currentCount; i++)
+            {
+                matches[i] = i >= shift ? i - shift : -1;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private void CreateRoundSeparator(float separatorX)
     {
         if (roundSeparatorSprite == null || timelineAnchor == null)
         {
-            return roundSeparatorSpacing;
+            return;
         }
-
-        float separatorX = cursorX + roundSeparatorSpacing;
 
         GameObject separatorObject = new GameObject("鍥炲悎鍒嗛殧", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         separatorObject.transform.SetParent(timelineAnchor, false);
@@ -942,21 +1047,19 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         timelineInstances.Add(separatorObject);
-        return roundSeparatorSpacing + roundSeparatorSize.x;
     }
 
     private bool TimelineNeedsAnimation(List<List<BattleUnit>> timelineRounds, BattleUnit newLeadUnit)
     {
-        List<BattleUnit> currentUnits = GetCurrentTimelineUnits();
-        List<BattleUnit> desiredUnits = FlattenTimelineUnits(timelineRounds);
-        if (currentUnits.Count != desiredUnits.Count)
+        List<TimelineSlot> desiredUnitSlots = ExtractUnitTimelineSlots(BuildTimelineSlots(timelineRounds));
+        if (lastTimelineUnitSlots.Count != desiredUnitSlots.Count)
         {
             return true;
         }
 
-        for (int i = 0; i < currentUnits.Count; i++)
+        for (int i = 0; i < lastTimelineUnitSlots.Count; i++)
         {
-            if (currentUnits[i] != desiredUnits[i])
+            if (!lastTimelineUnitSlots[i].key.Equals(desiredUnitSlots[i].key))
             {
                 return true;
             }
@@ -982,6 +1085,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             timelineInstances.RemoveAt(i);
+            timelineInstanceKeys.Remove(instance);
             Destroy(instance);
         }
     }
@@ -1005,6 +1109,32 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static int[] MatchTimelineSlotsByKey(List<TimelineSlot> previousSlots, List<TimelineSlot> desiredSlots)
+    {
+        int[] matches = new int[previousSlots.Count];
+        for (int i = 0; i < matches.Length; i++)
+        {
+            matches[i] = -1;
+        }
+
+        Dictionary<TimelineSlotKey, int> desiredIndices = new Dictionary<TimelineSlotKey, int>();
+        for (int i = 0; i < desiredSlots.Count; i++)
+        {
+            desiredIndices[desiredSlots[i].key] = i;
+        }
+
+        for (int i = 0; i < previousSlots.Count; i++)
+        {
+            int desiredIndex;
+            if (desiredIndices.TryGetValue(previousSlots[i].key, out desiredIndex))
+            {
+                matches[i] = desiredIndex;
+            }
+        }
+
+        return matches;
     }
 
     private Dictionary<BattleUnit, float> BuildTimelineUnitPositions(List<List<BattleUnit>> timelineRounds)
@@ -1276,6 +1406,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         timelineInstances.Clear();
         timelineInstanceUnits.Clear();
+        timelineInstanceKeys.Clear();
+        lastTimelineUnitSlots.Clear();
     }
 
     private static BattleUnit FindTimelineLeadUnit(List<List<BattleUnit>> timelineRounds)
@@ -1301,12 +1433,67 @@ public class BattleTurnSystem : MonoBehaviour
         public readonly BattleUnit unit;
         public readonly float x;
         public readonly bool isActive;
+        public readonly bool isSeparator;
+        public readonly TimelineSlotKey key;
 
-        public TimelineSlot(BattleUnit unit, float x, bool isActive)
+        private TimelineSlot(BattleUnit unit, float x, bool isActive, bool isSeparator, TimelineSlotKey key)
         {
             this.unit = unit;
             this.x = x;
             this.isActive = isActive;
+            this.isSeparator = isSeparator;
+            this.key = key;
+        }
+
+        public static TimelineSlot CreateUnit(BattleUnit unit, float x, bool isActive, int absoluteRound, int indexInRound)
+        {
+            return new TimelineSlot(unit, x, isActive, false, new TimelineSlotKey(absoluteRound, indexInRound));
+        }
+
+        public static TimelineSlot CreateSeparator(float x)
+        {
+            return new TimelineSlot(null, x, false, true, default(TimelineSlotKey));
+        }
+    }
+
+    private struct TimelineSlotKey
+    {
+        public readonly int absoluteRound;
+        public readonly int indexInRound;
+
+        public TimelineSlotKey(int absoluteRound, int indexInRound)
+        {
+            this.absoluteRound = absoluteRound;
+            this.indexInRound = indexInRound;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is TimelineSlotKey))
+            {
+                return false;
+            }
+
+            TimelineSlotKey other = (TimelineSlotKey)obj;
+            return absoluteRound == other.absoluteRound && indexInRound == other.indexInRound;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (absoluteRound * 397) ^ indexInRound;
+            }
+        }
+
+        public bool IsBefore(TimelineSlotKey other)
+        {
+            if (absoluteRound != other.absoluteRound)
+            {
+                return absoluteRound < other.absoluteRound;
+            }
+
+            return indexInRound < other.indexInRound;
         }
     }
 
