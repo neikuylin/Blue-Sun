@@ -37,7 +37,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                 Repaint();
             }
 
-            using (new EditorGUI.DisabledScope(bootstrap == null))
+            using (new EditorGUI.DisabledScope(bootstrap == null || !CanSaveScene()))
             {
                 if (GUILayout.Button("\u4FDD\u5B58\u573A\u666F"))
                 {
@@ -117,6 +117,10 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                     EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(enemyId) ? $"\u654C\u4EBA {i + 1}" : enemyId, EditorStyles.boldLabel);
                     if (GUILayout.Button("\u5220\u9664", GUILayout.Width(72f)))
                     {
+                        Vector2Int spawnCell = entry.FindPropertyRelative("spawnCell").vector2IntValue;
+                        BattleTeam team = (BattleTeam)entry.FindPropertyRelative("team").enumValueIndex;
+                        bool isPlayerControlled = entry.FindPropertyRelative("isPlayerControlled").boolValue;
+                        RemoveRuntimeEnemy(enemyId, spawnCell, team, isPlayerControlled);
                         enemySpawns.DeleteArrayElementAtIndex(i);
                         bootstrapObject.ApplyModifiedProperties();
                         MarkBootstrapDirty(bootstrap);
@@ -279,6 +283,61 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         return FindObjectOfType<BattleBootstrap>(true);
     }
 
+    private static void RemoveRuntimeEnemy(string enemyId, Vector2Int spawnCell, BattleTeam team, bool isPlayerControlled)
+    {
+        if (!Application.isPlaying || string.IsNullOrWhiteSpace(enemyId))
+        {
+            return;
+        }
+
+        BattleUnit[] runtimeUnits = Object.FindObjectsOfType<BattleUnit>(true);
+        BattleUnit bestMatch = null;
+        int bestDistance = int.MaxValue;
+        for (int i = 0; i < runtimeUnits.Length; i++)
+        {
+            BattleUnit unit = runtimeUnits[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            if (!string.Equals(unit.characterId, enemyId, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (unit.team != team || unit.isPlayerControlled != isPlayerControlled)
+            {
+                continue;
+            }
+
+            int distance = Mathf.Abs(unit.currentCell.x - spawnCell.x) + Mathf.Abs(unit.currentCell.y - spawnCell.y);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestMatch = unit;
+                if (distance == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        if (bestMatch == null)
+        {
+            return;
+        }
+
+        BattleTurnSystem turnSystem = Object.FindObjectOfType<BattleTurnSystem>(true);
+        if (turnSystem != null)
+        {
+            turnSystem.RemoveUnitFromBattle(bestMatch);
+            return;
+        }
+
+        bestMatch.gameObject.SetActive(false);
+    }
+
     private static void MarkBootstrapDirty(BattleBootstrap bootstrap)
     {
         if (bootstrap == null)
@@ -287,6 +346,11 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         }
 
         EditorUtility.SetDirty(bootstrap);
+        if (!CanSaveScene())
+        {
+            return;
+        }
+
         SaveScene(bootstrap);
     }
 
@@ -297,8 +361,18 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             return;
         }
 
+        if (!CanSaveScene())
+        {
+            return;
+        }
+
         EditorSceneManager.MarkSceneDirty(bootstrap.gameObject.scene);
         EditorSceneManager.SaveScene(bootstrap.gameObject.scene);
         AssetDatabase.SaveAssets();
+    }
+
+    private static bool CanSaveScene()
+    {
+        return !Application.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode;
     }
 }
