@@ -21,7 +21,6 @@ public class BattleBootstrap : MonoBehaviour
     private const string SceneName = "20x20";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
-    private const string LegacyAliceRootName = "爱丽丝root";
     private const string EnemyId = "假人";
 
     [Header("Binding Database")]
@@ -50,6 +49,9 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Enemy Spawn")]
     public Vector2Int enemySpawnCell = new Vector2Int(13, 12);
     public List<EnemySpawnEntry> enemySpawns = new List<EnemySpawnEntry>();
+
+    [Header("Legacy Cleanup")]
+    public List<string> legacyRootNamesToDisable = new List<string>();
 
     [Header("Board")]
     public float boardDistance = 18f;
@@ -175,28 +177,17 @@ public class BattleBootstrap : MonoBehaviour
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
     {
-        List<BattleUnit> units = new List<BattleUnit>();
-        List<CharacterSelectionState.SlotSelection> playerSelections = GetSelectedPlayers();
+        BattleUnitFactory factory = new BattleUnitFactory(
+            characterBindingDatabase,
+            characterStatDatabase,
+            runtimeRoot,
+            grid,
+            placeholderScale,
+            playerPlaceholderColor,
+            enemyPlaceholderColor);
 
-        for (int i = 0; i < playerSelections.Count; i++)
-        {
-            BattleUnit player = SetupPlayer(grid, runtimeRoot, playerSelections[i], i);
-            if (player != null)
-            {
-                units.Add(player);
-            }
-        }
-
-        List<EnemySpawnEntry> enemyEntries = GetEnemySpawnEntries();
-        for (int i = 0; i < enemyEntries.Count; i++)
-        {
-            BattleUnit enemy = SetupEnemy(grid, runtimeRoot, enemyEntries[i], i);
-            if (enemy != null)
-            {
-                units.Add(enemy);
-            }
-        }
-
+        List<BattleUnit> units = factory.CreatePlayers(GetSelectedPlayers(), playerSpawnOrigin, playerSpawnSpacing);
+        units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
         return units;
     }
 
@@ -216,36 +207,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return result;
-    }
-
-    private BattleUnit SetupPlayer(BattleGrid grid, Transform runtimeRoot, CharacterSelectionState.SlotSelection selection, int index)
-    {
-        BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
-        CharacterStatDatabase.StatEntry statEntry = FindStats(selection.characterId);
-        Vector2Int startCell = GetPlayerSpawnCell(index);
-        GameObject unitObject = CreateUnitObject(selection.characterId, binding, runtimeRoot, grid.GetWorldPosition(startCell), playerPlaceholderColor);
-        if (unitObject == null)
-        {
-            return null;
-        }
-
-        BattleUnit unit = EnsureBattleUnit(unitObject);
-        unit.maxHealth = 18;
-        unit.moveRange = 4;
-        unit.attackRange = 1;
-        unit.attackDamage = 5;
-        unit.footprintSize = 3;
-        unit.yawOffset = 0f;
-        unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
-        unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
-        unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
-        unit.ApplyStats(statEntry);
-        unit.Setup(selection.characterId, BattleTeam.Player, ResolvePlayerDisplayName(selection.characterId, binding), startCell);
-        unit.isPlayerControlled = true;
-        unit.SetCell(startCell, grid.GetWorldPosition(startCell));
-        unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
-        grid.RegisterUnit(unit);
-        return unit;
     }
 
     private List<EnemySpawnEntry> GetEnemySpawnEntries()
@@ -282,144 +243,6 @@ public class BattleBootstrap : MonoBehaviour
             team = BattleTeam.Enemy,
             isPlayerControlled = false
         };
-    }
-
-    private BattleUnit SetupEnemy(BattleGrid grid, Transform runtimeRoot, EnemySpawnEntry enemyEntry, int index)
-    {
-        if (enemyEntry == null || string.IsNullOrWhiteSpace(enemyEntry.enemyId))
-        {
-            return null;
-        }
-
-        Vector2Int spawnCell = enemyEntry.spawnCell;
-        BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(enemyEntry.enemyId);
-        Color placeholderColor = enemyEntry.team == BattleTeam.Enemy ? enemyPlaceholderColor : playerPlaceholderColor;
-        GameObject enemyObject = CreateUnitObject(
-            enemyEntry.enemyId,
-            binding,
-            runtimeRoot,
-            grid.GetWorldPosition(spawnCell),
-            placeholderColor);
-        enemyObject.name = enemyEntry.enemyId + "_" + index;
-
-        BattleUnit unit = EnsureBattleUnit(enemyObject);
-        unit.maxHealth = 12;
-        unit.attackRange = 1;
-        unit.attackDamage = 2;
-        unit.footprintSize = 3;
-        unit.yawOffset = 0f;
-        unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
-        unit.useAutoVisualAnchor = binding != null ? binding.useAutoVisualAnchor : false;
-        unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
-        unit.ApplyStats(FindStats(enemyEntry.enemyId));
-        unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolvePlayerDisplayName(enemyEntry.enemyId, binding), spawnCell);
-        unit.isPlayerControlled = enemyEntry.isPlayerControlled;
-        unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
-        Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
-        unit.FaceToward(grid.GetWorldPosition(facingCell));
-        grid.RegisterUnit(unit);
-        return unit;
-    }
-
-    private GameObject CreateUnitObject(string characterId, BattleCharacterBindingDatabase.BindingEntry binding, Transform runtimeRoot, Vector3 worldPosition, Color placeholderColor)
-    {
-        if (binding != null && binding.modelPrefab != null)
-        {
-            GameObject instance = Instantiate(binding.modelPrefab, worldPosition, Quaternion.identity, runtimeRoot);
-            instance.name = characterId + "_Unit";
-            ApplyAnimatorBinding(instance, binding);
-            return instance;
-        }
-
-        return CreatePlaceholderUnitRoot(characterId + "_Placeholder", runtimeRoot, worldPosition, placeholderColor);
-    }
-
-    private static void ApplyAnimatorBinding(GameObject instance, BattleCharacterBindingDatabase.BindingEntry binding)
-    {
-        if (instance == null || binding == null || binding.animatorController == null)
-        {
-            return;
-        }
-
-        Animator animator = instance.GetComponentInChildren<Animator>(true);
-        if (animator == null)
-        {
-            return;
-        }
-
-        animator.runtimeAnimatorController = binding.animatorController;
-        animator.enabled = true;
-    }
-
-    private GameObject CreatePlaceholderUnitRoot(string rootName, Transform parent, Vector3 worldPosition, Color color)
-    {
-        GameObject root = new GameObject(rootName);
-        root.transform.SetParent(parent, false);
-        root.transform.position = worldPosition;
-        root.transform.localScale = Vector3.one;
-
-        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        visual.name = "UnitVisual";
-        visual.transform.SetParent(root.transform, false);
-        visual.transform.localPosition = Vector3.zero;
-        visual.transform.localRotation = Quaternion.identity;
-        visual.transform.localScale = placeholderScale;
-
-        Renderer renderer = visual.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.material.color = color;
-        }
-
-        return root;
-    }
-
-    private static BattleUnit EnsureBattleUnit(GameObject target)
-    {
-        BattleUnit unit = target.GetComponent<BattleUnit>();
-        if (unit == null)
-        {
-            unit = target.AddComponent<BattleUnit>();
-        }
-
-        return unit;
-    }
-
-    private Vector2Int GetPlayerSpawnCell(int index)
-    {
-        int column = index % 2;
-        int row = index / 2;
-        return playerSpawnOrigin + new Vector2Int(column * playerSpawnSpacing.x, row * playerSpawnSpacing.y);
-    }
-
-    private BattleCharacterBindingDatabase.BindingEntry FindBinding(string characterId)
-    {
-        if (characterBindingDatabase == null)
-        {
-            return null;
-        }
-
-        return characterBindingDatabase.FindBinding(characterId);
-    }
-
-    private CharacterStatDatabase.StatEntry FindStats(string characterId)
-    {
-        if (characterStatDatabase == null)
-        {
-            return null;
-        }
-
-        return characterStatDatabase.FindEntry(characterId);
-    }
-
-    private static string ResolvePlayerDisplayName(string characterId, BattleCharacterBindingDatabase.BindingEntry binding)
-    {
-        if (binding != null && !string.IsNullOrWhiteSpace(binding.displayName))
-        {
-            return binding.displayName;
-        }
-
-        return string.IsNullOrWhiteSpace(characterId) ? "Player" : characterId;
     }
 
     private void SetupBattleCamera(Camera mainCamera)
@@ -464,13 +287,19 @@ public class BattleBootstrap : MonoBehaviour
         }
     }
 
-    private static void HideLegacySceneCharacters()
+    private void HideLegacySceneCharacters()
     {
+        if (legacyRootNamesToDisable == null || legacyRootNamesToDisable.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<string> namesToDisable = new HashSet<string>(legacyRootNamesToDisable);
         Transform[] transforms = FindObjectsOfType<Transform>(true);
         for (int i = 0; i < transforms.Length; i++)
         {
             Transform target = transforms[i];
-            if (target == null || target.name != LegacyAliceRootName)
+            if (target == null || !namesToDisable.Contains(target.name))
             {
                 continue;
             }

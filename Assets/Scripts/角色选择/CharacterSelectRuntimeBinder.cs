@@ -16,23 +16,11 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private readonly List<CharacterSlotView> slots = new List<CharacterSlotView>();
     private readonly List<CharacterSelectEntry> entries = new List<CharacterSelectEntry>();
     private readonly List<Action> unbindActions = new List<Action>();
-    private readonly List<ModalCanvasPatch> modalCanvasPatches = new List<ModalCanvasPatch>();
+    private readonly CharacterSelectModalPresenter modalPresenter = new CharacterSelectModalPresenter();
 
     private CharacterSlotView currentSlot;
     private bool modalSelectionActive;
-    private GameObject modalOverlay;
     private GameObject currentCharacterPanel;
-
-    private struct ModalCanvasPatch
-    {
-        public Transform target;
-        public Canvas canvas;
-        public bool canvasAdded;
-        public bool previousOverrideSorting;
-        public int previousSortingOrder;
-        public GraphicRaycaster raycaster;
-        public bool raycasterAdded;
-    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -61,6 +49,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         OpenCharacterSelect.PanelOpened -= OnCharacterPanelOpened;
         OpenCharacterSelect.PanelClosed -= OnCharacterPanelClosed;
         ExitModalSelection(false);
+        modalPresenter.Dispose();
         UnbindAll();
     }
 
@@ -360,143 +349,17 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         ExitModalSelection(false);
         modalSelectionActive = true;
         currentCharacterPanel = opener.characterPanel;
-
-        EnsureModalOverlay(opener.characterPanel);
-        ElevateAllowedForModal(opener);
-    }
-
-    private void EnsureModalOverlay(GameObject panel)
-    {
-        if (panel == null)
-        {
-            return;
-        }
-
-        Canvas rootCanvas = panel.GetComponentInParent<Canvas>();
-        if (rootCanvas == null)
-        {
-            return;
-        }
-
-        if (modalOverlay == null)
-        {
-            modalOverlay = new GameObject("CharacterSelectModalOverlay", typeof(RectTransform), typeof(Image));
-        }
-
-        RectTransform rt = modalOverlay.GetComponent<RectTransform>();
-        rt.SetParent(rootCanvas.transform, false);
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        Image image = modalOverlay.GetComponent<Image>();
-        image.color = new Color(0f, 0f, 0f, 0.5f);
-        image.raycastTarget = true;
-
-        modalOverlay.SetActive(true);
-        modalOverlay.transform.SetAsLastSibling();
-    }
-
-    private void ElevateAllowedForModal(OpenCharacterSelect opener)
-    {
-        ClearModalCanvasPatches();
-
-        if (modalOverlay == null)
-        {
-            return;
-        }
-
-        ElevateTransformWithCanvas(opener.characterPanel.transform, 5001);
-
-        if (currentSlot != null)
-        {
-            ElevateTransformWithCanvas(currentSlot.transform, 5002);
-
-            for (int i = 0; i < currentSlot.selectButtons.Count; i++)
-            {
-                if (currentSlot.selectButtons[i] != null)
-                {
-                    ElevateTransformWithCanvas(currentSlot.selectButtons[i].transform, 5003);
-                }
-            }
-        }
-
-        ElevateTransformWithCanvas(opener.transform, 5004);
-    }
-
-    private void ElevateTransformWithCanvas(Transform tr, int sortingOrder)
-    {
-        if (tr == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < modalCanvasPatches.Count; i++)
-        {
-            if (modalCanvasPatches[i].target == tr)
-            {
-                ModalCanvasPatch existing = modalCanvasPatches[i];
-                if (existing.canvas != null)
-                {
-                    existing.canvas.overrideSorting = true;
-                    existing.canvas.sortingOrder = Mathf.Max(existing.canvas.sortingOrder, sortingOrder);
-                }
-
-                modalCanvasPatches[i] = existing;
-                return;
-            }
-        }
-
-        Canvas canvas = tr.GetComponent<Canvas>();
-        bool canvasAdded = false;
-        if (canvas == null)
-        {
-            canvas = tr.gameObject.AddComponent<Canvas>();
-            canvasAdded = true;
-        }
-
-        GraphicRaycaster raycaster = tr.GetComponent<GraphicRaycaster>();
-        bool raycasterAdded = false;
-        if (raycaster == null)
-        {
-            raycaster = tr.gameObject.AddComponent<GraphicRaycaster>();
-            raycasterAdded = true;
-        }
-
-        ModalCanvasPatch patch = new ModalCanvasPatch
-        {
-            target = tr,
-            canvas = canvas,
-            canvasAdded = canvasAdded,
-            previousOverrideSorting = canvas.overrideSorting,
-            previousSortingOrder = canvas.sortingOrder,
-            raycaster = raycaster,
-            raycasterAdded = raycasterAdded
-        };
-
-        canvas.overrideSorting = true;
-        canvas.sortingOrder = sortingOrder;
-        modalCanvasPatches.Add(patch);
+        modalPresenter.Enter(opener, currentSlot);
     }
 
     private void ExitModalSelection(bool closePanel)
     {
+        OpenCharacterSelect opener = closePanel ? FindOpenCharacterSelectByPanel(currentCharacterPanel) : null;
+        modalPresenter.Exit(closePanel, currentCharacterPanel, opener);
+
         if (closePanel && currentCharacterPanel != null)
         {
-            currentCharacterPanel.SetActive(false);
-            OpenCharacterSelect opener = FindOpenCharacterSelectByPanel(currentCharacterPanel);
-            if (opener != null)
-            {
-                opener.MarkClosedFromOutside();
-            }
-        }
-
-        ClearModalCanvasPatches();
-
-        if (modalOverlay != null)
-        {
-            modalOverlay.SetActive(false);
+            currentCharacterPanel = null;
         }
 
         modalSelectionActive = false;
@@ -521,39 +384,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         return null;
     }
-
-    private void ClearModalCanvasPatches()
-    {
-        for (int i = modalCanvasPatches.Count - 1; i >= 0; i--)
-        {
-            ModalCanvasPatch patch = modalCanvasPatches[i];
-            if (patch.target == null)
-            {
-                continue;
-            }
-
-            if (patch.raycasterAdded && patch.raycaster != null)
-            {
-                Destroy(patch.raycaster);
-            }
-
-            if (patch.canvas != null)
-            {
-                if (patch.canvasAdded)
-                {
-                    Destroy(patch.canvas);
-                }
-                else
-                {
-                    patch.canvas.overrideSorting = patch.previousOverrideSorting;
-                    patch.canvas.sortingOrder = patch.previousSortingOrder;
-                }
-            }
-        }
-
-        modalCanvasPatches.Clear();
-    }
-
     private void TryAssignCurrentSlot(string characterId)
     {
         if (currentSlot == null || currentSlot.isMainSlot || currentSlot.portraitImage == null)

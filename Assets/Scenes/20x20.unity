@@ -1043,6 +1043,9 @@ MonoBehaviour:
     spawnCell: {x: 15, y: 12}
     team: 1
     isPlayerControlled: 0
+  legacyRootNamesToDisable:
+  - "\u7231\u4E3D\u4E1Droot"
+  - "\u7D22\u62C9\u5A1Croot"
   boardDistance: 18
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8
