@@ -10,6 +10,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
+    private const string MoveButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
     private const int MoveActionPointCost = 4;
 
     private readonly List<BattleUnit> units = new List<BattleUnit>();
@@ -30,6 +31,10 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
     [HideInInspector] public Color activePlayerTimelineColor = Color.white;
 
+    private readonly Color movementPreviewValidColor = new Color(1.00f, 0.90f, 0.20f, 0.70f);
+    private readonly Color movementPreviewInvalidColor = new Color(1.00f, 0.25f, 0.20f, 0.60f);
+    private readonly Color movementOccupiedColor = new Color(0.22f, 0.22f, 0.22f, 0.65f);
+
     private BattleGrid grid;
     private Camera battleCamera;
     private BattleUnit activeUnit;
@@ -37,8 +42,15 @@ public class BattleTurnSystem : MonoBehaviour
     private TMP_Text activeUnitIdText;
     private Transform timelineAnchor;
     private Button endTurnButton;
+    private Button moveButton;
+    private BattleSkillDatabase skillDatabase;
     private TurnTimelineButtonDatabase timelineDatabase;
     private int currentRoundIndex = -1;
+    private bool movementModeActive;
+    private bool hasMovementHoverPreview;
+    private Vector2Int movementHoverCell;
+    private bool movementHoverValid;
+    private bool movementHoverHasAnyVisibleCells;
 
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
@@ -48,6 +60,8 @@ public class BattleTurnSystem : MonoBehaviour
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
         EnsureTimelineMask();
         BindEndTurnButton();
+        BindMoveButton();
+        skillDatabase = BattleSkillDatabase.LoadDefault();
         timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
         currentRoundOrder.Clear();
@@ -57,6 +71,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeUnit = null;
         waitingForEnemyAction = false;
         currentRoundIndex = -1;
+        movementModeActive = false;
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -73,6 +88,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void OnDestroy()
     {
         UnbindEndTurnButton();
+        UnbindMoveButton();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
@@ -97,6 +113,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (activeUnit.isPlayerControlled)
         {
+            UpdateMovementHoverPreview();
             HandlePlayerInput();
             return;
         }
@@ -137,7 +154,10 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        TryMove(activeUnit, clickedCell);
+        if (movementModeActive)
+        {
+            TryMove(activeUnit, clickedCell);
+        }
     }
 
     private IEnumerator RunEnemyTurn()
@@ -190,7 +210,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (grid.ManhattanDistance(unit.currentCell, destination) > unit.moveRange)
+        if (grid.ManhattanDistance(unit.currentCell, destination) > GetMoveSkillRange(unit))
         {
             return;
         }
@@ -202,6 +222,9 @@ public class BattleTurnSystem : MonoBehaviour
 
         grid.MoveUnit(unit, destination);
         unit.SpendActionPoints(MoveActionPointCost);
+        movementModeActive = false;
+        hasMovementHoverPreview = false;
+        movementHoverHasAnyVisibleCells = false;
         RefreshHighlights();
     }
 
@@ -239,6 +262,8 @@ public class BattleTurnSystem : MonoBehaviour
     private void EndTurn()
     {
         waitingForEnemyAction = false;
+        movementModeActive = false;
+        hasMovementHoverPreview = false;
         AdvanceTurn();
     }
 
@@ -299,6 +324,8 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 activeUnit = candidate;
                 activeUnit.BeginTurn();
+                movementModeActive = false;
+                hasMovementHoverPreview = false;
                 RefreshHighlights();
                 RefreshActiveUnitUi();
                 RefreshTimeline();
@@ -370,9 +397,16 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        grid.HighlightReachable(activeUnit);
+        if (activeUnit.isPlayerControlled && movementModeActive)
+        {
+            int moveRange = GetMoveSkillRange(activeUnit);
+            grid.HighlightReachable(activeUnit, moveRange);
+            grid.HighlightOccupiedCellsWithinRange(activeUnit, moveRange, movementOccupiedColor);
+        }
+
         grid.HighlightAttackTargets(activeUnit);
         grid.HighlightFootprint(activeUnit, new Color(1.00f, 0.90f, 0.20f, 0.60f));
+        ApplyMovementHoverPreview();
     }
 
     private void CleanupDeadUnits()
@@ -801,6 +835,168 @@ public class BattleTurnSystem : MonoBehaviour
         EndTurn();
     }
 
+    public void ToggleMovementMode()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        if (!activeUnit.CanSpendActionPoints(MoveActionPointCost))
+        {
+            movementModeActive = false;
+            hasMovementHoverPreview = false;
+            movementHoverHasAnyVisibleCells = false;
+            RefreshHighlights();
+            return;
+        }
+
+        movementModeActive = !movementModeActive;
+        if (!movementModeActive)
+        {
+            hasMovementHoverPreview = false;
+            movementHoverHasAnyVisibleCells = false;
+        }
+
+        RefreshHighlights();
+    }
+
+    private void UpdateMovementHoverPreview()
+    {
+        if (!movementModeActive || activeUnit == null || !activeUnit.IsAlive)
+        {
+            if (hasMovementHoverPreview || movementHoverHasAnyVisibleCells)
+            {
+                hasMovementHoverPreview = false;
+                movementHoverHasAnyVisibleCells = false;
+                RefreshHighlights();
+            }
+
+            return;
+        }
+
+        Plane clickPlane = grid.GetInteractionPlane();
+        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
+        float enter;
+
+        if (!clickPlane.Raycast(ray, out enter))
+        {
+            if (hasMovementHoverPreview)
+            {
+                hasMovementHoverPreview = false;
+                RefreshHighlights();
+            }
+
+            return;
+        }
+
+        Vector3 hitPoint = ray.GetPoint(enter);
+        Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
+        if (!grid.IsInside(hoveredCell))
+        {
+            if (hasMovementHoverPreview || movementHoverHasAnyVisibleCells)
+            {
+                hasMovementHoverPreview = false;
+                movementHoverHasAnyVisibleCells = false;
+                RefreshHighlights();
+            }
+
+            return;
+        }
+
+        bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
+        bool withinMoveRange = grid.ManhattanDistance(activeUnit.currentCell, hoveredCell) <= GetMoveSkillRange(activeUnit);
+        bool previewValid = footprintInside && withinMoveRange && grid.IsWalkable(activeUnit, hoveredCell);
+        bool hasAnyVisibleCells = HasAnyVisibleMovementPreviewCells(hoveredCell);
+
+        if (hasMovementHoverPreview &&
+            movementHoverCell == hoveredCell &&
+            movementHoverValid == previewValid &&
+            movementHoverHasAnyVisibleCells == hasAnyVisibleCells)
+        {
+            return;
+        }
+
+        hasMovementHoverPreview = hasAnyVisibleCells;
+        movementHoverCell = hoveredCell;
+        movementHoverValid = previewValid;
+        movementHoverHasAnyVisibleCells = hasAnyVisibleCells;
+        RefreshHighlights();
+    }
+
+    private void ApplyMovementHoverPreview()
+    {
+        if (!movementModeActive || !hasMovementHoverPreview || !movementHoverHasAnyVisibleCells || activeUnit == null)
+        {
+            return;
+        }
+
+        if (movementHoverValid)
+        {
+            grid.HighlightFootprintAt(
+                movementHoverCell,
+                activeUnit.footprintSize,
+                movementPreviewValidColor);
+            return;
+        }
+
+        grid.HighlightPartialFootprint(activeUnit, movementHoverCell, movementPreviewInvalidColor);
+    }
+
+    private bool HasAnyVisibleMovementPreviewCells(Vector2Int centerCell)
+    {
+        if (activeUnit == null)
+        {
+            return false;
+        }
+
+        int radius = activeUnit.FootprintRadius;
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!grid.IsInside(cell))
+                {
+                    continue;
+                }
+
+                BattleUnit occupant = grid.GetUnitAt(cell);
+                if (occupant != null && occupant != activeUnit)
+                {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int GetMoveSkillRange(BattleUnit unit)
+    {
+        if (unit == null)
+        {
+            return 0;
+        }
+
+        if (skillDatabase == null)
+        {
+            skillDatabase = BattleSkillDatabase.LoadDefault();
+        }
+
+        BattleSkillDatabase.SkillEntry moveSkill = skillDatabase != null
+            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
+            : null;
+        if (moveSkill == null)
+        {
+            return unit.moveDistance;
+        }
+
+        return moveSkill.ResolveRange(unit.moveDistance);
+    }
+
     private static Transform FindTransformByPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -861,6 +1057,25 @@ public class BattleTurnSystem : MonoBehaviour
         endTurnButton.onClick.AddListener(RequestEndTurn);
     }
 
+    private void BindMoveButton()
+    {
+        UnbindMoveButton();
+
+        Transform buttonTransform = FindTransformByPath(MoveButtonPath);
+        if (buttonTransform == null)
+        {
+            return;
+        }
+
+        moveButton = buttonTransform.GetComponent<Button>();
+        if (moveButton == null)
+        {
+            return;
+        }
+
+        moveButton.onClick.AddListener(ToggleMovementMode);
+    }
+
     private void UnbindEndTurnButton()
     {
         if (endTurnButton == null)
@@ -870,6 +1085,17 @@ public class BattleTurnSystem : MonoBehaviour
 
         endTurnButton.onClick.RemoveListener(RequestEndTurn);
         endTurnButton = null;
+    }
+
+    private void UnbindMoveButton()
+    {
+        if (moveButton == null)
+        {
+            return;
+        }
+
+        moveButton.onClick.RemoveListener(ToggleMovementMode);
+        moveButton = null;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

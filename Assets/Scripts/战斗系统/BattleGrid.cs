@@ -90,6 +90,23 @@ public class BattleGrid : MonoBehaviour
         return true;
     }
 
+    public bool IsFootprintInside(BattleUnit unit, Vector2Int centerCell)
+    {
+        int radius = unit != null ? unit.FootprintRadius : 0;
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                if (!IsInside(new Vector2Int(x, y)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     public void RegisterUnit(BattleUnit unit)
     {
         SetOccupancy(unit, unit.currentCell, true);
@@ -170,6 +187,48 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
+    public void HighlightOccupiedCells(BattleUnit ignoredUnit, Color color)
+    {
+        HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
+        {
+            BattleUnit occupant = pair.Value;
+            if (occupant == null || occupant == ignoredUnit || highlightedUnits.Contains(occupant))
+            {
+                continue;
+            }
+
+            highlightedUnits.Add(occupant);
+            HighlightFootprint(occupant, color);
+        }
+    }
+
+    public void HighlightOccupiedCellsWithinRange(BattleUnit activeUnit, int range, Color color)
+    {
+        if (activeUnit == null)
+        {
+            return;
+        }
+
+        HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
+        {
+            BattleUnit occupant = pair.Value;
+            if (occupant == null || occupant == activeUnit || highlightedUnits.Contains(occupant))
+            {
+                continue;
+            }
+
+            if (ManhattanDistance(activeUnit.currentCell, occupant.currentCell) > range)
+            {
+                continue;
+            }
+
+            highlightedUnits.Add(occupant);
+            HighlightFootprint(occupant, color);
+        }
+    }
+
     private void SetColor(Vector2Int cell, Color color)
     {
         Renderer renderer;
@@ -179,7 +238,7 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    public void HighlightReachable(BattleUnit unit)
+    public void HighlightReachable(BattleUnit unit, int range)
     {
         Vector2Int origin = unit.currentCell;
         for (int y = 0; y < height; y++)
@@ -192,7 +251,7 @@ public class BattleGrid : MonoBehaviour
                     continue;
                 }
 
-                if (ManhattanDistance(origin, cell) <= unit.moveRange && IsWalkable(unit, cell))
+                if (ManhattanDistance(origin, cell) <= range && IsWalkable(unit, cell))
                 {
                     HighlightFootprintAt(cell, unit.footprintSize, reachableColor);
                 }
@@ -200,7 +259,7 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    private void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
+    public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
     {
         int radius = Mathf.Max(0, footprintSize / 2);
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
@@ -212,6 +271,30 @@ public class BattleGrid : MonoBehaviour
                 {
                     SetColor(cell, color);
                 }
+            }
+        }
+    }
+
+    public void HighlightPartialFootprint(BattleUnit unit, Vector2Int centerCell, Color color)
+    {
+        int radius = unit != null ? unit.FootprintRadius : 0;
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!IsInside(cell))
+                {
+                    continue;
+                }
+
+                BattleUnit occupant = GetUnitAt(cell);
+                if (occupant != null && occupant != unit)
+                {
+                    continue;
+                }
+
+                SetColor(cell, color);
             }
         }
     }
