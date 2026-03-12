@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,15 +11,19 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private const float SecondaryPortraitScaleFactor = 0.55f;
     private const float SecondaryPortraitOffsetX = -4f;
     private const float SecondaryPortraitOffsetY = -5f;
+    private const float ReorderDuration = 0.18f;
     private const string CurrentPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u56fe";
     private const string SecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string ThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
     private const string FourthPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u56fe";
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
+    private readonly List<RectTransform> slotContainers = new List<RectTransform>(4);
     private readonly Dictionary<string, CharacterSelectionState.SlotSelection> portraitLookup = new Dictionary<string, CharacterSelectionState.SlotSelection>(StringComparer.Ordinal);
     private BattleTurnSystem turnSystem;
     private string lastSignature = string.Empty;
+    private List<CharacterSelectionState.SlotSelection> currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(4);
+    private Coroutine reorderRoutine;
 
     public void Initialize(BattleTurnSystem system, IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
     {
@@ -48,26 +53,20 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         lastSignature = signature;
-
-        for (int i = 0; i < portraitSlots.Count; i++)
+        if (force || currentDisplayedSelections.Count == 0)
         {
-            Image portraitSlot = portraitSlots[i];
-            if (portraitSlot == null)
-            {
-                continue;
-            }
-
-            CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
-            Sprite portrait = selection.HasValue ? selection.Value.portraitSprite : null;
-
-            portraitSlot.sprite = portrait;
-            portraitSlot.color = portrait != null ? Color.white : new Color(1f, 1f, 1f, 0f);
-            portraitSlot.preserveAspect = true;
-            if (selection.HasValue)
-            {
-                ApplyPortraitLayout(portraitSlot.rectTransform, selection.Value.portraitLayout, i);
-            }
+            ApplySelectionsImmediate(orderedSelections);
+            return;
         }
+
+        if (reorderRoutine != null)
+        {
+            StopCoroutine(reorderRoutine);
+            reorderRoutine = null;
+            ApplySelectionsImmediate(currentDisplayedSelections);
+        }
+
+        reorderRoutine = StartCoroutine(AnimateReorder(orderedSelections));
     }
 
     private void CachePortraitSlots()
@@ -81,6 +80,12 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         portraitSlots.Add(FindImageByPath(SecondPortraitPath));
         portraitSlots.Add(FindImageByPath(ThirdPortraitPath));
         portraitSlots.Add(FindImageByPath(FourthPortraitPath));
+
+        for (int i = 0; i < portraitSlots.Count; i++)
+        {
+            Image portrait = portraitSlots[i];
+            slotContainers.Add(portrait != null ? portrait.rectTransform.parent as RectTransform : null);
+        }
     }
 
     private void RebuildLookup(IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
@@ -152,6 +157,165 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         return string.Join("|", ids);
     }
 
+    private void ApplySelectionsImmediate(IReadOnlyList<CharacterSelectionState.SlotSelection> orderedSelections)
+    {
+        for (int i = 0; i < portraitSlots.Count; i++)
+        {
+            Image portraitSlot = portraitSlots[i];
+            if (portraitSlot == null)
+            {
+                continue;
+            }
+
+            RectTransform slotContainer = i < slotContainers.Count ? slotContainers[i] : null;
+            if (slotContainer != null && portraitSlot.rectTransform.parent != slotContainer)
+            {
+                portraitSlot.rectTransform.SetParent(slotContainer, false);
+            }
+
+            CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
+            ApplySelectionToImage(portraitSlot, selection, i);
+        }
+
+        currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
+    }
+
+    private IEnumerator AnimateReorder(List<CharacterSelectionState.SlotSelection> orderedSelections)
+    {
+        RectTransform commonParent = slotContainers.Count > 0 ? slotContainers[0].parent as RectTransform : null;
+        if (commonParent == null)
+        {
+            ApplySelectionsImmediate(orderedSelections);
+            yield break;
+        }
+
+        List<Image> oldImagesBySlot = new List<Image>(portraitSlots);
+        List<Image> targetImagesBySlot = BuildTargetImageOrder(oldImagesBySlot, orderedSelections);
+        List<Vector3> startPositions = new List<Vector3>(targetImagesBySlot.Count);
+        List<Vector3> targetPositions = new List<Vector3>(targetImagesBySlot.Count);
+
+        for (int i = 0; i < targetImagesBySlot.Count; i++)
+        {
+            Image movingImage = targetImagesBySlot[i];
+            if (movingImage == null)
+            {
+                startPositions.Add(Vector3.zero);
+                targetPositions.Add(Vector3.zero);
+                continue;
+            }
+
+            RectTransform imageRect = movingImage.rectTransform;
+            startPositions.Add(imageRect.position);
+            imageRect.SetParent(commonParent, true);
+
+            RectTransform destinationSlot = i < slotContainers.Count ? slotContainers[i] : null;
+            targetPositions.Add(destinationSlot != null ? destinationSlot.position : imageRect.position);
+        }
+
+        float duration = Mathf.Max(0.01f, ReorderDuration);
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            for (int i = 0; i < targetImagesBySlot.Count; i++)
+            {
+                Image movingImage = targetImagesBySlot[i];
+                if (movingImage == null)
+                {
+                    continue;
+                }
+
+                movingImage.rectTransform.position = Vector3.Lerp(startPositions[i], targetPositions[i], t);
+            }
+
+            yield return null;
+        }
+
+        portraitSlots.Clear();
+        portraitSlots.AddRange(targetImagesBySlot);
+
+        for (int i = 0; i < portraitSlots.Count; i++)
+        {
+            Image portraitSlot = portraitSlots[i];
+            if (portraitSlot == null)
+            {
+                continue;
+            }
+
+            RectTransform slotContainer = i < slotContainers.Count ? slotContainers[i] : null;
+            if (slotContainer != null)
+            {
+                portraitSlot.rectTransform.SetParent(slotContainer, false);
+            }
+
+            CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
+            ApplySelectionToImage(portraitSlot, selection, i);
+        }
+
+        currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
+        reorderRoutine = null;
+    }
+
+    private List<Image> BuildTargetImageOrder(List<Image> oldImagesBySlot, List<CharacterSelectionState.SlotSelection> orderedSelections)
+    {
+        List<Image> result = new List<Image>(new Image[portraitSlots.Count]);
+        bool[] usedOldSlots = new bool[oldImagesBySlot.Count];
+
+        for (int oldIndex = 0; oldIndex < currentDisplayedSelections.Count && oldIndex < oldImagesBySlot.Count; oldIndex++)
+        {
+            CharacterSelectionState.SlotSelection oldSelection = currentDisplayedSelections[oldIndex];
+            int newIndex = FindSelectionIndexByCharacterId(orderedSelections, oldSelection.characterId);
+            if (newIndex < 0 || newIndex >= result.Count)
+            {
+                continue;
+            }
+
+            result[newIndex] = oldImagesBySlot[oldIndex];
+            usedOldSlots[oldIndex] = true;
+        }
+
+        int fallbackOldIndex = 0;
+        for (int newIndex = 0; newIndex < result.Count; newIndex++)
+        {
+            if (result[newIndex] != null)
+            {
+                continue;
+            }
+
+            while (fallbackOldIndex < usedOldSlots.Length && usedOldSlots[fallbackOldIndex])
+            {
+                fallbackOldIndex++;
+            }
+
+            if (fallbackOldIndex < oldImagesBySlot.Count)
+            {
+                result[newIndex] = oldImagesBySlot[fallbackOldIndex];
+                usedOldSlots[fallbackOldIndex] = true;
+            }
+        }
+
+        return result;
+    }
+
+    private static int FindSelectionIndexByCharacterId(List<CharacterSelectionState.SlotSelection> selections, string characterId)
+    {
+        if (selections == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < selections.Count; i++)
+        {
+            if (string.Equals(selections[i].characterId, characterId, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private static CharacterSelectionState.SlotSelection? ResolveSlotSelection(IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots, int index)
     {
         if (selectedSlots == null || index < 0 || index >= selectedSlots.Count)
@@ -166,6 +330,23 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     {
         Transform target = FindTransformByPath(path);
         return target != null ? target.GetComponent<Image>() : null;
+    }
+
+    private static void ApplySelectionToImage(Image portraitSlot, CharacterSelectionState.SlotSelection? selection, int slotIndex)
+    {
+        if (portraitSlot == null)
+        {
+            return;
+        }
+
+        Sprite portrait = selection.HasValue ? selection.Value.portraitSprite : null;
+        portraitSlot.sprite = portrait;
+        portraitSlot.color = portrait != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+        portraitSlot.preserveAspect = true;
+        if (selection.HasValue)
+        {
+            ApplyPortraitLayout(portraitSlot.rectTransform, selection.Value.portraitLayout, slotIndex);
+        }
     }
 
     private static void ApplyPortraitLayout(RectTransform target, CharacterSelectionState.PortraitLayout layout, int slotIndex)
