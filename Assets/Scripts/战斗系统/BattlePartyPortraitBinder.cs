@@ -9,16 +9,45 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 {
     private const float SecondaryPortraitScaleFactor = 0.55f;
     private const float SecondaryPortraitOffsetX = -4f;
+    private const float SecondaryPortraitOffsetY = -5f;
     private const string CurrentPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u56fe";
     private const string SecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string ThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
     private const string FourthPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u56fe";
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
+    private readonly Dictionary<string, CharacterSelectionState.SlotSelection> portraitLookup = new Dictionary<string, CharacterSelectionState.SlotSelection>(StringComparer.Ordinal);
+    private BattleTurnSystem turnSystem;
+    private string lastSignature = string.Empty;
 
-    public void RefreshPortraits(IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
+    public void Initialize(BattleTurnSystem system, IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
+    {
+        turnSystem = system;
+        RebuildLookup(selectedSlots);
+        RefreshPortraits(force: true);
+    }
+
+    private void LateUpdate()
+    {
+        if (!Application.isPlaying || turnSystem == null)
+        {
+            return;
+        }
+
+        RefreshPortraits(force: false);
+    }
+
+    private void RefreshPortraits(bool force)
     {
         CachePortraitSlots();
+        List<CharacterSelectionState.SlotSelection> orderedSelections = GetOrderedPlayerSelections();
+        string signature = BuildSignature(orderedSelections);
+        if (!force && string.Equals(signature, lastSignature, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lastSignature = signature;
 
         for (int i = 0; i < portraitSlots.Count; i++)
         {
@@ -28,7 +57,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
                 continue;
             }
 
-            CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(selectedSlots, i);
+            CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
             Sprite portrait = selection.HasValue ? selection.Value.portraitSprite : null;
 
             portraitSlot.sprite = portrait;
@@ -52,6 +81,75 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         portraitSlots.Add(FindImageByPath(SecondPortraitPath));
         portraitSlots.Add(FindImageByPath(ThirdPortraitPath));
         portraitSlots.Add(FindImageByPath(FourthPortraitPath));
+    }
+
+    private void RebuildLookup(IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
+    {
+        portraitLookup.Clear();
+        if (selectedSlots == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < selectedSlots.Count; i++)
+        {
+            CharacterSelectionState.SlotSelection selection = selectedSlots[i];
+            if (string.IsNullOrWhiteSpace(selection.characterId))
+            {
+                continue;
+            }
+
+            portraitLookup[selection.characterId] = selection;
+        }
+    }
+
+    private List<CharacterSelectionState.SlotSelection> GetOrderedPlayerSelections()
+    {
+        List<CharacterSelectionState.SlotSelection> result = new List<CharacterSelectionState.SlotSelection>(4);
+        if (turnSystem == null)
+        {
+            return result;
+        }
+
+        IReadOnlyList<BattleUnit> timelineUnits = turnSystem.GetTimelineUnitsForUi();
+        HashSet<string> seenIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < timelineUnits.Count && result.Count < 4; i++)
+        {
+            BattleUnit unit = timelineUnits[i];
+            if (unit == null || !unit.IsAlive || unit.team != BattleTeam.Player || string.IsNullOrWhiteSpace(unit.characterId))
+            {
+                continue;
+            }
+
+            if (!seenIds.Add(unit.characterId))
+            {
+                continue;
+            }
+
+            CharacterSelectionState.SlotSelection selection;
+            if (portraitLookup.TryGetValue(unit.characterId, out selection))
+            {
+                result.Add(selection);
+            }
+        }
+
+        return result;
+    }
+
+    private static string BuildSignature(List<CharacterSelectionState.SlotSelection> selections)
+    {
+        if (selections == null || selections.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        string[] ids = new string[selections.Count];
+        for (int i = 0; i < selections.Count; i++)
+        {
+            ids[i] = selections[i].characterId ?? string.Empty;
+        }
+
+        return string.Join("|", ids);
     }
 
     private static CharacterSelectionState.SlotSelection? ResolveSlotSelection(IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots, int index)
@@ -84,6 +182,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (slotIndex > 0)
         {
             anchoredPosition.x += SecondaryPortraitOffsetX;
+            anchoredPosition.y += SecondaryPortraitOffsetY;
         }
 
         target.anchoredPosition = anchoredPosition;

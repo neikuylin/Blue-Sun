@@ -335,7 +335,8 @@ public class BattleBootstrap : MonoBehaviour
             binder = gameObject.AddComponent<BattlePartyPortraitBinder>();
         }
 
-        binder.RefreshPortraits(selectedPlayers);
+        BattleTurnSystem turnSystem = GetComponent<BattleTurnSystem>();
+        binder.Initialize(turnSystem, selectedPlayers);
     }
 
     private void OnDrawGizmos()

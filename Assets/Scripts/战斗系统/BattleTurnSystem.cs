@@ -1545,6 +1545,12 @@ public class BattleTurnSystem : MonoBehaviour
         return moveSkill.ResolveRange(unit.moveDistance);
     }
 
+    public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()
+    {
+        List<List<BattleUnit>> rounds = BuildTimelineRounds();
+        return FlattenTimelineUnits(rounds);
+    }
+
     private static Transform FindTransformByPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
