@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 public enum BattleTeam
 {
@@ -32,6 +34,7 @@ public class BattleUnit : MonoBehaviour
     public Vector2Int cellOffset = Vector2Int.zero;
     public Vector3 worldOffset = Vector3.zero;
     public bool useAutoVisualAnchor = true;
+    public float moveSpeed = 8f;
 
     [Header("Runtime")]
     public int currentHealth;
@@ -40,6 +43,7 @@ public class BattleUnit : MonoBehaviour
 
     private Vector3 anchorOffset;
     private bool initialized;
+    private Coroutine moveRoutine;
 
     public bool IsAlive
     {
@@ -50,6 +54,8 @@ public class BattleUnit : MonoBehaviour
     {
         get { return agility; }
     }
+
+    public bool IsMoving { get; private set; }
 
     public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)
     {
@@ -125,8 +131,46 @@ public class BattleUnit : MonoBehaviour
     public void SetCell(Vector2Int cell, Vector3 worldPosition)
     {
         currentCell = cell;
-        Vector3 adjustedWorldPosition = worldPosition + new Vector3(cellOffset.x, 0f, cellOffset.y) + worldOffset;
-        transform.position = adjustedWorldPosition + anchorOffset;
+        transform.position = ResolveAdjustedWorldPosition(worldPosition);
+    }
+
+    public float MoveAlongPath(IReadOnlyList<Vector3> worldPositions, Vector2Int destinationCell)
+    {
+        currentCell = destinationCell;
+        if (worldPositions == null || worldPositions.Count == 0)
+        {
+            IsMoving = false;
+            return 0f;
+        }
+
+        Vector3[] targets = new Vector3[worldPositions.Count];
+        float totalDistance = 0f;
+        Vector3 previous = transform.position;
+        for (int i = 0; i < worldPositions.Count; i++)
+        {
+            targets[i] = ResolveAdjustedWorldPosition(worldPositions[i]);
+            totalDistance += Vector3.Distance(previous, targets[i]);
+            previous = targets[i];
+        }
+
+        float speed = Mathf.Max(0.01f, moveSpeed);
+        float duration = totalDistance / speed;
+
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+        }
+
+        if (duration <= 0.001f)
+        {
+            transform.position = targets[targets.Length - 1];
+            IsMoving = false;
+            moveRoutine = null;
+            return 0f;
+        }
+
+        moveRoutine = StartCoroutine(MoveAlongPathRoutine(targets, speed));
+        return duration;
     }
 
     public void FaceToward(Vector3 worldPosition)
@@ -168,6 +212,43 @@ public class BattleUnit : MonoBehaviour
         {
             turnSystem.NotifyUnitInitiativeChanged(this);
         }
+    }
+
+    private Vector3 ResolveAdjustedWorldPosition(Vector3 worldPosition)
+    {
+        Vector3 adjustedWorldPosition = worldPosition + new Vector3(cellOffset.x, 0f, cellOffset.y) + worldOffset;
+        return adjustedWorldPosition + anchorOffset;
+    }
+
+    private IEnumerator MoveAlongPathRoutine(IReadOnlyList<Vector3> targets, float speed)
+    {
+        IsMoving = true;
+        for (int pathIndex = 0; pathIndex < targets.Count; pathIndex++)
+        {
+            Vector3 startPosition = transform.position;
+            Vector3 targetPosition = targets[pathIndex];
+            float segmentDistance = Vector3.Distance(startPosition, targetPosition);
+            if (segmentDistance <= 0.001f)
+            {
+                transform.position = targetPosition;
+                continue;
+            }
+
+            float segmentDuration = segmentDistance / speed;
+            float elapsed = 0f;
+            while (elapsed < segmentDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / segmentDuration);
+                transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                yield return null;
+            }
+
+            transform.position = targetPosition;
+        }
+
+        IsMoving = false;
+        moveRoutine = null;
     }
 
     private Vector3 GetVisualAnchorWorldPosition()

@@ -3,6 +3,14 @@ using UnityEngine;
 
 public class BattleGrid : MonoBehaviour
 {
+    private static readonly Vector2Int[] CardinalDirections =
+    {
+        Vector2Int.up,
+        Vector2Int.right,
+        Vector2Int.down,
+        Vector2Int.left
+    };
+
     public int width = 20;
     public int height = 20;
     public float cellSize = 1f;
@@ -112,11 +120,24 @@ public class BattleGrid : MonoBehaviour
         SetOccupancy(unit, unit.currentCell, true);
     }
 
-    public void MoveUnit(BattleUnit unit, Vector2Int destination)
+    public float MoveUnit(BattleUnit unit, Vector2Int destination)
     {
+        List<Vector2Int> path = FindPath(unit, destination);
+        if (path == null || path.Count == 0)
+        {
+            return 0f;
+        }
+
         SetOccupancy(unit, unit.currentCell, false);
         SetOccupancy(unit, destination, true);
-        unit.SetCell(destination, GetWorldPosition(destination));
+
+        List<Vector3> worldPositions = new List<Vector3>();
+        for (int i = 1; i < path.Count; i++)
+        {
+            worldPositions.Add(GetWorldPosition(path[i]));
+        }
+
+        return unit.MoveAlongPath(worldPositions, destination);
     }
 
     public void RemoveUnit(BattleUnit unit)
@@ -134,6 +155,48 @@ public class BattleGrid : MonoBehaviour
     public int ManhattanDistance(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+    }
+
+    public List<Vector2Int> FindPath(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null || !IsInside(destination) || !IsWalkable(unit, destination))
+        {
+            return null;
+        }
+
+        Vector2Int origin = unit.currentCell;
+        if (origin == destination)
+        {
+            return new List<Vector2Int> { origin };
+        }
+
+        Queue<Vector2Int> frontier = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        frontier.Enqueue(origin);
+        cameFrom[origin] = origin;
+
+        while (frontier.Count > 0)
+        {
+            Vector2Int current = frontier.Dequeue();
+            for (int i = 0; i < CardinalDirections.Length; i++)
+            {
+                Vector2Int next = current + CardinalDirections[i];
+                if (cameFrom.ContainsKey(next) || !IsInside(next) || !IsWalkable(unit, next))
+                {
+                    continue;
+                }
+
+                cameFrom[next] = current;
+                if (next == destination)
+                {
+                    return BuildPath(cameFrom, origin, destination);
+                }
+
+                frontier.Enqueue(next);
+            }
+        }
+
+        return null;
     }
 
     public void ResetHighlights()
@@ -251,7 +314,8 @@ public class BattleGrid : MonoBehaviour
                     continue;
                 }
 
-                if (ManhattanDistance(origin, cell) <= range && IsWalkable(unit, cell))
+                List<Vector2Int> path = FindPath(unit, cell);
+                if (path != null && path.Count > 1 && path.Count - 1 <= range)
                 {
                     HighlightFootprintAt(cell, unit.footprintSize, reachableColor);
                 }
@@ -327,5 +391,21 @@ public class BattleGrid : MonoBehaviour
     private Color GetIdleColor(Vector2Int cell)
     {
         return ((cell.x + cell.y) % 2 == 0) ? idleColorA : idleColorB;
+    }
+
+    private static List<Vector2Int> BuildPath(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int origin, Vector2Int destination)
+    {
+        List<Vector2Int> path = new List<Vector2Int>();
+        Vector2Int current = destination;
+        path.Add(current);
+
+        while (current != origin)
+        {
+            current = cameFrom[current];
+            path.Add(current);
+        }
+
+        path.Reverse();
+        return path;
     }
 }

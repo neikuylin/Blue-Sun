@@ -111,6 +111,11 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (activeUnit.IsMoving)
+        {
+            return;
+        }
+
         if (activeUnit.isPlayerControlled)
         {
             UpdateMovementHoverPreview();
@@ -183,11 +188,17 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2Int destination = FindBestStepToward(activeUnit, target);
         if (destination != activeUnit.currentCell)
         {
-            grid.MoveUnit(activeUnit, destination);
+            float moveDuration = grid.MoveUnit(activeUnit, destination);
             activeUnit.FaceToward(target.transform.position);
+            if (moveDuration > 0f)
+            {
+                yield return new WaitForSeconds(moveDuration);
+            }
         }
-
-        yield return new WaitForSeconds(0.35f);
+        else
+        {
+            yield return new WaitForSeconds(0.1f);
+        }
 
         if (target.IsAlive && grid.ManhattanDistance(activeUnit.currentCell, target.currentCell) <= activeUnit.attackRange)
         {
@@ -205,17 +216,23 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (unit.IsMoving)
+        {
+            return;
+        }
+
         if (destination == unit.currentCell)
         {
             return;
         }
 
-        if (grid.ManhattanDistance(unit.currentCell, destination) > GetMoveSkillRange(unit))
+        List<Vector2Int> path = grid.FindPath(unit, destination);
+        if (path == null || path.Count <= 1)
         {
             return;
         }
 
-        if (!grid.IsWalkable(unit, destination))
+        if (path.Count - 1 > GetMoveSkillRange(unit))
         {
             return;
         }
@@ -832,12 +849,22 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (activeUnit.IsMoving)
+        {
+            return;
+        }
+
         EndTurn();
     }
 
     public void ToggleMovementMode()
     {
         if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        if (activeUnit.IsMoving)
         {
             return;
         }
@@ -905,8 +932,9 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
-        bool withinMoveRange = grid.ManhattanDistance(activeUnit.currentCell, hoveredCell) <= GetMoveSkillRange(activeUnit);
-        bool previewValid = footprintInside && withinMoveRange && grid.IsWalkable(activeUnit, hoveredCell);
+        List<Vector2Int> path = footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
+        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetMoveSkillRange(activeUnit);
+        bool previewValid = footprintInside && withinMoveRange;
         bool hasAnyVisibleCells = HasAnyVisibleMovementPreviewCells(hoveredCell);
 
         if (hasMovementHoverPreview &&
