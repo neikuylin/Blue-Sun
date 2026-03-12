@@ -15,6 +15,18 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int agility;
         public int intelligence;
         public int endurance;
+        public int actionPoints = 4;
+        public int moveDistance;
+
+        public int ResolveActionPoints()
+        {
+            return actionPoints > 0 ? actionPoints : 4;
+        }
+
+        public int ResolveMoveDistance()
+        {
+            return moveDistance > 0 ? moveDistance : Mathf.Max(0, agility + 3);
+        }
     }
 
     [SerializeField] private List<StatEntry> entries = new List<StatEntry>();

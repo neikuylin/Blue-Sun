@@ -90,6 +90,8 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("agility"), new GUIContent("敏捷"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("intelligence"), new GUIContent("智力"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("endurance"), new GUIContent("耐力"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPoints"), new GUIContent("行动力"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("moveDistance"), new GUIContent("移动距离"));
                 bool changed = EditorGUI.EndChangeCheck();
 
                 if (Application.isPlaying)
@@ -157,6 +159,13 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             unit.SetAgility(entry.FindPropertyRelative("agility").intValue);
             unit.intelligence = entry.FindPropertyRelative("intelligence").intValue;
             unit.endurance = entry.FindPropertyRelative("endurance").intValue;
+            int agility = entry.FindPropertyRelative("agility").intValue;
+            int actionPoints = entry.FindPropertyRelative("actionPoints").intValue;
+            int moveDistance = entry.FindPropertyRelative("moveDistance").intValue;
+            unit.maxActionPoints = actionPoints > 0 ? actionPoints : 4;
+            unit.moveDistance = moveDistance > 0 ? moveDistance : Mathf.Max(0, agility + 3);
+            unit.moveRange = unit.moveDistance;
+            unit.currentActionPoints = Mathf.Min(unit.currentActionPoints, unit.maxActionPoints);
             EditorUtility.SetDirty(unit);
         }
     }
@@ -226,7 +235,9 @@ public sealed class CharacterStatEditorWindow : EditorWindow
 
             database.Entries.Add(new CharacterStatDatabase.StatEntry
             {
-                characterId = knownIds[i]
+                characterId = knownIds[i],
+                actionPoints = 4,
+                moveDistance = 3
             });
             changed = true;
         }
@@ -274,6 +285,8 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         entry.FindPropertyRelative("agility").intValue = 0;
         entry.FindPropertyRelative("intelligence").intValue = 0;
         entry.FindPropertyRelative("endurance").intValue = 0;
+        entry.FindPropertyRelative("actionPoints").intValue = 4;
+        entry.FindPropertyRelative("moveDistance").intValue = 3;
     }
 
     private static List<string> CollectKnownIds(CharacterStatDatabase database)

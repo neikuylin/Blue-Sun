@@ -9,6 +9,9 @@ public class BattleTurnSystem : MonoBehaviour
 {
     private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
 
+    private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
+    private const int MoveActionPointCost = 4;
+
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -33,6 +36,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
     private Transform timelineAnchor;
+    private Button endTurnButton;
     private TurnTimelineButtonDatabase timelineDatabase;
     private int currentRoundIndex = -1;
 
@@ -43,6 +47,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeUnitIdText = FindActiveUnitIdText();
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
         EnsureTimelineMask();
+        BindEndTurnButton();
         timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
         currentRoundOrder.Clear();
@@ -63,6 +68,11 @@ public class BattleTurnSystem : MonoBehaviour
 
         StartNewRound();
         BeginCurrentTurn();
+    }
+
+    private void OnDestroy()
+    {
+        UnbindEndTurnButton();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
@@ -170,6 +180,16 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
+        if (unit == null || !unit.CanSpendActionPoints(MoveActionPointCost))
+        {
+            return;
+        }
+
+        if (destination == unit.currentCell)
+        {
+            return;
+        }
+
         if (grid.ManhattanDistance(unit.currentCell, destination) > unit.moveRange)
         {
             return;
@@ -181,23 +201,31 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         grid.MoveUnit(unit, destination);
-        EndTurn();
+        unit.SpendActionPoints(MoveActionPointCost);
+        RefreshHighlights();
     }
 
     private void TryAttack(BattleUnit attacker, BattleUnit defender)
     {
+        if (attacker == null || !attacker.CanAttackThisTurn())
+        {
+            return;
+        }
+
         if (grid.ManhattanDistance(attacker.currentCell, defender.currentCell) > attacker.attackRange)
         {
             return;
         }
 
         ExecuteAttack(attacker, defender);
-        EndTurn();
+        RefreshHighlights();
+        RefreshTimeline();
     }
 
     private void ExecuteAttack(BattleUnit attacker, BattleUnit defender)
     {
         attacker.FaceToward(defender.transform.position);
+        attacker.MarkAttackUsed();
         defender.ApplyDamage(attacker.attackDamage);
         Debug.Log(attacker.unitName + " attacks " + defender.unitName + " for " + attacker.attackDamage + " damage.");
 
@@ -271,6 +299,7 @@ public class BattleTurnSystem : MonoBehaviour
             if (candidate != null && candidate.IsAlive)
             {
                 activeUnit = candidate;
+                activeUnit.BeginTurn();
                 RefreshHighlights();
                 RefreshActiveUnitUi();
                 RefreshTimeline();
@@ -763,6 +792,16 @@ public class BattleTurnSystem : MonoBehaviour
         return null;
     }
 
+    public void RequestEndTurn()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        EndTurn();
+    }
+
     private static Transform FindTransformByPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -802,6 +841,36 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return current;
+    }
+
+    private void BindEndTurnButton()
+    {
+        UnbindEndTurnButton();
+
+        Transform buttonTransform = FindTransformByPath(EndTurnButtonPath);
+        if (buttonTransform == null)
+        {
+            return;
+        }
+
+        endTurnButton = buttonTransform.GetComponent<Button>();
+        if (endTurnButton == null)
+        {
+            return;
+        }
+
+        endTurnButton.onClick.AddListener(RequestEndTurn);
+    }
+
+    private void UnbindEndTurnButton()
+    {
+        if (endTurnButton == null)
+        {
+            return;
+        }
+
+        endTurnButton.onClick.RemoveListener(RequestEndTurn);
+        endTurnButton = null;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

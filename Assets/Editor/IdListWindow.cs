@@ -105,7 +105,12 @@ public sealed class IdListWindow : EditorWindow
 
         if (statDatabase != null && statDatabase.FindEntry(id) == null)
         {
-            statDatabase.Entries.Add(new CharacterStatDatabase.StatEntry { characterId = id });
+            statDatabase.Entries.Add(new CharacterStatDatabase.StatEntry
+            {
+                characterId = id,
+                actionPoints = 4,
+                moveDistance = 3
+            });
             EditorUtility.SetDirty(statDatabase);
             changed = true;
         }

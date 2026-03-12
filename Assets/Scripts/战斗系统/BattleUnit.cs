@@ -17,6 +17,7 @@ public class BattleUnit : MonoBehaviour
     [Header("Stats")]
     public int maxHealth = 10;
     public int moveRange = 4;
+    public int moveDistance = 4;
     public int attackRange = 1;
     public int attackDamage = 3;
     public int footprintSize = 1;
@@ -24,6 +25,7 @@ public class BattleUnit : MonoBehaviour
     [SerializeField] private int agility;
     public int intelligence;
     public int endurance;
+    public int maxActionPoints = 4;
 
     [Header("Presentation")]
     public float yawOffset = 0f;
@@ -33,7 +35,9 @@ public class BattleUnit : MonoBehaviour
 
     [Header("Runtime")]
     public int currentHealth;
+    public int currentActionPoints;
     public Vector2Int currentCell;
+    public bool hasAttackedThisTurn;
 
     private Vector3 anchorOffset;
     private bool initialized;
@@ -71,6 +75,10 @@ public class BattleUnit : MonoBehaviour
             SetAgilityInternal(0, false);
             intelligence = 0;
             endurance = 0;
+            maxActionPoints = 4;
+            moveDistance = 3;
+            moveRange = moveDistance;
+            currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
             return;
         }
 
@@ -78,6 +86,42 @@ public class BattleUnit : MonoBehaviour
         SetAgilityInternal(statEntry.agility, false);
         intelligence = statEntry.intelligence;
         endurance = statEntry.endurance;
+        maxActionPoints = statEntry.ResolveActionPoints();
+        moveDistance = statEntry.ResolveMoveDistance();
+        moveRange = moveDistance;
+        currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
+    }
+
+    public void BeginTurn()
+    {
+        currentActionPoints = maxActionPoints;
+        hasAttackedThisTurn = false;
+    }
+
+    public bool CanAttackThisTurn()
+    {
+        return !hasAttackedThisTurn;
+    }
+
+    public void MarkAttackUsed()
+    {
+        hasAttackedThisTurn = true;
+    }
+
+    public bool CanSpendActionPoints(int amount)
+    {
+        return amount <= 0 || currentActionPoints >= amount;
+    }
+
+    public bool SpendActionPoints(int amount)
+    {
+        if (!CanSpendActionPoints(amount))
+        {
+            return false;
+        }
+
+        currentActionPoints = Mathf.Max(0, currentActionPoints - Mathf.Max(0, amount));
+        return true;
     }
 
     public void SetAgility(int value)
