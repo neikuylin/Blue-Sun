@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 public class BattleTurnSystem : MonoBehaviour
 {
-    private const string TimelineAnchorPath = "Canvas/上方栏位/回合时间轴";
+    private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
@@ -18,6 +18,7 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
     private readonly List<GameObject> timelineInstances = new List<GameObject>();
+    private readonly Dictionary<GameObject, BattleUnit> timelineInstanceUnits = new Dictionary<GameObject, BattleUnit>();
 
     [HideInInspector] public float timelineSpacing = 0f;
     [HideInInspector] public float activeTimelineExtraSpacing = 0f;
@@ -26,6 +27,7 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public float roundSeparatorSpacing = 32f;
     [HideInInspector] public Sprite roundSeparatorSprite;
     [HideInInspector] public Vector2 roundSeparatorSize = new Vector2(32f, 125f);
+    [HideInInspector] public float timelineShiftDuration = 0.18f;
 
     [HideInInspector] public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
@@ -45,6 +47,8 @@ public class BattleTurnSystem : MonoBehaviour
     private Button moveButton;
     private BattleSkillDatabase skillDatabase;
     private TurnTimelineButtonDatabase timelineDatabase;
+    private Coroutine timelineAnimationRoutine;
+    private BattleUnit timelineLeadUnit;
     private int currentRoundIndex = -1;
     private bool movementModeActive;
     private bool hasMovementHoverPreview;
@@ -68,10 +72,12 @@ public class BattleTurnSystem : MonoBehaviour
         upcomingRoundOrders.Clear();
         initiativeTieBreakers.Clear();
         timelineInstances.Clear();
+        timelineInstanceUnits.Clear();
         activeUnit = null;
         waitingForEnemyAction = false;
         currentRoundIndex = -1;
         movementModeActive = false;
+        timelineLeadUnit = null;
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -620,14 +626,39 @@ public class BattleTurnSystem : MonoBehaviour
             timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         }
 
-        ClearTimelineInstances();
+        List<List<BattleUnit>> timelineRounds = BuildTimelineRounds();
+        BattleUnit newLeadUnit = FindTimelineLeadUnit(timelineRounds);
         if (timelineAnchor == null || timelineDatabase == null || currentRoundIndex < 0)
         {
+            ClearTimelineInstances();
+            timelineLeadUnit = null;
             return;
         }
 
+        if (timelineInstances.Count > 0 &&
+            Application.isPlaying &&
+            timelineLeadUnit != null &&
+            newLeadUnit != null &&
+            timelineLeadUnit != newLeadUnit)
+        {
+            if (timelineAnimationRoutine != null)
+            {
+                StopCoroutine(timelineAnimationRoutine);
+            }
+
+            timelineAnimationRoutine = StartCoroutine(AnimateTimelineShiftAndRebuild(timelineRounds, newLeadUnit));
+            return;
+        }
+
+        BuildTimelineImmediate(timelineRounds);
+        timelineLeadUnit = newLeadUnit;
+        return;
+    }
+
+    private void BuildTimelineImmediate(List<List<BattleUnit>> timelineRounds)
+    {
+        ClearTimelineInstances();
         float cursorX = 0f;
-        List<List<BattleUnit>> timelineRounds = BuildTimelineRounds();
         for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
         {
             List<BattleUnit> round = timelineRounds[roundIndex];
@@ -639,42 +670,19 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
-                if (prefab == null)
+                bool isActive = roundIndex == 0 && i == 0;
+                GameObject instance = CreateTimelineUnitInstance(unit, isActive, cursorX);
+                if (instance == null)
                 {
                     continue;
                 }
-
-                GameObject instance = Instantiate(prefab, timelineAnchor, false);
-                instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
-
-                TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
-                if (teamTint == null)
-                {
-                    teamTint = instance.AddComponent<TurnTimelineTeamTint>();
-                }
-
-                bool isActive = roundIndex == 0 && i == 0;
-                Color timelineColor = ResolveTimelineColor(unit, isActive);
-                teamTint.Apply(timelineColor);
 
                 RectTransform rect = instance.transform as RectTransform;
                 if (rect != null)
                 {
                     float width = ResolveTimelineItemWidth(rect);
-                    rect.anchorMin = new Vector2(0f, 1f);
-                    rect.anchorMax = new Vector2(0f, 1f);
-                    rect.pivot = new Vector2(0f, 1f);
-                    rect.anchoredPosition = new Vector2(cursorX, 0f);
                     cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
                 }
-
-                if (isActive)
-                {
-                    instance.transform.localScale = Vector3.one * activeTimelineScale;
-                }
-
-                timelineInstances.Add(instance);
             }
 
             if (roundIndex < timelineRounds.Count - 1)
@@ -682,6 +690,137 @@ public class BattleTurnSystem : MonoBehaviour
                 cursorX += CreateRoundSeparator(cursorX);
             }
         }
+    }
+
+    private GameObject CreateTimelineUnitInstance(BattleUnit unit, bool isActive, float cursorX)
+    {
+        GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        GameObject instance = Instantiate(prefab, timelineAnchor, false);
+        instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
+
+        TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
+        if (teamTint == null)
+        {
+            teamTint = instance.AddComponent<TurnTimelineTeamTint>();
+        }
+
+        teamTint.Apply(ResolveTimelineColor(unit, isActive));
+
+        RectTransform rect = instance.transform as RectTransform;
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(cursorX, 0f);
+        }
+
+        instance.transform.localScale = isActive ? Vector3.one * activeTimelineScale : Vector3.one;
+        timelineInstances.Add(instance);
+        timelineInstanceUnits[instance] = unit;
+        return instance;
+    }
+
+    private IEnumerator AnimateTimelineShiftAndRebuild(List<List<BattleUnit>> timelineRounds, BattleUnit newLeadUnit)
+    {
+        RectTransform promotedRect = null;
+        float shiftAmount = 0f;
+        bool foundFirstUnit = false;
+
+        for (int i = 0; i < timelineInstances.Count; i++)
+        {
+            GameObject instance = timelineInstances[i];
+            if (instance == null)
+            {
+                continue;
+            }
+
+            RectTransform rect = instance.transform as RectTransform;
+            if (rect == null)
+            {
+                continue;
+            }
+
+            BattleUnit mappedUnit;
+            bool isUnit = timelineInstanceUnits.TryGetValue(instance, out mappedUnit);
+            if (isUnit && !foundFirstUnit)
+            {
+                foundFirstUnit = true;
+                continue;
+            }
+
+            if (isUnit)
+            {
+                promotedRect = rect;
+                shiftAmount = rect.anchoredPosition.x;
+                break;
+            }
+        }
+
+        if (promotedRect == null || shiftAmount <= 0.001f)
+        {
+            timelineAnimationRoutine = null;
+            BuildTimelineImmediate(timelineRounds);
+            timelineLeadUnit = newLeadUnit;
+            yield break;
+        }
+
+        List<RectTransform> animatedRects = new List<RectTransform>();
+        List<Vector2> startPositions = new List<Vector2>();
+        List<Vector2> targetPositions = new List<Vector2>();
+        List<Vector3> startScales = new List<Vector3>();
+        List<Vector3> targetScales = new List<Vector3>();
+
+        for (int i = 0; i < timelineInstances.Count; i++)
+        {
+            GameObject instance = timelineInstances[i];
+            if (instance == null)
+            {
+                continue;
+            }
+
+            RectTransform rect = instance.transform as RectTransform;
+            if (rect == null)
+            {
+                continue;
+            }
+
+            animatedRects.Add(rect);
+            startPositions.Add(rect.anchoredPosition);
+            targetPositions.Add(new Vector2(rect.anchoredPosition.x - shiftAmount, rect.anchoredPosition.y));
+            startScales.Add(rect.localScale);
+            targetScales.Add(rect == promotedRect ? Vector3.one * activeTimelineScale : Vector3.one);
+        }
+
+        float duration = Mathf.Max(0.01f, timelineShiftDuration);
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            for (int i = 0; i < animatedRects.Count; i++)
+            {
+                RectTransform rect = animatedRects[i];
+                if (rect == null)
+                {
+                    continue;
+                }
+
+                rect.anchoredPosition = Vector2.Lerp(startPositions[i], targetPositions[i], t);
+                rect.localScale = Vector3.Lerp(startScales[i], targetScales[i], t);
+            }
+
+            yield return null;
+        }
+
+        timelineAnimationRoutine = null;
+        BuildTimelineImmediate(timelineRounds);
+        timelineLeadUnit = newLeadUnit;
     }
 
     private float CreateRoundSeparator(float cursorX)
@@ -693,7 +832,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         float separatorX = cursorX + roundSeparatorSpacing;
 
-        GameObject separatorObject = new GameObject("回合分隔", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        GameObject separatorObject = new GameObject("鍥炲悎鍒嗛殧", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         separatorObject.transform.SetParent(timelineAnchor, false);
 
         RectTransform rect = separatorObject.transform as RectTransform;
@@ -815,6 +954,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ClearTimelineInstances()
     {
+        if (timelineAnimationRoutine != null)
+        {
+            StopCoroutine(timelineAnimationRoutine);
+            timelineAnimationRoutine = null;
+        }
+
         for (int i = 0; i < timelineInstances.Count; i++)
         {
             GameObject instance = timelineInstances[i];
@@ -825,6 +970,25 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         timelineInstances.Clear();
+        timelineInstanceUnits.Clear();
+    }
+
+    private static BattleUnit FindTimelineLeadUnit(List<List<BattleUnit>> timelineRounds)
+    {
+        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
+        {
+            List<BattleUnit> round = timelineRounds[roundIndex];
+            for (int i = 0; i < round.Count; i++)
+            {
+                BattleUnit unit = round[i];
+                if (unit != null && unit.IsAlive)
+                {
+                    return unit;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static TMP_Text FindActiveUnitIdText()
@@ -1200,3 +1364,4 @@ public class BattleTurnSystem : MonoBehaviour
         return bestCell;
     }
 }
+
