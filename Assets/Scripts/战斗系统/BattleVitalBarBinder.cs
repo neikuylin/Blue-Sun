@@ -20,8 +20,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private static readonly Color ManaBarColor = new Color(0.20f, 0.48f, 0.95f, 1f);
 
     private BattleTurnSystem turnSystem;
-    private Image healthBackgroundImage;
-    private Image manaBackgroundImage;
+    private Image healthSlotImage;
+    private Image manaSlotImage;
     private Image healthFillImage;
     private Image manaFillImage;
     private TMP_Text healthText;
@@ -47,22 +47,22 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
 
     private void CacheReferences()
     {
-        if (healthBackgroundImage == null || healthFillImage == null || healthText == null)
+        if (healthSlotImage == null || healthFillImage == null || healthText == null)
         {
             Transform panel = FindTransformByPath(HealthPanelPath);
-            healthBackgroundImage = FindChildImage(panel, HealthSlotName);
+            healthSlotImage = FindChildImage(panel, HealthSlotName);
             healthFillImage = FindChildImage(panel, HealthFillName);
             healthText = FindChildText(panel, HealthTextName);
-            ConfigureFillImage(healthBackgroundImage, healthFillImage, HealthBarColor, fillFromRight: true);
+            ConfigureFillImage(healthSlotImage, healthFillImage, HealthBarColor, fillFromRight: true);
         }
 
-        if (manaBackgroundImage == null || manaFillImage == null || manaText == null)
+        if (manaSlotImage == null || manaFillImage == null || manaText == null)
         {
             Transform panel = FindTransformByPath(ManaPanelPath);
-            manaBackgroundImage = FindChildImage(panel, ManaSlotName);
+            manaSlotImage = FindChildImage(panel, ManaSlotName);
             manaFillImage = FindChildImage(panel, ManaFillName);
             manaText = FindChildText(panel, ManaTextName);
-            ConfigureFillImage(manaBackgroundImage, manaFillImage, ManaBarColor, fillFromRight: false);
+            ConfigureFillImage(manaSlotImage, manaFillImage, ManaBarColor, fillFromRight: false);
         }
     }
 
@@ -84,22 +84,17 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         }
 
         lastSignature = signature;
-        ApplyBar(healthBackgroundImage, healthFillImage, currentHealth, maxHealth, fillFromRight: true);
-        ApplyBar(manaBackgroundImage, manaFillImage, currentMana, maxMana, fillFromRight: false);
+        ApplyBar(healthFillImage, healthSlotImage, currentHealth, maxHealth, fillFromRight: true);
+        ApplyBar(manaFillImage, manaSlotImage, currentMana, maxMana, fillFromRight: false);
         ApplyText(healthText, currentHealth, maxHealth, showVitals);
         ApplyText(manaText, currentMana, maxMana, showVitals);
     }
 
-    private static void ConfigureFillImage(Image backgroundImage, Image fillImage, Color color, bool fillFromRight)
+    private static void ConfigureFillImage(Image slotImage, Image fillImage, Color color, bool fillFromRight)
     {
         if (fillImage == null)
         {
             return;
-        }
-
-        if (fillImage.sprite == null && backgroundImage != null)
-        {
-            fillImage.sprite = backgroundImage.sprite;
         }
 
         fillImage.color = color;
@@ -110,14 +105,14 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         fillImage.preserveAspect = false;
     }
 
-    private static void ApplyBar(Image backgroundImage, Image fillImage, int current, int max, bool fillFromRight)
+    private static void ApplyBar(Image fillImage, Image slotImage, int current, int max, bool fillFromRight)
     {
         if (fillImage == null)
         {
             return;
         }
 
-        ConfigureFillImage(backgroundImage, fillImage, fillFromRight ? HealthBarColor : ManaBarColor, fillFromRight);
+        ConfigureFillImage(slotImage, fillImage, fillFromRight ? HealthBarColor : ManaBarColor, fillFromRight);
         fillImage.enabled = max > 0;
         fillImage.fillAmount = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
     }
