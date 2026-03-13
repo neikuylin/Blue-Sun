@@ -9,6 +9,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private static readonly string[] CategoryLabels = { "装备", "消耗品", "材料", "补给" };
     private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "主副手", "头盔", "胸甲", "腿甲", "手套", "鞋子", "饰品" };
     private static readonly string[] WeaponCategoryLabels = { "无", "单手武器", "双手武器" };
+    private static readonly string[] MainOrOffHandWeaponCategoryLabels = { "无", "单手武器" };
 
     private ItemDatabase database;
     private ItemDatabase.ItemCategory createCategory = ItemDatabase.ItemCategory.Equipment;
@@ -56,14 +57,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         if (createCategory == ItemDatabase.ItemCategory.Equipment)
         {
             createEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)createEquipmentSlot, EquipmentSlotLabels);
-            if (ItemDatabase.ShouldFilterWeaponCategory(createEquipmentSlot))
-            {
-                createWeaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup("武器分类", (int)createWeaponCategory, WeaponCategoryLabels);
-            }
-            else
-            {
-                createWeaponCategory = ItemDatabase.WeaponCategory.None;
-            }
+            DrawWeaponCategoryPopup("武器分类", createEquipmentSlot, ref createWeaponCategory);
         }
         else
         {
@@ -95,14 +89,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         if (filterCategory == ItemDatabase.ItemCategory.Equipment)
         {
             filterEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("筛选部位", (int)filterEquipmentSlot, EquipmentSlotLabels);
-            if (ItemDatabase.ShouldFilterWeaponCategory(filterEquipmentSlot))
-            {
-                filterWeaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup("武器分类", (int)filterWeaponCategory, WeaponCategoryLabels);
-            }
-            else
-            {
-                filterWeaponCategory = ItemDatabase.WeaponCategory.None;
-            }
+            DrawWeaponCategoryPopup("武器分类", filterEquipmentSlot, ref filterWeaponCategory);
         }
         else
         {
@@ -200,16 +187,55 @@ public sealed class ItemDatabaseWindow : EditorWindow
             equipmentSlot = createCategory == ItemDatabase.ItemCategory.Equipment
                 ? createEquipmentSlot
                 : ItemDatabase.EquipmentSlotType.None,
-            weaponCategory = createCategory == ItemDatabase.ItemCategory.Equipment &&
-                    ItemDatabase.ShouldFilterWeaponCategory(createEquipmentSlot)
-                ? createWeaponCategory
-                : ItemDatabase.WeaponCategory.None,
+            weaponCategory = ResolveStoredWeaponCategory(createEquipmentSlot, createWeaponCategory),
             prefab = newItemPrefab
         });
 
         EditorUtility.SetDirty(database);
         AssetDatabase.SaveAssets();
         Selection.activeObject = database;
+    }
+
+    private static void DrawWeaponCategoryPopup(
+        string label,
+        ItemDatabase.EquipmentSlotType equipmentSlot,
+        ref ItemDatabase.WeaponCategory weaponCategory)
+    {
+        if (!ItemDatabase.ShouldFilterWeaponCategory(equipmentSlot))
+        {
+            weaponCategory = ItemDatabase.WeaponCategory.None;
+            return;
+        }
+
+        if (equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            int popupIndex = weaponCategory == ItemDatabase.WeaponCategory.OneHanded ? 1 : 0;
+            popupIndex = EditorGUILayout.Popup(label, popupIndex, MainOrOffHandWeaponCategoryLabels);
+            weaponCategory = popupIndex == 1
+                ? ItemDatabase.WeaponCategory.OneHanded
+                : ItemDatabase.WeaponCategory.None;
+            return;
+        }
+
+        weaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup(label, (int)weaponCategory, WeaponCategoryLabels);
+    }
+
+    private static ItemDatabase.WeaponCategory ResolveStoredWeaponCategory(
+        ItemDatabase.EquipmentSlotType equipmentSlot,
+        ItemDatabase.WeaponCategory weaponCategory)
+    {
+        if (!ItemDatabase.ShouldFilterWeaponCategory(equipmentSlot))
+        {
+            return ItemDatabase.WeaponCategory.None;
+        }
+
+        if (equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand &&
+            weaponCategory == ItemDatabase.WeaponCategory.TwoHanded)
+        {
+            return ItemDatabase.WeaponCategory.OneHanded;
+        }
+
+        return weaponCategory;
     }
 
     private static ItemDatabase LoadOrCreateDatabase()

@@ -8,6 +8,7 @@ public class InventoryDebugWindow : EditorWindow
     private static readonly string[] CategoryLabels = { "装备", "消耗品", "材料", "补给" };
     private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "主副手", "头盔", "胸甲", "腿甲", "手套", "鞋子", "饰品" };
     private static readonly string[] WeaponCategoryLabels = { "无", "单手武器", "双手武器" };
+    private static readonly string[] MainOrOffHandWeaponCategoryLabels = { "无", "单手武器" };
 
     private ItemDatabase database;
     private ItemDatabase.ItemCategory selectedCategory = ItemDatabase.ItemCategory.Equipment;
@@ -77,14 +78,7 @@ public class InventoryDebugWindow : EditorWindow
         if (selectedCategory == ItemDatabase.ItemCategory.Equipment)
         {
             selectedEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)selectedEquipmentSlot, EquipmentSlotLabels);
-            if (ItemDatabase.ShouldFilterWeaponCategory(selectedEquipmentSlot))
-            {
-                selectedWeaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup("武器分类", (int)selectedWeaponCategory, WeaponCategoryLabels);
-            }
-            else
-            {
-                selectedWeaponCategory = ItemDatabase.WeaponCategory.None;
-            }
+            DrawWeaponCategoryPopup(selectedEquipmentSlot, ref selectedWeaponCategory);
         }
         else
         {
@@ -189,6 +183,29 @@ public class InventoryDebugWindow : EditorWindow
         }
 
         EditorGUILayout.EndScrollView();
+    }
+
+    private static void DrawWeaponCategoryPopup(
+        ItemDatabase.EquipmentSlotType equipmentSlot,
+        ref ItemDatabase.WeaponCategory weaponCategory)
+    {
+        if (!ItemDatabase.ShouldFilterWeaponCategory(equipmentSlot))
+        {
+            weaponCategory = ItemDatabase.WeaponCategory.None;
+            return;
+        }
+
+        if (equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            int popupIndex = weaponCategory == ItemDatabase.WeaponCategory.OneHanded ? 1 : 0;
+            popupIndex = EditorGUILayout.Popup("武器分类", popupIndex, MainOrOffHandWeaponCategoryLabels);
+            weaponCategory = popupIndex == 1
+                ? ItemDatabase.WeaponCategory.OneHanded
+                : ItemDatabase.WeaponCategory.None;
+            return;
+        }
+
+        weaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup("武器分类", (int)weaponCategory, WeaponCategoryLabels);
     }
 
     private static string[] BuildItemOptions(List<ItemDatabase.ItemEntry> entries)

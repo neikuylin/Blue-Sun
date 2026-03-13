@@ -12,4 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be92b0923ec47a49bbdb104d27993cf, type: 3}
   m_Name: ItemDatabase
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - itemId: "itm_\u76F4\u5251"
+    category: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
