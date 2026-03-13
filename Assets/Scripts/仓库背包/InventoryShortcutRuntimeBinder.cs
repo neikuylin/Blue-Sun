@@ -133,7 +133,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
 
-    public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
+    public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
+    public static int WarehouseSlotCount => BackpackSlotCount;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
@@ -151,7 +152,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance = go.AddComponent<InventoryShortcutRuntimeBinder>();
     }
 
-    public static bool TryGetWarehouseSlotData(int index, out ItemSlotData data)
+    public static bool TryGetBackpackSlotData(int index, out ItemSlotData data)
     {
         data = default;
         if (instance == null || index < 0 || index >= instance.backpackData.Count)
@@ -163,7 +164,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
-    public static bool TrySetWarehouseSlotData(int index, ItemSlotData data)
+    public static bool TryGetWarehouseSlotData(int index, out ItemSlotData data)
+    {
+        return TryGetBackpackSlotData(index, out data);
+    }
+
+    public static bool TrySetBackpackSlotData(int index, ItemSlotData data)
     {
         if (instance == null || index < 0 || index >= instance.backpackData.Count)
         {
@@ -175,6 +181,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.RefreshQuickSlot(index);
         instance.RefreshBattleBackpackSlot(index);
         return true;
+    }
+
+    public static bool TrySetWarehouseSlotData(int index, ItemSlotData data)
+    {
+        return TrySetBackpackSlotData(index, data);
     }
 
     public static bool TryGetEquipmentSlotData(string characterId, int index, out ItemSlotData data)
@@ -284,18 +295,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return count;
         }
 
-        Sprite icon = ResolveIconFromPrefab(itemEntry.prefab);
+        Sprite icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab);
         return AddItem(itemEntry.itemId, icon, count, maxStack);
     }
 
-    private static Sprite ResolveIconFromPrefab(GameObject prefab)
+    private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
     {
         if (prefab == null)
         {
             return null;
         }
 
-        Image image = prefab.GetComponentInChildren<Image>(true);
+        Image image = ResolveDisplayImage(prefab.transform);
         return image != null ? image.sprite : null;
     }
     public static bool RemoveItemAt(int slotIndex, int count)

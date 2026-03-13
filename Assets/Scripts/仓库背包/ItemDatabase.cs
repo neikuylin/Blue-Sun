@@ -60,12 +60,7 @@ public sealed class ItemDatabase : ScriptableObject
         for (int i = 0; i < entries.Count; i++)
         {
             ItemEntry entry = entries[i];
-            if (entry == null)
-            {
-                continue;
-            }
-
-            if (string.Equals(entry.itemId, itemId, StringComparison.Ordinal))
+            if (entry != null && string.Equals(entry.itemId, itemId, StringComparison.Ordinal))
             {
                 return entry;
             }
@@ -113,6 +108,24 @@ public sealed class ItemDatabase : ScriptableObject
     {
         return equipmentSlot == EquipmentSlotType.MainHand ||
             equipmentSlot == EquipmentSlotType.MainOrOffHand;
+    }
+
+    public static WeaponCategory NormalizeWeaponCategory(
+        EquipmentSlotType equipmentSlot,
+        WeaponCategory weaponCategory)
+    {
+        if (!ShouldFilterWeaponCategory(equipmentSlot))
+        {
+            return WeaponCategory.None;
+        }
+
+        if (equipmentSlot == EquipmentSlotType.MainOrOffHand &&
+            weaponCategory == WeaponCategory.TwoHanded)
+        {
+            return WeaponCategory.OneHanded;
+        }
+
+        return weaponCategory;
     }
 
     public static ItemDatabase LoadDefault()

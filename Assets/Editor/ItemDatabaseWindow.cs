@@ -6,19 +6,15 @@ public sealed class ItemDatabaseWindow : EditorWindow
 {
     private const string DatabaseAssetPath = "Assets/Resources/ItemDatabase.asset";
 
-    private static readonly string[] CategoryLabels = { "装备", "消耗品", "材料", "补给" };
-    private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "主副手", "头盔", "胸甲", "腿甲", "手套", "鞋子", "饰品" };
-    private static readonly string[] WeaponCategoryLabels = { "无", "单手武器", "双手武器" };
-    private static readonly string[] MainOrOffHandWeaponCategoryLabels = { "无", "单手武器" };
-
     private ItemDatabase database;
     private ItemDatabase.ItemCategory createCategory = ItemDatabase.ItemCategory.Equipment;
     private ItemDatabase.EquipmentSlotType createEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
     private ItemDatabase.WeaponCategory createWeaponCategory = ItemDatabase.WeaponCategory.OneHanded;
     private string newItemId = "itm_eq_mainhand_001";
     private GameObject newItemPrefab;
+
     private ItemDatabase.ItemCategory filterCategory = ItemDatabase.ItemCategory.Equipment;
-    private ItemDatabase.EquipmentSlotType filterEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
+    private ItemDatabase.EquipmentSlotType filterEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
     private ItemDatabase.WeaponCategory filterWeaponCategory = ItemDatabase.WeaponCategory.None;
     private Vector2 scroll;
 
@@ -53,10 +49,19 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private void DrawCreatePanel()
     {
         EditorGUILayout.LabelField("新增物品", EditorStyles.boldLabel);
-        createCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup("类别", (int)createCategory, CategoryLabels);
+
+        createCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
+            "类别",
+            (int)createCategory,
+            ItemEditorLabels.CategoryLabels);
+
         if (createCategory == ItemDatabase.ItemCategory.Equipment)
         {
-            createEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)createEquipmentSlot, EquipmentSlotLabels);
+            createEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
+                "装备部位",
+                (int)createEquipmentSlot,
+                ItemEditorLabels.EquipmentSlotLabels);
+
             DrawWeaponCategoryPopup("武器分类", createEquipmentSlot, ref createWeaponCategory);
         }
         else
@@ -66,9 +71,10 @@ public sealed class ItemDatabaseWindow : EditorWindow
         }
 
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
-        if (!string.IsNullOrWhiteSpace(newItemId) && !newItemId.StartsWith("itm_", System.StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(newItemId) &&
+            !newItemId.StartsWith("itm_", System.StringComparison.Ordinal))
         {
-            EditorGUILayout.HelpBox("物品 ID 必须以 itm_ 开头，用于和技能、角色等 ID 区分。", MessageType.Warning);
+            EditorGUILayout.HelpBox("物品ID必须以 itm_ 开头，用于和技能、角色ID区分。", MessageType.Warning);
         }
 
         newItemPrefab = (GameObject)EditorGUILayout.ObjectField("预制体", newItemPrefab, typeof(GameObject), false);
@@ -85,10 +91,19 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private void DrawListPanel()
     {
         EditorGUILayout.LabelField("现有物品", EditorStyles.boldLabel);
-        filterCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup("筛选类别", (int)filterCategory, CategoryLabels);
+
+        filterCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
+            "筛选类别",
+            (int)filterCategory,
+            ItemEditorLabels.CategoryLabels);
+
         if (filterCategory == ItemDatabase.ItemCategory.Equipment)
         {
-            filterEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("筛选部位", (int)filterEquipmentSlot, EquipmentSlotLabels);
+            filterEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
+                "筛选部位",
+                (int)filterEquipmentSlot,
+                ItemEditorLabels.EquipmentSlotLabels);
+
             DrawWeaponCategoryPopup("武器分类", filterEquipmentSlot, ref filterWeaponCategory);
         }
         else
@@ -97,13 +112,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             filterWeaponCategory = ItemDatabase.WeaponCategory.None;
         }
 
-        List<ItemDatabase.ItemEntry> entries = database.FindEntries(filterCategory, filterEquipmentSlot, filterWeaponCategory);
-        if (entries.Count == 0)
-        {
-            EditorGUILayout.HelpBox("当前筛选下没有物品定义。", MessageType.Info);
-            return;
-        }
-
+        bool hasAnyMatch = false;
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < database.Entries.Count; i++)
         {
@@ -113,10 +122,16 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 continue;
             }
 
+            hasAnyMatch = true;
             DrawEntryEditor(entry, i);
         }
 
         EditorGUILayout.EndScrollView();
+
+        if (!hasAnyMatch)
+        {
+            EditorGUILayout.HelpBox("当前筛选下没有物品定义。", MessageType.Info);
+        }
     }
 
     private void DrawEntryEditor(ItemDatabase.ItemEntry entry, int index)
@@ -131,13 +146,19 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
             EditorGUILayout.LabelField($"条目 {index + 1}", EditorStyles.boldLabel);
             entry.itemId = EditorGUILayout.TextField("物品ID", entry.itemId);
-            entry.category = (ItemDatabase.ItemCategory)EditorGUILayout.Popup("类别", (int)entry.category, CategoryLabels);
+            entry.category = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
+                "类别",
+                (int)entry.category,
+                ItemEditorLabels.CategoryLabels);
 
             if (entry.category == ItemDatabase.ItemCategory.Equipment)
             {
-                entry.equipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)entry.equipmentSlot, EquipmentSlotLabels);
+                entry.equipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
+                    "装备部位",
+                    (int)entry.equipmentSlot,
+                    ItemEditorLabels.EquipmentSlotLabels);
+
                 DrawWeaponCategoryPopup("武器分类", entry.equipmentSlot, ref entry.weaponCategory);
-                entry.weaponCategory = ResolveStoredWeaponCategory(entry.equipmentSlot, entry.weaponCategory);
             }
             else
             {
@@ -145,6 +166,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 entry.weaponCategory = ItemDatabase.WeaponCategory.None;
             }
 
+            entry.weaponCategory = ItemDatabase.NormalizeWeaponCategory(entry.equipmentSlot, entry.weaponCategory);
             entry.prefab = (GameObject)EditorGUILayout.ObjectField("预制体", entry.prefab, typeof(GameObject), false);
 
             string validationMessage = ValidateEntry(entry, index);
@@ -155,12 +177,9 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("保存修改"))
+                if (GUILayout.Button("保存修改") && string.IsNullOrEmpty(validationMessage))
                 {
-                    if (string.IsNullOrEmpty(validationMessage))
-                    {
-                        SaveDatabase();
-                    }
+                    SaveDatabase();
                 }
 
                 if (GUILayout.Button("还原"))
@@ -201,14 +220,9 @@ public sealed class ItemDatabaseWindow : EditorWindow
             return false;
         }
 
-        if (ItemDatabase.ShouldFilterWeaponCategory(filterEquipmentSlot) &&
-            filterWeaponCategory != ItemDatabase.WeaponCategory.None &&
-            entry.weaponCategory != filterWeaponCategory)
-        {
-            return false;
-        }
-
-        return true;
+        return !ItemDatabase.ShouldFilterWeaponCategory(filterEquipmentSlot) ||
+            filterWeaponCategory == ItemDatabase.WeaponCategory.None ||
+            entry.weaponCategory == filterWeaponCategory;
     }
 
     private bool CanCreateEntry()
@@ -229,7 +243,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             equipmentSlot = createCategory == ItemDatabase.ItemCategory.Equipment
                 ? createEquipmentSlot
                 : ItemDatabase.EquipmentSlotType.None,
-            weaponCategory = ResolveStoredWeaponCategory(createEquipmentSlot, createWeaponCategory),
+            weaponCategory = ItemDatabase.NormalizeWeaponCategory(createEquipmentSlot, createWeaponCategory),
             prefab = newItemPrefab
         });
 
@@ -267,12 +281,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             }
 
             ItemDatabase.ItemEntry other = database.Entries[i];
-            if (other == null)
-            {
-                continue;
-            }
-
-            if (string.Equals(other.itemId, entry.itemId, System.StringComparison.Ordinal))
+            if (other != null && string.Equals(other.itemId, entry.itemId, System.StringComparison.Ordinal))
             {
                 return "物品ID重复。";
             }
@@ -292,35 +301,10 @@ public sealed class ItemDatabaseWindow : EditorWindow
             return;
         }
 
-        if (equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand)
-        {
-            int popupIndex = weaponCategory == ItemDatabase.WeaponCategory.OneHanded ? 1 : 0;
-            popupIndex = EditorGUILayout.Popup(label, popupIndex, MainOrOffHandWeaponCategoryLabels);
-            weaponCategory = popupIndex == 1
-                ? ItemDatabase.WeaponCategory.OneHanded
-                : ItemDatabase.WeaponCategory.None;
-            return;
-        }
-
-        weaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup(label, (int)weaponCategory, WeaponCategoryLabels);
-    }
-
-    private static ItemDatabase.WeaponCategory ResolveStoredWeaponCategory(
-        ItemDatabase.EquipmentSlotType equipmentSlot,
-        ItemDatabase.WeaponCategory weaponCategory)
-    {
-        if (!ItemDatabase.ShouldFilterWeaponCategory(equipmentSlot))
-        {
-            return ItemDatabase.WeaponCategory.None;
-        }
-
-        if (equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand &&
-            weaponCategory == ItemDatabase.WeaponCategory.TwoHanded)
-        {
-            return ItemDatabase.WeaponCategory.OneHanded;
-        }
-
-        return weaponCategory;
+        string[] labels = ItemEditorLabels.GetWeaponCategoryLabels(equipmentSlot);
+        int popupIndex = ItemEditorLabels.ToWeaponCategoryPopupIndex(equipmentSlot, weaponCategory);
+        popupIndex = EditorGUILayout.Popup(label, popupIndex, labels);
+        weaponCategory = ItemEditorLabels.FromWeaponCategoryPopupIndex(equipmentSlot, popupIndex);
     }
 
     private void SaveDatabase()
