@@ -39,7 +39,8 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
     private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
-    private readonly Color hoveredTargetFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
+    private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
+    private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
     private readonly Color skillCostNormalColor = Color.white;
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
 
@@ -1619,8 +1620,8 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
-        Color overlayColor = hoveredTargetFlashColor;
-        overlayColor.a = Mathf.Lerp(0.18f, hoveredTargetFlashColor.a, pulse);
+        Color overlayColor = ResolveHoveredTargetFlashColor(hoveredSkillTarget);
+        overlayColor.a = Mathf.Lerp(0.18f, overlayColor.a, pulse);
         grid.SetHoveredFootprint(hoveredSkillTarget, overlayColor);
     }
 
@@ -1853,7 +1854,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void UpdateHoveredSkillTarget()
     {
-        if (!IsSkillModeActive() || activeSkill == null || activeSkill.skillType != BattleSkillDatabase.SkillType.Target || activeUnit == null)
+        if (!IsSkillModeActive() || activeSkill == null || activeUnit == null)
         {
             ClearHoveredSkillTarget();
             return;
@@ -1877,8 +1878,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         BattleUnit target = grid.GetUnitAt(hoveredCell);
-        if (!IsValidSkillTarget(activeUnit, target, activeSkill) ||
-            !grid.IsUnitWithinRange(activeUnit, target, GetDisplayedSkillRange(activeUnit, activeSkill)))
+        if (!IsHoveredSkillTargetValid(activeUnit, target, activeSkill, hoveredCell))
         {
             ClearHoveredSkillTarget();
             return;
@@ -1893,6 +1893,70 @@ public class BattleTurnSystem : MonoBehaviour
         hoveredSkillTarget = target;
     }
 
+    private bool IsHoveredSkillTargetValid(
+        BattleUnit caster,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill,
+        Vector2Int hoveredCell)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return false;
+        }
+
+        if (!IsValidSkillTarget(caster, target, skill))
+        {
+            return false;
+        }
+
+        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            return grid.IsUnitWithinRange(caster, target, GetDisplayedSkillRange(caster, skill));
+        }
+
+        if (skill.skillType != BattleSkillDatabase.SkillType.Area)
+        {
+            return false;
+        }
+
+        if (!grid.IsCellWithinRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
+        {
+            return false;
+        }
+
+        return IsUnitInsideAreaFootprint(target, hoveredCell, GetSkillPreviewFootprintSize(skill));
+    }
+
+    private bool IsUnitInsideAreaFootprint(BattleUnit target, Vector2Int areaCenterCell, int footprintSize)
+    {
+        if (target == null || footprintSize <= 0)
+        {
+            return false;
+        }
+
+        int areaRadius = Mathf.Max(0, footprintSize / 2);
+        int unitRadius = target.FootprintRadius;
+        for (int y = target.currentCell.y - unitRadius; y <= target.currentCell.y + unitRadius; y++)
+        {
+            for (int x = target.currentCell.x - unitRadius; x <= target.currentCell.x + unitRadius; x++)
+            {
+                if (x < areaCenterCell.x - areaRadius || x > areaCenterCell.x + areaRadius)
+                {
+                    continue;
+                }
+
+                if (y < areaCenterCell.y - areaRadius || y > areaCenterCell.y + areaRadius)
+                {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void UpdateHoveredTargetFlash()
     {
         if (hoveredSkillTarget == null || !hoveredSkillTarget.IsAlive)
@@ -1902,8 +1966,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+        Color targetFlashColor = ResolveHoveredTargetFlashColor(hoveredSkillTarget);
         ApplyHoveredTargetPreview();
-        hoveredSkillTarget.ApplyTint(Color.red, Mathf.Lerp(0.2f, 0.75f, pulse));
+        hoveredSkillTarget.ApplyTint(targetFlashColor, Mathf.Lerp(0.2f, 0.75f, pulse));
+    }
+
+    private Color ResolveHoveredTargetFlashColor(BattleUnit target)
+    {
+        if (target == null)
+        {
+            return hoveredEnemyFlashColor;
+        }
+
+        return target.team == BattleTeam.Player
+            ? hoveredAllyFlashColor
+            : hoveredEnemyFlashColor;
     }
 
     private void ClearHoveredSkillTarget()
