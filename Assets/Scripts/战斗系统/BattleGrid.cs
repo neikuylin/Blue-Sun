@@ -572,11 +572,17 @@ public class BattleGrid : MonoBehaviour
         meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + (highlightLayerOrder * 0.002f));
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
+        meshRenderer.sortingOrder = highlightLayerOrder * 10;
 
         List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
         for (int i = 0; i < loops.Count; i++)
         {
-            CreateOutlineLoop(overlay.transform, loops[i], outlineColor, overlayY + 0.001f + (highlightLayerOrder * 0.002f));
+            CreateOutlineLoop(
+                overlay.transform,
+                loops[i],
+                outlineColor,
+                overlayY + 0.001f + (highlightLayerOrder * 0.002f),
+                (highlightLayerOrder * 10) + 1);
         }
 
         highlightLayerOrder++;
@@ -604,6 +610,7 @@ public class BattleGrid : MonoBehaviour
             hoverOverlayRenderer = hoverOverlayObject.AddComponent<MeshRenderer>();
             meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + 0.02f);
             hoverOverlayRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            hoverOverlayRenderer.sortingOrder = 10000;
 
             List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
             for (int i = 0; i < loops.Count; i++)
@@ -612,7 +619,8 @@ public class BattleGrid : MonoBehaviour
                     hoverOverlayObject.transform,
                     loops[i],
                     outlineColor,
-                    overlayY + 0.021f);
+                    overlayY + 0.021f,
+                    10001);
                 if (line != null)
                 {
                     hoverOutlineRenderers.Add(line);
@@ -810,12 +818,12 @@ public class BattleGrid : MonoBehaviour
         return lineColor;
     }
 
-    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y)
+    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
     {
-        CreateOutlineLoopRenderer(parent, loop, lineColor, y);
+        CreateOutlineLoopRenderer(parent, loop, lineColor, y, sortingOrder);
     }
 
-    private LineRenderer CreateOutlineLoopRenderer(Transform parent, List<Vector2Int> loop, Color lineColor, float y)
+    private LineRenderer CreateOutlineLoopRenderer(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
     {
         if (loop == null || loop.Count < 2)
         {
@@ -828,6 +836,7 @@ public class BattleGrid : MonoBehaviour
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
         line.sharedMaterial = new Material(lineMaterialTemplate);
         line.sharedMaterial.color = lineColor;
+        line.sortingOrder = sortingOrder;
         line.loop = true;
         line.useWorldSpace = false;
         line.textureMode = LineTextureMode.Stretch;
