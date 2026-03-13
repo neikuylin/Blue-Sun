@@ -144,6 +144,7 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.Initialize(grid, mainCamera, units);
         turnSystem.SetSkillCostHintText(skillCostHintText);
         RefreshPartyPortraits(GetSelectedPlayers());
+        RefreshSkillPagination(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
     }
@@ -355,6 +356,22 @@ public class BattleBootstrap : MonoBehaviour
         if (binder == null)
         {
             binder = gameObject.AddComponent<BattleActionPointBinder>();
+        }
+
+        binder.Initialize(turnSystem);
+    }
+
+    private void RefreshSkillPagination(BattleTurnSystem turnSystem)
+    {
+        if (turnSystem == null)
+        {
+            return;
+        }
+
+        BattleSkillPaginationBinder binder = GetComponent<BattleSkillPaginationBinder>();
+        if (binder == null)
+        {
+            binder = gameObject.AddComponent<BattleSkillPaginationBinder>();
         }
 
         binder.Initialize(turnSystem);

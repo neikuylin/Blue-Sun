@@ -15,9 +15,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     };
 
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
-    private const string BorderObjectName = "\u683c\u5b50\u8fb9\u6846";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
-    private static readonly Vector2 OverlayIconSize = new Vector2(100f, 100f);
 
     private sealed class SkillSlotWidget
     {
@@ -282,35 +280,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
-        rect.sizeDelta = OverlayIconSize;
-        rect.localScale = Vector3.one;
-        PlaceOverlayBelowBorder(slotRoot, existing);
+        if (existing.parent != slotRoot)
+        {
+            existing.SetParent(slotRoot, false);
+        }
 
         image.raycastTarget = false;
         image.preserveAspect = true;
         return image;
-    }
-
-    private static void PlaceOverlayBelowBorder(RectTransform slotRoot, Transform overlay)
-    {
-        if (slotRoot == null || overlay == null)
-        {
-            return;
-        }
-
-        Transform border = FindChildByName(slotRoot, BorderObjectName);
-        if (border != null)
-        {
-            int borderIndex = border.GetSiblingIndex();
-            overlay.SetSiblingIndex(Mathf.Max(0, borderIndex - 1));
-            return;
-        }
-
-        overlay.SetSiblingIndex(0);
     }
 
     private string ResolveCharacterId(string characterId)

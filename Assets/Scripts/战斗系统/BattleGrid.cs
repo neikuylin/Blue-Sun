@@ -409,9 +409,9 @@ public class BattleGrid : MonoBehaviour
         CreateOverlay(CollectFootprintCells(centerCell, footprintSize), color, "FootprintAt");
     }
 
-    public void HighlightPartialFootprint(BattleUnit unit, Vector2Int centerCell, Color color)
+    public void HighlightPartialFootprint(int footprintSize, Vector2Int centerCell, Color color)
     {
-        int radius = unit != null ? unit.FootprintRadius : 0;
+        int radius = Mathf.Max(0, footprintSize / 2);
         HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
@@ -424,7 +424,7 @@ public class BattleGrid : MonoBehaviour
                 }
 
                 BattleUnit occupant = GetUnitAt(cell);
-                if (occupant != null && occupant != unit)
+                if (occupant != null)
                 {
                     continue;
                 }

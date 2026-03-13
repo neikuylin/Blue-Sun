@@ -1480,6 +1480,19 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (!ShouldShowSkillAreaPreview(activeSkill))
+        {
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells)
+            {
+                hasSkillHoverPreview = false;
+                skillHoverHasAnyVisibleCells = false;
+                RefreshHighlights();
+            }
+
+            HideSkillCostHint();
+            return;
+        }
+
         Plane clickPlane = grid.GetInteractionPlane();
         Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
         float enter;
@@ -1544,26 +1557,38 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        int previewFootprintSize = GetSkillPreviewFootprintSize(activeSkill);
+        if (previewFootprintSize <= 1)
+        {
+            return;
+        }
+
         if (skillHoverValid)
         {
             grid.HighlightFootprintAt(
                 skillHoverCell,
-                activeUnit.footprintSize,
+                previewFootprintSize,
                 skillPreviewValidColor);
             return;
         }
 
-        grid.HighlightPartialFootprint(activeUnit, skillHoverCell, skillPreviewInvalidColor);
+        grid.HighlightPartialFootprint(previewFootprintSize, skillHoverCell, skillPreviewInvalidColor);
     }
 
     private bool HasAnyVisibleSkillPreviewCells(Vector2Int centerCell)
     {
-        if (activeUnit == null)
+        if (activeUnit == null || !ShouldShowSkillAreaPreview(activeSkill))
         {
             return false;
         }
 
-        int radius = activeUnit.FootprintRadius;
+        int footprintSize = GetSkillPreviewFootprintSize(activeSkill);
+        if (footprintSize <= 1)
+        {
+            return false;
+        }
+
+        int radius = Mathf.Max(0, footprintSize / 2);
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
             for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
@@ -1585,6 +1610,35 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static bool ShouldShowSkillAreaPreview(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null)
+        {
+            return false;
+        }
+
+        if (skill.skillType != BattleSkillDatabase.SkillType.Area)
+        {
+            return false;
+        }
+
+        int width = Mathf.Max(1, skill.effectSize.x);
+        int height = Mathf.Max(1, skill.effectSize.y);
+        return width > 1 || height > 1;
+    }
+
+    private static int GetSkillPreviewFootprintSize(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null)
+        {
+            return 0;
+        }
+
+        int width = Mathf.Max(1, skill.effectSize.x);
+        int height = Mathf.Max(1, skill.effectSize.y);
+        return Mathf.Max(width, height);
     }
 
     private bool IsSkillModeActive()

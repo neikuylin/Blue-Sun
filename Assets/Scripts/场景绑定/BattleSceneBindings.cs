@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -5,23 +6,25 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleSceneBindings : MonoBehaviour
 {
-    [Header("时间轴")]
+    [Header("Timeline")]
     public Transform timelineAnchor;
 
-    [Header("按钮")]
+    [Header("Buttons")]
     public Button endTurnButton;
     public Button moveSkillButton;
+    public Button previousSkillPageButton;
+    public Button nextSkillPageButton;
 
-    [Header("头像栏")]
+    [Header("Portraits")]
     public Image currentPortrait;
     public Image secondPortrait;
     public Image thirdPortrait;
     public Image fourthPortrait;
 
-    [Header("行动点")]
+    [Header("Action Points")]
     public Transform actionPointPanel;
 
-    [Header("生命与魔法")]
+    [Header("Vitals")]
     public Image healthSlotImage;
     public Image healthFillImage;
     public TMP_Text healthText;
@@ -29,13 +32,19 @@ public sealed class BattleSceneBindings : MonoBehaviour
     public Image manaFillImage;
     public TMP_Text manaText;
 
-    [Header("背包")]
+    [Header("Backpack")]
     public RectTransform battleBackpackContainer;
     public RectTransform battleBackpackContent;
     public RectTransform battleBackpackDragHandle;
 
-    [Header("通用")]
+    [Header("Overlay")]
     public RectTransform overlayCanvas;
+
+    [Header("Paged Skills")]
+    public List<Button> skillPageButtons = new List<Button>();
+    public List<Image> skillPageIcons = new List<Image>();
+    public TMP_Text spellCurrentPageText;
+    public TMP_Text spellTotalPageText;
 
     public static BattleSceneBindings FindInActiveScene()
     {

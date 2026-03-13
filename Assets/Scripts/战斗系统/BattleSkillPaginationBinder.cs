@@ -1,0 +1,519 @@
+using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+[DisallowMultipleComponent]
+public sealed class BattleSkillPaginationBinder : MonoBehaviour
+{
+    private const int SkillsPerPage = 6;
+    private const string DefaultCharacterId = "\u73a9\u5bb6";
+    private const string SkillPatternName = "\u6280\u80fd\u56fe\u6848";
+    private const string SkillSlotContainerPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
+    private const string PreviousPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u524d\u7ffb\u9875";
+    private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
+    private const string SpellCurrentPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u6cd5\u672f\u5f53\u524d\u9875";
+    private const string SpellTotalPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u603b\u9875";
+
+    private sealed class SkillButtonWidget
+    {
+        public Button button;
+        public Image icon;
+        public GameObject iconObject;
+        public string skillId = string.Empty;
+    }
+
+    private readonly List<SkillButtonWidget> widgets = new List<SkillButtonWidget>();
+    private readonly List<UnityAction> widgetActions = new List<UnityAction>();
+
+    private BattleTurnSystem turnSystem;
+    private BattleSkillDatabase skillDatabase;
+    private CharacterSkillLoadoutDatabase loadoutDatabase;
+    private BattleSceneBindings sceneBindings;
+    private Button previousPageButton;
+    private Button nextPageButton;
+    private TMP_Text currentPageText;
+    private TMP_Text totalPageText;
+    private string currentCharacterId = string.Empty;
+    private int currentPageIndex;
+    private int lastTotalPages = -1;
+
+    public void Initialize(BattleTurnSystem system)
+    {
+        turnSystem = system;
+        skillDatabase = BattleSkillDatabase.LoadDefault();
+        loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        sceneBindings = BattleSceneBindings.FindInActiveScene();
+        CacheBindings();
+        HookPaginationButtons();
+        Refresh(force: true);
+    }
+
+    private void OnDestroy()
+    {
+        UnhookPaginationButtons();
+        UnhookSkillButtons();
+    }
+
+    private void LateUpdate()
+    {
+        if (!Application.isPlaying || turnSystem == null)
+        {
+            return;
+        }
+
+        Refresh(force: false);
+    }
+
+    private void CacheBindings()
+    {
+        CacheSkillButtons();
+        previousPageButton = sceneBindings != null && sceneBindings.previousSkillPageButton != null
+            ? sceneBindings.previousSkillPageButton
+            : FindButtonByPath(PreviousPageButtonPath);
+        nextPageButton = sceneBindings != null && sceneBindings.nextSkillPageButton != null
+            ? sceneBindings.nextSkillPageButton
+            : FindButtonByPath(NextPageButtonPath);
+        currentPageText = sceneBindings != null && sceneBindings.spellCurrentPageText != null
+            ? sceneBindings.spellCurrentPageText
+            : FindTextByPath(SpellCurrentPageTextPath);
+        totalPageText = sceneBindings != null && sceneBindings.spellTotalPageText != null
+            ? sceneBindings.spellTotalPageText
+            : FindTextByPath(SpellTotalPageTextPath);
+    }
+
+    private void CacheSkillButtons()
+    {
+        if (widgets.Count > 0)
+        {
+            return;
+        }
+
+        List<Button> buttons = sceneBindings != null ? sceneBindings.skillPageButtons : null;
+        List<Image> icons = sceneBindings != null ? sceneBindings.skillPageIcons : null;
+
+        if (buttons != null && buttons.Count > 0)
+        {
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                Button button = buttons[i];
+                if (button == null)
+                {
+                    continue;
+                }
+
+                Image icon = icons != null && i < icons.Count ? icons[i] : FindBestIcon(button);
+                widgets.Add(new SkillButtonWidget
+                {
+                    button = button,
+                    icon = icon,
+                    iconObject = icon != null ? icon.gameObject : null
+                });
+            }
+        }
+        else
+        {
+            RectTransform container = FindRectTransformByPath(SkillSlotContainerPath);
+            if (container != null)
+            {
+                for (int i = 0; i < container.childCount; i++)
+                {
+                    RectTransform child = container.GetChild(i) as RectTransform;
+                    if (child == null)
+                    {
+                        continue;
+                    }
+
+                    Button button = child.GetComponent<Button>();
+                    Image icon = FindBestIconInRoot(child);
+                    if (button == null)
+                    {
+                        button = child.gameObject.AddComponent<Button>();
+                    }
+
+                    widgets.Add(new SkillButtonWidget
+                    {
+                        button = button,
+                        icon = icon,
+                        iconObject = icon != null ? icon.gameObject : null
+                    });
+                }
+            }
+        }
+
+        HookSkillButtons();
+    }
+
+    private void HookPaginationButtons()
+    {
+        if (previousPageButton != null)
+        {
+            previousPageButton.onClick.RemoveListener(GoToPreviousPage);
+            previousPageButton.onClick.AddListener(GoToPreviousPage);
+        }
+
+        if (nextPageButton != null)
+        {
+            nextPageButton.onClick.RemoveListener(GoToNextPage);
+            nextPageButton.onClick.AddListener(GoToNextPage);
+        }
+    }
+
+    private void UnhookPaginationButtons()
+    {
+        if (previousPageButton != null)
+        {
+            previousPageButton.onClick.RemoveListener(GoToPreviousPage);
+        }
+
+        if (nextPageButton != null)
+        {
+            nextPageButton.onClick.RemoveListener(GoToNextPage);
+        }
+    }
+
+    private void HookSkillButtons()
+    {
+        while (widgetActions.Count < widgets.Count)
+        {
+            widgetActions.Add(null);
+        }
+
+        for (int i = 0; i < widgets.Count; i++)
+        {
+            SkillButtonWidget widget = widgets[i];
+            if (widget.button == null)
+            {
+                continue;
+            }
+
+            int capturedIndex = i;
+            UnityAction action = widgetActions[i];
+            if (action != null)
+            {
+                widget.button.onClick.RemoveListener(action);
+            }
+
+            action = () => OnSkillButtonClicked(capturedIndex);
+            widgetActions[i] = action;
+            widget.button.onClick.AddListener(action);
+        }
+    }
+
+    private void UnhookSkillButtons()
+    {
+        for (int i = 0; i < widgets.Count; i++)
+        {
+            SkillButtonWidget widget = widgets[i];
+            UnityAction action = i < widgetActions.Count ? widgetActions[i] : null;
+            if (widget.button != null && action != null)
+            {
+                widget.button.onClick.RemoveListener(action);
+            }
+        }
+    }
+
+    private void Refresh(bool force)
+    {
+        string nextCharacterId = ResolveActiveCharacterId();
+        List<string> allSkills = GetSkillsForCharacter(nextCharacterId);
+        int totalPages = Mathf.Max(1, Mathf.CeilToInt(allSkills.Count / (float)SkillsPerPage));
+
+        if (force || !string.Equals(currentCharacterId, nextCharacterId, StringComparison.Ordinal))
+        {
+            currentCharacterId = nextCharacterId;
+            currentPageIndex = 0;
+        }
+
+        currentPageIndex = Mathf.Clamp(currentPageIndex, 0, totalPages - 1);
+        if (!force &&
+            string.Equals(currentCharacterId, nextCharacterId, StringComparison.Ordinal) &&
+            lastTotalPages == totalPages)
+        {
+            ApplySkillsToWidgets(allSkills, totalPages);
+            return;
+        }
+
+        lastTotalPages = totalPages;
+        ApplySkillsToWidgets(allSkills, totalPages);
+    }
+
+    private void ApplySkillsToWidgets(List<string> allSkills, int totalPages)
+    {
+        int startIndex = currentPageIndex * SkillsPerPage;
+        for (int i = 0; i < widgets.Count; i++)
+        {
+            SkillButtonWidget widget = widgets[i];
+            string skillId = startIndex + i < allSkills.Count ? allSkills[startIndex + i] : string.Empty;
+            widget.skillId = skillId;
+            Sprite icon = ResolveSkillIcon(skillId);
+
+            if (widget.icon != null)
+            {
+                widget.icon.sprite = icon;
+                widget.icon.enabled = icon != null;
+            }
+
+            if (widget.iconObject != null)
+            {
+                widget.iconObject.SetActive(icon != null);
+            }
+
+            if (widget.button != null)
+            {
+                widget.button.interactable = !string.IsNullOrWhiteSpace(skillId);
+            }
+        }
+
+        if (currentPageText != null)
+        {
+            currentPageText.text = (currentPageIndex + 1).ToString();
+        }
+
+        if (totalPageText != null)
+        {
+            totalPageText.text = totalPages.ToString();
+        }
+
+        if (previousPageButton != null)
+        {
+            previousPageButton.interactable = currentPageIndex > 0;
+        }
+
+        if (nextPageButton != null)
+        {
+            nextPageButton.interactable = currentPageIndex < totalPages - 1;
+        }
+    }
+
+    private void GoToPreviousPage()
+    {
+        currentPageIndex = Mathf.Max(0, currentPageIndex - 1);
+        Refresh(force: true);
+    }
+
+    private void GoToNextPage()
+    {
+        int totalPages = Mathf.Max(1, Mathf.CeilToInt(GetSkillsForCharacter(currentCharacterId).Count / (float)SkillsPerPage));
+        currentPageIndex = Mathf.Min(totalPages - 1, currentPageIndex + 1);
+        Refresh(force: true);
+    }
+
+    private void OnSkillButtonClicked(int index)
+    {
+        if (index < 0 || index >= widgets.Count || turnSystem == null)
+        {
+            return;
+        }
+
+        string skillId = widgets[index].skillId;
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return;
+        }
+
+        turnSystem.ToggleSkillMode(skillId);
+    }
+
+    private string ResolveActiveCharacterId()
+    {
+        BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
+        if (activeUnit != null && activeUnit.isPlayerControlled && !string.IsNullOrWhiteSpace(activeUnit.characterId))
+        {
+            return activeUnit.characterId;
+        }
+
+        return string.IsNullOrWhiteSpace(CharacterSelectionState.ActiveCharacterId)
+            ? DefaultCharacterId
+            : CharacterSelectionState.ActiveCharacterId;
+    }
+
+    private List<string> GetSkillsForCharacter(string characterId)
+    {
+        List<string> result = new List<string>();
+        if (loadoutDatabase == null)
+        {
+            loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        }
+
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
+        if (entry == null || entry.skillIds == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < entry.skillIds.Count; i++)
+        {
+            string skillId = entry.skillIds[i];
+            if (!string.IsNullOrWhiteSpace(skillId))
+            {
+                result.Add(skillId);
+            }
+        }
+
+        return result;
+    }
+
+    private Sprite ResolveSkillIcon(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return null;
+        }
+
+        if (skillDatabase == null)
+        {
+            skillDatabase = BattleSkillDatabase.LoadDefault();
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
+        return entry != null ? entry.icon : null;
+    }
+
+    private static Image FindBestIcon(Button button)
+    {
+        if (button == null)
+        {
+            return null;
+        }
+
+        Image[] images = button.GetComponentsInChildren<Image>(true);
+        Image rootImage = button.GetComponent<Image>();
+        for (int i = 0; i < images.Length; i++)
+        {
+            Image image = images[i];
+            if (image == null || image == rootImage)
+            {
+                continue;
+            }
+
+            return image;
+        }
+
+        return rootImage;
+    }
+
+    private static Image FindBestIconInRoot(RectTransform root)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        Transform explicitPattern = FindChildByName(root, SkillPatternName);
+        if (explicitPattern != null)
+        {
+            Image explicitImage = explicitPattern.GetComponent<Image>();
+            if (explicitImage != null)
+            {
+                return explicitImage;
+            }
+        }
+
+        Image[] images = root.GetComponentsInChildren<Image>(true);
+        Image rootImage = root.GetComponent<Image>();
+        for (int i = 0; i < images.Length; i++)
+        {
+            Image image = images[i];
+            if (image == null || image == rootImage)
+            {
+                continue;
+            }
+
+            return image;
+        }
+
+        return rootImage;
+    }
+
+    private static RectTransform FindRectTransformByPath(string path)
+    {
+        return FindTransformByPath(path) as RectTransform;
+    }
+
+    private static Button FindButtonByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<Button>() : null;
+    }
+
+    private static TMP_Text FindTextByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
+    private static Transform FindTransformByPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        string[] segments = path.Split('/');
+        GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
+        Transform current = null;
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
+            {
+                current = roots[i].transform;
+                break;
+            }
+        }
+
+        if (current == null)
+        {
+            return null;
+        }
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            current = FindChildByName(current, segments[i]);
+            if (current == null)
+            {
+                return null;
+            }
+        }
+
+        return current;
+    }
+
+    private static Transform FindChildByName(Transform parent, string targetName)
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child != null && string.Equals(child.name, targetName, StringComparison.Ordinal))
+            {
+                return child;
+            }
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            Transform nested = FindChildByName(child, targetName);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+}
