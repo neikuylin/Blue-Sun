@@ -26,7 +26,6 @@ public class BattleUnit : MonoBehaviour
     public int strength;
     [SerializeField] private int agility;
     public int intelligence;
-    public int endurance;
     public int maxActionPoints = 4;
 
     [Header("Presentation")]
@@ -76,24 +75,26 @@ public class BattleUnit : MonoBehaviour
     {
         if (statEntry == null)
         {
+            maxHealth = 50;
             strength = 0;
             SetAgilityInternal(0, false);
             intelligence = 0;
-            endurance = 0;
             maxActionPoints = 4;
             moveDistance = 3;
             moveRange = moveDistance;
+            currentHealth = Mathf.Min(currentHealth, maxHealth);
             currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
             return;
         }
 
+        maxHealth = statEntry.ResolveMaxHealth();
         strength = statEntry.strength;
         SetAgilityInternal(statEntry.agility, false);
         intelligence = statEntry.intelligence;
-        endurance = statEntry.endurance;
         maxActionPoints = statEntry.ResolveActionPoints();
         moveDistance = statEntry.ResolveMoveDistance();
         moveRange = moveDistance;
+        currentHealth = Mathf.Min(currentHealth, maxHealth);
         currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
     }
 

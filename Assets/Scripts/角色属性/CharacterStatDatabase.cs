@@ -14,7 +14,6 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int strength;
         public int agility;
         public int intelligence;
-        public int endurance;
         public int actionPoints = 4;
         public int moveDistance;
 
@@ -26,6 +25,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int ResolveMoveDistance()
         {
             return Mathf.Max(0, agility + 3);
+        }
+
+        public int ResolveMaxHealth()
+        {
+            return 50 + (Mathf.Max(0, strength) * 10);
         }
     }
 
