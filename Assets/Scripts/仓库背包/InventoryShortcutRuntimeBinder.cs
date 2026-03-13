@@ -40,6 +40,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public bool iconIsRoot;
         public Color iconOriginalColor;
         public Sprite iconOriginalSprite;
+        public ItemDatabase.EquipmentSlotType equipmentSlotType;
     }
 
     private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
@@ -113,6 +114,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool isDragging;
     private SlotRef draggingSource;
+    private SlotWidget draggingSourceWidget;
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
     private Image dragIconImage;
@@ -958,8 +960,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 icon = icon,
                 iconIsRoot = icon.transform == slotRoot,
                 iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite
+                iconOriginalSprite = icon.sprite,
+                equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
             });
+        }
+    }
+
+    private static ItemDatabase.EquipmentSlotType ResolveEquipmentSlotType(string slotName)
+    {
+        switch (slotName)
+        {
+            case "主手":
+                return ItemDatabase.EquipmentSlotType.MainHand;
+            case "副手":
+                return ItemDatabase.EquipmentSlotType.OffHand;
+            case "主副手":
+                return ItemDatabase.EquipmentSlotType.MainOrOffHand;
+            case "头盔":
+                return ItemDatabase.EquipmentSlotType.Helmet;
+            case "胸甲":
+                return ItemDatabase.EquipmentSlotType.Armor;
+            case "手套":
+                return ItemDatabase.EquipmentSlotType.Gloves;
+            case "鞋子":
+                return ItemDatabase.EquipmentSlotType.Shoes;
+            case "腿甲":
+                return ItemDatabase.EquipmentSlotType.LegArmor;
+            case "饰品":
+                return ItemDatabase.EquipmentSlotType.Accessory;
+            default:
+                return ItemDatabase.EquipmentSlotType.None;
         }
     }
 
@@ -1128,18 +1158,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         EnsureDragVisual(widget.root);
-        if (dragIconImage == null || dragIconRoot == null)
+        if (dragIconRoot == null)
         {
             return;
         }
 
-        dragIconImage.sprite = data.icon;
-        dragIconImage.color = Color.white;
         dragIconRoot.sizeDelta = widget.root.rect.size;
+        RebuildDragVisual(data);
         dragIconRoot.gameObject.SetActive(true);
         UpdateDragVisualPosition(eventData);
 
         draggingSource = source;
+        draggingSourceWidget = widget;
+        SetWidgetDraggingVisible(widget, false);
         isDragging = true;
     }
 
@@ -1169,6 +1200,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!CanSwapSlots(draggingSource, target))
+        {
+            return;
+        }
+
         SwapSlotData(draggingSource, target);
         RefreshByRef(draggingSource);
         RefreshByRef(target);
@@ -1181,6 +1217,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             dragIconRoot.gameObject.SetActive(false);
         }
+
+        if (dragIconImage != null)
+        {
+            dragIconImage.sprite = null;
+            dragIconImage.enabled = false;
+        }
+        SetWidgetDraggingVisible(draggingSourceWidget, true);
+        draggingSourceWidget = null;
+        RefreshByRef(draggingSource);
     }
 
     private void EnsureDragVisual(RectTransform fromRoot)
@@ -1210,12 +1255,50 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         dragIconImage = go.GetComponent<Image>();
         dragIconImage.raycastTarget = false;
+        dragIconImage.preserveAspect = true;
 
         CanvasGroup cg = go.GetComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
         cg.interactable = false;
 
         go.SetActive(false);
+    }
+
+    private void RebuildDragVisual(ItemSlotData data)
+    {
+        if (dragIconRoot == null || dragIconImage == null)
+        {
+            return;
+        }
+
+        dragIconImage.sprite = ResolveDisplaySprite(data);
+        dragIconImage.color = Color.white;
+        dragIconImage.enabled = dragIconImage.sprite != null;
+    }
+
+    private static void SetWidgetDraggingVisible(SlotWidget widget, bool visible)
+    {
+        if (widget == null)
+        {
+            return;
+        }
+
+        if (widget.icon == null)
+        {
+            return;
+        }
+
+        Color color = widget.icon.color;
+        if (visible)
+        {
+            color.a = widget.iconIsRoot ? widget.iconOriginalColor.a : (widget.icon.sprite != null ? 1f : 0f);
+        }
+        else
+        {
+            color.a = 0f;
+        }
+
+        widget.icon.color = color;
     }
 
     private void UpdateDragVisualPosition(PointerEventData eventData)
@@ -1271,6 +1354,79 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         SetSlotData(a, bData);
         SetSlotData(b, aData);
+    }
+
+    private bool CanSwapSlots(SlotRef source, SlotRef target)
+    {
+        if (!TryGetSlotData(source, out ItemSlotData sourceData) || !TryGetSlotData(target, out ItemSlotData targetData))
+        {
+            return false;
+        }
+
+        if (!CanPlaceIntoTarget(sourceData, target))
+        {
+            return false;
+        }
+
+        if (!CanPlaceIntoTarget(targetData, source))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanPlaceIntoTarget(ItemSlotData data, SlotRef target)
+    {
+        if (target.kind != SlotKind.Equipment || data.IsEmpty)
+        {
+            return true;
+        }
+
+        SlotWidget widget = GetWidget(target);
+        if (widget == null)
+        {
+            return false;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        return IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType);
+    }
+
+    private static bool IsEquipmentSlotCompatible(
+        ItemDatabase.EquipmentSlotType itemSlot,
+        ItemDatabase.EquipmentSlotType targetSlot)
+    {
+        if (itemSlot == ItemDatabase.EquipmentSlotType.None || targetSlot == ItemDatabase.EquipmentSlotType.None)
+        {
+            return false;
+        }
+
+        if (itemSlot == targetSlot)
+        {
+            return true;
+        }
+
+        if (itemSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            return targetSlot == ItemDatabase.EquipmentSlotType.MainHand ||
+                targetSlot == ItemDatabase.EquipmentSlotType.OffHand ||
+                targetSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand;
+        }
+
+        if (targetSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            return itemSlot == ItemDatabase.EquipmentSlotType.MainHand ||
+                itemSlot == ItemDatabase.EquipmentSlotType.OffHand ||
+                itemSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand;
+        }
+
+        return false;
     }
 
     private List<ItemSlotData> GetDataList(SlotKind kind)
@@ -1442,26 +1598,105 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        bool hasItem = data.icon != null;
+        bool hasItem = !string.IsNullOrWhiteSpace(data.itemId);
         if (widget.button != null)
         {
             ColorBlock colors = widget.button.colors;
             colors.disabledColor = colors.normalColor;
             widget.button.colors = colors;
-            widget.button.interactable = hasItem;
+            widget.button.interactable = true;
         }
+
+        RebuildItemVisual(widget, data);
+    }
+
+    private static void RebuildItemVisual(SlotWidget widget, ItemSlotData data)
+    {
+        if (widget == null || widget.icon == null)
+        {
+            return;
+        }
+
+        Sprite displaySprite = ResolveDisplaySprite(data);
+        bool hasItem = displaySprite != null;
+        widget.icon.enabled = true;
+        widget.icon.raycastTarget = true;
 
         if (widget.iconIsRoot)
         {
-            widget.icon.sprite = hasItem ? data.icon : widget.iconOriginalSprite;
+            widget.icon.sprite = hasItem ? displaySprite : widget.iconOriginalSprite;
             Color c = widget.iconOriginalColor;
             c.a = widget.iconOriginalColor.a;
             widget.icon.color = c;
             return;
         }
 
-        widget.icon.sprite = data.icon;
-        widget.icon.gameObject.SetActive(hasItem);
+        widget.icon.sprite = displaySprite;
+        widget.icon.gameObject.SetActive(true);
+        widget.icon.color = hasItem ? Color.white : new Color(1f, 1f, 1f, 0f);
+    }
+
+    private static Sprite ResolveDisplaySprite(ItemSlotData data)
+    {
+        if (data.icon != null)
+        {
+            return data.icon;
+        }
+
+        GameObject prefab = ResolvePrefabFromItemId(data.itemId);
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        Image image = ResolveDisplayImage(prefab.transform);
+        return image != null ? image.sprite : null;
+    }
+
+    private static GameObject ResolvePrefabFromItemId(string itemId)
+    {
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        return entry != null ? entry.prefab : null;
+    }
+
+    private static Image ResolveDisplayImage(Transform root)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        Transform picture = FindChildByName(root, "图片") ?? FindDescendantByName(root, "图片");
+        if (picture != null)
+        {
+            Image pictureImage = picture.GetComponent<Image>();
+            if (pictureImage != null && pictureImage.sprite != null)
+            {
+                return pictureImage;
+            }
+        }
+
+        Image[] images = root.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i] != null && images[i].sprite != null)
+            {
+                return images[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static ItemDatabase.ItemEntry ResolveItemEntry(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return null;
+        }
+
+        ItemDatabase database = ItemDatabase.LoadDefault();
+        return database != null ? database.FindEntry(itemId) : null;
     }
 
     private void UnbindAll()
