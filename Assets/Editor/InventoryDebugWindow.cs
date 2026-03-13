@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class InventoryDebugWindow : EditorWindow
 {
@@ -100,7 +99,6 @@ public class InventoryDebugWindow : EditorWindow
 
         ItemDatabase.ItemEntry selectedEntry = entries[selectedItemIndex];
         EditorGUILayout.ObjectField("预制体", selectedEntry.prefab, typeof(GameObject), false);
-        DrawPrefabPreview(selectedEntry.prefab);
 
         addCount = Mathf.Max(1, EditorGUILayout.IntField("数量", addCount));
         maxStack = Mathf.Max(1, EditorGUILayout.IntField("单格上限", maxStack));
@@ -218,22 +216,5 @@ public class InventoryDebugWindow : EditorWindow
         }
 
         return options;
-    }
-
-    private static void DrawPrefabPreview(GameObject prefab)
-    {
-        if (prefab == null)
-        {
-            return;
-        }
-
-        Image image = prefab.GetComponentInChildren<Image>(true);
-        if (image == null || image.sprite == null)
-        {
-            EditorGUILayout.HelpBox("该预制体里没有可用的 Image.sprite，背包里将无法显示图标。", MessageType.Warning);
-            return;
-        }
-
-        EditorGUILayout.ObjectField("显示图片", image.sprite, typeof(Sprite), false);
     }
 }
