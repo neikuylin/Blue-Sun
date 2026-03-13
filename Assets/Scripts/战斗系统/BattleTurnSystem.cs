@@ -69,7 +69,6 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
-    private int hoveredSkillFlashFrame = -1;
 
     public BattleUnit ActiveUnit
     {
@@ -499,7 +498,6 @@ public class BattleTurnSystem : MonoBehaviour
             grid.HighlightAttackTargets(activeUnit);
         }
 
-        ApplyHoveredTargetPreview();
         ApplySkillHoverPreview();
     }
 
@@ -1638,13 +1636,14 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (hoveredSkillTarget == null || !hoveredSkillTarget.IsAlive)
         {
+            grid.ClearHoveredFootprint();
             return;
         }
 
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
         Color overlayColor = hoveredTargetFlashColor;
         overlayColor.a = Mathf.Lerp(0.18f, hoveredTargetFlashColor.a, pulse);
-        grid.HighlightFootprint(hoveredSkillTarget, overlayColor);
+        grid.SetHoveredFootprint(hoveredSkillTarget, overlayColor);
     }
 
     private bool HasAnyVisibleSkillPreviewCells(Vector2Int centerCell)
@@ -1919,6 +1918,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (hoveredSkillTarget != null && hoveredSkillTarget != target)
         {
             hoveredSkillTarget.ClearTint();
+            grid.ClearHoveredFootprint();
         }
 
         hoveredSkillTarget = target;
@@ -1928,17 +1928,12 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (hoveredSkillTarget == null || !hoveredSkillTarget.IsAlive)
         {
+            grid.ClearHoveredFootprint();
             return;
         }
 
-        int flashFrame = Mathf.FloorToInt(Time.time * 12f);
-        if (flashFrame != hoveredSkillFlashFrame)
-        {
-            hoveredSkillFlashFrame = flashFrame;
-            RefreshHighlights();
-        }
-
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+        ApplyHoveredTargetPreview();
         hoveredSkillTarget.ApplyTint(Color.red, Mathf.Lerp(0.2f, 0.75f, pulse));
     }
 
@@ -1949,8 +1944,8 @@ public class BattleTurnSystem : MonoBehaviour
             hoveredSkillTarget.ClearTint();
         }
 
+        grid.ClearHoveredFootprint();
         hoveredSkillTarget = null;
-        hoveredSkillFlashFrame = -1;
     }
 
     private int GetMoveMaxRange(BattleUnit unit, BattleSkillDatabase.SkillEntry moveSkill)

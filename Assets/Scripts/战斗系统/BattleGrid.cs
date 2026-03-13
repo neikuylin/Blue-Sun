@@ -30,7 +30,12 @@ public class BattleGrid : MonoBehaviour
     private Material lineMaterialTemplate;
     private Transform boardVisualRoot;
     private Transform highlightRoot;
+    private Transform hoverHighlightRoot;
     private int highlightLayerOrder;
+    private GameObject hoverOverlayObject;
+    private MeshRenderer hoverOverlayRenderer;
+    private readonly List<LineRenderer> hoverOutlineRenderers = new List<LineRenderer>();
+    private HashSet<Vector2Int> hoverOverlayCells;
 
     private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.12f);
     private Color reachableOutlineColor = new Color(0.20f, 0.70f, 1.00f, 0.57f);
@@ -75,6 +80,8 @@ public class BattleGrid : MonoBehaviour
         EnsureVisualRoots();
         ClearChildren(boardVisualRoot);
         ClearChildren(highlightRoot);
+        ClearHoveredFootprint();
+        ClearChildren(hoverHighlightRoot);
 
         fillMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
         lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
@@ -251,6 +258,40 @@ public class BattleGrid : MonoBehaviour
         }
 
         CreateOverlay(CollectFootprintCells(unit.currentCell, unit.footprintSize), color, "Footprint");
+    }
+
+    public void SetHoveredFootprint(BattleUnit unit, Color color)
+    {
+        if (unit == null)
+        {
+            ClearHoveredFootprint();
+            return;
+        }
+
+        SetHoveredFootprint(CollectFootprintCells(unit.currentCell, unit.footprintSize), color);
+    }
+
+    public void ClearHoveredFootprint()
+    {
+        hoverOverlayCells = null;
+        hoverOverlayRenderer = null;
+        hoverOutlineRenderers.Clear();
+
+        if (hoverOverlayObject == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(hoverOverlayObject);
+        }
+        else
+        {
+            DestroyImmediate(hoverOverlayObject);
+        }
+
+        hoverOverlayObject = null;
     }
 
     public void HighlightAttackTargets(BattleUnit activeUnit)
@@ -463,6 +504,21 @@ public class BattleGrid : MonoBehaviour
                 highlightRoot = root.transform;
             }
         }
+
+        if (hoverHighlightRoot == null)
+        {
+            Transform existing = transform.Find("HoverHighlightVisuals");
+            if (existing != null)
+            {
+                hoverHighlightRoot = existing;
+            }
+            else
+            {
+                GameObject root = new GameObject("HoverHighlightVisuals");
+                root.transform.SetParent(transform, false);
+                hoverHighlightRoot = root.transform;
+            }
+        }
     }
 
     private void CreateBoardOutline()
@@ -524,6 +580,61 @@ public class BattleGrid : MonoBehaviour
         }
 
         highlightLayerOrder++;
+    }
+
+    private void SetHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
+    {
+        if (cells == null || cells.Count == 0)
+        {
+            ClearHoveredFootprint();
+            return;
+        }
+
+        EnsureVisualRoots();
+        Color outlineColor = ResolveOutlineColor(fillColor);
+
+        if (hoverOverlayObject == null || hoverOverlayCells == null || !hoverOverlayCells.SetEquals(cells))
+        {
+            ClearHoveredFootprint();
+
+            hoverOverlayObject = new GameObject("HoveredTarget");
+            hoverOverlayObject.transform.SetParent(hoverHighlightRoot, false);
+
+            MeshFilter meshFilter = hoverOverlayObject.AddComponent<MeshFilter>();
+            hoverOverlayRenderer = hoverOverlayObject.AddComponent<MeshRenderer>();
+            meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + 0.02f);
+            hoverOverlayRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+
+            List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
+            for (int i = 0; i < loops.Count; i++)
+            {
+                LineRenderer line = CreateOutlineLoopRenderer(
+                    hoverOverlayObject.transform,
+                    loops[i],
+                    outlineColor,
+                    overlayY + 0.021f);
+                if (line != null)
+                {
+                    hoverOutlineRenderers.Add(line);
+                }
+            }
+
+            hoverOverlayCells = new HashSet<Vector2Int>(cells);
+        }
+
+        if (hoverOverlayRenderer != null && hoverOverlayRenderer.sharedMaterial != null)
+        {
+            hoverOverlayRenderer.sharedMaterial.color = fillColor;
+        }
+
+        for (int i = 0; i < hoverOutlineRenderers.Count; i++)
+        {
+            LineRenderer line = hoverOutlineRenderers[i];
+            if (line != null && line.sharedMaterial != null)
+            {
+                line.sharedMaterial.color = outlineColor;
+            }
+        }
     }
 
     private Mesh BuildFillMesh(HashSet<Vector2Int> cells, float y)
@@ -701,9 +812,14 @@ public class BattleGrid : MonoBehaviour
 
     private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y)
     {
+        CreateOutlineLoopRenderer(parent, loop, lineColor, y);
+    }
+
+    private LineRenderer CreateOutlineLoopRenderer(Transform parent, List<Vector2Int> loop, Color lineColor, float y)
+    {
         if (loop == null || loop.Count < 2)
         {
-            return;
+            return null;
         }
 
         GameObject lineObject = new GameObject("Outline");
@@ -725,6 +841,8 @@ public class BattleGrid : MonoBehaviour
         {
             line.SetPosition(i, GridCornerToWorld(loop[i], y));
         }
+
+        return line;
     }
 
     private Vector3 GridCornerToWorld(Vector2Int corner, float y)
