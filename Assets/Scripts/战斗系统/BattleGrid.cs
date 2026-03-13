@@ -260,20 +260,23 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
+        HashSet<Vector2Int> attackReachableCells = CollectCellsWithinRange(activeUnit, activeUnit.attackRange);
         HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+        HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 Vector2Int cell = new Vector2Int(x, y);
                 BattleUnit target = GetUnitAt(cell);
-                if (target == null || target.team == activeUnit.team)
+                if (target == null || target.team == activeUnit.team || highlightedUnits.Contains(target))
                 {
                     continue;
                 }
 
-                if (ManhattanDistance(activeUnit.currentCell, cell) <= activeUnit.attackRange)
+                if (HasAnyFootprintCellInRange(target, attackReachableCells))
                 {
+                    highlightedUnits.Add(target);
                     AddFootprintCells(cells, target.currentCell, target.footprintSize);
                 }
             }
@@ -337,6 +340,7 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
+        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(activeUnit, range);
         HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
         HashSet<Vector2Int> selfCells = new HashSet<Vector2Int>();
         HashSet<Vector2Int> allyCells = new HashSet<Vector2Int>();
@@ -349,7 +353,7 @@ public class BattleGrid : MonoBehaviour
                 continue;
             }
 
-            if (occupant != activeUnit && ManhattanDistance(activeUnit.currentCell, occupant.currentCell) > range)
+            if (!HasAnyFootprintCellInRange(occupant, reachableCells))
             {
                 continue;
             }
@@ -381,27 +385,19 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        Vector2Int origin = unit.currentCell;
-        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (cell == origin)
-                {
-                    continue;
-                }
+        HashSet<Vector2Int> cells = CollectReachableCells(unit, range);
+        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Reachable");
+    }
 
-                List<Vector2Int> path = FindPath(unit, cell);
-                if (path != null && path.Count > 1 && path.Count - 1 <= range)
-                {
-                    AddFootprintCells(cells, cell, unit.footprintSize);
-                }
-            }
+    public void HighlightRange(BattleUnit unit, int range)
+    {
+        if (unit == null)
+        {
+            return;
         }
 
-        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Reachable");
+        HashSet<Vector2Int> cells = CollectCellsWithinRange(unit, range);
+        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Range");
     }
 
     public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
@@ -741,6 +737,131 @@ public class BattleGrid : MonoBehaviour
         HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         AddFootprintCells(cells, centerCell, footprintSize);
         return cells;
+    }
+
+    private HashSet<Vector2Int> CollectReachableCells(BattleUnit unit, int range)
+    {
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+        if (unit == null)
+        {
+            return cells;
+        }
+
+        Vector2Int origin = unit.currentCell;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (cell == origin)
+                {
+                    continue;
+                }
+
+                List<Vector2Int> path = FindPath(unit, cell);
+                if (path != null && path.Count > 1 && path.Count - 1 <= range)
+                {
+                    AddFootprintCells(cells, cell, unit.footprintSize);
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    private HashSet<Vector2Int> CollectCellsWithinRange(Vector2Int centerCell, int range)
+    {
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+        int clampedRange = Mathf.Max(0, range);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (ManhattanDistance(centerCell, cell) <= clampedRange)
+                {
+                    cells.Add(cell);
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    private HashSet<Vector2Int> CollectCellsWithinRange(BattleUnit unit, int range)
+    {
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+        if (unit == null)
+        {
+            return cells;
+        }
+
+        int radius = unit.FootprintRadius;
+        int clampedRange = Mathf.Max(0, range);
+        for (int y = unit.currentCell.y - radius; y <= unit.currentCell.y + radius; y++)
+        {
+            for (int x = unit.currentCell.x - radius; x <= unit.currentCell.x + radius; x++)
+            {
+                Vector2Int footprintCell = new Vector2Int(x, y);
+                if (!IsInside(footprintCell))
+                {
+                    continue;
+                }
+
+                HashSet<Vector2Int> fromCell = CollectCellsWithinRange(footprintCell, clampedRange);
+                foreach (Vector2Int cell in fromCell)
+                {
+                    cells.Add(cell);
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    private bool HasAnyFootprintCellInRange(BattleUnit unit, HashSet<Vector2Int> reachableCells)
+    {
+        if (unit == null || reachableCells == null || reachableCells.Count == 0)
+        {
+            return false;
+        }
+
+        int radius = unit.FootprintRadius;
+        for (int y = unit.currentCell.y - radius; y <= unit.currentCell.y + radius; y++)
+        {
+            for (int x = unit.currentCell.x - radius; x <= unit.currentCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (reachableCells.Contains(cell))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public bool IsCellWithinRange(BattleUnit unit, Vector2Int cell, int range)
+    {
+        if (unit == null || !IsInside(cell))
+        {
+            return false;
+        }
+
+        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(unit, range);
+        return reachableCells.Contains(cell);
+    }
+
+    public bool IsUnitWithinRange(BattleUnit source, BattleUnit target, int range)
+    {
+        if (source == null || target == null)
+        {
+            return false;
+        }
+
+        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(source, range);
+        return HasAnyFootprintCellInRange(target, reachableCells);
     }
 
     private void AddFootprintCells(HashSet<Vector2Int> cells, Vector2Int centerCell, int footprintSize)

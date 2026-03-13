@@ -35,5 +35,5 @@ MonoBehaviour:
     manaCost: 0
     cooldownTurns: 0
     useMoveDistanceAsRange: 0
-    range: 2
+    range: 1
     effectSize: {x: 1, y: 1}

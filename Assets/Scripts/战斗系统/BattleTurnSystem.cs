@@ -59,6 +59,7 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleUnit timelineLeadUnit;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
+    private bool attackModeActive;
     private string activeSkillId = string.Empty;
     private BattleSkillDatabase.SkillEntry activeSkill;
     private bool hasSkillHoverPreview;
@@ -101,6 +102,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkill = null;
         timelineLeadUnit = null;
         lastTimelineSlots.Clear();
+        attackModeActive = false;
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -199,6 +201,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (IsSkillModeActive())
         {
             TryUseActiveSkill(activeUnit, clickedCell, target);
+            return;
+        }
+
+        if (!attackModeActive)
+        {
             return;
         }
 
@@ -308,6 +315,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ExecuteAttack(attacker, defender);
+        attackModeActive = false;
         RefreshHighlights();
         RefreshTimeline();
     }
@@ -465,17 +473,28 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (activeUnit.isPlayerControlled && IsSkillModeActive())
         {
-            int moveRange = GetDisplayedSkillRange(activeUnit, activeSkill);
-            grid.HighlightReachable(activeUnit, moveRange);
+            int skillRange = GetDisplayedSkillRange(activeUnit, activeSkill);
+            if (IsMovementSkillActive())
+            {
+                grid.HighlightReachable(activeUnit, skillRange);
+            }
+            else
+            {
+                grid.HighlightRange(activeUnit, skillRange);
+            }
+
             grid.HighlightOccupiedUnitsWithinRange(
                 activeUnit,
-                moveRange,
+                skillRange,
                 skillSelfOccupiedColor,
                 skillAllyOccupiedColor,
                 skillEnemyOccupiedColor);
         }
+        else if (activeUnit.isPlayerControlled && attackModeActive)
+        {
+            grid.HighlightAttackTargets(activeUnit);
+        }
 
-        grid.HighlightAttackTargets(activeUnit);
         ApplySkillHoverPreview();
     }
 
@@ -1417,6 +1436,31 @@ public class BattleTurnSystem : MonoBehaviour
         EndTurn();
     }
 
+    public void ToggleAttackMode()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        if (activeUnit.IsMoving)
+        {
+            return;
+        }
+
+        if (attackModeActive)
+        {
+            attackModeActive = false;
+        }
+        else
+        {
+            ClearActiveSkillModeInternal(clearAttackMode: false);
+            attackModeActive = true;
+        }
+
+        RefreshHighlights();
+    }
+
     public void ToggleMovementMode()
     {
         ToggleSkillMode(BattleSkillDatabase.MoveSkillId);
@@ -1456,6 +1500,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
         else
         {
+            attackModeActive = false;
             activeSkillId = skillId;
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
@@ -1525,10 +1570,12 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
-        List<Vector2Int> path = footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
+        List<Vector2Int> path = IsMovementSkillActive() && footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
         int actionPointCost = GetHoveredSkillActionPointCost(activeUnit, path, activeSkill);
-        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetDisplayedSkillRange(activeUnit, activeSkill);
-        bool previewValid = footprintInside && withinMoveRange;
+        bool withinSkillRange = IsMovementSkillActive()
+            ? path != null && path.Count > 1 && path.Count - 1 <= GetDisplayedSkillRange(activeUnit, activeSkill)
+            : grid.IsCellWithinRange(activeUnit, hoveredCell, GetDisplayedSkillRange(activeUnit, activeSkill));
+        bool previewValid = footprintInside && withinSkillRange;
         bool hasAnyVisibleCells = HasAnyVisibleSkillPreviewCells(hoveredCell);
 
         if (hasSkillHoverPreview &&
@@ -1648,12 +1695,22 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ClearActiveSkillMode()
     {
+        ClearActiveSkillModeInternal(clearAttackMode: true);
+    }
+
+    private void ClearActiveSkillModeInternal(bool clearAttackMode)
+    {
         activeSkillId = string.Empty;
         activeSkill = null;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
+        if (clearAttackMode)
+        {
+            attackModeActive = false;
+        }
+
         HideSkillCostHint();
     }
 
@@ -1676,6 +1733,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         if (activeSkill == null || activeSkill.skillType != BattleSkillDatabase.SkillType.Target)
+        {
+            return;
+        }
+
+        if (!grid.IsUnitWithinRange(unit, target, GetDisplayedSkillRange(unit, activeSkill)))
         {
             return;
         }
@@ -1710,7 +1772,7 @@ public class BattleTurnSystem : MonoBehaviour
             return 0;
         }
 
-        if (skill != null && string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        if (skill != null && IsMovementSkillId(activeSkillId))
         {
             return GetMoveMaxRange(unit, skill);
         }
@@ -1824,17 +1886,32 @@ public class BattleTurnSystem : MonoBehaviour
 
     private int GetHoveredSkillActionPointCost(BattleUnit unit, List<Vector2Int> path, BattleSkillDatabase.SkillEntry skill)
     {
-        if (unit == null || path == null || path.Count <= 1 || skill == null)
+        if (unit == null || skill == null)
         {
             return 0;
         }
 
-        if (string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        if (IsMovementSkillId(activeSkillId))
         {
+            if (path == null || path.Count <= 1)
+            {
+                return 0;
+            }
+
             return GetMoveActionPointCost(unit, path, skill);
         }
 
         return GetSkillActionPointCost(skill);
+    }
+
+    private bool IsMovementSkillActive()
+    {
+        return IsMovementSkillId(activeSkillId);
+    }
+
+    private static bool IsMovementSkillId(string skillId)
+    {
+        return string.Equals(skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal);
     }
 
     private void UpdateSkillCostHint()
