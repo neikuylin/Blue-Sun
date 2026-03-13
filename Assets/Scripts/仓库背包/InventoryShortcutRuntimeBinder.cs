@@ -78,12 +78,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
     private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
-    private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/左边栏位/角色背景框左/装备栏位";
+    private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
     private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
     private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
     private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string SlotNameKeyword = "格子";
+    private const string ItemIconName = "物品图标";
+
+    private static readonly string[] EquipmentSlotNames =
+    {
+        "主手",
+        "副手",
+        "主副手",
+        "头盔",
+        "胸甲",
+        "手套",
+        "鞋子",
+        "腿甲",
+        "饰品"
+    };
 
     private static InventoryShortcutRuntimeBinder instance;
 
@@ -544,7 +558,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             : FindTransformByPath(EquipmentContainerPath);
         if (container != null)
         {
-            CollectSlotsFromContainer(container, equipmentSlots);
+            CollectEquipmentSlotsFromNamedChildren(container, equipmentSlots);
         }
     }
 
@@ -737,6 +751,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
+    private static Transform FindDescendantByName(Transform parent, string targetName)
+    {
+        if (parent == null || string.IsNullOrWhiteSpace(targetName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(child.name, targetName, StringComparison.Ordinal))
+            {
+                return child;
+            }
+
+            Transform nested = FindDescendantByName(child, targetName);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
     private void ApplyBackpackLayoutToMirrorAnchor(RectTransform anchor)
     {
         if (anchor == null)
@@ -883,6 +927,42 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private static void CollectEquipmentSlotsFromNamedChildren(Transform container, List<SlotWidget> target)
+    {
+        target.Clear();
+        if (container == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < EquipmentSlotNames.Length; i++)
+        {
+            Transform slotTransform = FindChildByName(container, EquipmentSlotNames[i]) ?? FindDescendantByName(container, EquipmentSlotNames[i]);
+            RectTransform slotRoot = slotTransform as RectTransform;
+            if (slotRoot == null)
+            {
+                continue;
+            }
+
+            Button button = slotRoot.GetComponent<Button>();
+            Image icon = FindEquipmentIconImage(slotRoot);
+            if (icon == null)
+            {
+                continue;
+            }
+
+            target.Add(new SlotWidget
+            {
+                root = slotRoot,
+                button = button,
+                icon = icon,
+                iconIsRoot = icon.transform == slotRoot,
+                iconOriginalColor = icon.color,
+                iconOriginalSprite = icon.sprite
+            });
+        }
+    }
+
     private static Image FindBestIconImage(RectTransform slotRoot)
     {
         Image[] images = slotRoot.GetComponentsInChildren<Image>(true);
@@ -913,6 +993,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return rootImage;
+    }
+
+    private static Image FindEquipmentIconImage(RectTransform slotRoot)
+    {
+        Transform explicitIcon = FindChildByName(slotRoot, ItemIconName) ?? FindDescendantByName(slotRoot, ItemIconName);
+        if (explicitIcon != null)
+        {
+            Image explicitImage = explicitIcon.GetComponent<Image>();
+            if (explicitImage != null)
+            {
+                return explicitImage;
+            }
+        }
+
+        return FindBestIconImage(slotRoot);
     }
 
     private static void EnsureDataSize(List<ItemSlotData> data, int size)

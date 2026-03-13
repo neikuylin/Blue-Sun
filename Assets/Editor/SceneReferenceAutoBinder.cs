@@ -21,7 +21,7 @@ public static class SceneReferenceAutoBinder
 
     private const string JourneyWarehousePath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u4ed3\u5e93\u9875\u9762/\u4ed3\u5e93\u9762\u677f/\u683c\u5b50\u533a\u57df/\u683c\u5b50\u5bb9\u5668";
     private const string JourneyBackpackPath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u4ed3\u5e93\u9875\u9762/\u80cc\u5305\u9762\u677f/\u683c\u5b50\u533a\u57df/\u683c\u5b50\u5bb9\u5668";
-    private const string JourneyEquipmentPath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u89d2\u8272\u9875\u9762/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u88c5\u5907\u680f\u4f4d";
+    private const string JourneyEquipmentPath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u89d2\u8272\u9875\u9762/\u88c5\u5907\u680f\u4f4d";
     private const string JourneyQuickPath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u89d2\u8272\u9875\u9762/\u53f3\u8fb9\u680f\u4f4d/\u683c\u5b50\u533a\u57df";
     private const string JourneySkillPath = "Canvas/UI\u63a7\u5236\u5668/\u76ee\u5f55/\u89d2\u8272\u9875\u9762/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
 
