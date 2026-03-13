@@ -89,7 +89,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
-    private readonly List<ItemSlotData> equipmentData = new List<ItemSlotData>();
+    private readonly Dictionary<string, List<ItemSlotData>> equipmentDataByCharacter = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
@@ -113,8 +113,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TextAnchor cachedBackpackChildAlignment;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
+    private string currentEquipmentCharacterId = string.Empty;
 
     public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
+
+    public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -152,6 +155,47 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.RefreshBackpackSlot(index);
         instance.RefreshQuickSlot(index);
         instance.RefreshBattleBackpackSlot(index);
+        return true;
+    }
+
+    public static bool TryGetEquipmentSlotData(string characterId, int index, out ItemSlotData data)
+    {
+        data = default;
+        if (instance == null)
+        {
+            return false;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null || index < 0 || index >= equipment.Count)
+        {
+            return false;
+        }
+
+        data = equipment[index];
+        return true;
+    }
+
+    public static bool TrySetEquipmentSlotData(string characterId, int index, ItemSlotData data)
+    {
+        if (instance == null || index < 0)
+        {
+            return false;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: true);
+        EnsureDataSize(equipment, Mathf.Max(instance.equipmentSlots.Count, index + 1));
+        if (index >= equipment.Count)
+        {
+            return false;
+        }
+
+        equipment[index] = data;
+        if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
+        {
+            instance.RefreshEquipmentSlot(index);
+        }
+
         return true;
     }
 
@@ -309,6 +353,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         BindScene();
     }
 
+    private void Update()
+    {
+        string targetCharacterId = ResolveEquipmentCharacterId();
+        if (string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        SetCurrentEquipmentCharacter(targetCharacterId);
+    }
+
     private void BindScene()
     {
         CacheBackpackSlotTemplate();
@@ -320,7 +375,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         CollectBattleBackpackSlots();
 
         EnsureDataSize(warehouseData, warehouseSlots.Count);
-        EnsureDataSize(equipmentData, equipmentSlots.Count);
+        SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
 
         int backpackWidgetCount = Mathf.Max(backpackSlots.Count, quickSlots.Count);
         backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
@@ -822,6 +877,54 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private string ResolveEquipmentCharacterId()
+    {
+        string characterId = CharacterSelectionState.ActiveCharacterId;
+        if (!string.IsNullOrWhiteSpace(characterId))
+        {
+            return characterId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        {
+            return currentEquipmentCharacterId;
+        }
+
+        return "玩家";
+    }
+
+    private List<ItemSlotData> GetEquipmentDataForCharacter(string characterId, bool createIfMissing)
+    {
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
+        List<ItemSlotData> data;
+        if (equipmentDataByCharacter.TryGetValue(resolvedCharacterId, out data))
+        {
+            return data;
+        }
+
+        if (!createIfMissing)
+        {
+            return null;
+        }
+
+        data = new List<ItemSlotData>();
+        EnsureDataSize(data, equipmentSlots.Count);
+        equipmentDataByCharacter[resolvedCharacterId] = data;
+        return data;
+    }
+
+    private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
+    {
+        return GetEquipmentDataForCharacter(currentEquipmentCharacterId, createIfMissing);
+    }
+
+    private void SetCurrentEquipmentCharacter(string characterId)
+    {
+        currentEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
+        EnsureDataSize(GetCurrentEquipmentData(true), equipmentSlots.Count);
+        RefreshEquipmentSlots();
+    }
+
     private void EnsureBackpackDataSize(int size)
     {
         while (backpackData.Count < size)
@@ -1036,7 +1139,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return backpackData;
         }
 
-        return equipmentData;
+        return GetCurrentEquipmentData(true);
     }
 
     private SlotWidget GetWidget(SlotRef slot)
@@ -1106,10 +1209,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshBackpackSlot(i);
         }
 
-        for (int i = 0; i < equipmentSlots.Count; i++)
-        {
-            RefreshEquipmentSlot(i);
-        }
+        RefreshEquipmentSlots();
 
         int mirrorCount = Mathf.Min(quickSlots.Count, backpackData.Count);
         for (int i = 0; i < mirrorCount; i++)
@@ -1146,12 +1246,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshEquipmentSlot(int index)
     {
+        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
         if (index < 0 || index >= equipmentSlots.Count || index >= equipmentData.Count)
         {
             return;
         }
 
         ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
+    }
+
+    private void RefreshEquipmentSlots()
+    {
+        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
+        for (int i = 0; i < equipmentSlots.Count; i++)
+        {
+            if (i >= equipmentData.Count)
+            {
+                break;
+            }
+
+            ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
+        }
     }
 
     private void RefreshQuickSlot(int index)
