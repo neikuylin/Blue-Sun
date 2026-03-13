@@ -2,26 +2,42 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "BattleSkillDatabase", menuName = "\u6218\u6597/\u6280\u80FD\u5E93")]
+[CreateAssetMenu(fileName = "BattleSkillDatabase", menuName = "战斗/技能库")]
 public sealed class BattleSkillDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "BattleSkillDatabase";
-    public const string MoveSkillId = "\u79FB\u52A8";
+    public const string MoveSkillId = "移动";
+
+    public enum SkillGroup
+    {
+        Special,
+        CombatArt,
+        Spell
+    }
 
     public enum SkillType
     {
-        Move,
         Target,
         Area
+    }
+
+    public enum CastTarget
+    {
+        Self,
+        Enemy,
+        Ally,
+        All
     }
 
     [Serializable]
     public sealed class SkillEntry
     {
         public string skillId = string.Empty;
-        public string group = "\u6280\u80FD";
-        public SkillType skillType = SkillType.Move;
+        public SkillGroup group = SkillGroup.CombatArt;
+        public SkillType skillType = SkillType.Target;
+        public CastTarget castTarget = CastTarget.Enemy;
         public Sprite icon;
+        public float damageMultiplier = 1f;
         public int actionPointCost = 1;
         public int manaCost;
         public int cooldownTurns;
@@ -71,6 +87,21 @@ public sealed class BattleSkillDatabase : ScriptableObject
         }
 
         return null;
+    }
+
+    public List<SkillEntry> FindByGroup(SkillGroup group)
+    {
+        List<SkillEntry> result = new List<SkillEntry>();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            SkillEntry entry = entries[i];
+            if (entry != null && entry.group == group)
+            {
+                result.Add(entry);
+            }
+        }
+
+        return result;
     }
 
     public static BattleSkillDatabase LoadDefault()

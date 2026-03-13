@@ -7,31 +7,26 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
-    [Serializable]
-    public struct SkillSlotData
+    private static readonly string[] JourneySkillContainerChain =
     {
-        public string skillId;
+        "\u89d2\u8272\u9875\u9762",
+        "\u6280\u80fd\u680f\u4f4d",
+        "\u6280\u80fd\u683c\u5b50\u533a\u57df"
+    };
 
-        public bool IsEmpty => string.IsNullOrWhiteSpace(skillId);
-    }
+    private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
+    private const string DefaultCharacterId = "\u73a9\u5bb6";
 
     private sealed class SkillSlotWidget
     {
-        public RectTransform root;
         public Image skillIcon;
     }
 
-    private const string JourneySkillContainerPath = "Canvas/UI控制器/目录/角色页面/技能栏位/技能格子区域";
-    private const string SlotNameKeyword = "格子";
-    private const string OverlayIconName = "技能图案";
-    private const string DefaultCharacterId = "玩家";
-
     private static SkillLoadoutRuntimeBinder instance;
 
-    private readonly Dictionary<string, List<SkillSlotData>> loadoutByCharacter = new Dictionary<string, List<SkillSlotData>>(StringComparer.Ordinal);
     private readonly List<SkillSlotWidget> journeySkillSlots = new List<SkillSlotWidget>();
-
     private BattleSkillDatabase skillDatabase;
+    private CharacterSkillLoadoutDatabase loadoutDatabase;
     private string currentCharacterId = string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -42,58 +37,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        GameObject go = new GameObject("SkillLoadoutRuntimeBinder");
+        GameObject go = new GameObject(nameof(SkillLoadoutRuntimeBinder));
         DontDestroyOnLoad(go);
         instance = go.AddComponent<SkillLoadoutRuntimeBinder>();
-    }
-
-    public static bool TryGetSkillSlotData(string characterId, int index, out SkillSlotData data)
-    {
-        data = default;
-        if (instance == null)
-        {
-            return false;
-        }
-
-        List<SkillSlotData> loadout = instance.GetLoadout(characterId, createIfMissing: false);
-        if (loadout == null || index < 0 || index >= loadout.Count)
-        {
-            return false;
-        }
-
-        data = loadout[index];
-        return true;
-    }
-
-    public static bool TrySetSkillSlotData(string characterId, int index, SkillSlotData data)
-    {
-        if (instance == null || index < 0)
-        {
-            return false;
-        }
-
-        List<SkillSlotData> loadout = instance.GetLoadout(characterId, createIfMissing: true);
-        EnsureSize(loadout, Mathf.Max(index + 1, instance.journeySkillSlots.Count));
-        if (index >= loadout.Count)
-        {
-            return false;
-        }
-
-        loadout[index] = data;
-        if (string.Equals(instance.currentCharacterId, instance.ResolveCharacterId(characterId), StringComparison.Ordinal))
-        {
-            instance.RefreshJourneySkillSlots();
-        }
-
-        return true;
-    }
-
-    public static bool TrySetSkillSlotId(string characterId, int index, string skillId)
-    {
-        return TrySetSkillSlotData(characterId, index, new SkillSlotData
-        {
-            skillId = skillId
-        });
     }
 
     private void OnEnable()
@@ -128,9 +74,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
+        loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CollectJourneySkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
-        EnsureSize(GetCurrentLoadout(createIfMissing: true), journeySkillSlots.Count);
         RefreshJourneySkillSlots();
     }
 
@@ -138,7 +84,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         journeySkillSlots.Clear();
 
-        RectTransform container = FindTransformByPath(JourneySkillContainerPath) as RectTransform;
+        RectTransform container = FindJourneySkillContainer();
         if (container == null)
         {
             return;
@@ -154,11 +100,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            if (!child.name.Contains(SlotNameKeyword, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
             Image overlay = EnsureOverlayIcon(child);
             if (overlay == null)
             {
@@ -167,10 +108,66 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
             journeySkillSlots.Add(new SkillSlotWidget
             {
-                root = child,
                 skillIcon = overlay
             });
         }
+    }
+
+    private static RectTransform FindJourneySkillContainer()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            RectTransform found = FindContainerRecursive(roots[i] != null ? roots[i].transform : null, 0);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static RectTransform FindContainerRecursive(Transform current, int matchedDepth)
+    {
+        if (current == null)
+        {
+            return null;
+        }
+
+        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], StringComparison.Ordinal))
+        {
+            if (matchedDepth == JourneySkillContainerChain.Length - 1)
+            {
+                return current as RectTransform;
+            }
+
+            for (int i = 0; i < current.childCount; i++)
+            {
+                RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth + 1);
+                if (nested != null)
+                {
+                    return nested;
+                }
+            }
+        }
+
+        for (int i = 0; i < current.childCount; i++)
+        {
+            RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     private static void EnsureJourneyGridLayout(RectTransform container)
@@ -184,23 +181,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         if (grid == null)
         {
             grid = container.gameObject.AddComponent<GridLayoutGroup>();
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+
+            int childCount = Mathf.Max(1, container.childCount);
+            int columnCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
+            grid.constraintCount = columnCount;
         }
-
-        grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
-        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-        grid.childAlignment = TextAnchor.UpperLeft;
-        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-
-        int childCount = Mathf.Max(1, container.childCount);
-        int columnCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
-        grid.constraintCount = columnCount;
-
-        Vector2 spacing = grid.spacing;
-        RectOffset padding = grid.padding ?? new RectOffset();
-        float availableWidth = Mathf.Max(1f, container.rect.width - padding.left - padding.right - spacing.x * Mathf.Max(0, columnCount - 1));
-        float cellWidth = availableWidth / columnCount;
-        float cellHeight = container.childCount > 0 ? Mathf.Max(1f, cellWidth) : grid.cellSize.y;
-        grid.cellSize = new Vector2(cellWidth, cellHeight);
     }
 
     private void RefreshJourneySkillSlots()
@@ -210,32 +199,38 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        List<SkillSlotData> loadout = GetCurrentLoadout(createIfMissing: true);
-        EnsureSize(loadout, journeySkillSlots.Count);
+        List<string> skillIds = BuildJourneySkillList(currentCharacterId);
         for (int i = 0; i < journeySkillSlots.Count; i++)
         {
-            SkillSlotData slotData = i < loadout.Count ? loadout[i] : default;
-            RefreshJourneySkillSlot(i, slotData);
+            string skillId = i < skillIds.Count ? skillIds[i] : string.Empty;
+            Sprite icon = ResolveSkillIcon(skillId);
+            Image target = journeySkillSlots[i].skillIcon;
+            if (target == null)
+            {
+                continue;
+            }
+
+            target.sprite = icon;
+            target.enabled = icon != null;
+            target.gameObject.SetActive(icon != null);
         }
     }
 
-    private void RefreshJourneySkillSlot(int index, SkillSlotData data)
+    private List<string> BuildJourneySkillList(string characterId)
     {
-        if (index < 0 || index >= journeySkillSlots.Count)
+        List<string> result = new List<string>();
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(characterId);
+        if (entry == null || entry.skillIds == null)
         {
-            return;
+            return result;
         }
 
-        SkillSlotWidget widget = journeySkillSlots[index];
-        if (widget == null || widget.skillIcon == null)
+        for (int i = 0; i < entry.skillIds.Count; i++)
         {
-            return;
+            result.Add(entry.skillIds[i]);
         }
 
-        Sprite icon = ResolveSkillIcon(data.skillId);
-        widget.skillIcon.sprite = icon;
-        widget.skillIcon.enabled = icon != null;
-        widget.skillIcon.gameObject.SetActive(icon != null);
+        return result;
     }
 
     private Sprite ResolveSkillIcon(string skillId)
@@ -254,56 +249,45 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return entry != null ? entry.icon : null;
     }
 
-    private List<SkillSlotData> GetCurrentLoadout(bool createIfMissing)
+    private CharacterSkillLoadoutDatabase.CharacterSkillEntry ResolveLoadoutEntry(string characterId)
     {
-        return GetLoadout(currentCharacterId, createIfMissing);
-    }
-
-    private List<SkillSlotData> GetLoadout(string characterId, bool createIfMissing)
-    {
-        string resolvedCharacterId = ResolveCharacterId(characterId);
-        List<SkillSlotData> loadout;
-        if (loadoutByCharacter.TryGetValue(resolvedCharacterId, out loadout))
+        if (loadoutDatabase == null)
         {
-            return loadout;
+            loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         }
 
-        if (!createIfMissing)
+        if (loadoutDatabase == null)
         {
             return null;
         }
 
-        loadout = new List<SkillSlotData>();
-        EnsureSize(loadout, journeySkillSlots.Count);
-        loadoutByCharacter[resolvedCharacterId] = loadout;
-        return loadout;
-    }
-
-    private string ResolveCharacterId(string characterId)
-    {
-        return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
-    }
-
-    private static void EnsureSize(List<SkillSlotData> data, int size)
-    {
-        while (data.Count < size)
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = loadoutDatabase.FindEntry(ResolveCharacterId(characterId));
+        if (entry != null)
         {
-            data.Add(default);
+            return entry;
         }
 
-        while (data.Count > size)
+        entry = loadoutDatabase.FindEntry(DefaultCharacterId);
+        if (entry != null)
         {
-            data.RemoveAt(data.Count - 1);
+            return entry;
         }
+
+        List<CharacterSkillLoadoutDatabase.CharacterSkillEntry> entries = loadoutDatabase.Entries;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            CharacterSkillLoadoutDatabase.CharacterSkillEntry candidate = entries[i];
+            if (candidate != null && candidate.skillIds != null && candidate.skillIds.Count > 0)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private static Image EnsureOverlayIcon(RectTransform slotRoot)
     {
-        if (slotRoot == null)
-        {
-            return null;
-        }
-
         Transform existing = FindChildByName(slotRoot, OverlayIconName);
         if (existing == null)
         {
@@ -313,7 +297,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         RectTransform rect = existing as RectTransform;
-        Image image = existing.GetComponent<Image>();
+        Image image = existing != null ? existing.GetComponent<Image>() : null;
         if (rect == null || image == null)
         {
             return null;
@@ -328,48 +312,13 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         image.raycastTarget = false;
         image.preserveAspect = true;
+        image.color = Color.white;
         return image;
     }
 
-    private static Transform FindTransformByPath(string path)
+    private string ResolveCharacterId(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        string[] segments = path.Split('/');
-        if (segments.Length == 0)
-        {
-            return null;
-        }
-
-        GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
-        Transform current = null;
-        for (int i = 0; i < roots.Length; i++)
-        {
-            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
-            {
-                current = roots[i].transform;
-                break;
-            }
-        }
-
-        if (current == null)
-        {
-            return null;
-        }
-
-        for (int i = 1; i < segments.Length; i++)
-        {
-            current = FindChildByName(current, segments[i]);
-            if (current == null)
-            {
-                return null;
-            }
-        }
-
-        return current;
+        return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

@@ -6,11 +6,25 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private const string AssetFolder = "Assets/Resources";
     private const string AssetPath = AssetFolder + "/BattleSkillDatabase.asset";
 
+    private static readonly string[] SkillGroupLabels =
+    {
+        "特殊",
+        "战技",
+        "法术"
+    };
+
     private static readonly string[] SkillTypeLabels =
     {
-        "移动",
         "点选技能",
         "范围技能"
+    };
+
+    private static readonly string[] CastTargetLabels =
+    {
+        "自己（当前回合角色）",
+        "敌人",
+        "队友（除当前回合角色）",
+        "全部（所有有ID的战场单位）"
     };
 
     private Vector2 scroll;
@@ -20,7 +34,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static void Open()
     {
         BattleSkillEditorWindow window = GetWindow<BattleSkillEditorWindow>("技能编辑器");
-        window.minSize = new Vector2(640f, 460f);
+        window.minSize = new Vector2(680f, 480f);
         window.Show();
         window.Focus();
     }
@@ -31,7 +45,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
         EditorGUILayout.LabelField("战斗技能配置", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "这里先管理技能模板。默认已建立“移动”技能，技能类型包含：移动、点选技能、范围技能。",
+            "技能分组固定为：特殊、战技、法术。移动技能保留技能ID“移动”，但现在属于“特殊 + 范围技能”。",
             MessageType.Info);
         EditorGUILayout.Space(4f);
 
@@ -73,6 +87,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         for (int i = 0; i < entries.arraySize; i++)
         {
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
+            SerializedProperty group = entry.FindPropertyRelative("group");
             SerializedProperty skillType = entry.FindPropertyRelative("skillType");
             SerializedProperty useMoveDistanceAsRange = entry.FindPropertyRelative("useMoveDistanceAsRange");
 
@@ -88,12 +103,12 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     }
                 }
 
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("group"), new GUIContent("分组"));
+                group.enumValueIndex = EditorGUILayout.Popup("分组", group.enumValueIndex, SkillGroupLabels);
                 skillType.enumValueIndex = EditorGUILayout.Popup("技能类型", skillType.enumValueIndex, SkillTypeLabels);
+                SerializedProperty castTarget = entry.FindPropertyRelative("castTarget");
+                castTarget.enumValueIndex = EditorGUILayout.Popup("施法对象", castTarget.enumValueIndex, CastTargetLabels);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("技能图标"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("AP消耗"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("MP消耗"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("冷却时间（回合）"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("战技伤害倍率"));
 
                 bool rangeFromMoveDistance = EditorGUILayout.Toggle("射程取移动距离", useMoveDistanceAsRange.boolValue);
                 useMoveDistanceAsRange.boolValue = rangeFromMoveDistance;
@@ -106,12 +121,19 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     EditorGUILayout.LabelField("射程", "取自角色的移动距离");
                 }
 
-                SerializedProperty effectSize = entry.FindPropertyRelative("effectSize");
-                Vector2Int size = effectSize.vector2IntValue;
-                int width = EditorGUILayout.IntField("作用范围宽", Mathf.Max(1, size.x));
-                int height = EditorGUILayout.IntField("作用范围高", Mathf.Max(1, size.y));
-                effectSize.vector2IntValue = new Vector2Int(width, height);
-                EditorGUILayout.LabelField("作用范围", $"{Mathf.Max(1, width)}x{Mathf.Max(1, height)}");
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("冷却时间（回合）"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("魔法消耗（MP）"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("行动力消耗（AP）"));
+
+                if ((BattleSkillDatabase.SkillType)skillType.enumValueIndex == BattleSkillDatabase.SkillType.Area)
+                {
+                    SerializedProperty effectSize = entry.FindPropertyRelative("effectSize");
+                    Vector2Int size = effectSize.vector2IntValue;
+                    int width = EditorGUILayout.IntField("作用范围宽", Mathf.Max(1, size.x));
+                    int height = EditorGUILayout.IntField("作用范围高", Mathf.Max(1, size.y));
+                    effectSize.vector2IntValue = new Vector2Int(width, height);
+                    EditorGUILayout.LabelField("作用范围", $"{Mathf.Max(1, width)}x{Mathf.Max(1, height)}");
+                }
             }
         }
 
@@ -131,15 +153,17 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static void ResetEntry(SerializedProperty entry)
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
-        entry.FindPropertyRelative("group").stringValue = "技能";
-        entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Move;
+        entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
+        entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
+        entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
+        entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;
         entry.FindPropertyRelative("cooldownTurns").intValue = 0;
-        entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = true;
-        entry.FindPropertyRelative("range").intValue = 0;
-        entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(3, 3);
+        entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = false;
+        entry.FindPropertyRelative("range").intValue = 1;
+        entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
     }
 
     private static BattleSkillDatabase EnsureDatabase()
@@ -170,8 +194,15 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             return;
         }
 
-        if (database.FindEntry(BattleSkillDatabase.MoveSkillId) != null)
+        BattleSkillDatabase.SkillEntry moveSkill = database.FindEntry(BattleSkillDatabase.MoveSkillId);
+        if (moveSkill != null)
         {
+            moveSkill.group = BattleSkillDatabase.SkillGroup.Special;
+            moveSkill.skillType = BattleSkillDatabase.SkillType.Area;
+            moveSkill.useMoveDistanceAsRange = true;
+            moveSkill.effectSize = new Vector2Int(3, 3);
+            EditorUtility.SetDirty(database);
+            AssetDatabase.SaveAssets();
             return;
         }
 
@@ -185,9 +216,11 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         return new BattleSkillDatabase.SkillEntry
         {
             skillId = BattleSkillDatabase.MoveSkillId,
-            group = "技能",
-            skillType = BattleSkillDatabase.SkillType.Move,
+            group = BattleSkillDatabase.SkillGroup.Special,
+            skillType = BattleSkillDatabase.SkillType.Area,
+            castTarget = BattleSkillDatabase.CastTarget.Self,
             icon = null,
+            damageMultiplier = 1f,
             actionPointCost = 1,
             manaCost = 0,
             cooldownTurns = 0,
