@@ -38,12 +38,17 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
     private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
+    private readonly Color skillCostNormalColor = Color.white;
+    private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
 
     private BattleGrid grid;
     private Camera battleCamera;
     private BattleUnit activeUnit;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
+    private RectTransform overlayCanvasRect;
+    private RectTransform skillCostHintRect;
+    private TMP_Text skillCostHintText;
     private Transform timelineAnchor;
     private Button endTurnButton;
     private Button moveSkillButton;
@@ -59,6 +64,7 @@ public class BattleTurnSystem : MonoBehaviour
     private Vector2Int skillHoverCell;
     private bool skillHoverValid;
     private bool skillHoverHasAnyVisibleCells;
+    private int skillHoverActionPointCost;
 
     public BattleUnit ActiveUnit
     {
@@ -70,6 +76,9 @@ public class BattleTurnSystem : MonoBehaviour
         grid = battleGrid;
         battleCamera = mainCamera;
         activeUnitIdText = FindActiveUnitIdText();
+        overlayCanvasRect = null;
+        skillCostHintRect = null;
+        skillCostHintText = null;
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
         EnsureTimelineMask();
         BindEndTurnButton();
@@ -101,6 +110,20 @@ public class BattleTurnSystem : MonoBehaviour
 
         StartNewRound();
         BeginCurrentTurn();
+    }
+
+    public void SetSkillCostHintText(TMP_Text hintText)
+    {
+        skillCostHintText = hintText;
+        skillCostHintRect = hintText != null ? hintText.rectTransform : null;
+        overlayCanvasRect = skillCostHintRect != null ? skillCostHintRect.GetComponentInParent<Canvas>()?.transform as RectTransform : null;
+
+        if (skillCostHintText != null)
+        {
+            skillCostHintText.raycastTarget = false;
+            skillCostHintText.text = string.Empty;
+            skillCostHintText.gameObject.SetActive(false);
+        }
     }
 
     private void OnDestroy()
@@ -230,9 +253,8 @@ public class BattleTurnSystem : MonoBehaviour
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
         BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
-        int moveActionPointCost = GetSkillActionPointCost(moveSkill);
         int moveManaCost = GetSkillManaCost(moveSkill);
-        if (unit == null || !unit.CanSpendActionPoints(moveActionPointCost) || !unit.CanSpendMana(moveManaCost))
+        if (unit == null || !unit.CanSpendMana(moveManaCost))
         {
             return;
         }
@@ -253,7 +275,13 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (path.Count - 1 > GetSkillRange(moveSkill, unit))
+        int moveActionPointCost = GetMoveActionPointCost(unit, path, moveSkill);
+        if (!unit.CanSpendActionPoints(moveActionPointCost))
+        {
+            return;
+        }
+
+        if (path.Count - 1 > GetMoveMaxRange(unit, moveSkill))
         {
             return;
         }
@@ -435,7 +463,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (activeUnit.isPlayerControlled && IsSkillModeActive())
         {
-            int moveRange = GetSkillRange(activeSkill, activeUnit);
+            int moveRange = GetDisplayedSkillRange(activeUnit, activeSkill);
             grid.HighlightReachable(activeUnit, moveRange);
             grid.HighlightOccupiedUnitsWithinRange(
                 activeUnit,
@@ -1446,6 +1474,7 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
+            HideSkillCostHint();
             return;
         }
 
@@ -1461,6 +1490,7 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
+            HideSkillCostHint();
             return;
         }
 
@@ -1475,20 +1505,24 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
+            HideSkillCostHint();
             return;
         }
 
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
         List<Vector2Int> path = footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
-        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetSkillRange(activeSkill, activeUnit);
+        int actionPointCost = GetHoveredSkillActionPointCost(activeUnit, path, activeSkill);
+        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetDisplayedSkillRange(activeUnit, activeSkill);
         bool previewValid = footprintInside && withinMoveRange;
         bool hasAnyVisibleCells = HasAnyVisibleSkillPreviewCells(hoveredCell);
 
         if (hasSkillHoverPreview &&
             skillHoverCell == hoveredCell &&
             skillHoverValid == previewValid &&
-            skillHoverHasAnyVisibleCells == hasAnyVisibleCells)
+            skillHoverHasAnyVisibleCells == hasAnyVisibleCells &&
+            skillHoverActionPointCost == actionPointCost)
         {
+            UpdateSkillCostHint();
             return;
         }
 
@@ -1496,7 +1530,9 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverCell = hoveredCell;
         skillHoverValid = previewValid;
         skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
+        skillHoverActionPointCost = actionPointCost;
         RefreshHighlights();
+        UpdateSkillCostHint();
     }
 
     private void ApplySkillHoverPreview()
@@ -1561,6 +1597,8 @@ public class BattleTurnSystem : MonoBehaviour
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
+        skillHoverActionPointCost = 0;
+        HideSkillCostHint();
     }
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
@@ -1596,6 +1634,21 @@ public class BattleTurnSystem : MonoBehaviour
         return skill.ResolveRange(unit.moveDistance);
     }
 
+    private int GetDisplayedSkillRange(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (unit == null)
+        {
+            return 0;
+        }
+
+        if (skill != null && string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        {
+            return GetMoveMaxRange(unit, skill);
+        }
+
+        return GetSkillRange(skill, unit);
+    }
+
     private int GetSkillActionPointCost(BattleSkillDatabase.SkillEntry skill)
     {
         if (skill == null)
@@ -1626,6 +1679,130 @@ public class BattleTurnSystem : MonoBehaviour
         return skillDatabase != null
             ? skillDatabase.FindEntry(skillId)
             : null;
+    }
+
+    private int GetMoveMaxRange(BattleUnit unit, BattleSkillDatabase.SkillEntry moveSkill)
+    {
+        if (unit == null)
+        {
+            return 0;
+        }
+
+        int segmentDistance = Mathf.Max(1, unit.moveDistance);
+        int actionPointCostPerSegment = Mathf.Max(1, GetSkillActionPointCost(moveSkill));
+        int segmentCount = unit.currentActionPoints / actionPointCostPerSegment;
+        return segmentCount * segmentDistance;
+    }
+
+    private int GetMoveActionPointCost(BattleUnit unit, List<Vector2Int> path, BattleSkillDatabase.SkillEntry moveSkill)
+    {
+        if (unit == null || path == null || path.Count <= 1)
+        {
+            return 0;
+        }
+
+        int steps = path.Count - 1;
+        int segmentDistance = Mathf.Max(1, unit.moveDistance);
+        int segmentCount = Mathf.CeilToInt((float)steps / segmentDistance);
+        int actionPointCostPerSegment = Mathf.Max(1, GetSkillActionPointCost(moveSkill));
+        return segmentCount * actionPointCostPerSegment;
+    }
+
+    private int GetHoveredSkillActionPointCost(BattleUnit unit, List<Vector2Int> path, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (unit == null || path == null || path.Count <= 1 || skill == null)
+        {
+            return 0;
+        }
+
+        if (string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        {
+            return GetMoveActionPointCost(unit, path, skill);
+        }
+
+        return GetSkillActionPointCost(skill);
+    }
+
+    private void UpdateSkillCostHint()
+    {
+        if (!IsSkillModeActive() || !hasSkillHoverPreview || !skillHoverHasAnyVisibleCells || skillHoverActionPointCost <= 0)
+        {
+            HideSkillCostHint();
+            return;
+        }
+
+        TMP_Text hint = EnsureSkillCostHint();
+        RectTransform canvasRect = overlayCanvasRect;
+        if (hint == null || canvasRect == null)
+        {
+            return;
+        }
+
+        hint.text = "消耗行动点：" + skillHoverActionPointCost;
+        hint.color = activeUnit != null && skillHoverActionPointCost > activeUnit.currentActionPoints
+            ? skillCostInsufficientColor
+            : skillCostNormalColor;
+        hint.gameObject.SetActive(true);
+
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, Input.mousePosition, null, out localPoint);
+        skillCostHintRect.anchoredPosition = localPoint + new Vector2(90f, -28f);
+    }
+
+    private TMP_Text EnsureSkillCostHint()
+    {
+        if (skillCostHintText != null && overlayCanvasRect != null)
+        {
+            return skillCostHintText;
+        }
+
+        Transform canvasTransform = FindTransformByPath("Canvas");
+        if (canvasTransform == null)
+        {
+            return null;
+        }
+
+        overlayCanvasRect = canvasTransform as RectTransform;
+        if (overlayCanvasRect == null)
+        {
+            return null;
+        }
+
+        Transform existing = FindChildByName(canvasTransform, "SkillCostHint");
+        if (existing == null)
+        {
+            GameObject hintObject = new GameObject("SkillCostHint", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            existing = hintObject.transform;
+            existing.SetParent(canvasTransform, false);
+        }
+
+        skillCostHintRect = existing as RectTransform;
+        skillCostHintText = existing.GetComponent<TMP_Text>();
+        if (skillCostHintRect == null || skillCostHintText == null)
+        {
+            return null;
+        }
+
+        skillCostHintRect.anchorMin = new Vector2(0.5f, 0.5f);
+        skillCostHintRect.anchorMax = new Vector2(0.5f, 0.5f);
+        skillCostHintRect.pivot = new Vector2(0f, 0.5f);
+        skillCostHintRect.sizeDelta = new Vector2(260f, 44f);
+
+        skillCostHintText.raycastTarget = false;
+        skillCostHintText.fontSize = 28f;
+        skillCostHintText.alignment = TextAlignmentOptions.Left;
+        skillCostHintText.color = skillCostNormalColor;
+        skillCostHintText.text = string.Empty;
+        skillCostHintText.gameObject.SetActive(false);
+        return skillCostHintText;
+    }
+
+    private void HideSkillCostHint()
+    {
+        if (skillCostHintText != null)
+        {
+            skillCostHintText.gameObject.SetActive(false);
+        }
     }
 
     public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()

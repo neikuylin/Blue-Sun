@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
@@ -31,6 +32,7 @@ public class BattleBootstrap : MonoBehaviour
 
     [Header("Scene References")]
     public Transform dungeonBoard;
+    public TMP_Text skillCostHintText;
 
     [Header("Placeholder")]
     public Vector3 placeholderScale = new Vector3(0.8f, 1.2f, 0.8f);
@@ -140,6 +142,7 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.enemyTimelineColor = enemyTimelineColor;
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
         turnSystem.Initialize(grid, mainCamera, units);
+        turnSystem.SetSkillCostHintText(skillCostHintText);
         RefreshPartyPortraits(GetSelectedPlayers());
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
