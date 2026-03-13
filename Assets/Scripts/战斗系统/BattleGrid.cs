@@ -32,7 +32,8 @@ public class BattleGrid : MonoBehaviour
     private Transform highlightRoot;
     private int highlightLayerOrder;
 
-    private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.22f);
+    private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.12f);
+    private Color reachableOutlineColor = new Color(0.20f, 0.70f, 1.00f, 0.57f);
     private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.26f);
     private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.30f);
     private Color boardOutlineColor = new Color(0.85f, 0.95f, 0.90f, 0.70f);
@@ -337,6 +338,9 @@ public class BattleGrid : MonoBehaviour
         }
 
         HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        HashSet<Vector2Int> selfCells = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> allyCells = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> enemyCells = new HashSet<Vector2Int>();
         foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
         {
             BattleUnit occupant = pair.Value;
@@ -351,18 +355,23 @@ public class BattleGrid : MonoBehaviour
             }
 
             highlightedUnits.Add(occupant);
-            Color color = enemyColor;
             if (occupant == activeUnit)
             {
-                color = selfColor;
+                AddFootprintCells(selfCells, occupant.currentCell, occupant.footprintSize);
             }
             else if (occupant.team == activeUnit.team)
             {
-                color = allyColor;
+                AddFootprintCells(allyCells, occupant.currentCell, occupant.footprintSize);
             }
-
-            CreateOverlay(CollectFootprintCells(occupant.currentCell, occupant.footprintSize), color, "OccupiedByTeam");
+            else
+            {
+                AddFootprintCells(enemyCells, occupant.currentCell, occupant.footprintSize);
+            }
         }
+
+        CreateOverlay(selfCells, selfColor, "OccupiedSelf");
+        CreateOverlay(allyCells, allyColor, "OccupiedAlly");
+        CreateOverlay(enemyCells, enemyColor, "OccupiedEnemy");
     }
 
     public void HighlightReachable(BattleUnit unit, int range)
@@ -392,7 +401,7 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
-        CreateOverlay(cells, reachableColor, "Reachable");
+        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Reachable");
     }
 
     public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
@@ -491,6 +500,11 @@ public class BattleGrid : MonoBehaviour
 
     private void CreateOverlay(HashSet<Vector2Int> cells, Color color, string name)
     {
+        CreateOverlay(cells, color, ResolveOutlineColor(color), name);
+    }
+
+    private void CreateOverlay(HashSet<Vector2Int> cells, Color fillColor, Color outlineColor, string name)
+    {
         if (cells == null || cells.Count == 0)
         {
             return;
@@ -505,12 +519,12 @@ public class BattleGrid : MonoBehaviour
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
         meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + (highlightLayerOrder * 0.002f));
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-        meshRenderer.sharedMaterial.color = color;
+        meshRenderer.sharedMaterial.color = fillColor;
 
         List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
         for (int i = 0; i < loops.Count; i++)
         {
-            CreateOutlineLoop(overlay.transform, loops[i], color, overlayY + 0.001f + (highlightLayerOrder * 0.002f));
+            CreateOutlineLoop(overlay.transform, loops[i], outlineColor, overlayY + 0.001f + (highlightLayerOrder * 0.002f));
         }
 
         highlightLayerOrder++;
@@ -682,7 +696,14 @@ public class BattleGrid : MonoBehaviour
         return simplified;
     }
 
-    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color fillColor, float y)
+    private static Color ResolveOutlineColor(Color fillColor)
+    {
+        Color lineColor = fillColor;
+        lineColor.a = Mathf.Clamp01(fillColor.a + 0.35f);
+        return lineColor;
+    }
+
+    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y)
     {
         if (loop == null || loop.Count < 2)
         {
@@ -694,8 +715,6 @@ public class BattleGrid : MonoBehaviour
 
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
         line.sharedMaterial = new Material(lineMaterialTemplate);
-        Color lineColor = fillColor;
-        lineColor.a = Mathf.Clamp01(fillColor.a + 0.35f);
         line.sharedMaterial.color = lineColor;
         line.loop = true;
         line.useWorldSpace = false;
