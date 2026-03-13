@@ -141,6 +141,7 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
         turnSystem.Initialize(grid, mainCamera, units);
         RefreshPartyPortraits(GetSelectedPlayers());
+        RefreshActionPointUi(turnSystem);
     }
 
     private void ResolveReferences()
@@ -337,6 +338,22 @@ public class BattleBootstrap : MonoBehaviour
 
         BattleTurnSystem turnSystem = GetComponent<BattleTurnSystem>();
         binder.Initialize(turnSystem, selectedPlayers);
+    }
+
+    private void RefreshActionPointUi(BattleTurnSystem turnSystem)
+    {
+        if (turnSystem == null)
+        {
+            return;
+        }
+
+        BattleActionPointBinder binder = GetComponent<BattleActionPointBinder>();
+        if (binder == null)
+        {
+            binder = gameObject.AddComponent<BattleActionPointBinder>();
+        }
+
+        binder.Initialize(turnSystem);
     }
 
     private void OnDrawGizmos()

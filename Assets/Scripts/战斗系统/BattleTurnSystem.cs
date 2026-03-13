@@ -57,6 +57,11 @@ public class BattleTurnSystem : MonoBehaviour
     private bool movementHoverValid;
     private bool movementHoverHasAnyVisibleCells;
 
+    public BattleUnit ActiveUnit
+    {
+        get { return activeUnit; }
+    }
+
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;
