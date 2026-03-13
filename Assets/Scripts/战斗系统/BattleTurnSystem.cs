@@ -10,7 +10,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
-    private const string MoveButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
+    private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -33,8 +33,8 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
     [HideInInspector] public Color activePlayerTimelineColor = Color.white;
 
-    private readonly Color movementPreviewValidColor = new Color(1.00f, 0.90f, 0.20f, 0.70f);
-    private readonly Color movementPreviewInvalidColor = new Color(1.00f, 0.25f, 0.20f, 0.60f);
+    private readonly Color skillPreviewValidColor = new Color(1.00f, 0.90f, 0.20f, 0.70f);
+    private readonly Color skillPreviewInvalidColor = new Color(1.00f, 0.25f, 0.20f, 0.60f);
     private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
     private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
@@ -46,18 +46,19 @@ public class BattleTurnSystem : MonoBehaviour
     private TMP_Text activeUnitIdText;
     private Transform timelineAnchor;
     private Button endTurnButton;
-    private Button moveButton;
+    private Button moveSkillButton;
     private BattleSkillDatabase skillDatabase;
     private TurnTimelineButtonDatabase timelineDatabase;
     private Coroutine timelineAnimationRoutine;
     private BattleUnit timelineLeadUnit;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
-    private bool movementModeActive;
-    private bool hasMovementHoverPreview;
-    private Vector2Int movementHoverCell;
-    private bool movementHoverValid;
-    private bool movementHoverHasAnyVisibleCells;
+    private string activeSkillId = string.Empty;
+    private BattleSkillDatabase.SkillEntry activeSkill;
+    private bool hasSkillHoverPreview;
+    private Vector2Int skillHoverCell;
+    private bool skillHoverValid;
+    private bool skillHoverHasAnyVisibleCells;
 
     public BattleUnit ActiveUnit
     {
@@ -72,7 +73,7 @@ public class BattleTurnSystem : MonoBehaviour
         timelineAnchor = FindTransformByPath(TimelineAnchorPath);
         EnsureTimelineMask();
         BindEndTurnButton();
-        BindMoveButton();
+        BindSkillButton();
         skillDatabase = BattleSkillDatabase.LoadDefault();
         timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
         units.Clear();
@@ -85,7 +86,8 @@ public class BattleTurnSystem : MonoBehaviour
         waitingForEnemyAction = false;
         currentRoundIndex = -1;
         absoluteRoundIndex = -1;
-        movementModeActive = false;
+        activeSkillId = string.Empty;
+        activeSkill = null;
         timelineLeadUnit = null;
         lastTimelineSlots.Clear();
 
@@ -104,7 +106,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void OnDestroy()
     {
         UnbindEndTurnButton();
-        UnbindMoveButton();
+        UnbindSkillButton();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
@@ -134,7 +136,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (activeUnit.isPlayerControlled)
         {
-            UpdateMovementHoverPreview();
+            UpdateSkillHoverPreview();
             HandlePlayerInput();
             return;
         }
@@ -169,15 +171,15 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         BattleUnit target = grid.GetUnitAt(clickedCell);
-        if (target != null && target.team != activeUnit.team)
+        if (IsSkillModeActive())
         {
-            TryAttack(activeUnit, target);
+            TryUseActiveSkill(activeUnit, clickedCell, target);
             return;
         }
 
-        if (movementModeActive)
+        if (target != null && target.team != activeUnit.team)
         {
-            TryMove(activeUnit, clickedCell);
+            TryAttack(activeUnit, target);
         }
     }
 
@@ -227,8 +229,9 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
-        int moveActionPointCost = GetMoveSkillActionPointCost();
-        int moveManaCost = GetMoveSkillManaCost();
+        BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
+        int moveActionPointCost = GetSkillActionPointCost(moveSkill);
+        int moveManaCost = GetSkillManaCost(moveSkill);
         if (unit == null || !unit.CanSpendActionPoints(moveActionPointCost) || !unit.CanSpendMana(moveManaCost))
         {
             return;
@@ -250,7 +253,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (path.Count - 1 > GetMoveSkillRange(unit))
+        if (path.Count - 1 > GetSkillRange(moveSkill, unit))
         {
             return;
         }
@@ -258,9 +261,7 @@ public class BattleTurnSystem : MonoBehaviour
         grid.MoveUnit(unit, destination);
         unit.SpendActionPoints(moveActionPointCost);
         unit.SpendMana(moveManaCost);
-        movementModeActive = false;
-        hasMovementHoverPreview = false;
-        movementHoverHasAnyVisibleCells = false;
+        ClearActiveSkillMode();
         RefreshHighlights();
     }
 
@@ -298,8 +299,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void EndTurn()
     {
         waitingForEnemyAction = false;
-        movementModeActive = false;
-        hasMovementHoverPreview = false;
+        ClearActiveSkillMode();
         AdvanceTurn();
     }
 
@@ -361,8 +361,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 activeUnit = candidate;
                 activeUnit.BeginTurn();
-                movementModeActive = false;
-                hasMovementHoverPreview = false;
+                ClearActiveSkillMode();
                 RefreshHighlights();
                 RefreshActiveUnitUi();
                 RefreshTimeline();
@@ -434,9 +433,9 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (activeUnit.isPlayerControlled && movementModeActive)
+        if (activeUnit.isPlayerControlled && IsSkillModeActive())
         {
-            int moveRange = GetMoveSkillRange(activeUnit);
+            int moveRange = GetSkillRange(activeSkill, activeUnit);
             grid.HighlightReachable(activeUnit, moveRange);
             grid.HighlightOccupiedUnitsWithinRange(
                 activeUnit,
@@ -447,7 +446,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         grid.HighlightAttackTargets(activeUnit);
-        ApplyMovementHoverPreview();
+        ApplySkillHoverPreview();
     }
 
     private void CleanupDeadUnits()
@@ -1213,8 +1212,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         unit.gameObject.SetActive(false);
         waitingForEnemyAction = false;
-        hasMovementHoverPreview = false;
-        movementHoverHasAnyVisibleCells = false;
+        ClearActiveSkillMode();
 
         if (wasActiveUnit)
         {
@@ -1391,6 +1389,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     public void ToggleMovementMode()
     {
+        ToggleSkillMode(BattleSkillDatabase.MoveSkillId);
+    }
+
+    public void ToggleSkillMode(string skillId)
+    {
         if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
         {
             return;
@@ -1401,34 +1404,45 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!activeUnit.CanSpendActionPoints(GetMoveSkillActionPointCost()) ||
-            !activeUnit.CanSpendMana(GetMoveSkillManaCost()))
+        BattleSkillDatabase.SkillEntry nextSkill = ResolveSkill(skillId);
+        if (nextSkill == null)
         {
-            movementModeActive = false;
-            hasMovementHoverPreview = false;
-            movementHoverHasAnyVisibleCells = false;
+            ClearActiveSkillMode();
             RefreshHighlights();
             return;
         }
 
-        movementModeActive = !movementModeActive;
-        if (!movementModeActive)
+        if (!activeUnit.CanSpendActionPoints(GetSkillActionPointCost(nextSkill)) ||
+            !activeUnit.CanSpendMana(GetSkillManaCost(nextSkill)))
         {
-            hasMovementHoverPreview = false;
-            movementHoverHasAnyVisibleCells = false;
+            ClearActiveSkillMode();
+            RefreshHighlights();
+            return;
+        }
+
+        if (string.Equals(activeSkillId, skillId, System.StringComparison.Ordinal))
+        {
+            ClearActiveSkillMode();
+        }
+        else
+        {
+            activeSkillId = skillId;
+            activeSkill = nextSkill;
+            hasSkillHoverPreview = false;
+            skillHoverHasAnyVisibleCells = false;
         }
 
         RefreshHighlights();
     }
 
-    private void UpdateMovementHoverPreview()
+    private void UpdateSkillHoverPreview()
     {
-        if (!movementModeActive || activeUnit == null || !activeUnit.IsAlive)
+        if (!IsSkillModeActive() || activeUnit == null || !activeUnit.IsAlive)
         {
-            if (hasMovementHoverPreview || movementHoverHasAnyVisibleCells)
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells)
             {
-                hasMovementHoverPreview = false;
-                movementHoverHasAnyVisibleCells = false;
+                hasSkillHoverPreview = false;
+                skillHoverHasAnyVisibleCells = false;
                 RefreshHighlights();
             }
 
@@ -1441,9 +1455,9 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (!clickPlane.Raycast(ray, out enter))
         {
-            if (hasMovementHoverPreview)
+            if (hasSkillHoverPreview)
             {
-                hasMovementHoverPreview = false;
+                hasSkillHoverPreview = false;
                 RefreshHighlights();
             }
 
@@ -1454,10 +1468,10 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
-            if (hasMovementHoverPreview || movementHoverHasAnyVisibleCells)
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells)
             {
-                hasMovementHoverPreview = false;
-                movementHoverHasAnyVisibleCells = false;
+                hasSkillHoverPreview = false;
+                skillHoverHasAnyVisibleCells = false;
                 RefreshHighlights();
             }
 
@@ -1466,45 +1480,45 @@ public class BattleTurnSystem : MonoBehaviour
 
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
         List<Vector2Int> path = footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
-        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetMoveSkillRange(activeUnit);
+        bool withinMoveRange = path != null && path.Count > 1 && path.Count - 1 <= GetSkillRange(activeSkill, activeUnit);
         bool previewValid = footprintInside && withinMoveRange;
-        bool hasAnyVisibleCells = HasAnyVisibleMovementPreviewCells(hoveredCell);
+        bool hasAnyVisibleCells = HasAnyVisibleSkillPreviewCells(hoveredCell);
 
-        if (hasMovementHoverPreview &&
-            movementHoverCell == hoveredCell &&
-            movementHoverValid == previewValid &&
-            movementHoverHasAnyVisibleCells == hasAnyVisibleCells)
+        if (hasSkillHoverPreview &&
+            skillHoverCell == hoveredCell &&
+            skillHoverValid == previewValid &&
+            skillHoverHasAnyVisibleCells == hasAnyVisibleCells)
         {
             return;
         }
 
-        hasMovementHoverPreview = hasAnyVisibleCells;
-        movementHoverCell = hoveredCell;
-        movementHoverValid = previewValid;
-        movementHoverHasAnyVisibleCells = hasAnyVisibleCells;
+        hasSkillHoverPreview = hasAnyVisibleCells;
+        skillHoverCell = hoveredCell;
+        skillHoverValid = previewValid;
+        skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
         RefreshHighlights();
     }
 
-    private void ApplyMovementHoverPreview()
+    private void ApplySkillHoverPreview()
     {
-        if (!movementModeActive || !hasMovementHoverPreview || !movementHoverHasAnyVisibleCells || activeUnit == null)
+        if (!IsSkillModeActive() || !hasSkillHoverPreview || !skillHoverHasAnyVisibleCells || activeUnit == null)
         {
             return;
         }
 
-        if (movementHoverValid)
+        if (skillHoverValid)
         {
             grid.HighlightFootprintAt(
-                movementHoverCell,
+                skillHoverCell,
                 activeUnit.footprintSize,
-                movementPreviewValidColor);
+                skillPreviewValidColor);
             return;
         }
 
-        grid.HighlightPartialFootprint(activeUnit, movementHoverCell, movementPreviewInvalidColor);
+        grid.HighlightPartialFootprint(activeUnit, skillHoverCell, skillPreviewInvalidColor);
     }
 
-    private bool HasAnyVisibleMovementPreviewCells(Vector2Int centerCell)
+    private bool HasAnyVisibleSkillPreviewCells(Vector2Int centerCell)
     {
         if (activeUnit == null)
         {
@@ -1535,45 +1549,74 @@ public class BattleTurnSystem : MonoBehaviour
         return false;
     }
 
-    private int GetMoveSkillRange(BattleUnit unit)
+    private bool IsSkillModeActive()
+    {
+        return activeSkill != null && !string.IsNullOrWhiteSpace(activeSkillId);
+    }
+
+    private void ClearActiveSkillMode()
+    {
+        activeSkillId = string.Empty;
+        activeSkill = null;
+        hasSkillHoverPreview = false;
+        skillHoverValid = false;
+        skillHoverHasAnyVisibleCells = false;
+    }
+
+    private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
+    {
+        if (!IsSkillModeActive())
+        {
+            return;
+        }
+
+        if (string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        {
+            if (target != null && target != unit)
+            {
+                return;
+            }
+
+            TryMove(unit, clickedCell);
+        }
+    }
+
+    private int GetSkillRange(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
         if (unit == null)
         {
             return 0;
         }
 
-        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
-        if (moveSkill == null)
+        if (skill == null)
         {
             return unit.moveDistance;
         }
 
-        return moveSkill.ResolveRange(unit.moveDistance);
+        return skill.ResolveRange(unit.moveDistance);
     }
 
-    private int GetMoveSkillActionPointCost()
+    private int GetSkillActionPointCost(BattleSkillDatabase.SkillEntry skill)
     {
-        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
-        if (moveSkill == null)
+        if (skill == null)
         {
             return 0;
         }
 
-        return moveSkill.ResolveActionPointCost();
+        return skill.ResolveActionPointCost();
     }
 
-    private int GetMoveSkillManaCost()
+    private int GetSkillManaCost(BattleSkillDatabase.SkillEntry skill)
     {
-        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
-        if (moveSkill == null)
+        if (skill == null)
         {
             return 0;
         }
 
-        return moveSkill.ResolveManaCost();
+        return skill.ResolveManaCost();
     }
 
-    private BattleSkillDatabase.SkillEntry GetMoveSkill()
+    private BattleSkillDatabase.SkillEntry ResolveSkill(string skillId)
     {
         if (skillDatabase == null)
         {
@@ -1581,7 +1624,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return skillDatabase != null
-            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
+            ? skillDatabase.FindEntry(skillId)
             : null;
     }
 
@@ -1651,23 +1694,23 @@ public class BattleTurnSystem : MonoBehaviour
         endTurnButton.onClick.AddListener(RequestEndTurn);
     }
 
-    private void BindMoveButton()
+    private void BindSkillButton()
     {
-        UnbindMoveButton();
+        UnbindSkillButton();
 
-        Transform buttonTransform = FindTransformByPath(MoveButtonPath);
+        Transform buttonTransform = FindTransformByPath(MoveSkillButtonPath);
         if (buttonTransform == null)
         {
             return;
         }
 
-        moveButton = buttonTransform.GetComponent<Button>();
-        if (moveButton == null)
+        moveSkillButton = buttonTransform.GetComponent<Button>();
+        if (moveSkillButton == null)
         {
             return;
         }
 
-        moveButton.onClick.AddListener(ToggleMovementMode);
+        moveSkillButton.onClick.AddListener(ToggleMovementMode);
     }
 
     private void UnbindEndTurnButton()
@@ -1681,15 +1724,15 @@ public class BattleTurnSystem : MonoBehaviour
         endTurnButton = null;
     }
 
-    private void UnbindMoveButton()
+    private void UnbindSkillButton()
     {
-        if (moveButton == null)
+        if (moveSkillButton == null)
         {
             return;
         }
 
-        moveButton.onClick.RemoveListener(ToggleMovementMode);
-        moveButton = null;
+        moveSkillButton.onClick.RemoveListener(ToggleMovementMode);
+        moveSkillButton = null;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

@@ -295,7 +295,6 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         entry.FindPropertyRelative("agility").intValue = 0;
         entry.FindPropertyRelative("intelligence").intValue = 0;
         entry.FindPropertyRelative("actionPoints").intValue = 4;
-        entry.FindPropertyRelative("moveDistance").intValue = 0;
     }
 
     private static List<string> CollectKnownIds(CharacterStatDatabase database)

@@ -8,6 +8,7 @@ using UnityEngine.UI;
 public sealed class BattleActionPointBinder : MonoBehaviour
 {
     private const string ActionPointPanelPath = "Canvas/下方栏位/角色操作栏/角色栏/行动力面板";
+
     private readonly List<GameObject> actionPointIndicators = new List<GameObject>();
     private BattleTurnSystem turnSystem;
     private int lastCurrentPoints = int.MinValue;
@@ -48,12 +49,10 @@ public sealed class BattleActionPointBinder : MonoBehaviour
         for (int i = 0; i < panel.childCount; i++)
         {
             Transform child = panel.GetChild(i);
-            if (child == null)
+            if (child != null)
             {
-                continue;
+                pointSlots.Add(child);
             }
-
-            pointSlots.Add(child);
         }
 
         pointSlots.Sort((left, right) => left.GetSiblingIndex().CompareTo(right.GetSiblingIndex()));
@@ -76,9 +75,10 @@ public sealed class BattleActionPointBinder : MonoBehaviour
         }
 
         BattleUnit activeUnit = turnSystem.ActiveUnit;
-        int currentPoints = activeUnit != null ? Mathf.Max(0, activeUnit.currentActionPoints) : 0;
-        int maxPoints = activeUnit != null ? Mathf.Max(0, activeUnit.maxActionPoints) : 0;
-        string unitId = activeUnit != null ? activeUnit.characterId ?? string.Empty : string.Empty;
+        bool showPoints = activeUnit != null && activeUnit.IsAlive && activeUnit.isPlayerControlled;
+        int currentPoints = showPoints ? Mathf.Max(0, activeUnit.currentActionPoints) : 0;
+        int maxPoints = showPoints ? Mathf.Max(0, activeUnit.maxActionPoints) : 0;
+        string unitId = showPoints ? activeUnit.characterId ?? string.Empty : string.Empty;
         if (!force &&
             currentPoints == lastCurrentPoints &&
             maxPoints == lastMaxPoints &&

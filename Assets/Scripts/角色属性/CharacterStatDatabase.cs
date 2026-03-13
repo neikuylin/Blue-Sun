@@ -15,7 +15,6 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int agility;
         public int intelligence;
         public int actionPoints = 4;
-        public int moveDistance;
 
         public int ResolveActionPoints()
         {

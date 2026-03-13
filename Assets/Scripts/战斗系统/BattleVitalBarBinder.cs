@@ -11,6 +11,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private const string ManaPanelPath = "Canvas/下方栏位/角色操作栏/魔法值面板";
     private const string HealthFillName = "当前生命值";
     private const string ManaFillName = "当前魔法值";
+    private const string HealthSlotName = "生命槽位";
+    private const string ManaSlotName = "魔法槽位";
     private const string HealthTextName = "生命值数字";
     private const string ManaTextName = "魔法值数字";
 
@@ -48,7 +50,7 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         if (healthBackgroundImage == null || healthFillImage == null || healthText == null)
         {
             Transform panel = FindTransformByPath(HealthPanelPath);
-            healthBackgroundImage = panel != null ? panel.GetComponent<Image>() : null;
+            healthBackgroundImage = FindChildImage(panel, HealthSlotName);
             healthFillImage = FindChildImage(panel, HealthFillName);
             healthText = FindChildText(panel, HealthTextName);
             ConfigureFillImage(healthBackgroundImage, healthFillImage, HealthBarColor, fillFromRight: true);
@@ -57,7 +59,7 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         if (manaBackgroundImage == null || manaFillImage == null || manaText == null)
         {
             Transform panel = FindTransformByPath(ManaPanelPath);
-            manaBackgroundImage = panel != null ? panel.GetComponent<Image>() : null;
+            manaBackgroundImage = FindChildImage(panel, ManaSlotName);
             manaFillImage = FindChildImage(panel, ManaFillName);
             manaText = FindChildText(panel, ManaTextName);
             ConfigureFillImage(manaBackgroundImage, manaFillImage, ManaBarColor, fillFromRight: false);
