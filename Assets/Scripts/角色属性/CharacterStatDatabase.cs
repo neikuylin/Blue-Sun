@@ -24,7 +24,7 @@ public sealed class CharacterStatDatabase : ScriptableObject
 
         public int ResolveMoveDistance()
         {
-            return Mathf.Max(0, agility + 3);
+            return Mathf.Max(0, 2 + (agility / 3));
         }
 
         public int ResolveMaxHealth()
