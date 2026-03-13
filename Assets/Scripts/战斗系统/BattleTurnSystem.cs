@@ -35,7 +35,9 @@ public class BattleTurnSystem : MonoBehaviour
 
     private readonly Color movementPreviewValidColor = new Color(1.00f, 0.90f, 0.20f, 0.70f);
     private readonly Color movementPreviewInvalidColor = new Color(1.00f, 0.25f, 0.20f, 0.60f);
-    private readonly Color movementOccupiedColor = new Color(0.22f, 0.22f, 0.22f, 0.65f);
+    private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
+    private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
+    private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -434,11 +436,19 @@ public class BattleTurnSystem : MonoBehaviour
         {
             int moveRange = GetMoveSkillRange(activeUnit);
             grid.HighlightReachable(activeUnit, moveRange);
-            grid.HighlightOccupiedCellsWithinRange(activeUnit, moveRange, movementOccupiedColor);
+            grid.HighlightOccupiedUnitsWithinRange(
+                activeUnit,
+                moveRange,
+                skillSelfOccupiedColor,
+                skillAllyOccupiedColor,
+                skillEnemyOccupiedColor);
         }
 
         grid.HighlightAttackTargets(activeUnit);
-        grid.HighlightFootprint(activeUnit, new Color(1.00f, 0.90f, 0.20f, 0.60f));
+        if (!movementModeActive)
+        {
+            grid.HighlightFootprint(activeUnit, new Color(1.00f, 0.90f, 0.20f, 0.60f));
+        }
         ApplyMovementHoverPreview();
     }
 
@@ -1533,14 +1543,7 @@ public class BattleTurnSystem : MonoBehaviour
             return 0;
         }
 
-        if (skillDatabase == null)
-        {
-            skillDatabase = BattleSkillDatabase.LoadDefault();
-        }
-
-        BattleSkillDatabase.SkillEntry moveSkill = skillDatabase != null
-            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
-            : null;
+        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
         if (moveSkill == null)
         {
             return unit.moveDistance;
@@ -1551,20 +1554,25 @@ public class BattleTurnSystem : MonoBehaviour
 
     private int GetMoveSkillActionPointCost()
     {
-        if (skillDatabase == null)
-        {
-            skillDatabase = BattleSkillDatabase.LoadDefault();
-        }
-
-        BattleSkillDatabase.SkillEntry moveSkill = skillDatabase != null
-            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
-            : null;
+        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
         if (moveSkill == null)
         {
             return 0;
         }
 
         return moveSkill.ResolveActionPointCost();
+    }
+
+    private BattleSkillDatabase.SkillEntry GetMoveSkill()
+    {
+        if (skillDatabase == null)
+        {
+            skillDatabase = BattleSkillDatabase.LoadDefault();
+        }
+
+        return skillDatabase != null
+            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
+            : null;
     }
 
     public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()

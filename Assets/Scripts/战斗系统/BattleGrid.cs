@@ -11,45 +11,75 @@ public class BattleGrid : MonoBehaviour
         Vector2Int.left
     };
 
+    private static readonly Vector2Int[] OutlineDirections =
+    {
+        Vector2Int.right,
+        Vector2Int.up,
+        Vector2Int.left,
+        Vector2Int.down
+    };
+
     public int width = 20;
     public int height = 20;
     public float cellSize = 1f;
     public float overlayY = -0.05f;
 
     private readonly Dictionary<Vector2Int, BattleUnit> occupants = new Dictionary<Vector2Int, BattleUnit>();
-    private readonly Dictionary<Vector2Int, Renderer> cellRenderers = new Dictionary<Vector2Int, Renderer>();
 
-    private Material overlayMaterial;
-    private Color idleColorA = new Color(0.18f, 0.26f, 0.22f, 0.12f);
-    private Color idleColorB = new Color(0.22f, 0.32f, 0.26f, 0.12f);
-    private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.45f);
-    private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.50f);
-    private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.60f);
+    private Material fillMaterialTemplate;
+    private Material lineMaterialTemplate;
+    private Transform boardVisualRoot;
+    private Transform highlightRoot;
+    private int highlightLayerOrder;
+
+    private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.22f);
+    private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.26f);
+    private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.30f);
+    private Color boardOutlineColor = new Color(0.85f, 0.95f, 0.90f, 0.70f);
+
+    private struct Edge
+    {
+        public readonly Vector2Int start;
+        public readonly Vector2Int end;
+
+        public Edge(Vector2Int start, Vector2Int end)
+        {
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    private struct EdgeKey
+    {
+        public readonly Vector2Int a;
+        public readonly Vector2Int b;
+
+        public EdgeKey(Vector2Int start, Vector2Int end)
+        {
+            if (start.x < end.x || (start.x == end.x && start.y <= end.y))
+            {
+                a = start;
+                b = end;
+            }
+            else
+            {
+                a = end;
+                b = start;
+            }
+        }
+    }
 
     public void BuildVisuals()
     {
-        overlayMaterial = new Material(Shader.Find("Sprites/Default"));
+        EnsureVisualRoots();
+        ClearChildren(boardVisualRoot);
+        ClearChildren(highlightRoot);
 
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                GameObject tile = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                tile.name = "Cell_" + x + "_" + y;
-                tile.transform.SetParent(transform, false);
-                tile.transform.position = GetWorldPosition(cell, overlayY);
-                tile.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-                tile.transform.localScale = Vector3.one * (cellSize * 0.95f);
-                tile.GetComponent<Collider>().enabled = false;
+        fillMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
+        lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
 
-                Renderer renderer = tile.GetComponent<Renderer>();
-                renderer.material = new Material(overlayMaterial);
-                renderer.material.color = GetIdleColor(cell);
-
-                cellRenderers[cell] = renderer;
-            }
-        }
+        CreateBoardOutline();
+        highlightLayerOrder = 0;
     }
 
     public Vector3 GetWorldPosition(Vector2Int cell, float y = 0f)
@@ -201,36 +231,35 @@ public class BattleGrid : MonoBehaviour
 
     public void ResetHighlights()
     {
-        foreach (KeyValuePair<Vector2Int, Renderer> pair in cellRenderers)
-        {
-            pair.Value.sharedMaterial.color = GetIdleColor(pair.Key);
-            pair.Value.material.color = GetIdleColor(pair.Key);
-        }
+        EnsureVisualRoots();
+        ClearChildren(highlightRoot);
+        highlightLayerOrder = 0;
     }
 
     public void HighlightActive(Vector2Int cell)
     {
-        SetColor(cell, activeColor);
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int> { cell };
+        CreateOverlay(cells, activeColor, "Active");
     }
 
     public void HighlightFootprint(BattleUnit unit, Color color)
     {
-        int radius = unit.FootprintRadius;
-        for (int y = unit.currentCell.y - radius; y <= unit.currentCell.y + radius; y++)
+        if (unit == null)
         {
-            for (int x = unit.currentCell.x - radius; x <= unit.currentCell.x + radius; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (IsInside(cell))
-                {
-                    SetColor(cell, color);
-                }
-            }
+            return;
         }
+
+        CreateOverlay(CollectFootprintCells(unit.currentCell, unit.footprintSize), color, "Footprint");
     }
 
     public void HighlightAttackTargets(BattleUnit activeUnit)
     {
+        if (activeUnit == null)
+        {
+            return;
+        }
+
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -244,15 +273,18 @@ public class BattleGrid : MonoBehaviour
 
                 if (ManhattanDistance(activeUnit.currentCell, cell) <= activeUnit.attackRange)
                 {
-                    HighlightFootprint(target, attackColor);
+                    AddFootprintCells(cells, target.currentCell, target.footprintSize);
                 }
             }
         }
+
+        CreateOverlay(cells, attackColor, "AttackTargets");
     }
 
     public void HighlightOccupiedCells(BattleUnit ignoredUnit, Color color)
     {
         HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
         {
             BattleUnit occupant = pair.Value;
@@ -262,8 +294,10 @@ public class BattleGrid : MonoBehaviour
             }
 
             highlightedUnits.Add(occupant);
-            HighlightFootprint(occupant, color);
+            AddFootprintCells(cells, occupant.currentCell, occupant.footprintSize);
         }
+
+        CreateOverlay(cells, color, "Occupied");
     }
 
     public void HighlightOccupiedCellsWithinRange(BattleUnit activeUnit, int range, Color color)
@@ -274,6 +308,7 @@ public class BattleGrid : MonoBehaviour
         }
 
         HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
         {
             BattleUnit occupant = pair.Value;
@@ -288,22 +323,57 @@ public class BattleGrid : MonoBehaviour
             }
 
             highlightedUnits.Add(occupant);
-            HighlightFootprint(occupant, color);
+            AddFootprintCells(cells, occupant.currentCell, occupant.footprintSize);
         }
+
+        CreateOverlay(cells, color, "OccupiedInRange");
     }
 
-    private void SetColor(Vector2Int cell, Color color)
+    public void HighlightOccupiedUnitsWithinRange(BattleUnit activeUnit, int range, Color selfColor, Color allyColor, Color enemyColor)
     {
-        Renderer renderer;
-        if (cellRenderers.TryGetValue(cell, out renderer))
+        if (activeUnit == null)
         {
-            renderer.material.color = color;
+            return;
+        }
+
+        HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
+        foreach (KeyValuePair<Vector2Int, BattleUnit> pair in occupants)
+        {
+            BattleUnit occupant = pair.Value;
+            if (occupant == null || !occupant.IsAlive || highlightedUnits.Contains(occupant))
+            {
+                continue;
+            }
+
+            if (occupant != activeUnit && ManhattanDistance(activeUnit.currentCell, occupant.currentCell) > range)
+            {
+                continue;
+            }
+
+            highlightedUnits.Add(occupant);
+            Color color = enemyColor;
+            if (occupant == activeUnit)
+            {
+                color = selfColor;
+            }
+            else if (occupant.team == activeUnit.team)
+            {
+                color = allyColor;
+            }
+
+            CreateOverlay(CollectFootprintCells(occupant.currentCell, occupant.footprintSize), color, "OccupiedByTeam");
         }
     }
 
     public void HighlightReachable(BattleUnit unit, int range)
     {
+        if (unit == null)
+        {
+            return;
+        }
+
         Vector2Int origin = unit.currentCell;
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -317,31 +387,23 @@ public class BattleGrid : MonoBehaviour
                 List<Vector2Int> path = FindPath(unit, cell);
                 if (path != null && path.Count > 1 && path.Count - 1 <= range)
                 {
-                    HighlightFootprintAt(cell, unit.footprintSize, reachableColor);
+                    AddFootprintCells(cells, cell, unit.footprintSize);
                 }
             }
         }
+
+        CreateOverlay(cells, reachableColor, "Reachable");
     }
 
     public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
     {
-        int radius = Mathf.Max(0, footprintSize / 2);
-        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
-        {
-            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (IsInside(cell))
-                {
-                    SetColor(cell, color);
-                }
-            }
-        }
+        CreateOverlay(CollectFootprintCells(centerCell, footprintSize), color, "FootprintAt");
     }
 
     public void HighlightPartialFootprint(BattleUnit unit, Vector2Int centerCell, Color color)
     {
         int radius = unit != null ? unit.FootprintRadius : 0;
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
             for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
@@ -358,7 +420,322 @@ public class BattleGrid : MonoBehaviour
                     continue;
                 }
 
-                SetColor(cell, color);
+                cells.Add(cell);
+            }
+        }
+
+        CreateOverlay(cells, color, "PartialFootprint");
+    }
+
+    private void EnsureVisualRoots()
+    {
+        if (boardVisualRoot == null)
+        {
+            Transform existing = transform.Find("BoardVisuals");
+            if (existing != null)
+            {
+                boardVisualRoot = existing;
+            }
+            else
+            {
+                GameObject root = new GameObject("BoardVisuals");
+                root.transform.SetParent(transform, false);
+                boardVisualRoot = root.transform;
+            }
+        }
+
+        if (highlightRoot == null)
+        {
+            Transform existing = transform.Find("HighlightVisuals");
+            if (existing != null)
+            {
+                highlightRoot = existing;
+            }
+            else
+            {
+                GameObject root = new GameObject("HighlightVisuals");
+                root.transform.SetParent(transform, false);
+                highlightRoot = root.transform;
+            }
+        }
+    }
+
+    private void CreateBoardOutline()
+    {
+        GameObject outlineObject = new GameObject("BoardOutline");
+        outlineObject.transform.SetParent(boardVisualRoot, false);
+
+        LineRenderer line = outlineObject.AddComponent<LineRenderer>();
+        line.sharedMaterial = new Material(lineMaterialTemplate);
+        line.sharedMaterial.color = boardOutlineColor;
+        line.loop = true;
+        line.useWorldSpace = false;
+        line.textureMode = LineTextureMode.Stretch;
+        line.numCornerVertices = 20;
+        line.numCapVertices = 20;
+        line.widthMultiplier = cellSize * 0.12f;
+        line.alignment = LineAlignment.View;
+
+        float minX = -0.5f * cellSize;
+        float maxX = (width - 0.5f) * cellSize;
+        float minZ = -0.5f * cellSize;
+        float maxZ = (height - 0.5f) * cellSize;
+        float y = overlayY - 0.01f;
+
+        line.positionCount = 4;
+        line.SetPosition(0, new Vector3(minX, y, minZ));
+        line.SetPosition(1, new Vector3(maxX, y, minZ));
+        line.SetPosition(2, new Vector3(maxX, y, maxZ));
+        line.SetPosition(3, new Vector3(minX, y, maxZ));
+    }
+
+    private void CreateOverlay(HashSet<Vector2Int> cells, Color color, string name)
+    {
+        if (cells == null || cells.Count == 0)
+        {
+            return;
+        }
+
+        EnsureVisualRoots();
+
+        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
+        overlay.transform.SetParent(highlightRoot, false);
+
+        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+        meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + (highlightLayerOrder * 0.002f));
+        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+        meshRenderer.sharedMaterial.color = color;
+
+        List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
+        for (int i = 0; i < loops.Count; i++)
+        {
+            CreateOutlineLoop(overlay.transform, loops[i], color, overlayY + 0.001f + (highlightLayerOrder * 0.002f));
+        }
+
+        highlightLayerOrder++;
+    }
+
+    private Mesh BuildFillMesh(HashSet<Vector2Int> cells, float y)
+    {
+        List<Vector3> vertices = new List<Vector3>(cells.Count * 4);
+        List<int> triangles = new List<int>(cells.Count * 6);
+
+        foreach (Vector2Int cell in cells)
+        {
+            float minX = (cell.x - 0.5f) * cellSize;
+            float maxX = (cell.x + 0.5f) * cellSize;
+            float minZ = (cell.y - 0.5f) * cellSize;
+            float maxZ = (cell.y + 0.5f) * cellSize;
+
+            int vertexStart = vertices.Count;
+            vertices.Add(new Vector3(minX, y, minZ));
+            vertices.Add(new Vector3(maxX, y, minZ));
+            vertices.Add(new Vector3(maxX, y, maxZ));
+            vertices.Add(new Vector3(minX, y, maxZ));
+
+            triangles.Add(vertexStart + 0);
+            triangles.Add(vertexStart + 2);
+            triangles.Add(vertexStart + 1);
+            triangles.Add(vertexStart + 0);
+            triangles.Add(vertexStart + 3);
+            triangles.Add(vertexStart + 2);
+        }
+
+        Mesh mesh = new Mesh
+        {
+            name = "BattleGridOverlay"
+        };
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private List<List<Vector2Int>> BuildBoundaryLoops(HashSet<Vector2Int> cells)
+    {
+        Dictionary<EdgeKey, Edge> boundaryEdges = new Dictionary<EdgeKey, Edge>();
+        foreach (Vector2Int cell in cells)
+        {
+            Vector2Int bottomLeft = new Vector2Int(cell.x, cell.y);
+            Vector2Int bottomRight = new Vector2Int(cell.x + 1, cell.y);
+            Vector2Int topRight = new Vector2Int(cell.x + 1, cell.y + 1);
+            Vector2Int topLeft = new Vector2Int(cell.x, cell.y + 1);
+
+            ToggleEdge(boundaryEdges, new Edge(bottomLeft, bottomRight));
+            ToggleEdge(boundaryEdges, new Edge(bottomRight, topRight));
+            ToggleEdge(boundaryEdges, new Edge(topRight, topLeft));
+            ToggleEdge(boundaryEdges, new Edge(topLeft, bottomLeft));
+        }
+
+        Dictionary<Vector2Int, List<Edge>> edgesByStart = new Dictionary<Vector2Int, List<Edge>>();
+        foreach (Edge edge in boundaryEdges.Values)
+        {
+            List<Edge> list;
+            if (!edgesByStart.TryGetValue(edge.start, out list))
+            {
+                list = new List<Edge>();
+                edgesByStart[edge.start] = list;
+            }
+
+            list.Add(edge);
+        }
+
+        List<List<Vector2Int>> loops = new List<List<Vector2Int>>();
+        HashSet<EdgeKey> visited = new HashSet<EdgeKey>();
+        foreach (Edge edge in boundaryEdges.Values)
+        {
+            EdgeKey key = new EdgeKey(edge.start, edge.end);
+            if (visited.Contains(key))
+            {
+                continue;
+            }
+
+            List<Vector2Int> loop = new List<Vector2Int>();
+            Edge current = edge;
+            loop.Add(current.start);
+
+            while (true)
+            {
+                loop.Add(current.end);
+                visited.Add(new EdgeKey(current.start, current.end));
+
+                if (current.end == loop[0])
+                {
+                    break;
+                }
+
+                List<Edge> nextCandidates;
+                if (!edgesByStart.TryGetValue(current.end, out nextCandidates))
+                {
+                    break;
+                }
+
+                Edge? next = null;
+                for (int i = 0; i < nextCandidates.Count; i++)
+                {
+                    Edge candidate = nextCandidates[i];
+                    if (visited.Contains(new EdgeKey(candidate.start, candidate.end)))
+                    {
+                        continue;
+                    }
+
+                    next = candidate;
+                    break;
+                }
+
+                if (!next.HasValue)
+                {
+                    break;
+                }
+
+                current = next.Value;
+            }
+
+            if (loop.Count > 2)
+            {
+                loops.Add(SimplifyLoop(loop));
+            }
+        }
+
+        return loops;
+    }
+
+    private static void ToggleEdge(Dictionary<EdgeKey, Edge> edges, Edge edge)
+    {
+        EdgeKey key = new EdgeKey(edge.start, edge.end);
+        if (edges.ContainsKey(key))
+        {
+            edges.Remove(key);
+        }
+        else
+        {
+            edges[key] = edge;
+        }
+    }
+
+    private List<Vector2Int> SimplifyLoop(List<Vector2Int> loop)
+    {
+        if (loop == null || loop.Count <= 3)
+        {
+            return loop;
+        }
+
+        List<Vector2Int> simplified = new List<Vector2Int>();
+        for (int i = 0; i < loop.Count; i++)
+        {
+            Vector2Int previous = loop[(i - 1 + loop.Count) % loop.Count];
+            Vector2Int current = loop[i];
+            Vector2Int next = loop[(i + 1) % loop.Count];
+
+            Vector2Int incoming = current - previous;
+            Vector2Int outgoing = next - current;
+            if (incoming == outgoing)
+            {
+                continue;
+            }
+
+            simplified.Add(current);
+        }
+
+        return simplified;
+    }
+
+    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color fillColor, float y)
+    {
+        if (loop == null || loop.Count < 2)
+        {
+            return;
+        }
+
+        GameObject lineObject = new GameObject("Outline");
+        lineObject.transform.SetParent(parent, false);
+
+        LineRenderer line = lineObject.AddComponent<LineRenderer>();
+        line.sharedMaterial = new Material(lineMaterialTemplate);
+        Color lineColor = fillColor;
+        lineColor.a = Mathf.Clamp01(fillColor.a + 0.35f);
+        line.sharedMaterial.color = lineColor;
+        line.loop = true;
+        line.useWorldSpace = false;
+        line.textureMode = LineTextureMode.Stretch;
+        line.numCornerVertices = 18;
+        line.numCapVertices = 18;
+        line.widthMultiplier = cellSize * 0.12f;
+        line.alignment = LineAlignment.View;
+        line.positionCount = loop.Count;
+
+        for (int i = 0; i < loop.Count; i++)
+        {
+            line.SetPosition(i, GridCornerToWorld(loop[i], y));
+        }
+    }
+
+    private Vector3 GridCornerToWorld(Vector2Int corner, float y)
+    {
+        return new Vector3((corner.x - 0.5f) * cellSize, y, (corner.y - 0.5f) * cellSize);
+    }
+
+    private HashSet<Vector2Int> CollectFootprintCells(Vector2Int centerCell, int footprintSize)
+    {
+        HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
+        AddFootprintCells(cells, centerCell, footprintSize);
+        return cells;
+    }
+
+    private void AddFootprintCells(HashSet<Vector2Int> cells, Vector2Int centerCell, int footprintSize)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (IsInside(cell))
+                {
+                    cells.Add(cell);
+                }
             }
         }
     }
@@ -388,11 +765,6 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    private Color GetIdleColor(Vector2Int cell)
-    {
-        return ((cell.x + cell.y) % 2 == 0) ? idleColorA : idleColorB;
-    }
-
     private static List<Vector2Int> BuildPath(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int origin, Vector2Int destination)
     {
         List<Vector2Int> path = new List<Vector2Int>();
@@ -407,5 +779,26 @@ public class BattleGrid : MonoBehaviour
 
         path.Reverse();
         return path;
+    }
+
+    private static void ClearChildren(Transform target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        for (int i = target.childCount - 1; i >= 0; i--)
+        {
+            GameObject child = target.GetChild(i).gameObject;
+            if (Application.isPlaying)
+            {
+                Object.Destroy(child);
+            }
+            else
+            {
+                Object.DestroyImmediate(child);
+            }
+        }
     }
 }
