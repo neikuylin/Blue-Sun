@@ -21,6 +21,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string skillId = string.Empty;
         public string group = "\u6280\u80FD";
         public SkillType skillType = SkillType.Move;
+        public Sprite icon;
         public int actionPointCost = 1;
         public int manaCost;
         public int cooldownTurns;

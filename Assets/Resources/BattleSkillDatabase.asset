@@ -16,6 +16,7 @@ MonoBehaviour:
   - skillId: "\u79FB\u52A8"
     group: "\u6280\u80FD"
     skillType: 0
+    icon: {fileID: 0}
     actionPointCost: 1
     manaCost: 0
     cooldownTurns: 0

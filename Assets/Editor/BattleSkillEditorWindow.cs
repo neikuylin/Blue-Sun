@@ -8,18 +8,18 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
     private static readonly string[] SkillTypeLabels =
     {
-        "\u79FB\u52A8",
-        "\u70B9\u9009\u6280\u80FD",
-        "\u8303\u56F4\u6280\u80FD"
+        "移动",
+        "点选技能",
+        "范围技能"
     };
 
     private Vector2 scroll;
     private SerializedObject databaseObject;
 
-    [MenuItem("Tools/\u6280\u80FD/\u6280\u80FD\u7F16\u8F91\u5668")]
+    [MenuItem("Tools/技能/技能编辑器")]
     private static void Open()
     {
-        BattleSkillEditorWindow window = GetWindow<BattleSkillEditorWindow>("\u6280\u80FD\u7F16\u8F91\u5668");
+        BattleSkillEditorWindow window = GetWindow<BattleSkillEditorWindow>("技能编辑器");
         window.minSize = new Vector2(640f, 460f);
         window.Show();
         window.Focus();
@@ -29,20 +29,20 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         BattleSkillDatabase database = EnsureDatabase();
 
-        EditorGUILayout.LabelField("\u6218\u6597\u6280\u80FD\u914D\u7F6E", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("战斗技能配置", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "\u8FD9\u91CC\u5148\u7BA1\u7406\u6280\u80FD\u6A21\u677F\u3002\u9ED8\u8BA4\u5DF2\u5EFA\u7ACB\u201C\u79FB\u52A8\u201D\u6280\u80FD\uFF0C\u6280\u80FD\u7C7B\u578B\u5305\u542B\uFF1A\u79FB\u52A8\u3001\u70B9\u9009\u6280\u80FD\u3001\u8303\u56F4\u6280\u80FD\u3002",
+            "这里先管理技能模板。默认已建立“移动”技能，技能类型包含：移动、点选技能、范围技能。",
             MessageType.Info);
         EditorGUILayout.Space(4f);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("\u5237\u65B0"))
+            if (GUILayout.Button("刷新"))
             {
                 Repaint();
             }
 
-            if (GUILayout.Button("\u8865\u9F50\u9ED8\u8BA4\u79FB\u52A8\u6280\u80FD"))
+            if (GUILayout.Button("补齐默认移动技能"))
             {
                 EnsureDefaultMoveSkill(database);
             }
@@ -58,7 +58,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         if (database == null)
         {
-            EditorGUILayout.HelpBox("\u6280\u80FD\u5E93\u8D44\u4EA7\u521B\u5EFA\u5931\u8D25\u3002", MessageType.Error);
+            EditorGUILayout.HelpBox("技能库资产创建失败。", MessageType.Error);
             return;
         }
 
@@ -80,41 +80,42 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("skillId"), new GUIContent("\u6280\u80FDID"));
-                    if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("skillId"), new GUIContent("技能ID"));
+                    if (GUILayout.Button("删除", GUILayout.Width(60f)))
                     {
                         entries.DeleteArrayElementAtIndex(i);
                         break;
                     }
                 }
 
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("group"), new GUIContent("\u5206\u7EC4"));
-                skillType.enumValueIndex = EditorGUILayout.Popup("\u6280\u80FD\u7C7B\u578B", skillType.enumValueIndex, SkillTypeLabels);
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("group"), new GUIContent("分组"));
+                skillType.enumValueIndex = EditorGUILayout.Popup("技能类型", skillType.enumValueIndex, SkillTypeLabels);
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("技能图标"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("AP消耗"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("MP消耗"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51B7\u5374\u65F6\u95F4\uFF08\u56DE\u5408\uFF09"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("冷却时间（回合）"));
 
-                bool rangeFromMoveDistance = EditorGUILayout.Toggle("\u5C04\u7A0B\u53D6\u79FB\u52A8\u8DDD\u79BB", useMoveDistanceAsRange.boolValue);
+                bool rangeFromMoveDistance = EditorGUILayout.Toggle("射程取移动距离", useMoveDistanceAsRange.boolValue);
                 useMoveDistanceAsRange.boolValue = rangeFromMoveDistance;
                 if (!rangeFromMoveDistance)
                 {
-                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("range"), new GUIContent("\u5C04\u7A0B"));
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("range"), new GUIContent("射程"));
                 }
                 else
                 {
-                    EditorGUILayout.LabelField("\u5C04\u7A0B", "\u53D6\u81EA\u89D2\u8272\u7684\u79FB\u52A8\u8DDD\u79BB");
+                    EditorGUILayout.LabelField("射程", "取自角色的移动距离");
                 }
 
                 SerializedProperty effectSize = entry.FindPropertyRelative("effectSize");
                 Vector2Int size = effectSize.vector2IntValue;
-                int width = EditorGUILayout.IntField("\u4F5C\u7528\u8303\u56F4\u5BBD", Mathf.Max(1, size.x));
-                int height = EditorGUILayout.IntField("\u4F5C\u7528\u8303\u56F4\u9AD8", Mathf.Max(1, size.y));
+                int width = EditorGUILayout.IntField("作用范围宽", Mathf.Max(1, size.x));
+                int height = EditorGUILayout.IntField("作用范围高", Mathf.Max(1, size.y));
                 effectSize.vector2IntValue = new Vector2Int(width, height);
-                EditorGUILayout.LabelField("\u4F5C\u7528\u8303\u56F4", $"{Mathf.Max(1, width)}x{Mathf.Max(1, height)}");
+                EditorGUILayout.LabelField("作用范围", $"{Mathf.Max(1, width)}x{Mathf.Max(1, height)}");
             }
         }
 
-        if (GUILayout.Button("\u65B0\u589E\u6280\u80FD"))
+        if (GUILayout.Button("新增技能"))
         {
             entries.InsertArrayElementAtIndex(entries.arraySize);
             ResetEntry(entries.GetArrayElementAtIndex(entries.arraySize - 1));
@@ -130,8 +131,9 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static void ResetEntry(SerializedProperty entry)
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
-        entry.FindPropertyRelative("group").stringValue = "\u6280\u80FD";
+        entry.FindPropertyRelative("group").stringValue = "技能";
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Move;
+        entry.FindPropertyRelative("icon").objectReferenceValue = null;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;
         entry.FindPropertyRelative("cooldownTurns").intValue = 0;
@@ -183,8 +185,9 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         return new BattleSkillDatabase.SkillEntry
         {
             skillId = BattleSkillDatabase.MoveSkillId,
-            group = "\u6280\u80FD",
+            group = "技能",
             skillType = BattleSkillDatabase.SkillType.Move,
+            icon = null,
             actionPointCost = 1,
             manaCost = 0,
             cooldownTurns = 0,
