@@ -28,6 +28,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private string lastSignature = string.Empty;
     private List<CharacterSelectionState.SlotSelection> currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(4);
     private Coroutine reorderRoutine;
+    private BattleSceneBindings battleBindings;
 
     private struct RectLayout
     {
@@ -42,6 +43,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     public void Initialize(BattleTurnSystem system, IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
     {
         turnSystem = system;
+        battleBindings = BattleSceneBindings.FindInActiveScene();
         RebuildLookup(selectedSlots);
         RefreshPortraits(force: true);
     }
@@ -90,10 +92,10 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
 
-        portraitSlots.Add(FindImageByPath(CurrentPortraitPath));
-        portraitSlots.Add(FindImageByPath(SecondPortraitPath));
-        portraitSlots.Add(FindImageByPath(ThirdPortraitPath));
-        portraitSlots.Add(FindImageByPath(FourthPortraitPath));
+        portraitSlots.Add(ResolvePortraitSlot(0));
+        portraitSlots.Add(ResolvePortraitSlot(1));
+        portraitSlots.Add(ResolvePortraitSlot(2));
+        portraitSlots.Add(ResolvePortraitSlot(3));
 
         for (int i = 0; i < portraitSlots.Count; i++)
         {
@@ -405,6 +407,49 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     {
         Transform target = FindTransformByPath(path);
         return target != null ? target.GetComponent<Image>() : null;
+    }
+
+    private Image ResolvePortraitSlot(int index)
+    {
+        if (battleBindings != null)
+        {
+            if (index == 0 && battleBindings.currentPortrait != null)
+            {
+                return battleBindings.currentPortrait;
+            }
+
+            if (index == 1 && battleBindings.secondPortrait != null)
+            {
+                return battleBindings.secondPortrait;
+            }
+
+            if (index == 2 && battleBindings.thirdPortrait != null)
+            {
+                return battleBindings.thirdPortrait;
+            }
+
+            if (index == 3 && battleBindings.fourthPortrait != null)
+            {
+                return battleBindings.fourthPortrait;
+            }
+        }
+
+        if (index == 0)
+        {
+            return FindImageByPath(CurrentPortraitPath);
+        }
+
+        if (index == 1)
+        {
+            return FindImageByPath(SecondPortraitPath);
+        }
+
+        if (index == 2)
+        {
+            return FindImageByPath(ThirdPortraitPath);
+        }
+
+        return FindImageByPath(FourthPortraitPath);
     }
 
     private static RectLayout ReadLayout(RectTransform target)

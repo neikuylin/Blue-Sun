@@ -15,7 +15,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     };
 
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
+    private const string BorderObjectName = "\u683c\u5b50\u8fb9\u6846";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
+    private static readonly Vector2 OverlayIconSize = new Vector2(100f, 100f);
 
     private sealed class SkillSlotWidget
     {
@@ -28,6 +30,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private BattleSkillDatabase skillDatabase;
     private CharacterSkillLoadoutDatabase loadoutDatabase;
     private string currentCharacterId = string.Empty;
+    private RectTransform journeySkillContainer;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -75,6 +78,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
         loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        journeySkillContainer = ResolveJourneySkillContainer();
         CollectJourneySkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
         RefreshJourneySkillSlots();
@@ -84,7 +88,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         journeySkillSlots.Clear();
 
-        RectTransform container = FindJourneySkillContainer();
+        RectTransform container = journeySkillContainer != null ? journeySkillContainer : ResolveJourneySkillContainer();
         if (container == null)
         {
             return;
@@ -111,6 +115,17 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 skillIcon = overlay
             });
         }
+    }
+
+    private static RectTransform ResolveJourneySkillContainer()
+    {
+        JourneySceneBindings bindings = JourneySceneBindings.FindInActiveScene();
+        if (bindings != null && bindings.skillSlotContainer != null)
+        {
+            return bindings.skillSlotContainer;
+        }
+
+        return FindJourneySkillContainer();
     }
 
     private static RectTransform FindJourneySkillContainer()
@@ -267,16 +282,35 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = OverlayIconSize;
         rect.localScale = Vector3.one;
-        existing.SetAsLastSibling();
+        PlaceOverlayBelowBorder(slotRoot, existing);
 
         image.raycastTarget = false;
         image.preserveAspect = true;
         return image;
+    }
+
+    private static void PlaceOverlayBelowBorder(RectTransform slotRoot, Transform overlay)
+    {
+        if (slotRoot == null || overlay == null)
+        {
+            return;
+        }
+
+        Transform border = FindChildByName(slotRoot, BorderObjectName);
+        if (border != null)
+        {
+            int borderIndex = border.GetSiblingIndex();
+            overlay.SetSiblingIndex(Mathf.Max(0, borderIndex - 1));
+            return;
+        }
+
+        overlay.SetSiblingIndex(0);
     }
 
     private string ResolveCharacterId(string characterId)

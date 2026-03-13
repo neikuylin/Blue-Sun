@@ -52,6 +52,7 @@ public class BattleTurnSystem : MonoBehaviour
     private Transform timelineAnchor;
     private Button endTurnButton;
     private Button moveSkillButton;
+    private BattleSceneBindings sceneBindings;
     private BattleSkillDatabase skillDatabase;
     private TurnTimelineButtonDatabase timelineDatabase;
     private Coroutine timelineAnimationRoutine;
@@ -79,7 +80,8 @@ public class BattleTurnSystem : MonoBehaviour
         overlayCanvasRect = null;
         skillCostHintRect = null;
         skillCostHintText = null;
-        timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+        sceneBindings = BattleSceneBindings.FindInActiveScene();
+        timelineAnchor = ResolveTimelineAnchor();
         EnsureTimelineMask();
         BindEndTurnButton();
         BindSkillButton();
@@ -662,7 +664,7 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (timelineAnchor == null)
         {
-            timelineAnchor = FindTransformByPath(TimelineAnchorPath);
+            timelineAnchor = ResolveTimelineAnchor();
             EnsureTimelineMask();
         }
 
@@ -1756,7 +1758,7 @@ public class BattleTurnSystem : MonoBehaviour
             return skillCostHintText;
         }
 
-        Transform canvasTransform = FindTransformByPath("Canvas");
+        Transform canvasTransform = ResolveOverlayCanvasTransform();
         if (canvasTransform == null)
         {
             return null;
@@ -1856,18 +1858,13 @@ public class BattleTurnSystem : MonoBehaviour
     {
         UnbindEndTurnButton();
 
-        Transform buttonTransform = FindTransformByPath(EndTurnButtonPath);
-        if (buttonTransform == null)
+        Button button = ResolveEndTurnButton();
+        if (button == null)
         {
             return;
         }
 
-        endTurnButton = buttonTransform.GetComponent<Button>();
-        if (endTurnButton == null)
-        {
-            return;
-        }
-
+        endTurnButton = button;
         endTurnButton.onClick.AddListener(RequestEndTurn);
     }
 
@@ -1875,19 +1872,56 @@ public class BattleTurnSystem : MonoBehaviour
     {
         UnbindSkillButton();
 
-        Transform buttonTransform = FindTransformByPath(MoveSkillButtonPath);
-        if (buttonTransform == null)
+        Button button = ResolveMoveSkillButton();
+        if (button == null)
         {
             return;
         }
 
-        moveSkillButton = buttonTransform.GetComponent<Button>();
-        if (moveSkillButton == null)
-        {
-            return;
-        }
-
+        moveSkillButton = button;
         moveSkillButton.onClick.AddListener(ToggleMovementMode);
+    }
+
+    private Transform ResolveTimelineAnchor()
+    {
+        if (sceneBindings != null && sceneBindings.timelineAnchor != null)
+        {
+            return sceneBindings.timelineAnchor;
+        }
+
+        return FindTransformByPath(TimelineAnchorPath);
+    }
+
+    private Button ResolveEndTurnButton()
+    {
+        if (sceneBindings != null && sceneBindings.endTurnButton != null)
+        {
+            return sceneBindings.endTurnButton;
+        }
+
+        Transform buttonTransform = FindTransformByPath(EndTurnButtonPath);
+        return buttonTransform != null ? buttonTransform.GetComponent<Button>() : null;
+    }
+
+    private Button ResolveMoveSkillButton()
+    {
+        if (sceneBindings != null && sceneBindings.moveSkillButton != null)
+        {
+            return sceneBindings.moveSkillButton;
+        }
+
+        Transform buttonTransform = FindTransformByPath(MoveSkillButtonPath);
+        return buttonTransform != null ? buttonTransform.GetComponent<Button>() : null;
+    }
+
+    private Transform ResolveOverlayCanvasTransform()
+    {
+        if (sceneBindings != null && sceneBindings.overlayCanvas != null)
+        {
+            return sceneBindings.overlayCanvas;
+        }
+
+        return FindTransformByPath("Canvas");
     }
 
     private void UnbindEndTurnButton()

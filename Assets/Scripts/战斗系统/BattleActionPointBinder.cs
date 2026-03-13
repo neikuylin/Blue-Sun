@@ -7,17 +7,19 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleActionPointBinder : MonoBehaviour
 {
-    private const string ActionPointPanelPath = "Canvas/下方栏位/角色操作栏/角色栏/行动力面板";
+    private const string ActionPointPanelPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u884c\u52a8\u529b\u9762\u677f";
 
     private readonly List<GameObject> actionPointIndicators = new List<GameObject>();
     private BattleTurnSystem turnSystem;
     private int lastCurrentPoints = int.MinValue;
     private int lastMaxPoints = int.MinValue;
     private string lastUnitId = string.Empty;
+    private Transform actionPointPanel;
 
     public void Initialize(BattleTurnSystem system)
     {
         turnSystem = system;
+        actionPointPanel = ResolveActionPointPanel();
         CacheIndicators();
         Refresh(force: true);
     }
@@ -39,7 +41,7 @@ public sealed class BattleActionPointBinder : MonoBehaviour
             return;
         }
 
-        Transform panel = FindTransformByPath(ActionPointPanelPath);
+        Transform panel = actionPointPanel != null ? actionPointPanel : ResolveActionPointPanel();
         if (panel == null)
         {
             return;
@@ -109,6 +111,17 @@ public sealed class BattleActionPointBinder : MonoBehaviour
         }
     }
 
+    private static Transform ResolveActionPointPanel()
+    {
+        BattleSceneBindings bindings = BattleSceneBindings.FindInActiveScene();
+        if (bindings != null && bindings.actionPointPanel != null)
+        {
+            return bindings.actionPointPanel;
+        }
+
+        return FindTransformByPath(ActionPointPanelPath);
+    }
+
     private static GameObject FindIndicatorObject(Transform pointSlot)
     {
         if (pointSlot == null)
@@ -124,8 +137,8 @@ public sealed class BattleActionPointBinder : MonoBehaviour
                 continue;
             }
 
-            if (child.name.IndexOf("图片", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                child.name.IndexOf("行动点", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (child.name.IndexOf("\u56fe", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                child.name.IndexOf("\u884c\u52a8\u70b9", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return child.gameObject;
             }

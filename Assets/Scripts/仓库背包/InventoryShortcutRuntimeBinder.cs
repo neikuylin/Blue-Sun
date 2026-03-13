@@ -114,6 +114,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
     private string currentEquipmentCharacterId = string.Empty;
+    private JourneySceneBindings journeyBindings;
+    private BattleSceneBindings battleBindings;
 
     public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
 
@@ -366,6 +368,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
+        journeyBindings = JourneySceneBindings.FindInActiveScene();
+        battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheBackpackSlotTemplate();
         UnbindAll();
 
@@ -410,7 +414,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectWarehouseSlots()
     {
         warehouseSlots.Clear();
-        Transform container = FindTransformByPath(WarehouseContainerPath);
+        Transform container = journeyBindings != null && journeyBindings.warehouseContainer != null
+            ? journeyBindings.warehouseContainer
+            : FindTransformByPath(WarehouseContainerPath);
         if (container != null)
         {
             CollectSlotsFromContainer(container, warehouseSlots);
@@ -420,7 +426,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectBackpackSlots()
     {
         backpackSlots.Clear();
-        Transform container = FindTransformByPath(BackpackContainerPath);
+        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
+            ? journeyBindings.backpackContainer
+            : FindTransformByPath(BackpackContainerPath);
         if (container != null)
         {
             CollectSlotsFromContainer(container, backpackSlots);
@@ -435,7 +443,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Transform container = FindTransformByPath(BackpackContainerPath);
+        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
+            ? journeyBindings.backpackContainer
+            : FindTransformByPath(BackpackContainerPath);
         if (container == null || container.childCount == 0)
         {
             return;
@@ -506,7 +516,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
-        Transform container = FindTransformByPath(EquipmentContainerPath);
+        Transform container = journeyBindings != null && journeyBindings.equipmentContainer != null
+            ? journeyBindings.equipmentContainer
+            : FindTransformByPath(EquipmentContainerPath);
         if (container != null)
         {
             CollectSlotsFromContainer(container, equipmentSlots);
@@ -516,7 +528,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectBattleBackpackSlots()
     {
         battleBackpackSlots.Clear();
-        Transform container = FindTransformByPath(BattleBackpackContainerPath);
+        Transform container = battleBindings != null && battleBindings.battleBackpackContainer != null
+            ? battleBindings.battleBackpackContainer
+            : FindTransformByPath(BattleBackpackContainerPath);
         if (container != null)
         {
             CollectSlotsFromContainer(container, battleBackpackSlots);
@@ -525,18 +539,32 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private RectTransform FindQuickAnchor()
     {
+        if (journeyBindings != null && journeyBindings.quickSlotAnchor != null)
+        {
+            return journeyBindings.quickSlotAnchor;
+        }
+
         return FindTransformByPath(QuickAnchorPath) as RectTransform;
     }
 
     private RectTransform FindBattleBackpackAnchor()
     {
+        if (battleBindings != null && battleBindings.battleBackpackContainer != null)
+        {
+            return battleBindings.battleBackpackContainer;
+        }
+
         return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
     }
 
     private void EnsureBattleBackpackDrag()
     {
-        RectTransform dragTarget = FindTransformByPath(BattleBackpackContentPath) as RectTransform;
-        RectTransform dragHandle = FindTransformByPath(BattleBackpackDragHandlePath) as RectTransform;
+        RectTransform dragTarget = battleBindings != null && battleBindings.battleBackpackContent != null
+            ? battleBindings.battleBackpackContent
+            : FindTransformByPath(BattleBackpackContentPath) as RectTransform;
+        RectTransform dragHandle = battleBindings != null && battleBindings.battleBackpackDragHandle != null
+            ? battleBindings.battleBackpackDragHandle
+            : FindTransformByPath(BattleBackpackDragHandlePath) as RectTransform;
         if (dragTarget == null || dragHandle == null)
         {
             return;

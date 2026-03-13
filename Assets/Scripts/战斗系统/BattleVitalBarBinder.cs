@@ -7,14 +7,14 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleVitalBarBinder : MonoBehaviour
 {
-    private const string HealthPanelPath = "Canvas/下方栏位/角色操作栏/生命值面板";
-    private const string ManaPanelPath = "Canvas/下方栏位/角色操作栏/魔法值面板";
-    private const string HealthFillName = "当前生命值";
-    private const string ManaFillName = "当前魔法值";
-    private const string HealthSlotName = "生命槽位";
-    private const string ManaSlotName = "魔法槽位";
-    private const string HealthTextName = "生命值数字";
-    private const string ManaTextName = "魔法值数字";
+    private const string HealthPanelPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u751f\u547d\u503c\u9762\u677f";
+    private const string ManaPanelPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u9b54\u6cd5\u503c\u9762\u677f";
+    private const string HealthFillName = "\u5f53\u524d\u751f\u547d\u503c";
+    private const string ManaFillName = "\u5f53\u524d\u9b54\u6cd5\u503c";
+    private const string HealthSlotName = "\u751f\u547d\u69fd\u4f4d";
+    private const string ManaSlotName = "\u9b54\u6cd5\u69fd\u4f4d";
+    private const string HealthTextName = "\u751f\u547d\u503c\u6570\u5b57";
+    private const string ManaTextName = "\u9b54\u6cd5\u503c\u6570\u5b57";
 
     private static readonly Color HealthBarColor = new Color(0.90f, 0.18f, 0.22f, 1f);
     private static readonly Color ManaBarColor = new Color(0.20f, 0.48f, 0.95f, 1f);
@@ -27,10 +27,12 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private TMP_Text healthText;
     private TMP_Text manaText;
     private string lastSignature = string.Empty;
+    private BattleSceneBindings battleBindings;
 
     public void Initialize(BattleTurnSystem system)
     {
         turnSystem = system;
+        battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheReferences();
         Refresh(force: true);
     }
@@ -47,6 +49,16 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
 
     private void CacheReferences()
     {
+        if (battleBindings != null)
+        {
+            healthSlotImage = healthSlotImage != null ? healthSlotImage : battleBindings.healthSlotImage;
+            healthFillImage = healthFillImage != null ? healthFillImage : battleBindings.healthFillImage;
+            healthText = healthText != null ? healthText : battleBindings.healthText;
+            manaSlotImage = manaSlotImage != null ? manaSlotImage : battleBindings.manaSlotImage;
+            manaFillImage = manaFillImage != null ? manaFillImage : battleBindings.manaFillImage;
+            manaText = manaText != null ? manaText : battleBindings.manaText;
+        }
+
         if (healthSlotImage == null || healthFillImage == null || healthText == null)
         {
             Transform panel = FindTransformByPath(HealthPanelPath);
