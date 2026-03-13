@@ -1672,7 +1672,20 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             TryMove(unit, clickedCell);
+            return;
         }
+
+        if (activeSkill == null || activeSkill.skillType != BattleSkillDatabase.SkillType.Target)
+        {
+            return;
+        }
+
+        if (!IsValidSkillTarget(unit, target, activeSkill))
+        {
+            return;
+        }
+
+        ExecuteTargetSkill(unit, target, activeSkill);
     }
 
     private int GetSkillRange(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
@@ -1735,6 +1748,51 @@ public class BattleTurnSystem : MonoBehaviour
         return skillDatabase != null
             ? skillDatabase.FindEntry(skillId)
             : null;
+    }
+
+    private static bool IsValidSkillTarget(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return false;
+        }
+
+        switch (skill.castTarget)
+        {
+            case BattleSkillDatabase.CastTarget.Self:
+                return target == caster;
+            case BattleSkillDatabase.CastTarget.Enemy:
+                return target.team != caster.team;
+            case BattleSkillDatabase.CastTarget.Ally:
+                return target.team == caster.team;
+            case BattleSkillDatabase.CastTarget.All:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void ExecuteTargetSkill(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return;
+        }
+
+        int actionPointCost = GetSkillActionPointCost(skill);
+        int manaCost = GetSkillManaCost(skill);
+        if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
+        {
+            return;
+        }
+
+        caster.SpendActionPoints(actionPointCost);
+        caster.SpendMana(manaCost);
+        ClearActiveSkillMode();
+        RefreshHighlights();
+        RefreshTimeline();
+
+        Debug.Log("Target skill selected: " + caster.unitName + " -> " + target.unitName + " using " + skill.skillId);
     }
 
     private int GetMoveMaxRange(BattleUnit unit, BattleSkillDatabase.SkillEntry moveSkill)
