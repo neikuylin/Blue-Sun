@@ -1,10 +1,16 @@
-﻿using UnityEditor;
+using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class InventoryDebugWindow : EditorWindow
 {
-    private string itemId = "test_item";
-    private Sprite itemSprite;
+    private static readonly string[] CategoryLabels = { "装备", "消耗品", "材料", "补给" };
+    private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "头盔", "护甲", "腿甲", "护手", "鞋子", "饰品" };
+
+    private ItemDatabase database;
+    private ItemDatabase.ItemCategory selectedCategory = ItemDatabase.ItemCategory.Equipment;
+    private ItemDatabase.EquipmentSlotType selectedEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
+    private int selectedItemIndex;
     private int addCount = 1;
     private int maxStack = 99;
 
@@ -16,7 +22,7 @@ public class InventoryDebugWindow : EditorWindow
 
     private Vector2 scroll;
 
-    [MenuItem("Tools/背包/调试窗口")]
+    [MenuItem("Tools/物品/背包调试窗口")]
     private static void Open()
     {
         InventoryDebugWindow window = CreateInstance<InventoryDebugWindow>();
@@ -24,15 +30,27 @@ public class InventoryDebugWindow : EditorWindow
         window.minSize = new Vector2(360f, 420f);
         window.maxSize = new Vector2(900f, 1200f);
         window.position = new Rect(160f, 120f, 420f, 520f);
-        window.minSize = new Vector2(360f, 420f);
         window.ShowUtility();
         window.Focus();
     }
 
+    private void OnEnable()
+    {
+        database = ItemDatabase.LoadDefault();
+    }
+
     private void OnGUI()
     {
+        database = database != null ? database : ItemDatabase.LoadDefault();
+
         EditorGUILayout.LabelField("背包调试器", EditorStyles.boldLabel);
         EditorGUILayout.Space(4);
+
+        if (database == null)
+        {
+            EditorGUILayout.HelpBox("未找到物品数据库。先打开 Tools/物品/物品数据库 创建。", MessageType.Warning);
+            return;
+        }
 
         if (!Application.isPlaying)
         {
@@ -52,17 +70,40 @@ public class InventoryDebugWindow : EditorWindow
     private void DrawAddPanel()
     {
         EditorGUILayout.LabelField("塞入物品", EditorStyles.boldLabel);
-        itemId = EditorGUILayout.TextField("物品ID", itemId);
-        itemSprite = (Sprite)EditorGUILayout.ObjectField("图标", itemSprite, typeof(Sprite), false);
+        selectedCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup("类别", (int)selectedCategory, CategoryLabels);
+        if (selectedCategory == ItemDatabase.ItemCategory.Equipment)
+        {
+            selectedEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)selectedEquipmentSlot, EquipmentSlotLabels);
+        }
+        else
+        {
+            selectedEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
+        }
+
+        List<ItemDatabase.ItemEntry> entries = database.FindEntries(selectedCategory, selectedEquipmentSlot);
+        if (entries.Count == 0)
+        {
+            EditorGUILayout.HelpBox("当前分类下没有物品定义。", MessageType.Info);
+            return;
+        }
+
+        string[] options = BuildItemOptions(entries);
+        selectedItemIndex = Mathf.Clamp(selectedItemIndex, 0, options.Length - 1);
+        selectedItemIndex = EditorGUILayout.Popup("物品", selectedItemIndex, options);
+
+        ItemDatabase.ItemEntry selectedEntry = entries[selectedItemIndex];
+        EditorGUILayout.ObjectField("图标", selectedEntry.icon, typeof(Sprite), false);
+        EditorGUILayout.ObjectField("预制体", selectedEntry.prefab, typeof(GameObject), false);
+
         addCount = Mathf.Max(1, EditorGUILayout.IntField("数量", addCount));
         maxStack = Mathf.Max(1, EditorGUILayout.IntField("单格上限", maxStack));
 
-        using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(itemId) || itemSprite == null))
+        using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.icon == null))
         {
             if (GUILayout.Button("添加物品"))
             {
-                int remain = InventoryShortcutRuntimeBinder.AddItem(itemId, itemSprite, addCount, maxStack);
-                Debug.Log($"[背包调试] 添加完成，剩余未放入数量={remain}");
+                int remain = InventoryShortcutRuntimeBinder.AddItem(selectedEntry, addCount, maxStack);
+                Debug.Log($"[背包调试] 添加完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
                 Repaint();
             }
         }
@@ -135,5 +176,17 @@ public class InventoryDebugWindow : EditorWindow
         }
 
         EditorGUILayout.EndScrollView();
+    }
+
+    private static string[] BuildItemOptions(List<ItemDatabase.ItemEntry> entries)
+    {
+        string[] options = new string[entries.Count];
+        for (int i = 0; i < entries.Count; i++)
+        {
+            ItemDatabase.ItemEntry entry = entries[i];
+            options[i] = entry != null ? entry.itemId : "（空）";
+        }
+
+        return options;
     }
 }

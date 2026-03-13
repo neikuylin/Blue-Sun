@@ -118,6 +118,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private BattleSceneBindings battleBindings;
 
     public static int WarehouseSlotCount => instance != null ? instance.backpackData.Count : 0;
+    public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
 
@@ -258,6 +259,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return remain;
+    }
+
+    public static int AddItem(ItemDatabase.ItemEntry itemEntry, int count, int maxStack = 99)
+    {
+        if (itemEntry == null)
+        {
+            return count;
+        }
+
+        return AddItem(itemEntry.itemId, itemEntry.icon, count, maxStack);
     }
     public static bool RemoveItemAt(int slotIndex, int count)
     {
