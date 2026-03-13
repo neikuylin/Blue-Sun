@@ -21,10 +21,16 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string skillId = string.Empty;
         public string group = "\u6280\u80FD";
         public SkillType skillType = SkillType.Move;
+        public int actionPointCost = 1;
         public int cooldownTurns;
         public bool useMoveDistanceAsRange = true;
         public int range;
         public Vector2Int effectSize = new Vector2Int(3, 3);
+
+        public int ResolveActionPointCost()
+        {
+            return Mathf.Max(0, actionPointCost);
+        }
 
         public int ResolveRange(int moveDistance)
         {

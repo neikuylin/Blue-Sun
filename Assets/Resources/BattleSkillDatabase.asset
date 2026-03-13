@@ -16,14 +16,8 @@ MonoBehaviour:
   - skillId: "\u79FB\u52A8"
     group: "\u6280\u80FD"
     skillType: 0
+    actionPointCost: 1
     cooldownTurns: 0
     useMoveDistanceAsRange: 1
     range: 0
-    effectSize: {x: 3, y: 3}
-  - skillId: 
-    group: "\u6280\u80FD"
-    skillType: 0
-    cooldownTurns: 0
-    useMoveDistanceAsRange: 1
-    attackRange: 0
     effectSize: {x: 3, y: 3}

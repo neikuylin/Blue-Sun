@@ -11,8 +11,6 @@ public class BattleTurnSystem : MonoBehaviour
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
-    private const int MoveActionPointCost = 4;
-
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -222,7 +220,8 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
-        if (unit == null || !unit.CanSpendActionPoints(MoveActionPointCost))
+        int moveActionPointCost = GetMoveSkillActionPointCost();
+        if (unit == null || !unit.CanSpendActionPoints(moveActionPointCost))
         {
             return;
         }
@@ -249,7 +248,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         grid.MoveUnit(unit, destination);
-        unit.SpendActionPoints(MoveActionPointCost);
+        unit.SpendActionPoints(moveActionPointCost);
         movementModeActive = false;
         hasMovementHoverPreview = false;
         movementHoverHasAnyVisibleCells = false;
@@ -1389,7 +1388,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!activeUnit.CanSpendActionPoints(MoveActionPointCost))
+        if (!activeUnit.CanSpendActionPoints(GetMoveSkillActionPointCost()))
         {
             movementModeActive = false;
             hasMovementHoverPreview = false;
@@ -1543,6 +1542,24 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return moveSkill.ResolveRange(unit.moveDistance);
+    }
+
+    private int GetMoveSkillActionPointCost()
+    {
+        if (skillDatabase == null)
+        {
+            skillDatabase = BattleSkillDatabase.LoadDefault();
+        }
+
+        BattleSkillDatabase.SkillEntry moveSkill = skillDatabase != null
+            ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId)
+            : null;
+        if (moveSkill == null)
+        {
+            return 0;
+        }
+
+        return moveSkill.ResolveActionPointCost();
     }
 
     public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()
