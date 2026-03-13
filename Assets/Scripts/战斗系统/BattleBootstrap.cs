@@ -142,6 +142,7 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.Initialize(grid, mainCamera, units);
         RefreshPartyPortraits(GetSelectedPlayers());
         RefreshActionPointUi(turnSystem);
+        RefreshVitalBars(turnSystem);
     }
 
     private void ResolveReferences()
@@ -351,6 +352,22 @@ public class BattleBootstrap : MonoBehaviour
         if (binder == null)
         {
             binder = gameObject.AddComponent<BattleActionPointBinder>();
+        }
+
+        binder.Initialize(turnSystem);
+    }
+
+    private void RefreshVitalBars(BattleTurnSystem turnSystem)
+    {
+        if (turnSystem == null)
+        {
+            return;
+        }
+
+        BattleVitalBarBinder binder = GetComponent<BattleVitalBarBinder>();
+        if (binder == null)
+        {
+            binder = gameObject.AddComponent<BattleVitalBarBinder>();
         }
 
         binder.Initialize(turnSystem);
