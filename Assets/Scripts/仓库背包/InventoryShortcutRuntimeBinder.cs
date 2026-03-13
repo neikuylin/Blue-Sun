@@ -268,7 +268,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return count;
         }
 
-        return AddItem(itemEntry.itemId, itemEntry.icon, count, maxStack);
+        Sprite icon = ResolveIconFromPrefab(itemEntry.prefab);
+        return AddItem(itemEntry.itemId, icon, count, maxStack);
+    }
+
+    private static Sprite ResolveIconFromPrefab(GameObject prefab)
+    {
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        Image image = prefab.GetComponentInChildren<Image>(true);
+        return image != null ? image.sprite : null;
     }
     public static bool RemoveItemAt(int slotIndex, int count)
     {

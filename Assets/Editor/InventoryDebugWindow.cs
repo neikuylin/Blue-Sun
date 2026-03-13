@@ -1,15 +1,18 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class InventoryDebugWindow : EditorWindow
 {
     private static readonly string[] CategoryLabels = { "装备", "消耗品", "材料", "补给" };
-    private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "头盔", "护甲", "腿甲", "护手", "鞋子", "饰品" };
+    private static readonly string[] EquipmentSlotLabels = { "无", "主手", "副手", "主副手", "头盔", "胸甲", "腿甲", "手套", "鞋子", "饰品" };
+    private static readonly string[] WeaponCategoryLabels = { "无", "单手武器", "双手武器" };
 
     private ItemDatabase database;
     private ItemDatabase.ItemCategory selectedCategory = ItemDatabase.ItemCategory.Equipment;
     private ItemDatabase.EquipmentSlotType selectedEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
+    private ItemDatabase.WeaponCategory selectedWeaponCategory = ItemDatabase.WeaponCategory.None;
     private int selectedItemIndex;
     private int addCount = 1;
     private int maxStack = 99;
@@ -74,13 +77,23 @@ public class InventoryDebugWindow : EditorWindow
         if (selectedCategory == ItemDatabase.ItemCategory.Equipment)
         {
             selectedEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup("装备部位", (int)selectedEquipmentSlot, EquipmentSlotLabels);
+            if (ItemDatabase.ShouldFilterWeaponCategory(selectedEquipmentSlot))
+            {
+                selectedWeaponCategory = (ItemDatabase.WeaponCategory)EditorGUILayout.Popup("武器分类", (int)selectedWeaponCategory, WeaponCategoryLabels);
+            }
+            else
+            {
+                selectedWeaponCategory = ItemDatabase.WeaponCategory.None;
+            }
         }
         else
         {
             selectedEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
+            selectedWeaponCategory = ItemDatabase.WeaponCategory.None;
         }
 
-        List<ItemDatabase.ItemEntry> entries = database.FindEntries(selectedCategory, selectedEquipmentSlot);
+        List<ItemDatabase.ItemEntry> entries =
+            database.FindEntries(selectedCategory, selectedEquipmentSlot, selectedWeaponCategory);
         if (entries.Count == 0)
         {
             EditorGUILayout.HelpBox("当前分类下没有物品定义。", MessageType.Info);
@@ -92,13 +105,13 @@ public class InventoryDebugWindow : EditorWindow
         selectedItemIndex = EditorGUILayout.Popup("物品", selectedItemIndex, options);
 
         ItemDatabase.ItemEntry selectedEntry = entries[selectedItemIndex];
-        EditorGUILayout.ObjectField("图标", selectedEntry.icon, typeof(Sprite), false);
         EditorGUILayout.ObjectField("预制体", selectedEntry.prefab, typeof(GameObject), false);
+        DrawPrefabPreview(selectedEntry.prefab);
 
         addCount = Mathf.Max(1, EditorGUILayout.IntField("数量", addCount));
         maxStack = Mathf.Max(1, EditorGUILayout.IntField("单格上限", maxStack));
 
-        using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.icon == null))
+        using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.prefab == null))
         {
             if (GUILayout.Button("添加物品"))
             {
@@ -188,5 +201,22 @@ public class InventoryDebugWindow : EditorWindow
         }
 
         return options;
+    }
+
+    private static void DrawPrefabPreview(GameObject prefab)
+    {
+        if (prefab == null)
+        {
+            return;
+        }
+
+        Image image = prefab.GetComponentInChildren<Image>(true);
+        if (image == null || image.sprite == null)
+        {
+            EditorGUILayout.HelpBox("该预制体里没有可用的 Image.sprite，背包里将无法显示图标。", MessageType.Warning);
+            return;
+        }
+
+        EditorGUILayout.ObjectField("显示图片", image.sprite, typeof(Sprite), false);
     }
 }

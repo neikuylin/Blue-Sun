@@ -20,6 +20,7 @@ public sealed class ItemDatabase : ScriptableObject
         None,
         MainHand,
         OffHand,
+        MainOrOffHand,
         Helmet,
         Armor,
         LegArmor,
@@ -28,13 +29,20 @@ public sealed class ItemDatabase : ScriptableObject
         Accessory
     }
 
+    public enum WeaponCategory
+    {
+        None,
+        OneHanded,
+        TwoHanded
+    }
+
     [Serializable]
     public sealed class ItemEntry
     {
         public string itemId = string.Empty;
         public ItemCategory category = ItemCategory.Equipment;
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;
-        public Sprite icon;
+        public WeaponCategory weaponCategory = WeaponCategory.None;
         public GameObject prefab;
     }
 
@@ -66,7 +74,10 @@ public sealed class ItemDatabase : ScriptableObject
         return null;
     }
 
-    public List<ItemEntry> FindEntries(ItemCategory category, EquipmentSlotType equipmentSlot = EquipmentSlotType.None)
+    public List<ItemEntry> FindEntries(
+        ItemCategory category,
+        EquipmentSlotType equipmentSlot = EquipmentSlotType.None,
+        WeaponCategory weaponCategory = WeaponCategory.None)
     {
         List<ItemEntry> result = new List<ItemEntry>();
         for (int i = 0; i < entries.Count; i++)
@@ -77,17 +88,31 @@ public sealed class ItemDatabase : ScriptableObject
                 continue;
             }
 
-            if (category == ItemCategory.Equipment &&
-                equipmentSlot != EquipmentSlotType.None &&
-                entry.equipmentSlot != equipmentSlot)
+            if (category == ItemCategory.Equipment)
             {
-                continue;
+                if (equipmentSlot != EquipmentSlotType.None && entry.equipmentSlot != equipmentSlot)
+                {
+                    continue;
+                }
+
+                if (ShouldFilterWeaponCategory(equipmentSlot) &&
+                    weaponCategory != WeaponCategory.None &&
+                    entry.weaponCategory != weaponCategory)
+                {
+                    continue;
+                }
             }
 
             result.Add(entry);
         }
 
         return result;
+    }
+
+    public static bool ShouldFilterWeaponCategory(EquipmentSlotType equipmentSlot)
+    {
+        return equipmentSlot == EquipmentSlotType.MainHand ||
+            equipmentSlot == EquipmentSlotType.MainOrOffHand;
     }
 
     public static ItemDatabase LoadDefault()
