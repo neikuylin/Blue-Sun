@@ -445,10 +445,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         grid.HighlightAttackTargets(activeUnit);
-        if (!movementModeActive)
-        {
-            grid.HighlightFootprint(activeUnit, new Color(1.00f, 0.90f, 0.20f, 0.60f));
-        }
         ApplyMovementHoverPreview();
     }
 
