@@ -175,9 +175,11 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int strength = EditorGUILayout.IntField("\u529B\u91CF", statEntry.strength);
         int agility = EditorGUILayout.IntField("\u654F\u6377", statEntry.agility);
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
-        int endurance = EditorGUILayout.IntField("\u8010\u529B", statEntry.endurance);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
-        EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", Mathf.Max(0, agility + 3).ToString());
+        EditorGUI.BeginDisabledGroup(true);
+        EditorGUILayout.IntField("HP", 50 + (Mathf.Max(0, strength) * 10));
+        EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", Mathf.Max(0, 2 + (agility / 3)).ToString());
+        EditorGUI.EndDisabledGroup();
         bool statChanged = EditorGUI.EndChangeCheck();
 
         if (!statChanged)
@@ -188,7 +190,6 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         statEntry.strength = strength;
         statEntry.agility = agility;
         statEntry.intelligence = intelligence;
-        statEntry.endurance = endurance;
         statEntry.actionPoints = actionPoints;
         EditorUtility.SetDirty(statDatabase);
         AssetDatabase.SaveAssets();
