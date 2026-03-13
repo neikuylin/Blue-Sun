@@ -45,6 +45,8 @@ public class BattleUnit : MonoBehaviour
     private Vector3 anchorOffset;
     private bool initialized;
     private Coroutine moveRoutine;
+    private Renderer[] cachedRenderers;
+    private Color[] originalRendererColors;
 
     public bool IsAlive
     {
@@ -217,6 +219,47 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
+    public void ApplyTint(Color tintColor, float strength)
+    {
+        CacheRenderers();
+        if (cachedRenderers == null || originalRendererColors == null)
+        {
+            return;
+        }
+
+        float clampedStrength = Mathf.Clamp01(strength);
+        for (int i = 0; i < cachedRenderers.Length; i++)
+        {
+            Renderer renderer = cachedRenderers[i];
+            if (renderer == null || !renderer.material.HasProperty("_Color"))
+            {
+                continue;
+            }
+
+            renderer.material.color = Color.Lerp(originalRendererColors[i], tintColor, clampedStrength);
+        }
+    }
+
+    public void ClearTint()
+    {
+        CacheRenderers();
+        if (cachedRenderers == null || originalRendererColors == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cachedRenderers.Length; i++)
+        {
+            Renderer renderer = cachedRenderers[i];
+            if (renderer == null || !renderer.material.HasProperty("_Color"))
+            {
+                continue;
+            }
+
+            renderer.material.color = originalRendererColors[i];
+        }
+    }
+
     public int FootprintRadius
     {
         get { return Mathf.Max(0, footprintSize / 2); }
@@ -290,5 +333,28 @@ public class BattleUnit : MonoBehaviour
         }
 
         return new Vector3(combinedBounds.center.x, combinedBounds.min.y, combinedBounds.center.z);
+    }
+
+    private void CacheRenderers()
+    {
+        if (cachedRenderers != null && originalRendererColors != null && cachedRenderers.Length == originalRendererColors.Length)
+        {
+            return;
+        }
+
+        cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        originalRendererColors = new Color[cachedRenderers.Length];
+        for (int i = 0; i < cachedRenderers.Length; i++)
+        {
+            Renderer renderer = cachedRenderers[i];
+            if (renderer != null && renderer.material.HasProperty("_Color"))
+            {
+                originalRendererColors[i] = renderer.material.color;
+            }
+            else
+            {
+                originalRendererColors[i] = Color.white;
+            }
+        }
     }
 }
