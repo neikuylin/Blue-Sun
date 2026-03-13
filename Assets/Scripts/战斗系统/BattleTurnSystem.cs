@@ -11,6 +11,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
+    private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -60,7 +61,6 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleUnit timelineLeadUnit;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
-    private bool attackModeActive;
     private string activeSkillId = string.Empty;
     private BattleSkillDatabase.SkillEntry activeSkill;
     private bool hasSkillHoverPreview;
@@ -104,7 +104,6 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkill = null;
         timelineLeadUnit = null;
         lastTimelineSlots.Clear();
-        attackModeActive = false;
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -179,6 +178,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void HandlePlayerInput()
     {
+        if (IsSkillModeActive() && Input.GetMouseButtonDown(1))
+        {
+            ClearActiveSkillMode();
+            RefreshHighlights();
+            return;
+        }
+
         if (!Input.GetMouseButtonDown(0))
         {
             return;
@@ -207,15 +213,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!attackModeActive)
-        {
-            return;
-        }
-
-        if (target != null && target.team != activeUnit.team)
-        {
-            TryAttack(activeUnit, target);
-        }
     }
 
     private IEnumerator RunEnemyTurn()
@@ -318,7 +315,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ExecuteAttack(attacker, defender);
-        attackModeActive = false;
         RefreshHighlights();
         RefreshTimeline();
     }
@@ -329,12 +325,7 @@ public class BattleTurnSystem : MonoBehaviour
         defender.ApplyDamage(attacker.attackDamage);
         Debug.Log(attacker.unitName + " attacks " + defender.unitName + " for " + attacker.attackDamage + " damage.");
 
-        if (!defender.IsAlive)
-        {
-            grid.RemoveUnit(defender);
-            InvalidateFutureRounds();
-            Debug.Log(defender.unitName + " is defeated.");
-        }
+        HandleUnitDefeat(defender);
     }
 
     private void EndTurn()
@@ -493,11 +484,6 @@ public class BattleTurnSystem : MonoBehaviour
                 skillAllyOccupiedColor,
                 skillEnemyOccupiedColor);
         }
-        else if (activeUnit.isPlayerControlled && attackModeActive)
-        {
-            grid.HighlightAttackTargets(activeUnit);
-        }
-
         ApplySkillHoverPreview();
     }
 
@@ -1256,6 +1242,7 @@ public class BattleTurnSystem : MonoBehaviour
         {
             upcomingRoundOrders[i].RemoveAll(candidate => candidate == unit);
         }
+        InvalidateFutureRounds();
 
         if (removedRoundIndex >= 0 && removedRoundIndex < currentRoundIndex)
         {
@@ -1283,9 +1270,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         CleanupDeadUnits();
+        EnsureUpcomingRounds(Mathf.Max(0, previewRoundCount - 1));
         RefreshHighlights();
         RefreshActiveUnitUi();
         RefreshTimeline();
+    }
+
+    private void HandleUnitDefeat(BattleUnit unit)
+    {
+        if (unit == null || unit.IsAlive)
+        {
+            return;
+        }
+
+        Debug.Log(unit.unitName + " is defeated.");
+        RemoveUnitFromBattle(unit);
     }
 
     private void ClearTimelineInstances()
@@ -1441,27 +1440,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     public void ToggleAttackMode()
     {
-        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
-        {
-            return;
-        }
-
-        if (activeUnit.IsMoving)
-        {
-            return;
-        }
-
-        if (attackModeActive)
-        {
-            attackModeActive = false;
-        }
-        else
-        {
-            ClearActiveSkillModeInternal(clearAttackMode: false);
-            attackModeActive = true;
-        }
-
-        RefreshHighlights();
+        ToggleSkillMode(NormalAttackSkillId);
     }
 
     public void ToggleMovementMode()
@@ -1503,7 +1482,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
         else
         {
-            attackModeActive = false;
             activeSkillId = skillId;
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
@@ -1719,22 +1697,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ClearActiveSkillMode()
     {
-        ClearActiveSkillModeInternal(clearAttackMode: true);
-    }
-
-    private void ClearActiveSkillModeInternal(bool clearAttackMode)
-    {
         activeSkillId = string.Empty;
         activeSkill = null;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
-        if (clearAttackMode)
-        {
-            attackModeActive = false;
-        }
-
         ClearHoveredSkillTarget();
         HideSkillCostHint();
     }
@@ -1875,6 +1843,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
+        caster.FaceToward(target.transform.position);
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
