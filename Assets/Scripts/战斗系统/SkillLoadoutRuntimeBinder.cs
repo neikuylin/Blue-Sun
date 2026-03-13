@@ -219,7 +219,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private List<string> BuildJourneySkillList(string characterId)
     {
         List<string> result = new List<string>();
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(characterId);
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(ResolveCharacterId(characterId)) : null;
         if (entry == null || entry.skillIds == null)
         {
             return result;
@@ -249,43 +250,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return entry != null ? entry.icon : null;
     }
 
-    private CharacterSkillLoadoutDatabase.CharacterSkillEntry ResolveLoadoutEntry(string characterId)
-    {
-        if (loadoutDatabase == null)
-        {
-            loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        }
-
-        if (loadoutDatabase == null)
-        {
-            return null;
-        }
-
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = loadoutDatabase.FindEntry(ResolveCharacterId(characterId));
-        if (entry != null)
-        {
-            return entry;
-        }
-
-        entry = loadoutDatabase.FindEntry(DefaultCharacterId);
-        if (entry != null)
-        {
-            return entry;
-        }
-
-        List<CharacterSkillLoadoutDatabase.CharacterSkillEntry> entries = loadoutDatabase.Entries;
-        for (int i = 0; i < entries.Count; i++)
-        {
-            CharacterSkillLoadoutDatabase.CharacterSkillEntry candidate = entries[i];
-            if (candidate != null && candidate.skillIds != null && candidate.skillIds.Count > 0)
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
     private static Image EnsureOverlayIcon(RectTransform slotRoot)
     {
         Transform existing = FindChildByName(slotRoot, OverlayIconName);
@@ -312,7 +276,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         image.raycastTarget = false;
         image.preserveAspect = true;
-        image.color = Color.white;
         return image;
     }
 
