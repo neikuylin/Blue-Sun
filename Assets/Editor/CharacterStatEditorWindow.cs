@@ -92,10 +92,13 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPoints"), new GUIContent("行动力"));
                 int strength = entry.FindPropertyRelative("strength").intValue;
                 int agility = entry.FindPropertyRelative("agility").intValue;
+                int intelligence = entry.FindPropertyRelative("intelligence").intValue;
                 int resolvedMaxHealth = 50 + (Mathf.Max(0, strength) * 10);
+                int resolvedMaxMana = 5 + Mathf.Max(0, intelligence);
                 int resolvedMoveDistance = Mathf.Max(0, 2 + (agility / 3));
                 EditorGUI.BeginDisabledGroup(true);
                 EditorGUILayout.IntField("HP", resolvedMaxHealth);
+                EditorGUILayout.IntField("MP", resolvedMaxMana);
                 EditorGUILayout.LabelField("移动距离", resolvedMoveDistance.ToString());
                 EditorGUI.EndDisabledGroup();
                 bool changed = EditorGUI.EndChangeCheck();
@@ -165,7 +168,9 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             unit.SetAgility(entry.FindPropertyRelative("agility").intValue);
             unit.intelligence = entry.FindPropertyRelative("intelligence").intValue;
             unit.maxHealth = 50 + (Mathf.Max(0, unit.strength) * 10);
+            unit.maxMana = 5 + Mathf.Max(0, unit.intelligence);
             unit.currentHealth = Mathf.Min(unit.currentHealth, unit.maxHealth);
+            unit.currentMana = Mathf.Min(unit.currentMana, unit.maxMana);
             int agility = entry.FindPropertyRelative("agility").intValue;
             int actionPoints = entry.FindPropertyRelative("actionPoints").intValue;
             unit.maxActionPoints = actionPoints > 0 ? actionPoints : 4;

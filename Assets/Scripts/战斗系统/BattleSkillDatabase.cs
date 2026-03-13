@@ -22,6 +22,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string group = "\u6280\u80FD";
         public SkillType skillType = SkillType.Move;
         public int actionPointCost = 1;
+        public int manaCost;
         public int cooldownTurns;
         public bool useMoveDistanceAsRange = true;
         public int range;
@@ -30,6 +31,11 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int ResolveActionPointCost()
         {
             return Mathf.Max(0, actionPointCost);
+        }
+
+        public int ResolveManaCost()
+        {
+            return Mathf.Max(0, manaCost);
         }
 
         public int ResolveRange(int moveDistance)

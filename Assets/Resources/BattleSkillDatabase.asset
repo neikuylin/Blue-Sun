@@ -17,6 +17,7 @@ MonoBehaviour:
     group: "\u6280\u80FD"
     skillType: 0
     actionPointCost: 1
+    manaCost: 0
     cooldownTurns: 0
     useMoveDistanceAsRange: 1
     range: 0

@@ -90,6 +90,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("group"), new GUIContent("\u5206\u7EC4"));
                 skillType.enumValueIndex = EditorGUILayout.Popup("\u6280\u80FD\u7C7B\u578B", skillType.enumValueIndex, SkillTypeLabels);
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("AP消耗"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("MP消耗"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51B7\u5374\u65F6\u95F4\uFF08\u56DE\u5408\uFF09"));
 
                 bool rangeFromMoveDistance = EditorGUILayout.Toggle("\u5C04\u7A0B\u53D6\u79FB\u52A8\u8DDD\u79BB", useMoveDistanceAsRange.boolValue);
@@ -130,6 +132,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
         entry.FindPropertyRelative("group").stringValue = "\u6280\u80FD";
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Move;
+        entry.FindPropertyRelative("actionPointCost").intValue = 1;
+        entry.FindPropertyRelative("manaCost").intValue = 0;
         entry.FindPropertyRelative("cooldownTurns").intValue = 0;
         entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = true;
         entry.FindPropertyRelative("range").intValue = 0;
@@ -181,6 +185,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             skillId = BattleSkillDatabase.MoveSkillId,
             group = "\u6280\u80FD",
             skillType = BattleSkillDatabase.SkillType.Move,
+            actionPointCost = 1,
+            manaCost = 0,
             cooldownTurns = 0,
             useMoveDistanceAsRange = true,
             range = 0,

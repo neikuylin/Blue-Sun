@@ -228,7 +228,8 @@ public class BattleTurnSystem : MonoBehaviour
     private void TryMove(BattleUnit unit, Vector2Int destination)
     {
         int moveActionPointCost = GetMoveSkillActionPointCost();
-        if (unit == null || !unit.CanSpendActionPoints(moveActionPointCost))
+        int moveManaCost = GetMoveSkillManaCost();
+        if (unit == null || !unit.CanSpendActionPoints(moveActionPointCost) || !unit.CanSpendMana(moveManaCost))
         {
             return;
         }
@@ -256,6 +257,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         grid.MoveUnit(unit, destination);
         unit.SpendActionPoints(moveActionPointCost);
+        unit.SpendMana(moveManaCost);
         movementModeActive = false;
         hasMovementHoverPreview = false;
         movementHoverHasAnyVisibleCells = false;
@@ -1399,7 +1401,8 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!activeUnit.CanSpendActionPoints(GetMoveSkillActionPointCost()))
+        if (!activeUnit.CanSpendActionPoints(GetMoveSkillActionPointCost()) ||
+            !activeUnit.CanSpendMana(GetMoveSkillManaCost()))
         {
             movementModeActive = false;
             hasMovementHoverPreview = false;
@@ -1557,6 +1560,17 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return moveSkill.ResolveActionPointCost();
+    }
+
+    private int GetMoveSkillManaCost()
+    {
+        BattleSkillDatabase.SkillEntry moveSkill = GetMoveSkill();
+        if (moveSkill == null)
+        {
+            return 0;
+        }
+
+        return moveSkill.ResolveManaCost();
     }
 
     private BattleSkillDatabase.SkillEntry GetMoveSkill()

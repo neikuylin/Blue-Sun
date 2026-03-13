@@ -31,6 +31,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
         {
             return 50 + (Mathf.Max(0, strength) * 10);
         }
+
+        public int ResolveMaxMana()
+        {
+            return 5 + Mathf.Max(0, intelligence);
+        }
     }
 
     [SerializeField] private List<StatEntry> entries = new List<StatEntry>();

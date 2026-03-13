@@ -18,6 +18,7 @@ public class BattleUnit : MonoBehaviour
 
     [Header("Stats")]
     public int maxHealth = 10;
+    public int maxMana = 5;
     public int moveRange = 4;
     public int moveDistance = 4;
     public int attackRange = 1;
@@ -37,6 +38,7 @@ public class BattleUnit : MonoBehaviour
 
     [Header("Runtime")]
     public int currentHealth;
+    public int currentMana;
     public int currentActionPoints;
     public Vector2Int currentCell;
 
@@ -66,6 +68,7 @@ public class BattleUnit : MonoBehaviour
         if (!initialized)
         {
             currentHealth = maxHealth;
+            currentMana = maxMana;
             anchorOffset = useAutoVisualAnchor ? transform.position - GetVisualAnchorWorldPosition() : Vector3.zero;
             initialized = true;
         }
@@ -76,6 +79,7 @@ public class BattleUnit : MonoBehaviour
         if (statEntry == null)
         {
             maxHealth = 50;
+            maxMana = 5;
             strength = 0;
             SetAgilityInternal(0, false);
             intelligence = 0;
@@ -83,11 +87,13 @@ public class BattleUnit : MonoBehaviour
             moveDistance = 3;
             moveRange = moveDistance;
             currentHealth = Mathf.Min(currentHealth, maxHealth);
+            currentMana = Mathf.Min(currentMana, maxMana);
             currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
             return;
         }
 
         maxHealth = statEntry.ResolveMaxHealth();
+        maxMana = statEntry.ResolveMaxMana();
         strength = statEntry.strength;
         SetAgilityInternal(statEntry.agility, false);
         intelligence = statEntry.intelligence;
@@ -95,6 +101,7 @@ public class BattleUnit : MonoBehaviour
         moveDistance = statEntry.ResolveMoveDistance();
         moveRange = moveDistance;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
+        currentMana = Mathf.Min(currentMana, maxMana);
         currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
     }
 
@@ -116,6 +123,22 @@ public class BattleUnit : MonoBehaviour
         }
 
         currentActionPoints = Mathf.Max(0, currentActionPoints - Mathf.Max(0, amount));
+        return true;
+    }
+
+    public bool CanSpendMana(int amount)
+    {
+        return amount <= 0 || currentMana >= amount;
+    }
+
+    public bool SpendMana(int amount)
+    {
+        if (!CanSpendMana(amount))
+        {
+            return false;
+        }
+
+        currentMana = Mathf.Max(0, currentMana - Mathf.Max(0, amount));
         return true;
     }
 
