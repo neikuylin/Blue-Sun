@@ -939,7 +939,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         for (int i = 0; i < EquipmentSlotNames.Length; i++)
         {
-            Transform slotTransform = FindChildByName(container, EquipmentSlotNames[i]) ?? FindDescendantByName(container, EquipmentSlotNames[i]);
+            string slotName = EquipmentSlotNames[i];
+            Transform slotTransform = FindEquipmentSlotTransform(container, slotName);
             RectTransform slotRoot = slotTransform as RectTransform;
             if (slotRoot == null)
             {
@@ -964,6 +965,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
             });
         }
+    }
+
+    private static Transform FindEquipmentSlotTransform(Transform container, string slotName)
+    {
+        if (container == null || string.IsNullOrWhiteSpace(slotName))
+        {
+            return null;
+        }
+
+        string slotNameWithSuffix = slotName + "栏位";
+
+        return FindChildByName(container, slotName) ??
+            FindChildByName(container, slotNameWithSuffix) ??
+            FindDescendantByName(container, slotName) ??
+            FindDescendantByName(container, slotNameWithSuffix);
     }
 
     private static ItemDatabase.EquipmentSlotType ResolveEquipmentSlotType(string slotName)
@@ -1164,8 +1180,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         dragIconRoot.sizeDelta = widget.root.rect.size;
-        RebuildDragVisual(data);
+        RebuildDragVisual(widget, data);
         dragIconRoot.gameObject.SetActive(true);
+        dragIconRoot.SetAsLastSibling();
         UpdateDragVisualPosition(eventData);
 
         draggingSource = source;
@@ -1264,16 +1281,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         go.SetActive(false);
     }
 
-    private void RebuildDragVisual(ItemSlotData data)
+    private void RebuildDragVisual(SlotWidget sourceWidget, ItemSlotData data)
     {
         if (dragIconRoot == null || dragIconImage == null)
         {
             return;
         }
 
-        dragIconImage.sprite = ResolveDisplaySprite(data);
-        dragIconImage.color = Color.white;
+        Sprite dragSprite = sourceWidget != null && sourceWidget.icon != null
+            ? sourceWidget.icon.sprite
+            : ResolveDisplaySprite(data);
+
+        dragIconImage.sprite = dragSprite;
+        dragIconImage.color = new Color(1f, 1f, 1f, 0.9f);
         dragIconImage.enabled = dragIconImage.sprite != null;
+        dragIconImage.SetNativeSize();
     }
 
     private static void SetWidgetDraggingVisible(SlotWidget widget, bool visible)

@@ -18,3 +18,8 @@ MonoBehaviour:
     equipmentSlot: 3
     weaponCategory: 1
     prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
+  - itemId: "itm_\u6D4B\u8BD5\u7528\u5934\u76D4"
+    category: 0
+    equipmentSlot: 4
+    weaponCategory: 0
+    prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
