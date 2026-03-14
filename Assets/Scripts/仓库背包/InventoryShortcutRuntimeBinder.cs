@@ -36,10 +36,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         public RectTransform root;
         public Button button;
+        public RectTransform backgroundAnchor;
+        public RectTransform iconAnchor;
         public Image icon;
         public bool iconIsRoot;
         public Color iconOriginalColor;
         public Sprite iconOriginalSprite;
+        public GameObject runtimeBackgroundVisual;
+        public GameObject runtimeIconVisual;
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
     }
 
@@ -85,6 +89,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string SlotNameKeyword = "格子";
+    private const string SlotContainerName = "格子容器";
+    private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
 
     private static readonly string[] EquipmentSlotNames =
@@ -438,9 +444,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RectTransform quickAnchor = FindQuickAnchor();
         if (quickAnchor != null)
         {
-            ApplyBackpackLayoutToMirrorAnchor(quickAnchor);
-            EnsureMirrorSlots(quickAnchor, quickSlots, "快捷格子");
-            CollectSlotsFromContainer(quickAnchor, quickSlots);
+            RectTransform quickContainer = EnsureSlotContainer(quickAnchor);
+            ApplyBackpackLayoutToMirrorAnchor(quickContainer);
+            EnsureMirrorSlots(quickContainer, quickSlots, "快捷格子");
+            CollectSlotsFromContainer(quickContainer, quickSlots);
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, quickSlots.Count);
             EnsureBackpackDataSize(backpackWidgetCount);
         }
@@ -448,9 +455,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
         if (battleBackpackAnchor != null)
         {
-            ApplyBackpackLayoutToMirrorAnchor(battleBackpackAnchor);
-            EnsureMirrorSlots(battleBackpackAnchor, battleBackpackSlots, "战斗背包格子");
-            CollectSlotsFromContainer(battleBackpackAnchor, battleBackpackSlots);
+            RectTransform battleContainer = EnsureSlotContainer(battleBackpackAnchor);
+            ApplyBackpackLayoutToMirrorAnchor(battleContainer);
+            EnsureMirrorSlots(battleContainer, battleBackpackSlots, "战斗背包格子");
+            CollectSlotsFromContainer(battleContainer, battleBackpackSlots);
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
             EnsureBackpackDataSize(backpackWidgetCount);
         }
@@ -589,12 +597,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private RectTransform FindQuickAnchor()
     {
+        RectTransform resolvedByPath = FindTransformByPath(QuickAnchorPath) as RectTransform;
+        if (resolvedByPath != null)
+        {
+            return resolvedByPath;
+        }
+
         if (journeyBindings != null && journeyBindings.quickSlotAnchor != null)
         {
             return journeyBindings.quickSlotAnchor;
         }
 
-        return FindTransformByPath(QuickAnchorPath) as RectTransform;
+        return null;
     }
 
     private RectTransform FindBattleBackpackAnchor()
@@ -605,6 +619,31 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
+    }
+
+    private static RectTransform EnsureSlotContainer(RectTransform anchor)
+    {
+        if (anchor == null)
+        {
+            return null;
+        }
+
+        Transform existing = FindChildByName(anchor, SlotContainerName);
+        if (existing is RectTransform existingRect)
+        {
+            return existingRect;
+        }
+
+        GameObject go = new GameObject(SlotContainerName, typeof(RectTransform));
+        RectTransform container = go.GetComponent<RectTransform>();
+        container.SetParent(anchor, false);
+        container.anchorMin = Vector2.zero;
+        container.anchorMax = Vector2.one;
+        container.pivot = new Vector2(0.5f, 0.5f);
+        container.anchoredPosition = Vector2.zero;
+        container.sizeDelta = Vector2.zero;
+        container.localScale = Vector3.one;
+        return container;
     }
 
     private void EnsureBattleBackpackDrag()
@@ -846,12 +885,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void EnsureMirrorSlots(RectTransform anchor, List<SlotWidget> cache, string slotNamePrefix)
     {
         cache.Clear();
-        CollectSlotsFromContainer(anchor, cache);
         int desiredCount = backpackSlots.Count > 0 ? backpackSlots.Count : backpackData.Count;
-        if (cache.Count == desiredCount)
-        {
-            return;
-        }
 
         for (int i = anchor.childCount - 1; i >= 0; i--)
         {
@@ -922,7 +956,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            Image icon = FindBestIconImage(child);
+            RectTransform backgroundAnchor = FindNamedRectTransform(child, ItemBackgroundName);
+            RectTransform iconAnchor = FindNamedRectTransform(child, ItemIconName);
+            Image icon = iconAnchor != null ? iconAnchor.GetComponent<Image>() : FindBestIconImage(child);
             if (icon == null)
             {
                 continue;
@@ -932,6 +968,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             {
                 root = child,
                 button = button,
+                backgroundAnchor = backgroundAnchor,
+                iconAnchor = iconAnchor,
                 icon = icon,
                 iconIsRoot = icon.transform == child,
                 iconOriginalColor = icon.color,
@@ -959,7 +997,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             }
 
             Button button = slotRoot.GetComponent<Button>();
-            Image icon = FindEquipmentIconImage(slotRoot);
+            RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
+            RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
+            Image icon = iconAnchor != null ? iconAnchor.GetComponent<Image>() : FindEquipmentIconImage(slotRoot);
             if (icon == null)
             {
                 continue;
@@ -969,6 +1009,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             {
                 root = slotRoot,
                 button = button,
+                backgroundAnchor = backgroundAnchor,
+                iconAnchor = iconAnchor,
                 icon = icon,
                 iconIsRoot = icon.transform == slotRoot,
                 iconOriginalColor = icon.color,
@@ -1065,6 +1107,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return FindBestIconImage(slotRoot);
+    }
+
+    private static RectTransform FindNamedRectTransform(RectTransform root, string childName)
+    {
+        Transform target = FindChildByName(root, childName) ?? FindDescendantByName(root, childName);
+        return target as RectTransform;
     }
 
     private static void EnsureDataSize(List<ItemSlotData> data, int size)
@@ -1299,9 +1347,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Sprite dragSprite = sourceWidget != null && sourceWidget.icon != null
-            ? sourceWidget.icon.sprite
-            : ResolveDisplaySprite(data);
+        Sprite dragSprite = ResolveRuntimeIconSprite(sourceWidget) ?? ResolveDisplaySprite(data);
 
         dragIconImage.sprite = dragSprite;
         dragIconImage.color = new Color(1f, 1f, 1f, 0.9f);
@@ -1314,6 +1360,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (widget == null)
         {
             return;
+        }
+
+        if (widget.runtimeIconVisual != null)
+        {
+            widget.runtimeIconVisual.SetActive(visible);
+        }
+
+        if (widget.runtimeBackgroundVisual != null)
+        {
+            widget.runtimeBackgroundVisual.SetActive(visible);
         }
 
         if (widget.icon == null)
@@ -1650,23 +1706,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Sprite displaySprite = ResolveDisplaySprite(data);
-        bool hasItem = displaySprite != null;
-        widget.icon.enabled = true;
-        widget.icon.raycastTarget = true;
+        ClearRuntimeVisual(widget, ref widget.runtimeBackgroundVisual);
+        ClearRuntimeVisual(widget, ref widget.runtimeIconVisual);
 
-        if (widget.iconIsRoot)
+        if (string.IsNullOrWhiteSpace(data.itemId))
         {
-            widget.icon.sprite = hasItem ? displaySprite : widget.iconOriginalSprite;
-            Color c = widget.iconOriginalColor;
-            c.a = widget.iconOriginalColor.a;
-            widget.icon.color = c;
             return;
         }
 
-        widget.icon.sprite = displaySprite;
-        widget.icon.gameObject.SetActive(true);
-        widget.icon.color = hasItem ? Color.white : new Color(1f, 1f, 1f, 0f);
+        GameObject prefab = ResolvePrefabFromItemId(data.itemId);
+        if (prefab == null)
+        {
+            return;
+        }
+
+        widget.runtimeBackgroundVisual = TryCreateRuntimeVisual(prefab.transform, ItemBackgroundName, widget.backgroundAnchor ?? widget.root);
+        widget.runtimeIconVisual = TryCreateRuntimeVisual(prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
@@ -1690,6 +1745,90 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
         return entry != null ? entry.prefab : null;
+    }
+
+    private static Sprite ResolveRuntimeIconSprite(SlotWidget widget)
+    {
+        if (widget == null)
+        {
+            return null;
+        }
+
+        if (widget.runtimeIconVisual != null)
+        {
+            Image image = widget.runtimeIconVisual.GetComponent<Image>();
+            if (image != null)
+            {
+                return image.sprite;
+            }
+        }
+
+        return widget.icon != null ? widget.icon.sprite : null;
+    }
+
+    private static GameObject TryCreateRuntimeVisual(Transform prefabRoot, string childName, RectTransform anchor)
+    {
+        if (prefabRoot == null || anchor == null)
+        {
+            return null;
+        }
+
+        Transform source = FindChildByName(prefabRoot, childName) ?? FindDescendantByName(prefabRoot, childName);
+        if (source == null)
+        {
+            return null;
+        }
+
+        GameObject instance = UnityEngine.Object.Instantiate(source.gameObject, anchor, false);
+        instance.name = source.gameObject.name;
+
+        RectTransform instanceRect = instance.transform as RectTransform;
+        if (instanceRect != null)
+        {
+            instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
+            instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
+            instanceRect.pivot = new Vector2(0.5f, 0.5f);
+            instanceRect.anchoredPosition3D = Vector3.zero;
+            instanceRect.localRotation = Quaternion.identity;
+            instanceRect.localScale = Vector3.one;
+        }
+
+        DisableRaycasts(instance);
+        instance.transform.SetAsLastSibling();
+        return instance;
+    }
+
+    private static void DisableRaycasts(GameObject root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            graphics[i].raycastTarget = false;
+        }
+    }
+
+    private static void ClearRuntimeVisual(SlotWidget widget, ref GameObject visual)
+    {
+        if (widget == null || visual == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            UnityEngine.Object.Destroy(visual);
+        }
+        else
+        {
+            UnityEngine.Object.DestroyImmediate(visual);
+        }
+
+        visual = null;
     }
 
     private static Image ResolveDisplayImage(Transform root)
@@ -1735,11 +1874,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void UnbindAll()
     {
         HandleEndDrag();
+        ClearRuntimeVisuals(warehouseSlots);
+        ClearRuntimeVisuals(backpackSlots);
+        ClearRuntimeVisuals(equipmentSlots);
+        ClearRuntimeVisuals(quickSlots);
+        ClearRuntimeVisuals(battleBackpackSlots);
         warehouseSlots.Clear();
         backpackSlots.Clear();
         equipmentSlots.Clear();
         quickSlots.Clear();
         battleBackpackSlots.Clear();
+    }
+
+    private static void ClearRuntimeVisuals(List<SlotWidget> widgets)
+    {
+        if (widgets == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < widgets.Count; i++)
+        {
+            SlotWidget widget = widgets[i];
+            if (widget == null)
+            {
+                continue;
+            }
+
+            ClearRuntimeVisual(widget, ref widget.runtimeBackgroundVisual);
+            ClearRuntimeVisual(widget, ref widget.runtimeIconVisual);
+        }
     }
 }
 
