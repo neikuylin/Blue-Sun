@@ -23,7 +23,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         "自己（当前回合角色）",
         "敌人",
-        "队友（除当前回合角色）",
+        "队友（不含当前回合角色）",
         "全部（所有有ID的战场单位）"
     };
 
@@ -45,7 +45,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
         EditorGUILayout.LabelField("战斗技能配置", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "技能分组固定为：特殊、战技、法术。移动技能保留技能ID“移动”，但现在属于“特殊 + 范围技能”。",
+            "技能分组固定为：特殊、战技、法术。移动技能保留技能ID“移动”，并归类为“特殊 + 范围技能”。",
             MessageType.Info);
         EditorGUILayout.Space(4f);
 
@@ -72,7 +72,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         if (database == null)
         {
-            EditorGUILayout.HelpBox("技能库资产创建失败。", MessageType.Error);
+            EditorGUILayout.HelpBox("技能库资源创建失败。", MessageType.Error);
             return;
         }
 
@@ -108,6 +108,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 SerializedProperty castTarget = entry.FindPropertyRelative("castTarget");
                 castTarget.enumValueIndex = EditorGUILayout.Popup("施法对象", castTarget.enumValueIndex, CastTargetLabels);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("技能图标"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("skillMultiplier"), new GUIContent("技能倍率"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("战技伤害倍率"));
 
                 bool rangeFromMoveDistance = EditorGUILayout.Toggle("射程取移动距离", useMoveDistanceAsRange.boolValue);
@@ -157,6 +158,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
+        entry.FindPropertyRelative("skillMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;
@@ -220,6 +222,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             skillType = BattleSkillDatabase.SkillType.Area,
             castTarget = BattleSkillDatabase.CastTarget.Self,
             icon = null,
+            skillMultiplier = 1f,
             damageMultiplier = 1f,
             actionPointCost = 1,
             manaCost = 0,

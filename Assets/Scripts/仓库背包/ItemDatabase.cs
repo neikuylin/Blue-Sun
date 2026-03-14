@@ -44,6 +44,14 @@ public sealed class ItemDatabase : ScriptableObject
         Intelligence
     }
 
+    public enum ItemQuality
+    {
+        Common,
+        Excellent,
+        Epic,
+        Blessed
+    }
+
     [Serializable]
     public sealed class WeaponAttributeMultiplierEntry
     {
@@ -56,8 +64,11 @@ public sealed class ItemDatabase : ScriptableObject
     {
         public string itemId = string.Empty;
         public ItemCategory category = ItemCategory.Equipment;
+        public ItemQuality quality = ItemQuality.Common;
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;
         public WeaponCategory weaponCategory = WeaponCategory.None;
+        public float fixedDamage;
+        public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
         public GameObject prefab;
     }
@@ -172,6 +183,24 @@ public sealed class ItemDatabase : ScriptableObject
         if (entry.weaponAttributeMultipliers.Count == 0)
         {
             entry.weaponAttributeMultipliers.Add(new WeaponAttributeMultiplierEntry());
+        }
+    }
+
+    public static void EnsureValidGrantedSkillList(ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.grantedSkillIds == null)
+        {
+            entry.grantedSkillIds = new List<string>();
+        }
+
+        if (entry.grantedSkillIds.Count == 0)
+        {
+            entry.grantedSkillIds.Add(string.Empty);
         }
     }
 

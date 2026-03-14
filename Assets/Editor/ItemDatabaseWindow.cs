@@ -7,9 +7,13 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private const string DatabaseAssetPath = "Assets/Resources/ItemDatabase.asset";
 
     private ItemDatabase database;
+    private BattleSkillDatabase skillDatabase;
     private ItemDatabase.ItemCategory createCategory = ItemDatabase.ItemCategory.Equipment;
+    private ItemDatabase.ItemQuality createQuality = ItemDatabase.ItemQuality.Common;
     private ItemDatabase.EquipmentSlotType createEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
     private ItemDatabase.WeaponCategory createWeaponCategory = ItemDatabase.WeaponCategory.OneHanded;
+    private float createFixedDamage;
+    private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
         new List<ItemDatabase.WeaponAttributeMultiplierEntry> { new ItemDatabase.WeaponAttributeMultiplierEntry() };
     private string newItemId = "itm_eq_mainhand_001";
@@ -32,12 +36,14 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private void OnEnable()
     {
         database = LoadOrCreateDatabase();
-        EnsureCreateWeaponAttributeList();
+        skillDatabase = BattleSkillDatabase.LoadDefault();
+        EnsureCreateLists();
     }
 
     private void OnGUI()
     {
         database = database != null ? database : LoadOrCreateDatabase();
+        skillDatabase = skillDatabase != null ? skillDatabase : BattleSkillDatabase.LoadDefault();
         if (database == null)
         {
             EditorGUILayout.HelpBox("物品数据库加载失败。", MessageType.Error);
@@ -57,6 +63,10 @@ public sealed class ItemDatabaseWindow : EditorWindow
             "类别",
             (int)createCategory,
             ItemEditorLabels.CategoryLabels);
+        createQuality = (ItemDatabase.ItemQuality)EditorGUILayout.Popup(
+            "品质",
+            (int)createQuality,
+            ItemEditorLabels.QualityLabels);
 
         if (createCategory == ItemDatabase.ItemCategory.Equipment)
         {
@@ -66,15 +76,20 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ItemEditorLabels.EquipmentSlotLabels);
 
             DrawWeaponCategoryPopup("武器分类", createEquipmentSlot, ref createWeaponCategory);
-            DrawWeaponAttributeFields(
+            DrawWeaponFields(
                 createCategory,
                 createWeaponCategory,
-                createWeaponAttributeMultipliers);
+                ref createFixedDamage,
+                createGrantedSkillIds,
+                createWeaponAttributeMultipliers,
+                skillDatabase);
         }
         else
         {
             createEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
             createWeaponCategory = ItemDatabase.WeaponCategory.None;
+            createFixedDamage = 0f;
+            ResetGrantedSkillList(createGrantedSkillIds);
             ResetWeaponAttributeList(createWeaponAttributeMultipliers);
         }
 
@@ -148,8 +163,11 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             string originalId = entry.itemId;
             ItemDatabase.ItemCategory originalCategory = entry.category;
+            ItemDatabase.ItemQuality originalQuality = entry.quality;
             ItemDatabase.EquipmentSlotType originalEquipmentSlot = entry.equipmentSlot;
             ItemDatabase.WeaponCategory originalWeaponCategory = entry.weaponCategory;
+            float originalFixedDamage = entry.fixedDamage;
+            List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
             GameObject originalPrefab = entry.prefab;
 
@@ -159,6 +177,10 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 "类别",
                 (int)entry.category,
                 ItemEditorLabels.CategoryLabels);
+            entry.quality = (ItemDatabase.ItemQuality)EditorGUILayout.Popup(
+                "品质",
+                (int)entry.quality,
+                ItemEditorLabels.QualityLabels);
 
             if (entry.category == ItemDatabase.ItemCategory.Equipment)
             {
@@ -168,15 +190,20 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     ItemEditorLabels.EquipmentSlotLabels);
 
                 DrawWeaponCategoryPopup("武器分类", entry.equipmentSlot, ref entry.weaponCategory);
-                DrawWeaponAttributeFields(
+                DrawWeaponFields(
                     entry.category,
                     entry.weaponCategory,
-                    entry.weaponAttributeMultipliers);
+                    ref entry.fixedDamage,
+                    entry.grantedSkillIds,
+                    entry.weaponAttributeMultipliers,
+                    skillDatabase);
             }
             else
             {
                 entry.equipmentSlot = ItemDatabase.EquipmentSlotType.None;
                 entry.weaponCategory = ItemDatabase.WeaponCategory.None;
+                entry.fixedDamage = 0f;
+                ResetGrantedSkillList(entry.grantedSkillIds);
                 ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
             }
 
@@ -200,8 +227,11 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 {
                     entry.itemId = originalId;
                     entry.category = originalCategory;
+                    entry.quality = originalQuality;
                     entry.equipmentSlot = originalEquipmentSlot;
                     entry.weaponCategory = originalWeaponCategory;
+                    entry.fixedDamage = originalFixedDamage;
+                    entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
                     entry.prefab = originalPrefab;
                     GUIUtility.ExitGUI();
@@ -255,10 +285,17 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             itemId = newItemId.Trim(),
             category = createCategory,
+            quality = createQuality,
             equipmentSlot = createCategory == ItemDatabase.ItemCategory.Equipment
                 ? createEquipmentSlot
                 : ItemDatabase.EquipmentSlotType.None,
             weaponCategory = ItemDatabase.NormalizeWeaponCategory(createEquipmentSlot, createWeaponCategory),
+            fixedDamage = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? createFixedDamage
+                : 0f,
+            grantedSkillIds = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? CloneGrantedSkillList(createGrantedSkillIds)
+                : new List<string>(),
             weaponAttributeMultipliers = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? CloneWeaponAttributeList(createWeaponAttributeMultipliers)
                 : new List<ItemDatabase.WeaponAttributeMultiplierEntry>(),
@@ -325,17 +362,106 @@ public sealed class ItemDatabaseWindow : EditorWindow
         weaponCategory = ItemEditorLabels.FromWeaponCategoryPopupIndex(equipmentSlot, popupIndex);
     }
 
-    private static void DrawWeaponAttributeFields(
+    private static void DrawWeaponFields(
         ItemDatabase.ItemCategory category,
         ItemDatabase.WeaponCategory weaponCategory,
-        List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers)
+        ref float fixedDamage,
+        List<string> grantedSkillIds,
+        List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers,
+        BattleSkillDatabase skillDatabase)
     {
         if (!ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory))
         {
+            fixedDamage = 0f;
+            ResetGrantedSkillList(grantedSkillIds);
             ResetWeaponAttributeList(multipliers);
             return;
         }
 
+        fixedDamage = EditorGUILayout.FloatField("固定伤害", fixedDamage);
+        DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
+        DrawWeaponAttributeFields(multipliers);
+    }
+
+    private static void DrawGrantedSkillFields(List<string> skillIds, BattleSkillDatabase skillDatabase)
+    {
+        EnsureGrantedSkillList(skillIds);
+        EditorGUILayout.LabelField("装备附带技能");
+
+        List<BattleSkillDatabase.SkillEntry> entries = skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
+        string[] options = BuildSkillOptions(entries);
+
+        for (int i = 0; i < skillIds.Count; i++)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                int selectedIndex = FindSkillOptionIndex(skillIds[i], entries);
+                selectedIndex = EditorGUILayout.Popup(selectedIndex, options);
+                skillIds[i] = selectedIndex <= 0 ? string.Empty : entries[selectedIndex - 1].skillId;
+
+                using (new EditorGUI.DisabledScope(skillIds.Count <= 1))
+                {
+                    if (GUILayout.Button("-", GUILayout.Width(24f)))
+                    {
+                        skillIds.RemoveAt(i);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+            }
+        }
+
+        if (GUILayout.Button("增加附带技能"))
+        {
+            skillIds.Add(string.Empty);
+        }
+    }
+
+    private static string[] BuildSkillOptions(List<BattleSkillDatabase.SkillEntry> entries)
+    {
+        List<string> options = new List<string> { "无" };
+        for (int i = 0; i < entries.Count; i++)
+        {
+            BattleSkillDatabase.SkillEntry entry = entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.skillId))
+            {
+                continue;
+            }
+
+            options.Add(entry.skillId);
+        }
+
+        return options.ToArray();
+    }
+
+    private static int FindSkillOptionIndex(string skillId, List<BattleSkillDatabase.SkillEntry> entries)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return 0;
+        }
+
+        int optionIndex = 1;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            BattleSkillDatabase.SkillEntry entry = entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.skillId))
+            {
+                continue;
+            }
+
+            if (string.Equals(entry.skillId, skillId, System.StringComparison.Ordinal))
+            {
+                return optionIndex;
+            }
+
+            optionIndex++;
+        }
+
+        return 0;
+    }
+
+    private static void DrawWeaponAttributeFields(List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers)
+    {
         ItemDatabase.EnsureValidWeaponAttributeList(new ItemDatabase.ItemEntry
         {
             weaponAttributeMultipliers = multipliers
@@ -377,6 +503,25 @@ public sealed class ItemDatabaseWindow : EditorWindow
         }
     }
 
+    private static List<string> CloneGrantedSkillList(List<string> source)
+    {
+        List<string> clone = new List<string>();
+        if (source != null)
+        {
+            for (int i = 0; i < source.Count; i++)
+            {
+                clone.Add(source[i] ?? string.Empty);
+            }
+        }
+
+        if (clone.Count == 0)
+        {
+            clone.Add(string.Empty);
+        }
+
+        return clone;
+    }
+
     private static List<ItemDatabase.WeaponAttributeMultiplierEntry> CloneWeaponAttributeList(
         List<ItemDatabase.WeaponAttributeMultiplierEntry> source)
     {
@@ -402,12 +547,37 @@ public sealed class ItemDatabaseWindow : EditorWindow
         return clone;
     }
 
-    private void EnsureCreateWeaponAttributeList()
+    private void EnsureCreateLists()
     {
+        EnsureGrantedSkillList(createGrantedSkillIds);
         if (createWeaponAttributeMultipliers.Count == 0)
         {
             createWeaponAttributeMultipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
         }
+    }
+
+    private static void EnsureGrantedSkillList(List<string> skillIds)
+    {
+        if (skillIds == null)
+        {
+            return;
+        }
+
+        if (skillIds.Count == 0)
+        {
+            skillIds.Add(string.Empty);
+        }
+    }
+
+    private static void ResetGrantedSkillList(List<string> skillIds)
+    {
+        if (skillIds == null)
+        {
+            return;
+        }
+
+        skillIds.Clear();
+        skillIds.Add(string.Empty);
     }
 
     private static void ResetWeaponAttributeList(List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers)

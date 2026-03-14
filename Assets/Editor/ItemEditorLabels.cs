@@ -8,6 +8,14 @@ public static class ItemEditorLabels
         "补给"
     };
 
+    public static readonly string[] QualityLabels =
+    {
+        "普通（白）",
+        "优秀（蓝）",
+        "史诗（紫）",
+        "赐福（金）"
+    };
+
     public static readonly string[] EquipmentSlotLabels =
     {
         "无",
