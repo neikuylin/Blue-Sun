@@ -108,6 +108,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string QualityBackgroundRootPath = "Canvas/UI控制器/物品底";
     private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
+    private const float ItemTooltipDelaySeconds = 0.5f;
+    private static readonly Vector2 ItemTooltipMouseOffset = new Vector2(10f, 10f);
+    private static readonly Vector3 ItemTooltipScale = new Vector3(1.5f, 1.5f, 1f);
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -164,6 +167,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipQualityText;
     private TMP_Text itemTooltipWeaponCategoryText;
     private SlotWidget hoveredTooltipWidget;
+    private SlotWidget pendingTooltipWidget;
+    private ItemDatabase.ItemEntry pendingTooltipEntry;
+    private float pendingTooltipShownAt;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => BackpackSlotCount;
@@ -452,12 +458,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void Update()
     {
         string targetCharacterId = ResolveEquipmentCharacterId();
-        if (string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        if (!string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        {
+            SetCurrentEquipmentCharacter(targetCharacterId);
+        }
+
+        UpdatePendingTooltip();
+    }
+
+    private void UpdatePendingTooltip()
+    {
+        if (pendingTooltipWidget == null || pendingTooltipEntry == null)
         {
             return;
         }
 
-        SetCurrentEquipmentCharacter(targetCharacterId);
+        if (Time.unscaledTime < pendingTooltipShownAt)
+        {
+            return;
+        }
+
+        ShowItemTooltip(pendingTooltipWidget, pendingTooltipEntry);
+        pendingTooltipWidget = null;
+        pendingTooltipEntry = null;
+        pendingTooltipShownAt = 0f;
     }
 
     private void BindScene()
@@ -1391,7 +1415,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ShowItemTooltip(widget, entry);
+        pendingTooltipWidget = widget;
+        pendingTooltipEntry = entry;
+        pendingTooltipShownAt = Time.unscaledTime + ItemTooltipDelaySeconds;
     }
 
     private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
@@ -2038,6 +2064,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
         RefreshTooltipQualityBackground(entry.quality);
+        itemTooltipRoot.localScale = ItemTooltipScale;
         PositionTooltip(widget.root);
         itemTooltipRoot.gameObject.SetActive(true);
         itemTooltipRoot.SetAsLastSibling();
@@ -2046,6 +2073,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void HideItemTooltip()
     {
         hoveredTooltipWidget = null;
+        pendingTooltipWidget = null;
+        pendingTooltipEntry = null;
+        pendingTooltipShownAt = 0f;
         if (itemTooltipRoot != null)
         {
             itemTooltipRoot.gameObject.SetActive(false);
@@ -2097,7 +2127,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void PositionTooltip(RectTransform source)
     {
-        PositionTooltipRect(itemTooltipRoot, source, new Vector2(24f, 0f));
+        PositionTooltipRect(itemTooltipRoot, source, ItemTooltipMouseOffset);
     }
 
     private static void PositionTooltipRect(RectTransform tooltip, RectTransform source, Vector2 offset)
@@ -2110,17 +2140,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RectTransform parentRect = tooltip.parent as RectTransform;
         Canvas canvas = tooltip.GetComponentInParent<Canvas>();
         Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
-        Vector3[] corners = new Vector3[4];
-        source.GetWorldCorners(corners);
-        Vector3 anchorWorld = corners[2];
         if (parentRect != null &&
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 parentRect,
-                RectTransformUtility.WorldToScreenPoint(uiCamera, anchorWorld),
+                Input.mousePosition,
                 uiCamera,
                 out Vector2 localPoint))
         {
-            tooltip.anchoredPosition = localPoint + offset;
+            Vector2 pivotOffset = new Vector2(tooltip.rect.width * tooltip.pivot.x, tooltip.rect.height * tooltip.pivot.y);
+            tooltip.anchoredPosition = localPoint + offset + pivotOffset;
         }
     }
 
