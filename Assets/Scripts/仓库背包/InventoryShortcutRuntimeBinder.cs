@@ -94,6 +94,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
+    private const string QualityBackgroundRootPath = "Canvas/UI控制器/物品底";
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -113,6 +114,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
     private readonly Dictionary<string, List<ItemSlotData>> equipmentDataByCharacter = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
+    private readonly Dictionary<ItemDatabase.ItemQuality, GameObject> qualityBackgroundPrefabCache = new Dictionary<ItemDatabase.ItemQuality, GameObject>();
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
@@ -428,6 +430,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         journeyBindings = JourneySceneBindings.FindInActiveScene();
         battleBindings = BattleSceneBindings.FindInActiveScene();
+        CacheQualityBackgroundPrefabs();
         CacheBackpackSlotTemplate();
         UnbindAll();
 
@@ -1848,14 +1851,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        GameObject prefab = ResolvePrefabFromItemId(data.itemId);
-        if (prefab == null)
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (entry == null || entry.prefab == null)
         {
             return;
         }
 
-        widget.runtimeBackgroundVisual = TryCreateRuntimeVisual(prefab.transform, ItemBackgroundName, widget.backgroundAnchor ?? widget.root);
-        widget.runtimeIconVisual = TryCreateRuntimeVisual(prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
+        GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry.quality) : null;
+        widget.runtimeBackgroundVisual = TryCreateRuntimePrefabVisual(qualityBackgroundPrefab, widget.backgroundAnchor ?? widget.root);
+        widget.runtimeIconVisual = TryCreateRuntimeVisual(entry.prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
@@ -1879,6 +1883,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
         return entry != null ? entry.prefab : null;
+    }
+
+    private GameObject ResolveQualityBackgroundPrefab(ItemDatabase.ItemQuality quality)
+    {
+        if (qualityBackgroundPrefabCache.TryGetValue(quality, out GameObject prefab))
+        {
+            return prefab;
+        }
+
+        return null;
     }
 
     private static Sprite ResolveRuntimeIconSprite(SlotWidget widget)
@@ -1930,6 +1944,61 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         DisableRaycasts(instance);
         instance.transform.SetAsLastSibling();
         return instance;
+    }
+
+    private static GameObject TryCreateRuntimePrefabVisual(GameObject prefab, RectTransform anchor)
+    {
+        if (prefab == null || anchor == null)
+        {
+            return null;
+        }
+
+        GameObject instance = UnityEngine.Object.Instantiate(prefab, anchor, false);
+        RectTransform instanceRect = instance.transform as RectTransform;
+        if (instanceRect != null)
+        {
+            instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
+            instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
+            instanceRect.pivot = new Vector2(0.5f, 0.5f);
+            instanceRect.anchoredPosition3D = Vector3.zero;
+            instanceRect.localRotation = Quaternion.identity;
+            instanceRect.localScale = Vector3.one;
+        }
+
+        DisableRaycasts(instance);
+        instance.transform.SetAsLastSibling();
+        return instance;
+    }
+
+    private void CacheQualityBackgroundPrefabs()
+    {
+        qualityBackgroundPrefabCache.Clear();
+        Transform root = FindTransformByPath(QualityBackgroundRootPath);
+        if (root == null)
+        {
+            return;
+        }
+
+        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Common, "白", "白色物品底");
+        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Excellent, "蓝", "蓝色物品底");
+        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Epic, "紫", "紫色物品底");
+        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Blessed, "金", "金色物品底");
+    }
+
+    private void CacheQualityBackgroundPrefab(Transform root, ItemDatabase.ItemQuality quality, params string[] candidateNames)
+    {
+        for (int i = 0; i < candidateNames.Length; i++)
+        {
+            string candidateName = candidateNames[i];
+            Transform target = FindChildByName(root, candidateName) ?? FindDescendantByName(root, candidateName);
+            if (target == null)
+            {
+                continue;
+            }
+
+            qualityBackgroundPrefabCache[quality] = target.gameObject;
+            return;
+        }
     }
 
     private static void DisableRaycasts(GameObject root)
