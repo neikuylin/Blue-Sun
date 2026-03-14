@@ -9141,7 +9141,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 5580978698064613126, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}
       propertyPath: m_Name
-      value: "\u53F2\u8BD7\u7269\u54C1\u5E95\uFF08\u7D2B\uFF09 "
+      value: "\u53F2\u8BD7\u7269\u54C1\u5E95\uFF08\u7D2B\uFF09"
       objectReference: {fileID: 0}
     - target: {fileID: 7167682266333031959, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}
       propertyPath: m_Pivot.x
