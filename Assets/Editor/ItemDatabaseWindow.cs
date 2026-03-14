@@ -10,6 +10,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private ItemDatabase.ItemCategory createCategory = ItemDatabase.ItemCategory.Equipment;
     private ItemDatabase.EquipmentSlotType createEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
     private ItemDatabase.WeaponCategory createWeaponCategory = ItemDatabase.WeaponCategory.OneHanded;
+    private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
+        new List<ItemDatabase.WeaponAttributeMultiplierEntry> { new ItemDatabase.WeaponAttributeMultiplierEntry() };
     private string newItemId = "itm_eq_mainhand_001";
     private GameObject newItemPrefab;
 
@@ -30,6 +32,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private void OnEnable()
     {
         database = LoadOrCreateDatabase();
+        EnsureCreateWeaponAttributeList();
     }
 
     private void OnGUI()
@@ -63,18 +66,23 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ItemEditorLabels.EquipmentSlotLabels);
 
             DrawWeaponCategoryPopup("武器分类", createEquipmentSlot, ref createWeaponCategory);
+            DrawWeaponAttributeFields(
+                createCategory,
+                createWeaponCategory,
+                createWeaponAttributeMultipliers);
         }
         else
         {
             createEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
             createWeaponCategory = ItemDatabase.WeaponCategory.None;
+            ResetWeaponAttributeList(createWeaponAttributeMultipliers);
         }
 
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
         if (!string.IsNullOrWhiteSpace(newItemId) &&
             !newItemId.StartsWith("itm_", System.StringComparison.Ordinal))
         {
-            EditorGUILayout.HelpBox("物品ID必须以 itm_ 开头，用于和技能、角色ID区分。", MessageType.Warning);
+            EditorGUILayout.HelpBox("物品ID必须以 itm_ 开头。", MessageType.Warning);
         }
 
         newItemPrefab = (GameObject)EditorGUILayout.ObjectField("预制体", newItemPrefab, typeof(GameObject), false);
@@ -142,6 +150,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ItemDatabase.ItemCategory originalCategory = entry.category;
             ItemDatabase.EquipmentSlotType originalEquipmentSlot = entry.equipmentSlot;
             ItemDatabase.WeaponCategory originalWeaponCategory = entry.weaponCategory;
+            List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
             GameObject originalPrefab = entry.prefab;
 
             EditorGUILayout.LabelField($"条目 {index + 1}", EditorStyles.boldLabel);
@@ -159,11 +168,16 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     ItemEditorLabels.EquipmentSlotLabels);
 
                 DrawWeaponCategoryPopup("武器分类", entry.equipmentSlot, ref entry.weaponCategory);
+                DrawWeaponAttributeFields(
+                    entry.category,
+                    entry.weaponCategory,
+                    entry.weaponAttributeMultipliers);
             }
             else
             {
                 entry.equipmentSlot = ItemDatabase.EquipmentSlotType.None;
                 entry.weaponCategory = ItemDatabase.WeaponCategory.None;
+                ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
             }
 
             entry.weaponCategory = ItemDatabase.NormalizeWeaponCategory(entry.equipmentSlot, entry.weaponCategory);
@@ -188,6 +202,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.category = originalCategory;
                     entry.equipmentSlot = originalEquipmentSlot;
                     entry.weaponCategory = originalWeaponCategory;
+                    entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
                     entry.prefab = originalPrefab;
                     GUIUtility.ExitGUI();
                 }
@@ -244,6 +259,9 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ? createEquipmentSlot
                 : ItemDatabase.EquipmentSlotType.None,
             weaponCategory = ItemDatabase.NormalizeWeaponCategory(createEquipmentSlot, createWeaponCategory),
+            weaponAttributeMultipliers = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? CloneWeaponAttributeList(createWeaponAttributeMultipliers)
+                : new List<ItemDatabase.WeaponAttributeMultiplierEntry>(),
             prefab = newItemPrefab
         });
 
@@ -305,6 +323,102 @@ public sealed class ItemDatabaseWindow : EditorWindow
         int popupIndex = ItemEditorLabels.ToWeaponCategoryPopupIndex(equipmentSlot, weaponCategory);
         popupIndex = EditorGUILayout.Popup(label, popupIndex, labels);
         weaponCategory = ItemEditorLabels.FromWeaponCategoryPopupIndex(equipmentSlot, popupIndex);
+    }
+
+    private static void DrawWeaponAttributeFields(
+        ItemDatabase.ItemCategory category,
+        ItemDatabase.WeaponCategory weaponCategory,
+        List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers)
+    {
+        if (!ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory))
+        {
+            ResetWeaponAttributeList(multipliers);
+            return;
+        }
+
+        ItemDatabase.EnsureValidWeaponAttributeList(new ItemDatabase.ItemEntry
+        {
+            weaponAttributeMultipliers = multipliers
+        });
+
+        EditorGUILayout.LabelField("属性倍率");
+        for (int i = 0; i < multipliers.Count; i++)
+        {
+            ItemDatabase.WeaponAttributeMultiplierEntry entry = multipliers[i];
+            if (entry == null)
+            {
+                entry = new ItemDatabase.WeaponAttributeMultiplierEntry();
+                multipliers[i] = entry;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                entry.attributeType = (ItemDatabase.WeaponAttributeType)EditorGUILayout.Popup(
+                    (int)entry.attributeType,
+                    ItemEditorLabels.WeaponAttributeTypeLabels,
+                    GUILayout.MaxWidth(120f));
+                EditorGUILayout.LabelField("=", GUILayout.Width(12f));
+                entry.multiplier = EditorGUILayout.FloatField(entry.multiplier);
+
+                using (new EditorGUI.DisabledScope(multipliers.Count <= 1))
+                {
+                    if (GUILayout.Button("-", GUILayout.Width(24f)))
+                    {
+                        multipliers.RemoveAt(i);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+            }
+        }
+
+        if (GUILayout.Button("增加属性倍率"))
+        {
+            multipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+        }
+    }
+
+    private static List<ItemDatabase.WeaponAttributeMultiplierEntry> CloneWeaponAttributeList(
+        List<ItemDatabase.WeaponAttributeMultiplierEntry> source)
+    {
+        List<ItemDatabase.WeaponAttributeMultiplierEntry> clone = new List<ItemDatabase.WeaponAttributeMultiplierEntry>();
+        if (source != null)
+        {
+            for (int i = 0; i < source.Count; i++)
+            {
+                ItemDatabase.WeaponAttributeMultiplierEntry entry = source[i];
+                clone.Add(new ItemDatabase.WeaponAttributeMultiplierEntry
+                {
+                    attributeType = entry != null ? entry.attributeType : ItemDatabase.WeaponAttributeType.Strength,
+                    multiplier = entry != null ? entry.multiplier : 1f
+                });
+            }
+        }
+
+        if (clone.Count == 0)
+        {
+            clone.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+        }
+
+        return clone;
+    }
+
+    private void EnsureCreateWeaponAttributeList()
+    {
+        if (createWeaponAttributeMultipliers.Count == 0)
+        {
+            createWeaponAttributeMultipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+        }
+    }
+
+    private static void ResetWeaponAttributeList(List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers)
+    {
+        if (multipliers == null)
+        {
+            return;
+        }
+
+        multipliers.Clear();
+        multipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
     }
 
     private void SaveDatabase()

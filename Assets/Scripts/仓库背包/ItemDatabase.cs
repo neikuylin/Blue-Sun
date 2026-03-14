@@ -36,6 +36,21 @@ public sealed class ItemDatabase : ScriptableObject
         TwoHanded
     }
 
+    public enum WeaponAttributeType
+    {
+        None,
+        Strength,
+        Agility,
+        Intelligence
+    }
+
+    [Serializable]
+    public sealed class WeaponAttributeMultiplierEntry
+    {
+        public WeaponAttributeType attributeType = WeaponAttributeType.Strength;
+        public float multiplier = 1f;
+    }
+
     [Serializable]
     public sealed class ItemEntry
     {
@@ -43,6 +58,7 @@ public sealed class ItemDatabase : ScriptableObject
         public ItemCategory category = ItemCategory.Equipment;
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;
         public WeaponCategory weaponCategory = WeaponCategory.None;
+        public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
         public GameObject prefab;
     }
 
@@ -126,6 +142,37 @@ public sealed class ItemDatabase : ScriptableObject
         }
 
         return weaponCategory;
+    }
+
+    public static bool ShouldShowWeaponAttributeMultiplier(
+        ItemCategory category,
+        WeaponCategory weaponCategory)
+    {
+        if (category != ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        return weaponCategory == WeaponCategory.OneHanded ||
+            weaponCategory == WeaponCategory.TwoHanded;
+    }
+
+    public static void EnsureValidWeaponAttributeList(ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.weaponAttributeMultipliers == null)
+        {
+            entry.weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
+        }
+
+        if (entry.weaponAttributeMultipliers.Count == 0)
+        {
+            entry.weaponAttributeMultipliers.Add(new WeaponAttributeMultiplierEntry());
+        }
     }
 
     public static ItemDatabase LoadDefault()

@@ -35,6 +35,14 @@ public static class ItemEditorLabels
         "单手武器"
     };
 
+    public static readonly string[] WeaponAttributeTypeLabels =
+    {
+        "无",
+        "力量",
+        "敏捷",
+        "智力"
+    };
+
     public static string[] GetWeaponCategoryLabels(ItemDatabase.EquipmentSlotType equipmentSlot)
     {
         return equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand
