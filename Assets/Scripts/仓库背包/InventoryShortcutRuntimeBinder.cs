@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -47,7 +48,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
     }
 
-    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler
     {
         private InventoryShortcutRuntimeBinder owner;
         private SlotKind kind;
@@ -79,6 +80,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             owner?.HandleDrop(kind, index);
         }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            owner?.HandlePointerEnter(kind, index, eventData);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            owner?.HandlePointerExit(kind, index, eventData);
+        }
     }
 
     private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
@@ -95,6 +106,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
     private const string QualityBackgroundRootPath = "Canvas/UI控制器/物品底";
+    private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
+    private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -143,6 +156,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int equipmentSkillRevision;
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
+    private RectTransform itemTooltipRoot;
+    private RectTransform itemTooltipBackgroundRoot;
+    private TMP_Text itemTooltipWeaponIdText;
+    private TMP_Text itemTooltipQualityText;
+    private TMP_Text itemTooltipWeaponCategoryText;
+    private SlotWidget hoveredTooltipWidget;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => BackpackSlotCount;
@@ -444,6 +463,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         journeyBindings = JourneySceneBindings.FindInActiveScene();
         battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheQualityBackgroundPrefabs();
+        CacheItemTooltip();
         CacheBackpackSlotTemplate();
         UnbindAll();
 
@@ -1297,6 +1317,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         dragIconRoot.gameObject.SetActive(true);
         dragIconRoot.SetAsLastSibling();
         UpdateDragVisualPosition(eventData);
+        HideItemTooltip();
 
         draggingSource = source;
         draggingSourceWidget = widget;
@@ -1338,6 +1359,58 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SwapSlotData(draggingSource, target);
         RefreshByRef(draggingSource);
         RefreshByRef(target);
+    }
+
+    private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
+    {
+        if (isDragging)
+        {
+            return;
+        }
+
+        SlotRef slot = new SlotRef { kind = kind, index = index };
+        if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
+        {
+            HideItemTooltip();
+            return;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (!ShouldShowWeaponTooltip(entry))
+        {
+            HideItemTooltip();
+            return;
+        }
+
+        SlotWidget widget = ResolveHoveredWidget(slot, eventData);
+        if (widget == null || widget.root == null)
+        {
+            HideItemTooltip();
+            return;
+        }
+
+        ShowItemTooltip(widget, entry);
+    }
+
+    private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
+    {
+        if (hoveredTooltipWidget == null)
+        {
+            return;
+        }
+
+        Transform pointerTransform = eventData != null
+            ? (eventData.pointerEnter != null
+                ? eventData.pointerEnter.transform
+                : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
+            : null;
+
+        if (pointerTransform != null && hoveredTooltipWidget.root != null && pointerTransform.IsChildOf(hoveredTooltipWidget.root))
+        {
+            return;
+        }
+
+        HideItemTooltip();
     }
 
     private void HandleEndDrag()
@@ -1642,6 +1715,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return GetWidget(slot);
     }
 
+    private SlotWidget ResolveHoveredWidget(SlotRef slot, PointerEventData eventData)
+    {
+        Transform pointerTransform = eventData != null
+            ? (eventData.pointerEnter != null ? eventData.pointerEnter.transform : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
+            : null;
+
+        if (pointerTransform != null)
+        {
+            SlotWidget matched = FindWidgetByTransform(slot.kind, pointerTransform);
+            if (matched != null)
+            {
+                return matched;
+            }
+        }
+
+        return GetWidget(slot);
+    }
+
     private SlotWidget FindWidgetByTransform(SlotKind kind, Transform target)
     {
         if (target == null)
@@ -1726,6 +1817,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void MarkEquipmentSkillsDirty()
     {
         equipmentSkillRevision++;
+    }
+
+    private static bool ShouldShowWeaponTooltip(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        return entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
     }
 
     private List<string> BuildGrantedSkillList(string characterId)
@@ -1895,6 +1997,152 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         RebuildItemVisual(widget, data);
+    }
+
+    private void CacheItemTooltip()
+    {
+        itemTooltipRoot = FindTransformByPath(ItemTooltipRootPath) as RectTransform;
+        itemTooltipBackgroundRoot = FindTransformByPath(ItemTooltipBackgroundRootPath) as RectTransform;
+        Transform textContentRoot = FindChildByName(itemTooltipRoot, "文本内容") ?? FindDescendantByName(itemTooltipRoot, "文本内容");
+        itemTooltipWeaponIdText = FindTooltipText(textContentRoot, "武器ID");
+        itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
+        itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
+        HideItemTooltip();
+    }
+
+    private static TMP_Text FindTooltipText(Transform root, string childName)
+    {
+        Transform target = FindChildByName(root, childName) ?? FindDescendantByName(root, childName);
+        return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
+    private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry)
+    {
+        if (widget == null || widget.root == null || entry == null || itemTooltipRoot == null || itemTooltipBackgroundRoot == null)
+        {
+            return;
+        }
+
+        hoveredTooltipWidget = widget;
+        SetTooltipText(itemTooltipWeaponIdText, entry.itemId);
+        SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
+        SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
+        RefreshTooltipQualityBackground(entry.quality);
+        PositionTooltip(widget.root);
+        itemTooltipBackgroundRoot.gameObject.SetActive(true);
+        itemTooltipRoot.gameObject.SetActive(true);
+        itemTooltipBackgroundRoot.SetAsLastSibling();
+        itemTooltipRoot.SetAsLastSibling();
+    }
+
+    private void HideItemTooltip()
+    {
+        hoveredTooltipWidget = null;
+        if (itemTooltipRoot != null)
+        {
+            itemTooltipRoot.gameObject.SetActive(false);
+        }
+
+        if (itemTooltipBackgroundRoot != null)
+        {
+            itemTooltipBackgroundRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private void RefreshTooltipQualityBackground(ItemDatabase.ItemQuality quality)
+    {
+        if (itemTooltipBackgroundRoot == null)
+        {
+            return;
+        }
+
+        string targetName = GetTooltipQualityBackgroundName(quality);
+        for (int i = 0; i < itemTooltipBackgroundRoot.childCount; i++)
+        {
+            Transform child = itemTooltipBackgroundRoot.GetChild(i);
+            child.gameObject.SetActive(string.Equals(child.name, targetName, StringComparison.Ordinal));
+        }
+    }
+
+    private void PositionTooltip(RectTransform source)
+    {
+        PositionTooltipRect(itemTooltipBackgroundRoot, source, new Vector2(24f, 0f));
+        PositionTooltipRect(itemTooltipRoot, source, new Vector2(24f, 0f));
+    }
+
+    private static void PositionTooltipRect(RectTransform tooltip, RectTransform source, Vector2 offset)
+    {
+        if (tooltip == null || source == null)
+        {
+            return;
+        }
+
+        RectTransform parentRect = tooltip.parent as RectTransform;
+        Canvas canvas = tooltip.GetComponentInParent<Canvas>();
+        Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        Vector3[] corners = new Vector3[4];
+        source.GetWorldCorners(corners);
+        Vector3 anchorWorld = corners[2];
+        if (parentRect != null &&
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parentRect,
+                RectTransformUtility.WorldToScreenPoint(uiCamera, anchorWorld),
+                uiCamera,
+                out Vector2 localPoint))
+        {
+            tooltip.anchoredPosition = localPoint + offset;
+        }
+    }
+
+    private static void SetTooltipText(TMP_Text text, string value)
+    {
+        if (text != null)
+        {
+            text.text = value ?? string.Empty;
+        }
+    }
+
+    private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)
+    {
+        switch (quality)
+        {
+            case ItemDatabase.ItemQuality.Excellent:
+                return "优秀";
+            case ItemDatabase.ItemQuality.Epic:
+                return "史诗";
+            case ItemDatabase.ItemQuality.Blessed:
+                return "赐福";
+            default:
+                return "普通";
+        }
+    }
+
+    private static string GetWeaponCategoryDisplayName(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        switch (weaponCategory)
+        {
+            case ItemDatabase.WeaponCategory.OneHanded:
+                return "单手武器";
+            case ItemDatabase.WeaponCategory.TwoHanded:
+                return "双手武器";
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static string GetTooltipQualityBackgroundName(ItemDatabase.ItemQuality quality)
+    {
+        switch (quality)
+        {
+            case ItemDatabase.ItemQuality.Excellent:
+                return "优秀物品底（蓝）";
+            case ItemDatabase.ItemQuality.Epic:
+                return "史诗物品底（紫）";
+            case ItemDatabase.ItemQuality.Blessed:
+                return "赐福物品底（金）";
+            default:
+                return "普通物品底（白）";
+        }
     }
 
     private static void RebuildItemVisual(SlotWidget widget, ItemSlotData data)
@@ -2138,6 +2386,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void UnbindAll()
     {
         HandleEndDrag();
+        HideItemTooltip();
         ClearRuntimeVisuals(warehouseSlots);
         ClearRuntimeVisuals(backpackSlots);
         ClearRuntimeVisuals(equipmentSlots);
