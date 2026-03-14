@@ -1264,7 +1264,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotWidget widget = GetWidget(source);
+        SlotWidget widget = ResolveDraggedWidget(source, eventData);
         if (widget == null || widget.root == null)
         {
             return;
@@ -1602,6 +1602,80 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return list[slot.index];
+    }
+
+    private SlotWidget ResolveDraggedWidget(SlotRef slot, PointerEventData eventData)
+    {
+        Transform pointerTransform = eventData != null
+            ? (eventData.pointerDrag != null ? eventData.pointerDrag.transform : eventData.pointerPressRaycast.gameObject != null ? eventData.pointerPressRaycast.gameObject.transform : null)
+            : null;
+
+        if (pointerTransform != null)
+        {
+            SlotWidget matched = FindWidgetByTransform(slot.kind, pointerTransform);
+            if (matched != null)
+            {
+                return matched;
+            }
+        }
+
+        return GetWidget(slot);
+    }
+
+    private SlotWidget FindWidgetByTransform(SlotKind kind, Transform target)
+    {
+        if (target == null)
+        {
+            return null;
+        }
+
+        if (kind == SlotKind.Backpack)
+        {
+            SlotWidget matched = FindWidgetByTransform(backpackSlots, target);
+            if (matched != null)
+            {
+                return matched;
+            }
+
+            matched = FindWidgetByTransform(quickSlots, target);
+            if (matched != null)
+            {
+                return matched;
+            }
+
+            return FindWidgetByTransform(battleBackpackSlots, target);
+        }
+
+        if (kind == SlotKind.Warehouse)
+        {
+            return FindWidgetByTransform(warehouseSlots, target);
+        }
+
+        return FindWidgetByTransform(equipmentSlots, target);
+    }
+
+    private static SlotWidget FindWidgetByTransform(List<SlotWidget> widgets, Transform target)
+    {
+        if (widgets == null || target == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < widgets.Count; i++)
+        {
+            SlotWidget widget = widgets[i];
+            if (widget == null || widget.root == null)
+            {
+                continue;
+            }
+
+            if (target == widget.root || target.IsChildOf(widget.root))
+            {
+                return widget;
+            }
+        }
+
+        return null;
     }
 
     private List<SlotWidget> GetWidgetList(SlotKind kind)
