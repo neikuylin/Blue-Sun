@@ -109,7 +109,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
-    private static readonly Vector2 ItemTooltipMouseOffset = Vector2.zero;
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
 
     private static readonly string[] EquipmentSlotNames =
@@ -2127,12 +2126,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void PositionTooltip(RectTransform source)
     {
-        PositionTooltipRect(itemTooltipRoot, source, ItemTooltipMouseOffset);
+        PositionTooltipRect(itemTooltipRoot);
     }
 
-    private static void PositionTooltipRect(RectTransform tooltip, RectTransform source, Vector2 offset)
+    private static void PositionTooltipRect(RectTransform tooltip)
     {
-        if (tooltip == null || source == null)
+        if (tooltip == null)
         {
             return;
         }
@@ -2147,7 +2146,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 uiCamera,
                 out Vector2 localPoint))
         {
-            tooltip.anchoredPosition = localPoint + offset;
+            tooltip.anchoredPosition = localPoint;
         }
     }
 
