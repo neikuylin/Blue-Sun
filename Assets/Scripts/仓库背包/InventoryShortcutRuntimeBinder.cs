@@ -110,7 +110,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
     private static readonly Vector2 ItemTooltipMouseOffset = new Vector2(10f, 10f);
-    private static readonly Vector3 ItemTooltipScale = new Vector3(1.5f, 1.5f, 1f);
+    private static readonly Vector3 ItemTooltipScale = Vector3.one;
 
     private static readonly string[] EquipmentSlotNames =
     {
