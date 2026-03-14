@@ -17,6 +17,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
         new List<ItemDatabase.WeaponAttributeMultiplierEntry> { new ItemDatabase.WeaponAttributeMultiplierEntry() };
     private string newItemId = "itm_eq_mainhand_001";
+    private string newDisplayName = "新物品";
     private GameObject newItemPrefab;
 
     private ItemDatabase.ItemCategory filterCategory = ItemDatabase.ItemCategory.Equipment;
@@ -94,6 +95,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         }
 
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
+        newDisplayName = EditorGUILayout.TextField("物品名字", newDisplayName);
         if (!string.IsNullOrWhiteSpace(newItemId) &&
             !newItemId.StartsWith("itm_", System.StringComparison.Ordinal))
         {
@@ -162,6 +164,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             string originalId = entry.itemId;
+            string originalDisplayName = entry.displayName;
             ItemDatabase.ItemCategory originalCategory = entry.category;
             ItemDatabase.ItemQuality originalQuality = entry.quality;
             ItemDatabase.EquipmentSlotType originalEquipmentSlot = entry.equipmentSlot;
@@ -173,6 +176,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
             EditorGUILayout.LabelField($"条目 {index + 1}", EditorStyles.boldLabel);
             entry.itemId = EditorGUILayout.TextField("物品ID", entry.itemId);
+            entry.displayName = EditorGUILayout.TextField("物品名字", entry.displayName);
             entry.category = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
                 "类别",
                 (int)entry.category,
@@ -226,6 +230,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 if (GUILayout.Button("还原"))
                 {
                     entry.itemId = originalId;
+                    entry.displayName = originalDisplayName;
                     entry.category = originalCategory;
                     entry.quality = originalQuality;
                     entry.equipmentSlot = originalEquipmentSlot;
@@ -274,6 +279,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     {
         return database != null &&
             !string.IsNullOrWhiteSpace(newItemId) &&
+            !string.IsNullOrWhiteSpace(newDisplayName) &&
             newItemId.Trim().StartsWith("itm_", System.StringComparison.Ordinal) &&
             newItemPrefab != null &&
             database.FindEntry(newItemId.Trim()) == null;
@@ -284,6 +290,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         database.Entries.Add(new ItemDatabase.ItemEntry
         {
             itemId = newItemId.Trim(),
+            displayName = newDisplayName.Trim(),
             category = createCategory,
             quality = createQuality,
             equipmentSlot = createCategory == ItemDatabase.ItemCategory.Equipment
@@ -316,6 +323,11 @@ public sealed class ItemDatabaseWindow : EditorWindow
         if (string.IsNullOrWhiteSpace(entry.itemId))
         {
             return "物品ID不能为空。";
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.displayName))
+        {
+            return "物品名字不能为空。";
         }
 
         if (!entry.itemId.StartsWith("itm_", System.StringComparison.Ordinal))

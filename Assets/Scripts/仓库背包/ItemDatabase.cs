@@ -63,6 +63,7 @@ public sealed class ItemDatabase : ScriptableObject
     public sealed class ItemEntry
     {
         public string itemId = string.Empty;
+        public string displayName = string.Empty;
         public ItemCategory category = ItemCategory.Equipment;
         public ItemQuality quality = ItemQuality.Common;
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;

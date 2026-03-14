@@ -158,7 +158,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private BattleSceneBindings battleBindings;
     private RectTransform itemTooltipRoot;
     private RectTransform itemTooltipBackgroundRoot;
-    private TMP_Text itemTooltipWeaponIdText;
+    private RectTransform itemTooltipDetailRoot;
+    private Image itemTooltipDetailBackgroundImage;
+    private TMP_Text itemTooltipItemNameText;
     private TMP_Text itemTooltipQualityText;
     private TMP_Text itemTooltipWeaponCategoryText;
     private SlotWidget hoveredTooltipWidget;
@@ -2003,8 +2005,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         itemTooltipRoot = FindTransformByPath(ItemTooltipRootPath) as RectTransform;
         itemTooltipBackgroundRoot = FindTransformByPath(ItemTooltipBackgroundRootPath) as RectTransform;
-        Transform textContentRoot = FindChildByName(itemTooltipRoot, "文本内容") ?? FindDescendantByName(itemTooltipRoot, "文本内容");
-        itemTooltipWeaponIdText = FindTooltipText(textContentRoot, "武器ID");
+        itemTooltipDetailRoot =
+            FindChildByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
+            FindChildByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
+            FindDescendantByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
+            FindDescendantByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
+            itemTooltipRoot;
+        Transform backgroundRoot = FindChildByName(itemTooltipDetailRoot, "背景") ?? FindDescendantByName(itemTooltipDetailRoot, "背景");
+        itemTooltipDetailBackgroundImage = backgroundRoot != null ? backgroundRoot.GetComponent<Image>() : null;
+        Transform textContentRoot = FindChildByName(itemTooltipDetailRoot, "文本内容") ?? FindDescendantByName(itemTooltipDetailRoot, "文本内容");
+        itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
         HideItemTooltip();
@@ -2018,20 +2028,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry)
     {
-        if (widget == null || widget.root == null || entry == null || itemTooltipRoot == null || itemTooltipBackgroundRoot == null)
+        if (widget == null || widget.root == null || entry == null || itemTooltipRoot == null)
         {
             return;
         }
 
         hoveredTooltipWidget = widget;
-        SetTooltipText(itemTooltipWeaponIdText, entry.itemId);
+        SetTooltipText(itemTooltipItemNameText, ResolveItemDisplayName(entry));
         SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
         RefreshTooltipQualityBackground(entry.quality);
         PositionTooltip(widget.root);
-        itemTooltipBackgroundRoot.gameObject.SetActive(true);
         itemTooltipRoot.gameObject.SetActive(true);
-        itemTooltipBackgroundRoot.SetAsLastSibling();
         itemTooltipRoot.SetAsLastSibling();
     }
 
@@ -2057,16 +2065,38 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         string targetName = GetTooltipQualityBackgroundName(quality);
+        Sprite targetSprite = null;
         for (int i = 0; i < itemTooltipBackgroundRoot.childCount; i++)
         {
             Transform child = itemTooltipBackgroundRoot.GetChild(i);
-            child.gameObject.SetActive(string.Equals(child.name, targetName, StringComparison.Ordinal));
+            bool isTarget = string.Equals(child.name, targetName, StringComparison.Ordinal);
+            child.gameObject.SetActive(false);
+            if (!isTarget)
+            {
+                continue;
+            }
+
+            Image image = child.GetComponent<Image>();
+            if (image == null)
+            {
+                image = child.GetComponentInChildren<Image>(true);
+            }
+
+            if (image != null)
+            {
+                targetSprite = image.sprite;
+            }
+        }
+
+        if (itemTooltipDetailBackgroundImage != null)
+        {
+            itemTooltipDetailBackgroundImage.sprite = targetSprite;
+            itemTooltipDetailBackgroundImage.enabled = targetSprite != null;
         }
     }
 
     private void PositionTooltip(RectTransform source)
     {
-        PositionTooltipRect(itemTooltipBackgroundRoot, source, new Vector2(24f, 0f));
         PositionTooltipRect(itemTooltipRoot, source, new Vector2(24f, 0f));
     }
 
@@ -2100,6 +2130,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             text.text = value ?? string.Empty;
         }
+    }
+
+    private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.displayName))
+        {
+            return entry.displayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.itemId) && entry.itemId.StartsWith("itm_", StringComparison.Ordinal))
+        {
+            return entry.itemId.Substring(4);
+        }
+
+        return entry.itemId ?? string.Empty;
     }
 
     private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)

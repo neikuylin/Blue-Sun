@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - itemId: "itm_\u76F4\u5251"
+    displayName: "\u76F4\u5251"
     category: 0
     quality: 0
     equipmentSlot: 3
