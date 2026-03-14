@@ -1400,6 +1400,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        SetAnchorVisualVisible(widget.backgroundAnchor, widget.root, visible);
+        SetAnchorVisualVisible(widget.iconAnchor, widget.root, visible);
+
         if (widget.runtimeIconVisual != null)
         {
             widget.runtimeIconVisual.SetActive(visible);
@@ -1415,6 +1418,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        bool hasRuntimeVisual = widget.runtimeBackgroundVisual != null || widget.runtimeIconVisual != null;
+        if (widget.iconIsRoot && hasRuntimeVisual)
+        {
+            Color rootColor = widget.icon.color;
+            rootColor.a = widget.iconOriginalColor.a;
+            widget.icon.color = rootColor;
+            return;
+        }
+
         Color color = widget.icon.color;
         if (visible)
         {
@@ -1426,6 +1438,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         widget.icon.color = color;
+    }
+
+    private static void SetAnchorVisualVisible(RectTransform anchor, RectTransform root, bool visible)
+    {
+        if (anchor == null || anchor == root)
+        {
+            return;
+        }
+
+        anchor.gameObject.SetActive(visible);
     }
 
     private void UpdateDragVisualPosition(PointerEventData eventData)
