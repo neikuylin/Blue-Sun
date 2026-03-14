@@ -69,6 +69,7 @@ public sealed class ItemDatabase : ScriptableObject
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;
         public WeaponCategory weaponCategory = WeaponCategory.None;
         public float fixedDamage;
+        public string description = string.Empty;
         public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
         public GameObject prefab;

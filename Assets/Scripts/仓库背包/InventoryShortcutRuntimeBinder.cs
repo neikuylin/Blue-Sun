@@ -168,6 +168,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipWeaponCategoryText;
     private TMP_Text itemTooltipFixedDamageText;
     private TMP_Text itemTooltipAttributeMultiplierText;
+    private TMP_Text itemTooltipDescriptionText;
+    private TMP_Text itemTooltipGrantedSkillsText;
+    private RectTransform itemTooltipGrantedSkillsIconRoot;
+    private readonly List<GameObject> itemTooltipGrantedSkillIcons = new List<GameObject>();
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
@@ -2049,6 +2053,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
         itemTooltipFixedDamageText = FindTooltipText(textContentRoot, "固定伤害");
         itemTooltipAttributeMultiplierText = FindTooltipText(textContentRoot, "属性加成");
+        itemTooltipDescriptionText = FindTooltipText(textContentRoot, "文本介绍");
+        itemTooltipGrantedSkillsText = FindTooltipText(textContentRoot, "附带技能");
+        Transform grantedSkillRoot = itemTooltipGrantedSkillsText != null
+            ? (FindChildByName(itemTooltipGrantedSkillsText.transform, "技能区域") ?? FindDescendantByName(itemTooltipGrantedSkillsText.transform, "技能区域"))
+            : null;
+        itemTooltipGrantedSkillsIconRoot = grantedSkillRoot as RectTransform;
         HideItemTooltip();
     }
 
@@ -2072,6 +2082,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
         SetTooltipText(itemTooltipFixedDamageText, GetFixedDamageDisplayText(entry));
         SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
+        SetTooltipText(itemTooltipDescriptionText, entry.description ?? string.Empty);
+        SetTooltipText(itemTooltipGrantedSkillsText, "附带技能：");
+        RebuildTooltipGrantedSkillIcons(entry);
         RefreshTooltipQualityBackground(entry.quality);
         itemTooltipRoot.localScale = ItemTooltipScale;
         PositionTooltip(widget.root);
@@ -2085,6 +2098,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         pendingTooltipWidget = null;
         pendingTooltipEntry = null;
         pendingTooltipShownAt = 0f;
+        ClearTooltipGrantedSkillIcons();
         if (itemTooltipRoot != null)
         {
             itemTooltipRoot.gameObject.SetActive(false);
@@ -2198,6 +2212,78 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipItemIconImage.enabled = iconSprite != null;
     }
 
+    private void RebuildTooltipGrantedSkillIcons(ItemDatabase.ItemEntry entry)
+    {
+        ClearTooltipGrantedSkillIcons();
+        if (entry == null || entry.grantedSkillIds == null || entry.grantedSkillIds.Count == 0 || itemTooltipGrantedSkillsText == null || itemTooltipGrantedSkillsIconRoot == null)
+        {
+            return;
+        }
+
+        BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
+        if (skillDatabase == null)
+        {
+            return;
+        }
+
+        int createdCount = 0;
+
+        for (int i = 0; i < entry.grantedSkillIds.Count; i++)
+        {
+            string skillId = entry.grantedSkillIds[i];
+            if (string.IsNullOrWhiteSpace(skillId))
+            {
+                continue;
+            }
+
+            BattleSkillDatabase.SkillEntry skillEntry = skillDatabase.FindEntry(skillId);
+            if (skillEntry == null || skillEntry.icon == null)
+            {
+                continue;
+            }
+
+            GameObject go = new GameObject($"附带技能图标_{createdCount}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(itemTooltipGrantedSkillsIconRoot, false);
+            rect.anchorMin = new Vector2(0f, 0.5f);
+            rect.anchorMax = new Vector2(0f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.sizeDelta = new Vector2(30f, 30f);
+            rect.anchoredPosition = new Vector2(createdCount * 34f, 0f);
+
+            Image image = go.GetComponent<Image>();
+            image.sprite = skillEntry.icon;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            itemTooltipGrantedSkillIcons.Add(go);
+            createdCount++;
+        }
+    }
+
+    private void ClearTooltipGrantedSkillIcons()
+    {
+        for (int i = 0; i < itemTooltipGrantedSkillIcons.Count; i++)
+        {
+            GameObject go = itemTooltipGrantedSkillIcons[i];
+            if (go == null)
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(go);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        itemTooltipGrantedSkillIcons.Clear();
+    }
+
     private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
     {
         if (entry == null)
@@ -2228,7 +2314,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (entry == null || entry.weaponAttributeMultipliers == null || entry.weaponAttributeMultipliers.Count == 0)
         {
-            return "属性：";
+            return string.Empty;
         }
 
         List<string> parts = new List<string>();
@@ -2245,10 +2331,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (parts.Count == 0)
         {
-            return "属性：";
+            return string.Empty;
         }
 
-        return $"属性：{string.Join(" ", parts)}";
+        return string.Join(" ", parts);
     }
 
     private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)

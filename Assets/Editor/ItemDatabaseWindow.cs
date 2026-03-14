@@ -13,6 +13,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private ItemDatabase.EquipmentSlotType createEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
     private ItemDatabase.WeaponCategory createWeaponCategory = ItemDatabase.WeaponCategory.OneHanded;
     private float createFixedDamage;
+    private string newDescription = string.Empty;
     private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
         new List<ItemDatabase.WeaponAttributeMultiplierEntry> { new ItemDatabase.WeaponAttributeMultiplierEntry() };
@@ -96,6 +97,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
         newDisplayName = EditorGUILayout.TextField("物品名字", newDisplayName);
+        newDescription = EditorGUILayout.TextField("文本介绍", newDescription);
         if (!string.IsNullOrWhiteSpace(newItemId) &&
             !newItemId.StartsWith("itm_", System.StringComparison.Ordinal))
         {
@@ -170,6 +172,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ItemDatabase.EquipmentSlotType originalEquipmentSlot = entry.equipmentSlot;
             ItemDatabase.WeaponCategory originalWeaponCategory = entry.weaponCategory;
             float originalFixedDamage = entry.fixedDamage;
+            string originalDescription = entry.description;
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
             GameObject originalPrefab = entry.prefab;
@@ -177,6 +180,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             EditorGUILayout.LabelField($"条目 {index + 1}", EditorStyles.boldLabel);
             entry.itemId = EditorGUILayout.TextField("物品ID", entry.itemId);
             entry.displayName = EditorGUILayout.TextField("物品名字", entry.displayName);
+            entry.description = EditorGUILayout.TextField("文本介绍", entry.description);
             entry.category = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
                 "类别",
                 (int)entry.category,
@@ -231,6 +235,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 {
                     entry.itemId = originalId;
                     entry.displayName = originalDisplayName;
+                    entry.description = originalDescription;
                     entry.category = originalCategory;
                     entry.quality = originalQuality;
                     entry.equipmentSlot = originalEquipmentSlot;
@@ -291,6 +296,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             itemId = newItemId.Trim(),
             displayName = newDisplayName.Trim(),
+            description = newDescription.Trim(),
             category = createCategory,
             quality = createQuality,
             equipmentSlot = createCategory == ItemDatabase.ItemCategory.Equipment
