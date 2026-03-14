@@ -2228,7 +2228,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (entry == null || entry.weaponAttributeMultipliers == null || entry.weaponAttributeMultipliers.Count == 0)
         {
-            return "属性倍率：";
+            return "属性：";
         }
 
         List<string> parts = new List<string>();
@@ -2240,15 +2240,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            parts.Add($"{GetWeaponAttributeTypeDisplayName(multiplier.attributeType)}{multiplier.multiplier:0.##}x");
+            parts.Add($"{GetWeaponAttributeTypeDisplayName(multiplier.attributeType)}{GetAttributeMultiplierRank(multiplier.multiplier)}");
         }
 
         if (parts.Count == 0)
         {
-            return "属性倍率：";
+            return "属性：";
         }
 
-        return $"属性倍率：{string.Join(" ", parts)}";
+        return $"属性：{string.Join(" ", parts)}";
     }
 
     private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)
@@ -2292,6 +2292,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             default:
                 return string.Empty;
         }
+    }
+
+    private static string GetAttributeMultiplierRank(float multiplier)
+    {
+        if (multiplier < 0.5f)
+        {
+            return "E";
+        }
+
+        if (multiplier < 1f)
+        {
+            return "D";
+        }
+
+        if (multiplier < 1.5f)
+        {
+            return "C";
+        }
+
+        if (multiplier < 2f)
+        {
+            return "B";
+        }
+
+        if (multiplier < 2.5f)
+        {
+            return "A";
+        }
+
+        return "S";
     }
 
     private static string GetTooltipQualityBackgroundName(ItemDatabase.ItemQuality quality)
