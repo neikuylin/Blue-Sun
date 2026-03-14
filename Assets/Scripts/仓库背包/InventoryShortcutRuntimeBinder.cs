@@ -162,9 +162,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform itemTooltipBackgroundRoot;
     private RectTransform itemTooltipDetailRoot;
     private Image itemTooltipDetailBackgroundImage;
+    private Image itemTooltipItemIconImage;
     private TMP_Text itemTooltipItemNameText;
     private TMP_Text itemTooltipQualityText;
     private TMP_Text itemTooltipWeaponCategoryText;
+    private TMP_Text itemTooltipFixedDamageText;
+    private TMP_Text itemTooltipAttributeMultiplierText;
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
@@ -2038,10 +2041,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             itemTooltipRoot;
         Transform backgroundRoot = FindChildByName(itemTooltipDetailRoot, "背景") ?? FindDescendantByName(itemTooltipDetailRoot, "背景");
         itemTooltipDetailBackgroundImage = backgroundRoot != null ? backgroundRoot.GetComponent<Image>() : null;
+        Transform iconRoot = FindChildByName(itemTooltipDetailRoot, "物品图标") ?? FindDescendantByName(itemTooltipDetailRoot, "物品图标");
+        itemTooltipItemIconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
         Transform textContentRoot = FindChildByName(itemTooltipDetailRoot, "文本内容") ?? FindDescendantByName(itemTooltipDetailRoot, "文本内容");
         itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
+        itemTooltipFixedDamageText = FindTooltipText(textContentRoot, "固定伤害");
+        itemTooltipAttributeMultiplierText = FindTooltipText(textContentRoot, "属性加成");
         HideItemTooltip();
     }
 
@@ -2059,9 +2066,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         hoveredTooltipWidget = widget;
+        SetTooltipItemIcon(entry);
         SetTooltipText(itemTooltipItemNameText, ResolveItemDisplayName(entry));
         SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
+        SetTooltipText(itemTooltipFixedDamageText, GetFixedDamageDisplayText(entry));
+        SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
         RefreshTooltipQualityBackground(entry.quality);
         itemTooltipRoot.localScale = ItemTooltipScale;
         PositionTooltip(widget.root);
@@ -2158,6 +2168,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void SetTooltipItemIcon(ItemDatabase.ItemEntry entry)
+    {
+        if (itemTooltipItemIconImage == null)
+        {
+            return;
+        }
+
+        Sprite iconSprite = null;
+        Vector2 iconSize = itemTooltipItemIconImage.rectTransform.sizeDelta;
+        if (entry != null && entry.prefab != null)
+        {
+            Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
+            Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
+            if (iconImage != null)
+            {
+                iconSprite = iconImage.sprite;
+                RectTransform iconRect = iconImage.rectTransform;
+                if (iconRect != null)
+                {
+                    iconSize = iconRect.sizeDelta;
+                }
+            }
+        }
+
+        itemTooltipItemIconImage.sprite = iconSprite;
+        itemTooltipItemIconImage.preserveAspect = true;
+        itemTooltipItemIconImage.rectTransform.sizeDelta = iconSize;
+        itemTooltipItemIconImage.enabled = iconSprite != null;
+    }
+
     private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
     {
         if (entry == null)
@@ -2176,6 +2216,39 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return entry.itemId ?? string.Empty;
+    }
+
+    private static string GetFixedDamageDisplayText(ItemDatabase.ItemEntry entry)
+    {
+        float value = entry != null ? entry.fixedDamage : 0f;
+        return $"固定伤害：{value:0.##}";
+    }
+
+    private static string GetAttributeMultiplierDisplayText(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.weaponAttributeMultipliers == null || entry.weaponAttributeMultipliers.Count == 0)
+        {
+            return "属性倍率：";
+        }
+
+        List<string> parts = new List<string>();
+        for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
+        {
+            ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
+            if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
+            {
+                continue;
+            }
+
+            parts.Add($"{GetWeaponAttributeTypeDisplayName(multiplier.attributeType)}{multiplier.multiplier:0.##}x");
+        }
+
+        if (parts.Count == 0)
+        {
+            return "属性倍率：";
+        }
+
+        return $"属性倍率：{string.Join(" ", parts)}";
     }
 
     private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)
@@ -2201,6 +2274,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return "单手武器";
             case ItemDatabase.WeaponCategory.TwoHanded:
                 return "双手武器";
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static string GetWeaponAttributeTypeDisplayName(ItemDatabase.WeaponAttributeType attributeType)
+    {
+        switch (attributeType)
+        {
+            case ItemDatabase.WeaponAttributeType.Strength:
+                return "力量";
+            case ItemDatabase.WeaponAttributeType.Agility:
+                return "敏捷";
+            case ItemDatabase.WeaponAttributeType.Intelligence:
+                return "智力";
             default:
                 return string.Empty;
         }
