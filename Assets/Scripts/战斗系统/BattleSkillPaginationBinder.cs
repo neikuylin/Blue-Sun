@@ -334,6 +334,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private List<string> GetSkillsForCharacter(string characterId)
     {
         List<string> result = new List<string>();
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
         if (loadoutDatabase == null)
         {
             loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
@@ -341,15 +342,26 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
-        if (entry == null || entry.skillIds == null)
+        if (entry != null && entry.skillIds != null)
         {
-            return result;
+            for (int i = 0; i < entry.skillIds.Count; i++)
+            {
+                string skillId = entry.skillIds[i];
+                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                {
+                    continue;
+                }
+
+                result.Add(skillId);
+            }
         }
 
-        for (int i = 0; i < entry.skillIds.Count; i++)
+        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(
+            string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId);
+        for (int i = 0; i < grantedSkills.Count; i++)
         {
-            string skillId = entry.skillIds[i];
-            if (!string.IsNullOrWhiteSpace(skillId))
+            string skillId = grantedSkills[i];
+            if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
             {
                 result.Add(skillId);
             }

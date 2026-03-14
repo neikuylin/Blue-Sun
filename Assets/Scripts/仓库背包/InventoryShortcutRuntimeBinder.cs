@@ -140,12 +140,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
     private string currentEquipmentCharacterId = string.Empty;
+    private int equipmentSkillRevision;
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => BackpackSlotCount;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
+    public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
 
@@ -231,12 +233,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         equipment[index] = data;
+        instance.MarkEquipmentSkillsDirty();
         if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
         {
             instance.RefreshEquipmentSlot(index);
         }
 
         return true;
+    }
+
+    public static List<string> GetGrantedSkillIdsForCharacter(string characterId)
+    {
+        if (instance == null)
+        {
+            return new List<string>();
+        }
+
+        return instance.BuildGrantedSkillList(characterId);
     }
 
     public static int AddItem(string itemId, Sprite icon, int count, int maxStack = 99)
@@ -1495,6 +1508,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         list[slot.index] = data;
+        if (slot.kind == SlotKind.Equipment)
+        {
+            MarkEquipmentSkillsDirty();
+        }
     }
 
     private void SwapSlotData(SlotRef a, SlotRef b)
@@ -1704,6 +1721,50 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return equipmentSlots;
+    }
+
+    private void MarkEquipmentSkillsDirty()
+    {
+        equipmentSkillRevision++;
+    }
+
+    private List<string> BuildGrantedSkillList(string characterId)
+    {
+        List<string> result = new List<string>();
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(slot.itemId);
+            if (itemEntry == null || itemEntry.grantedSkillIds == null)
+            {
+                continue;
+            }
+
+            for (int s = 0; s < itemEntry.grantedSkillIds.Count; s++)
+            {
+                string skillId = itemEntry.grantedSkillIds[s];
+                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                {
+                    continue;
+                }
+
+                result.Add(skillId);
+            }
+        }
+
+        return result;
     }
 
     private void RefreshByRef(SlotRef slot)

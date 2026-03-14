@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - characterId: "\u73A9\u5BB6"
     skillIds:
-    - "\u666E\u901A\u653B\u51FB"
+    - 
     - 
     - 
     - 
@@ -43,7 +43,7 @@ MonoBehaviour:
     - 
   - characterId: "\u5E93\u9C81\u65AF"
     skillIds:
-    - "\u666E\u901A\u653B\u51FB"
+    - 
     - 
     - 
     - 

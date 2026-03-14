@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - itemId: "itm_\u76F4\u5251"
     category: 0
-    quality: 1
+    quality: 0
     equipmentSlot: 3
     weaponCategory: 1
     fixedDamage: 0

@@ -28,6 +28,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private BattleSkillDatabase skillDatabase;
     private CharacterSkillLoadoutDatabase loadoutDatabase;
     private string currentCharacterId = string.Empty;
+    private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -58,12 +59,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void Update()
     {
         string targetCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
+            lastEquipmentSkillRevision == equipmentSkillRevision)
         {
             return;
         }
 
         currentCharacterId = targetCharacterId;
+        lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshJourneySkillSlots();
     }
 
@@ -79,6 +83,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         journeySkillContainer = ResolveJourneySkillContainer();
         CollectJourneySkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         RefreshJourneySkillSlots();
     }
 
@@ -232,16 +237,33 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private List<string> BuildJourneySkillList(string characterId)
     {
         List<string> result = new List<string>();
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(ResolveCharacterId(characterId)) : null;
-        if (entry == null || entry.skillIds == null)
+        if (entry != null && entry.skillIds != null)
         {
-            return result;
+            for (int i = 0; i < entry.skillIds.Count; i++)
+            {
+                string skillId = entry.skillIds[i];
+                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                {
+                    continue;
+                }
+
+                result.Add(skillId);
+            }
         }
 
-        for (int i = 0; i < entry.skillIds.Count; i++)
+        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(ResolveCharacterId(characterId));
+        for (int i = 0; i < grantedSkills.Count; i++)
         {
-            result.Add(entry.skillIds[i]);
+            string skillId = grantedSkills[i];
+            if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+            {
+                continue;
+            }
+
+            result.Add(skillId);
         }
 
         return result;
