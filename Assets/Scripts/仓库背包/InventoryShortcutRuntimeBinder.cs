@@ -85,7 +85,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
     private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
     private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
+    private const string QuickContainerPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域/格子容器";
     private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
+    private const string BattleBackpackMirrorContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域/格子容器";
     private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string SlotNameKeyword = "格子";
@@ -442,9 +444,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         EnsureBackpackDataSize(backpackWidgetCount);
 
         RectTransform quickAnchor = FindQuickAnchor();
-        if (quickAnchor != null)
+        RectTransform quickContainer = ResolveMirrorContainer(quickAnchor, QuickContainerPath);
+        if (quickContainer != null)
         {
-            RectTransform quickContainer = EnsureSlotContainer(quickAnchor);
             ApplyBackpackLayoutToMirrorAnchor(quickContainer);
             EnsureMirrorSlots(quickContainer, quickSlots, "快捷格子");
             CollectSlotsFromContainer(quickContainer, quickSlots);
@@ -453,9 +455,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
-        if (battleBackpackAnchor != null)
+        RectTransform battleContainer = ResolveMirrorContainer(battleBackpackAnchor, BattleBackpackMirrorContainerPath);
+        if (battleContainer != null)
         {
-            RectTransform battleContainer = EnsureSlotContainer(battleBackpackAnchor);
             ApplyBackpackLayoutToMirrorAnchor(battleContainer);
             EnsureMirrorSlots(battleContainer, battleBackpackSlots, "战斗背包格子");
             CollectSlotsFromContainer(battleContainer, battleBackpackSlots);
@@ -628,6 +630,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
+        if (string.Equals(anchor.name, SlotContainerName, StringComparison.Ordinal))
+        {
+            return anchor;
+        }
+
         Transform existing = FindChildByName(anchor, SlotContainerName);
         if (existing is RectTransform existingRect)
         {
@@ -644,6 +651,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         container.sizeDelta = Vector2.zero;
         container.localScale = Vector3.one;
         return container;
+    }
+
+    private RectTransform ResolveMirrorContainer(RectTransform anchor, string containerPath)
+    {
+        RectTransform existingByPath = FindTransformByPath(containerPath) as RectTransform;
+        if (existingByPath != null)
+        {
+            return existingByPath;
+        }
+
+        return EnsureSlotContainer(anchor);
     }
 
     private void EnsureBattleBackpackDrag()
@@ -958,7 +976,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
             RectTransform backgroundAnchor = FindNamedRectTransform(child, ItemBackgroundName);
             RectTransform iconAnchor = FindNamedRectTransform(child, ItemIconName);
-            Image icon = iconAnchor != null ? iconAnchor.GetComponent<Image>() : FindBestIconImage(child);
+            Image icon = ResolveSlotDisplayImage(child, iconAnchor);
             if (icon == null)
             {
                 continue;
@@ -999,7 +1017,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             Button button = slotRoot.GetComponent<Button>();
             RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
             RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
-            Image icon = iconAnchor != null ? iconAnchor.GetComponent<Image>() : FindEquipmentIconImage(slotRoot);
+            Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
             if (icon == null)
             {
                 continue;
@@ -1107,6 +1125,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return FindBestIconImage(slotRoot);
+    }
+
+    private static Image ResolveSlotDisplayImage(RectTransform slotRoot, RectTransform iconAnchor)
+    {
+        if (iconAnchor != null)
+        {
+            Image anchorImage = iconAnchor.GetComponent<Image>();
+            if (anchorImage != null)
+            {
+                return anchorImage;
+            }
+        }
+
+        Image rootImage = slotRoot != null ? slotRoot.GetComponent<Image>() : null;
+        if (rootImage != null)
+        {
+            return rootImage;
+        }
+
+        return slotRoot != null ? FindBestIconImage(slotRoot) : null;
     }
 
     private static RectTransform FindNamedRectTransform(RectTransform root, string childName)
