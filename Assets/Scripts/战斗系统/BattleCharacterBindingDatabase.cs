@@ -13,6 +13,8 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
     {
         public string characterId;
         public string displayName;
+        public Sprite backgroundPortraitSprite;
+        public GameObject backgroundPortraitPrefab;
         public GameObject modelPrefab;
         public RuntimeAnimatorController animatorController;
         public Vector2Int cellOffset = Vector2Int.zero;

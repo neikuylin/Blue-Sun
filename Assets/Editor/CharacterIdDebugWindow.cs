@@ -182,6 +182,8 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             {
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("显示名"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitSprite"), new GUIContent("背景立绘"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitPrefab"), new GUIContent("背景立绘预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("模型预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("格子偏移"));
@@ -196,6 +198,8 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
             added.FindPropertyRelative("characterId").stringValue = string.Empty;
             added.FindPropertyRelative("displayName").stringValue = string.Empty;
+            added.FindPropertyRelative("backgroundPortraitSprite").objectReferenceValue = null;
+            added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
@@ -313,6 +317,8 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
             added.FindPropertyRelative("characterId").stringValue = knownIds[i];
             added.FindPropertyRelative("displayName").stringValue = knownIds[i];
+            added.FindPropertyRelative("backgroundPortraitSprite").objectReferenceValue = null;
+            added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;

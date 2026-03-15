@@ -21,11 +21,15 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private readonly List<SkillSlotWidget> skillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
+    private BattleCharacterBindingDatabase characterBindingDatabase;
     private BattleSceneBindings battleBindings;
     private Image leftPanelPortraitImage;
+    private RectTransform leftPanelPortraitAnchor;
     private RectTransform leftPanelSkillContainer;
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
+    private GameObject activePortraitPrefabInstance;
+    private string activePortraitPrefabCharacterId = string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -75,8 +79,10 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
+        characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         battleBindings = BattleSceneBindings.FindInActiveScene();
         leftPanelPortraitImage = ResolveLeftPanelPortrait();
+        leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
@@ -127,12 +133,40 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             leftPanelPortraitImage = ResolveLeftPanelPortrait();
         }
 
+        if (leftPanelPortraitAnchor == null)
+        {
+            leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
+        }
+
+        if (leftPanelPortraitImage == null && leftPanelPortraitAnchor == null)
+        {
+            return;
+        }
+
+        if (characterBindingDatabase == null)
+        {
+            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
+        }
+
+        if (TryShowBackgroundPortraitPrefab(currentCharacterId))
+        {
+            if (leftPanelPortraitImage != null)
+            {
+                leftPanelPortraitImage.enabled = false;
+                leftPanelPortraitImage.color = new Color(1f, 1f, 1f, 0f);
+            }
+
+            return;
+        }
+
+        DestroyActivePortraitPrefabInstance();
+
         if (leftPanelPortraitImage == null)
         {
             return;
         }
 
-        Sprite portraitSprite = CharacterSelectionState.GetCapturedBackgroundPortraitSprite(currentCharacterId);
+        Sprite portraitSprite = ResolveBackgroundPortraitSprite(currentCharacterId);
         leftPanelPortraitImage.sprite = portraitSprite;
         leftPanelPortraitImage.enabled = portraitSprite != null;
         leftPanelPortraitImage.preserveAspect = true;
@@ -180,6 +214,57 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         return entry != null ? entry.icon : null;
     }
 
+    private Sprite ResolveBackgroundPortraitSprite(string characterId)
+    {
+        if (!string.IsNullOrWhiteSpace(characterId) && characterBindingDatabase != null)
+        {
+            BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
+            if (binding != null && binding.backgroundPortraitSprite != null)
+            {
+                return binding.backgroundPortraitSprite;
+            }
+        }
+
+        return CharacterSelectionState.GetCapturedBackgroundPortraitSprite(characterId);
+    }
+
+    private bool TryShowBackgroundPortraitPrefab(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || characterBindingDatabase == null || leftPanelPortraitAnchor == null)
+        {
+            return false;
+        }
+
+        BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
+        if (binding == null || binding.backgroundPortraitPrefab == null)
+        {
+            return false;
+        }
+
+        if (activePortraitPrefabInstance != null &&
+            string.Equals(activePortraitPrefabCharacterId, characterId, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        DestroyActivePortraitPrefabInstance();
+        activePortraitPrefabInstance = Instantiate(binding.backgroundPortraitPrefab, leftPanelPortraitAnchor, false);
+        activePortraitPrefabInstance.name = binding.backgroundPortraitPrefab.name;
+        activePortraitPrefabCharacterId = characterId;
+        return true;
+    }
+
+    private void DestroyActivePortraitPrefabInstance()
+    {
+        if (activePortraitPrefabInstance != null)
+        {
+            Destroy(activePortraitPrefabInstance);
+            activePortraitPrefabInstance = null;
+        }
+
+        activePortraitPrefabCharacterId = string.Empty;
+    }
+
     private string ResolveCharacterId()
     {
         string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
@@ -200,6 +285,17 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPortraitPath);
         return target != null ? target.GetComponent<Image>() : null;
+    }
+
+    private RectTransform ResolveLeftPanelPortraitAnchor()
+    {
+        if (leftPanelPortraitImage != null && leftPanelPortraitImage.rectTransform.parent is RectTransform existingParent)
+        {
+            return existingParent;
+        }
+
+        Image portrait = ResolveLeftPanelPortrait();
+        return portrait != null ? portrait.rectTransform.parent as RectTransform : null;
     }
 
     private RectTransform ResolveLeftPanelSkillContainer()
@@ -237,5 +333,10 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         image.raycastTarget = false;
         image.preserveAspect = true;
         return image;
+    }
+
+    private void OnDestroy()
+    {
+        DestroyActivePortraitPrefabInstance();
     }
 }
