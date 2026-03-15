@@ -5,6 +5,7 @@ Shader "UI/BottomFadeImage"
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
         _FadeHeight ("Fade Height", Range(0.001, 1)) = 0.2
+        _FadePower ("Fade Power", Range(1, 8)) = 3
     }
 
     SubShader
@@ -35,6 +36,7 @@ Shader "UI/BottomFadeImage"
             fixed4 _Color;
             float4 _MainTex_ST;
             float _FadeHeight;
+            float _FadePower;
 
             struct appdata_t
             {
@@ -63,6 +65,7 @@ Shader "UI/BottomFadeImage"
             {
                 fixed4 col = tex2D(_MainTex, i.texcoord) * i.color;
                 float fade = saturate(i.texcoord.y / max(_FadeHeight, 0.001));
+                fade = pow(fade, max(_FadePower, 1));
                 col.a *= fade;
                 return col;
             }

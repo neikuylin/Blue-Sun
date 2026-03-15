@@ -2507,6 +2507,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         };
         itemTooltipIconFadeMaterial.hideFlags = HideFlags.HideAndDontSave;
         itemTooltipIconFadeMaterial.SetFloat("_FadeHeight", 0.2f);
+        itemTooltipIconFadeMaterial.SetFloat("_FadePower", 3f);
         return itemTooltipIconFadeMaterial;
     }
 
