@@ -37,6 +37,9 @@ public sealed class BattleSceneBindings : MonoBehaviour
     public RectTransform battleBackpackContent;
     public RectTransform battleBackpackDragHandle;
 
+    [Header("Equipment")]
+    public RectTransform equipmentContainer;
+
     [Header("Overlay")]
     public RectTransform overlayCanvas;
 

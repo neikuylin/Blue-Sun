@@ -47,6 +47,7 @@ public static class SceneReferenceAutoBinder
     private const string BattleBackpackContainerPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9/\u683c\u5b50\u533a\u57df";
     private const string BattleBackpackContentPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9";
     private const string BattleBackpackDragHandlePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9/\u80cc\u5305\u80cc\u666f\u677f";
+    private const string BattleEquipmentPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
     private const string CanvasPath = "Canvas";
 
     [MenuItem(AutoBindMenu)]
@@ -144,6 +145,7 @@ public static class SceneReferenceAutoBinder
         RectTransform battleBackpackContainer = FindRectTransform(scene, BattleBackpackContainerPath);
         RectTransform battleBackpackContent = FindRectTransform(scene, BattleBackpackContentPath);
         RectTransform battleBackpackDragHandle = FindRectTransform(scene, BattleBackpackDragHandlePath);
+        RectTransform equipmentContainer = FindRectTransform(scene, BattleEquipmentPath);
         RectTransform overlayCanvas = FindRectTransform(scene, CanvasPath);
 
         if (timeline == null &&
@@ -153,6 +155,7 @@ public static class SceneReferenceAutoBinder
             actionPointPanel == null &&
             healthSlot == null &&
             manaSlot == null &&
+            equipmentContainer == null &&
             battleBackpackContainer == null &&
             overlayCanvas == null)
         {
@@ -180,6 +183,7 @@ public static class SceneReferenceAutoBinder
         bindings.battleBackpackContainer = battleBackpackContainer;
         bindings.battleBackpackContent = battleBackpackContent;
         bindings.battleBackpackDragHandle = battleBackpackDragHandle;
+        bindings.equipmentContainer = equipmentContainer;
         bindings.overlayCanvas = overlayCanvas;
         bindings.spellCurrentPageText = spellCurrentPageText;
         bindings.spellTotalPageText = spellTotalPageText;

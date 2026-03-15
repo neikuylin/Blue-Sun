@@ -104,6 +104,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
     private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
     private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
+    private const string BattleEquipmentContainerPath = "Canvas/弹窗/左边栏位";
     private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
     private const string QuickContainerPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域/格子容器";
     private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
@@ -764,9 +765,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
-        Transform container = journeyBindings != null && journeyBindings.equipmentContainer != null
-            ? journeyBindings.equipmentContainer
-            : FindTransformByPath(EquipmentContainerPath);
+        Transform container = battleBindings != null && battleBindings.equipmentContainer != null
+            ? battleBindings.equipmentContainer
+            : journeyBindings != null && journeyBindings.equipmentContainer != null
+                ? journeyBindings.equipmentContainer
+                : FindTransformByPath(BattleEquipmentContainerPath) ?? FindTransformByPath(EquipmentContainerPath);
         if (container != null)
         {
             CollectEquipmentSlotsFromNamedChildren(container, equipmentSlots);
