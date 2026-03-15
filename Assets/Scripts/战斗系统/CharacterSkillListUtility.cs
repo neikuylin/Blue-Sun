@@ -3,9 +3,11 @@ using System.Collections.Generic;
 
 public static class CharacterSkillListUtility
 {
+    private const string DefaultCharacterId = "\u73A9\u5BB6";
+
     public static List<string> BuildSkillIds(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
         List<string> result = new List<string>();
         HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
 
