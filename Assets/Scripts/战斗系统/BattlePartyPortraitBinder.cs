@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -20,6 +21,8 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
     private readonly List<RectTransform> slotContainers = new List<RectTransform>(4);
+    private readonly List<Button> portraitButtons = new List<Button>(4);
+    private readonly List<UnityAction> portraitButtonActions = new List<UnityAction>(4);
     private readonly List<RectLayout> slotTemplateLayouts = new List<RectLayout>(4);
     private readonly List<int> slotTemplateSiblingIndices = new List<int>(4);
     private readonly Dictionary<string, CharacterSelectionState.SlotSelection> portraitLookup = new Dictionary<string, CharacterSelectionState.SlotSelection>(StringComparer.Ordinal);
@@ -28,6 +31,8 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private List<CharacterSelectionState.SlotSelection> currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(4);
     private Coroutine reorderRoutine;
     private BattleSceneBindings battleBindings;
+    private RectTransform equipmentPanel;
+    private bool equipmentPanelVisible;
 
     private struct RectLayout
     {
@@ -43,8 +48,12 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     {
         turnSystem = system;
         battleBindings = BattleSceneBindings.FindInActiveScene();
+        equipmentPanel = battleBindings != null ? battleBindings.equipmentContainer : null;
         RebuildLookup(selectedSlots);
         RefreshPortraits(force: true);
+        CachePortraitButtons();
+        HookPortraitButtons();
+        SetEquipmentPanelVisible(false);
     }
 
     private void LateUpdate()
@@ -103,6 +112,57 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             slotContainers.Add(container);
             slotTemplateLayouts.Add(ReadLayout(container));
             slotTemplateSiblingIndices.Add(container != null ? container.GetSiblingIndex() : i);
+        }
+    }
+
+    private void CachePortraitButtons()
+    {
+        if (portraitButtons.Count > 0)
+        {
+            return;
+        }
+
+        CachePortraitSlots();
+        for (int i = 0; i < portraitSlots.Count; i++)
+        {
+            Image portrait = portraitSlots[i];
+            Button button = portrait != null
+                ? portrait.GetComponent<Button>() ?? portrait.GetComponentInParent<Button>()
+                : null;
+            portraitButtons.Add(button);
+            portraitButtonActions.Add(null);
+        }
+    }
+
+    private void HookPortraitButtons()
+    {
+        CachePortraitButtons();
+        for (int i = 0; i < portraitButtons.Count; i++)
+        {
+            Button button = portraitButtons[i];
+            if (button == null)
+            {
+                continue;
+            }
+
+            int capturedIndex = i;
+            UnityAction existingAction = i < portraitButtonActions.Count ? portraitButtonActions[i] : null;
+            if (existingAction != null)
+            {
+                button.onClick.RemoveListener(existingAction);
+            }
+
+            UnityAction action = () => OnPortraitButtonClicked(capturedIndex);
+            if (i < portraitButtonActions.Count)
+            {
+                portraitButtonActions[i] = action;
+            }
+            else
+            {
+                portraitButtonActions.Add(action);
+            }
+
+            button.onClick.AddListener(action);
         }
     }
 
@@ -400,6 +460,42 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         return selectedSlots[index];
+    }
+
+    private void OnPortraitButtonClicked(int slotIndex)
+    {
+        CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(currentDisplayedSelections, slotIndex);
+        if (!selection.HasValue || string.IsNullOrWhiteSpace(selection.Value.characterId))
+        {
+            SetEquipmentPanelVisible(false);
+            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            return;
+        }
+
+        string characterId = selection.Value.characterId;
+        bool isSameCharacter = string.Equals(
+            InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId,
+            characterId,
+            StringComparison.Ordinal);
+
+        if (equipmentPanelVisible && isSameCharacter)
+        {
+            SetEquipmentPanelVisible(false);
+            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            return;
+        }
+
+        InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+        SetEquipmentPanelVisible(true);
+    }
+
+    private void SetEquipmentPanelVisible(bool visible)
+    {
+        equipmentPanelVisible = visible;
+        if (equipmentPanel != null && equipmentPanel.gameObject.activeSelf != visible)
+        {
+            equipmentPanel.gameObject.SetActive(visible);
+        }
     }
 
     private static Image FindImageByPath(string path)

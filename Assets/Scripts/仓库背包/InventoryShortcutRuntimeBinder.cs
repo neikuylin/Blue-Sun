@@ -168,6 +168,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
     private string currentEquipmentCharacterId = string.Empty;
+    private string manualEquipmentCharacterId = string.Empty;
     private int equipmentSkillRevision;
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
@@ -201,6 +202,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
+
+    public static void SetDisplayedEquipmentCharacter(string characterId)
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.manualEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
+        instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
+    }
+
+    public static void ClearDisplayedEquipmentCharacter()
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.manualEquipmentCharacterId = string.Empty;
+        instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
+    }
 
     public static List<ItemSlotSnapshot> GetBackpackSnapshots()
     {
@@ -1333,6 +1356,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string ResolveEquipmentCharacterId()
     {
+        if (!string.IsNullOrWhiteSpace(manualEquipmentCharacterId))
+        {
+            return manualEquipmentCharacterId;
+        }
+
         string characterId = CharacterSelectionState.ActiveCharacterId;
         if (!string.IsNullOrWhiteSpace(characterId))
         {
