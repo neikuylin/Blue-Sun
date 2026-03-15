@@ -18,6 +18,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private const string SecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string ThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
     private const string FourthPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u56fe";
+    private const string EquipmentPanelPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
     private readonly List<RectTransform> slotContainers = new List<RectTransform>(4);
@@ -48,11 +49,12 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     {
         turnSystem = system;
         battleBindings = BattleSceneBindings.FindInActiveScene();
-        equipmentPanel = battleBindings != null ? battleBindings.equipmentContainer : null;
+        equipmentPanel = ResolveEquipmentPanel();
         RebuildLookup(selectedSlots);
         RefreshPortraits(force: true);
         CachePortraitButtons();
         HookPortraitButtons();
+        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
         SetEquipmentPanelVisible(false);
     }
 
@@ -64,6 +66,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         RefreshPortraits(force: false);
+        SyncEquipmentPanelVisibility();
     }
 
     private void RefreshPortraits(bool force)
@@ -492,9 +495,30 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private void SetEquipmentPanelVisible(bool visible)
     {
         equipmentPanelVisible = visible;
-        if (equipmentPanel != null && equipmentPanel.gameObject.activeSelf != visible)
+        SyncEquipmentPanelVisibility();
+    }
+
+    private RectTransform ResolveEquipmentPanel()
+    {
+        if (battleBindings != null && battleBindings.equipmentContainer != null)
         {
-            equipmentPanel.gameObject.SetActive(visible);
+            return battleBindings.equipmentContainer;
+        }
+
+        Transform target = FindTransformByPath(EquipmentPanelPath);
+        return target as RectTransform;
+    }
+
+    private void SyncEquipmentPanelVisibility()
+    {
+        if (equipmentPanel == null)
+        {
+            equipmentPanel = ResolveEquipmentPanel();
+        }
+
+        if (equipmentPanel != null && equipmentPanel.gameObject.activeSelf != equipmentPanelVisible)
+        {
+            equipmentPanel.gameObject.SetActive(equipmentPanelVisible);
         }
     }
 
