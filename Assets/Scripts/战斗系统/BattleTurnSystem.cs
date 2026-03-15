@@ -76,6 +76,16 @@ public class BattleTurnSystem : MonoBehaviour
         get { return activeUnit; }
     }
 
+    public int PreviewActionPointCost
+    {
+        get { return skillHoverActionPointCost; }
+    }
+
+    public bool ShouldPreviewActionPointCost
+    {
+        get { return IsSkillModeActive() && skillHoverValid && skillHoverActionPointCost > 0; }
+    }
+
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;

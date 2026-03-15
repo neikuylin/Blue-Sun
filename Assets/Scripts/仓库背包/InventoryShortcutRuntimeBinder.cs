@@ -1963,20 +1963,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return 0f;
+            return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
         if (equipment == null || equipment.Count == 0)
         {
-            return 0f;
+            return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
         if (statEntry == null)
         {
-            return 0f;
+            return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
         }
 
         ItemDatabase.ItemEntry weaponEntry = null;
@@ -2004,7 +2004,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             }
         }
 
-        return weaponEntry != null ? CalculateWeaponAttackPower(weaponEntry, statEntry) : 0f;
+        if (weaponEntry != null)
+        {
+            return CalculateWeaponAttackPower(weaponEntry, statEntry);
+        }
+
+        return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
     }
 
     private List<string> BuildGrantedSkillList(string characterId)

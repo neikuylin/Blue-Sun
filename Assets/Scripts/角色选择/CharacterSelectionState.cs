@@ -35,11 +35,19 @@ public sealed class CharacterSelectionState : MonoBehaviour
         public List<string> skillIds;
     }
 
+    [Serializable]
+    private struct WeaponAttackPowerSnapshot
+    {
+        public string characterId;
+        public float attackPower;
+    }
+
     private static CharacterSelectionState instance;
 
     [SerializeField] private string activeCharacterId = string.Empty;
     [SerializeField] private List<SlotSelection> slotSelections = new List<SlotSelection>();
     [SerializeField] private List<GrantedSkillSnapshot> grantedSkillSnapshots = new List<GrantedSkillSnapshot>();
+    [SerializeField] private List<WeaponAttackPowerSnapshot> weaponAttackPowerSnapshots = new List<WeaponAttackPowerSnapshot>();
 
     public static string ActiveCharacterId => instance != null ? instance.activeCharacterId : string.Empty;
     public static IReadOnlyList<SlotSelection> SlotSelections => instance != null ? instance.slotSelections : Array.Empty<SlotSelection>();
@@ -66,6 +74,25 @@ public sealed class CharacterSelectionState : MonoBehaviour
         }
 
         return Array.Empty<string>();
+    }
+
+    public static float GetCapturedWeaponAttackPower(string characterId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return 0f;
+        }
+
+        for (int i = 0; i < instance.weaponAttackPowerSnapshots.Count; i++)
+        {
+            WeaponAttackPowerSnapshot snapshot = instance.weaponAttackPowerSnapshots[i];
+            if (string.Equals(snapshot.characterId, characterId, StringComparison.Ordinal))
+            {
+                return Mathf.Max(0f, snapshot.attackPower);
+            }
+        }
+
+        return 0f;
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -117,6 +144,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
         }
 
         instance.CaptureGrantedSkills(orderedSlots);
+        instance.CaptureWeaponAttackPower(orderedSlots);
     }
 
     public static void CaptureFromCurrentScene()
@@ -323,6 +351,32 @@ public sealed class CharacterSelectionState : MonoBehaviour
             {
                 characterId = characterId,
                 skillIds = grantedSkills != null ? new List<string>(grantedSkills) : new List<string>()
+            });
+        }
+    }
+
+    private void CaptureWeaponAttackPower(List<CharacterSlotView> orderedSlots)
+    {
+        weaponAttackPowerSnapshots.Clear();
+        if (orderedSlots == null)
+        {
+            return;
+        }
+
+        HashSet<string> seenCharacterIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < orderedSlots.Count; i++)
+        {
+            CharacterSlotView slot = orderedSlots[i];
+            string characterId = ResolveCharacterId(slot);
+            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacterIds.Add(characterId))
+            {
+                continue;
+            }
+
+            weaponAttackPowerSnapshots.Add(new WeaponAttackPowerSnapshot
+            {
+                characterId = characterId,
+                attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId)
             });
         }
     }

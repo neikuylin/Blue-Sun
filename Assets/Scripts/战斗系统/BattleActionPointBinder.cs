@@ -7,8 +7,11 @@ using UnityEngine.UI;
 public sealed class BattleActionPointBinder : MonoBehaviour
 {
     private const string ActionPointPanelPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u884c\u52a8\u529b\u9762\u677f";
+    private const float PreviewFlashSpeed = 12f;
+    private const float PreviewMinAlpha = 0.2f;
 
     private readonly List<GameObject> actionPointIndicators = new List<GameObject>();
+    private readonly List<Graphic> actionPointGraphics = new List<Graphic>();
     private BattleTurnSystem turnSystem;
     private int lastCurrentPoints = int.MinValue;
     private int lastMaxPoints = int.MinValue;
@@ -31,6 +34,7 @@ public sealed class BattleActionPointBinder : MonoBehaviour
         }
 
         Refresh(force: false);
+        RefreshPreviewFlash();
     }
 
     private void CacheIndicators()
@@ -63,6 +67,7 @@ public sealed class BattleActionPointBinder : MonoBehaviour
             if (indicator != null)
             {
                 actionPointIndicators.Add(indicator);
+                actionPointGraphics.Add(indicator.GetComponent<Graphic>());
             }
         }
     }
@@ -106,6 +111,73 @@ public sealed class BattleActionPointBinder : MonoBehaviour
             if (indicator.activeSelf != shouldShow)
             {
                 indicator.SetActive(shouldShow);
+            }
+        }
+
+        ResetPreviewFlash();
+    }
+
+    private void RefreshPreviewFlash()
+    {
+        if (actionPointIndicators.Count == 0)
+        {
+            return;
+        }
+
+        BattleUnit activeUnit = turnSystem.ActiveUnit;
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            ResetPreviewFlash();
+            return;
+        }
+
+        if (!turnSystem.ShouldPreviewActionPointCost)
+        {
+            ResetPreviewFlash();
+            return;
+        }
+
+        int currentPoints = Mathf.Clamp(activeUnit.currentActionPoints, 0, actionPointIndicators.Count);
+        int previewCost = Mathf.Clamp(turnSystem.PreviewActionPointCost, 0, currentPoints);
+        if (previewCost <= 0)
+        {
+            ResetPreviewFlash();
+            return;
+        }
+
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PreviewFlashSpeed);
+        float alpha = Mathf.Lerp(PreviewMinAlpha, 1f, pulse);
+        int previewStartIndex = Mathf.Max(0, currentPoints - previewCost);
+
+        for (int i = 0; i < actionPointIndicators.Count; i++)
+        {
+            Graphic graphic = i < actionPointGraphics.Count ? actionPointGraphics[i] : null;
+            if (graphic == null)
+            {
+                continue;
+            }
+
+            Color color = graphic.color;
+            color.a = i >= previewStartIndex && i < currentPoints ? alpha : 1f;
+            graphic.color = color;
+        }
+    }
+
+    private void ResetPreviewFlash()
+    {
+        for (int i = 0; i < actionPointGraphics.Count; i++)
+        {
+            Graphic graphic = actionPointGraphics[i];
+            if (graphic == null)
+            {
+                continue;
+            }
+
+            Color color = graphic.color;
+            if (!Mathf.Approximately(color.a, 1f))
+            {
+                color.a = 1f;
+                graphic.color = color;
             }
         }
     }
