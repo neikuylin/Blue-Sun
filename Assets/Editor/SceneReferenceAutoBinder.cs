@@ -48,6 +48,8 @@ public static class SceneReferenceAutoBinder
     private const string BattleBackpackContentPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9";
     private const string BattleBackpackDragHandlePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9/\u80cc\u5305\u80cc\u666f\u677f";
     private const string BattleEquipmentPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
+    private const string BattleLeftPanelPortraitPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u89d2\u8272\u80cc\u666f\u6846\u7acb\u7ed8";
+    private const string BattleLeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
     private const string CanvasPath = "Canvas";
 
     [MenuItem(AutoBindMenu)]
@@ -146,6 +148,8 @@ public static class SceneReferenceAutoBinder
         RectTransform battleBackpackContent = FindRectTransform(scene, BattleBackpackContentPath);
         RectTransform battleBackpackDragHandle = FindRectTransform(scene, BattleBackpackDragHandlePath);
         RectTransform equipmentContainer = FindRectTransform(scene, BattleEquipmentPath);
+        Image leftPanelPortraitImage = FindImage(scene, BattleLeftPanelPortraitPath);
+        RectTransform leftPanelSkillSlotContainer = FindRectTransform(scene, BattleLeftPanelSkillPath);
         RectTransform overlayCanvas = FindRectTransform(scene, CanvasPath);
 
         if (timeline == null &&
@@ -184,6 +188,8 @@ public static class SceneReferenceAutoBinder
         bindings.battleBackpackContent = battleBackpackContent;
         bindings.battleBackpackDragHandle = battleBackpackDragHandle;
         bindings.equipmentContainer = equipmentContainer;
+        bindings.leftPanelPortraitImage = leftPanelPortraitImage;
+        bindings.leftPanelSkillSlotContainer = leftPanelSkillSlotContainer;
         bindings.overlayCanvas = overlayCanvas;
         bindings.spellCurrentPageText = spellCurrentPageText;
         bindings.spellTotalPageText = spellTotalPageText;
