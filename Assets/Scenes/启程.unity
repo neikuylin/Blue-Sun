@@ -8372,6 +8372,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6422317188224974661, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -15.200012
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -9143,6 +9147,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: "\u53F2\u8BD7\u7269\u54C1\u5E95\uFF08\u7D2B\uFF09"
       objectReference: {fileID: 0}
+    - target: {fileID: 6271029921140499869, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: ed995df4e7e438644acecf1ad5e74189, type: 3}
     - target: {fileID: 7167682266333031959, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -15258,6 +15266,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2065154779}
     m_Modifications:
+    - target: {fileID: 2957044751883997716, guid: 8c4f431e5a9484445953a7d721fd6d03, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: f414e2a14bb2792408ba9971ff149521, type: 3}
     - target: {fileID: 3527128896730674504, guid: 8c4f431e5a9484445953a7d721fd6d03, type: 3}
       propertyPath: m_Name
       value: "\u4F18\u79C0\u7269\u54C1\u5E95\uFF08\u84DD\uFF09"
@@ -16360,6 +16372,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9146089177387635646, guid: 60018fc30cbd85d49be5d2dad0e61a13, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 054ebf0f44cd87e4ca9c3bbed1c0543d, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19269,6 +19285,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: "\u8D50\u798F\u7269\u54C1\u5E95\uFF08\u91D1\uFF09"
       objectReference: {fileID: 0}
+    - target: {fileID: 6936643385255714459, guid: 73cbfec14fd862c4fb7b87142079561d, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 2acc94cc2f6c5ff4b85d8fe67e031844, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
