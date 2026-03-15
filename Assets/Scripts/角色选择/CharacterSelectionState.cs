@@ -28,13 +28,45 @@ public sealed class CharacterSelectionState : MonoBehaviour
         public bool isActiveSlot;
     }
 
+    [Serializable]
+    private struct GrantedSkillSnapshot
+    {
+        public string characterId;
+        public List<string> skillIds;
+    }
+
     private static CharacterSelectionState instance;
 
     [SerializeField] private string activeCharacterId = string.Empty;
     [SerializeField] private List<SlotSelection> slotSelections = new List<SlotSelection>();
+    [SerializeField] private List<GrantedSkillSnapshot> grantedSkillSnapshots = new List<GrantedSkillSnapshot>();
 
     public static string ActiveCharacterId => instance != null ? instance.activeCharacterId : string.Empty;
     public static IReadOnlyList<SlotSelection> SlotSelections => instance != null ? instance.slotSelections : Array.Empty<SlotSelection>();
+
+    public static IReadOnlyList<string> GetCapturedGrantedSkills(string characterId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return Array.Empty<string>();
+        }
+
+        for (int i = 0; i < instance.grantedSkillSnapshots.Count; i++)
+        {
+            GrantedSkillSnapshot snapshot = instance.grantedSkillSnapshots[i];
+            if (string.Equals(snapshot.characterId, characterId, StringComparison.Ordinal))
+            {
+                if (snapshot.skillIds != null)
+                {
+                    return snapshot.skillIds;
+                }
+
+                return Array.Empty<string>();
+            }
+        }
+
+        return Array.Empty<string>();
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -83,6 +115,8 @@ public sealed class CharacterSelectionState : MonoBehaviour
                 isActiveSlot = slot == activeSlot
             });
         }
+
+        instance.CaptureGrantedSkills(orderedSlots);
     }
 
     public static void CaptureFromCurrentScene()
@@ -264,6 +298,33 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
         result.Sort(CompareSlotOrder);
         return result;
+    }
+
+    private void CaptureGrantedSkills(List<CharacterSlotView> orderedSlots)
+    {
+        grantedSkillSnapshots.Clear();
+        if (orderedSlots == null)
+        {
+            return;
+        }
+
+        HashSet<string> seenCharacterIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < orderedSlots.Count; i++)
+        {
+            CharacterSlotView slot = orderedSlots[i];
+            string characterId = ResolveCharacterId(slot);
+            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacterIds.Add(characterId))
+            {
+                continue;
+            }
+
+            List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(characterId);
+            grantedSkillSnapshots.Add(new GrantedSkillSnapshot
+            {
+                characterId = characterId,
+                skillIds = grantedSkills != null ? new List<string>(grantedSkills) : new List<string>()
+            });
+        }
     }
 
     private static int CompareSlotOrder(CharacterSlotView left, CharacterSlotView right)

@@ -26,7 +26,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private readonly List<SkillSlotWidget> journeySkillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
-    private CharacterSkillLoadoutDatabase loadoutDatabase;
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
@@ -79,7 +78,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         journeySkillContainer = ResolveJourneySkillContainer();
         CollectJourneySkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
@@ -236,37 +234,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private List<string> BuildJourneySkillList(string characterId)
     {
-        List<string> result = new List<string>();
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(ResolveCharacterId(characterId)) : null;
-        if (entry != null && entry.skillIds != null)
-        {
-            for (int i = 0; i < entry.skillIds.Count; i++)
-            {
-                string skillId = entry.skillIds[i];
-                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
-                {
-                    continue;
-                }
-
-                result.Add(skillId);
-            }
-        }
-
-        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(ResolveCharacterId(characterId));
-        for (int i = 0; i < grantedSkills.Count; i++)
-        {
-            string skillId = grantedSkills[i];
-            if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
-            {
-                continue;
-            }
-
-            result.Add(skillId);
-        }
-
-        return result;
+        return CharacterSkillListUtility.BuildSkillIds(ResolveCharacterId(characterId));
     }
 
     private Sprite ResolveSkillIcon(string skillId)

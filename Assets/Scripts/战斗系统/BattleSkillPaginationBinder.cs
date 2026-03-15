@@ -30,7 +30,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private BattleTurnSystem turnSystem;
     private BattleSkillDatabase skillDatabase;
-    private CharacterSkillLoadoutDatabase loadoutDatabase;
     private BattleSceneBindings sceneBindings;
     private Button previousPageButton;
     private Button nextPageButton;
@@ -44,7 +43,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         turnSystem = system;
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         sceneBindings = BattleSceneBindings.FindInActiveScene();
         CacheBindings();
         HookPaginationButtons();
@@ -332,41 +330,8 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private List<string> GetSkillsForCharacter(string characterId)
     {
-        List<string> result = new List<string>();
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        if (loadoutDatabase == null)
-        {
-            loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        }
-
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
-        if (entry != null && entry.skillIds != null)
-        {
-            for (int i = 0; i < entry.skillIds.Count; i++)
-            {
-                string skillId = entry.skillIds[i];
-                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
-                {
-                    continue;
-                }
-
-                result.Add(skillId);
-            }
-        }
-
-        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(
+        return CharacterSkillListUtility.BuildSkillIds(
             string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId);
-        for (int i = 0; i < grantedSkills.Count; i++)
-        {
-            string skillId = grantedSkills[i];
-            if (!string.IsNullOrWhiteSpace(skillId) && seen.Add(skillId))
-            {
-                result.Add(skillId);
-            }
-        }
-
-        return result;
     }
 
     private Sprite ResolveSkillIcon(string skillId)
