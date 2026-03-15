@@ -118,6 +118,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
+    private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
 
@@ -135,6 +136,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     };
 
     private static InventoryShortcutRuntimeBinder instance;
+    private static Material itemTooltipIconFadeMaterial;
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -2482,7 +2484,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipItemIconImage.preserveAspect = true;
         itemTooltipItemIconImage.rectTransform.sizeDelta = iconSize;
         itemTooltipItemIconImage.rectTransform.localScale = ItemTooltipIconScale;
+        itemTooltipItemIconImage.material = EnsureItemTooltipIconFadeMaterial();
         itemTooltipItemIconImage.enabled = iconSprite != null;
+    }
+
+    private static Material EnsureItemTooltipIconFadeMaterial()
+    {
+        if (itemTooltipIconFadeMaterial != null)
+        {
+            return itemTooltipIconFadeMaterial;
+        }
+
+        Shader shader = Shader.Find(ItemTooltipIconFadeShaderName);
+        if (shader == null)
+        {
+            return null;
+        }
+
+        itemTooltipIconFadeMaterial = new Material(shader)
+        {
+            name = "ItemTooltipIconBottomFade"
+        };
+        itemTooltipIconFadeMaterial.hideFlags = HideFlags.HideAndDontSave;
+        itemTooltipIconFadeMaterial.SetFloat("_FadeHeight", 0.2f);
+        return itemTooltipIconFadeMaterial;
     }
 
     private void RebuildTooltipGrantedSkillIcons(ItemDatabase.ItemEntry entry)
