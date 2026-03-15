@@ -19,11 +19,11 @@ public sealed class InventoryDebugWindow : EditorWindow
 
     private Vector2 scroll;
 
-    [MenuItem("Tools/物品/背包调试窗口")]
+    [MenuItem("Tools/\u7269\u54c1/\u80cc\u5305\u8c03\u8bd5\u7a97\u53e3")]
     private static void Open()
     {
         InventoryDebugWindow window = CreateInstance<InventoryDebugWindow>();
-        window.titleContent = new GUIContent("背包调试");
+        window.titleContent = new GUIContent("\u80cc\u5305\u8c03\u8bd5");
         window.minSize = new Vector2(360f, 420f);
         window.maxSize = new Vector2(900f, 1200f);
         window.position = new Rect(160f, 120f, 420f, 520f);
@@ -40,18 +40,18 @@ public sealed class InventoryDebugWindow : EditorWindow
     {
         database = database != null ? database : ItemDatabase.LoadDefault();
 
-        EditorGUILayout.LabelField("背包调试器", EditorStyles.boldLabel);
-        EditorGUILayout.Space(4);
+        EditorGUILayout.LabelField("\u80cc\u5305\u8c03\u8bd5\u5668", EditorStyles.boldLabel);
+        EditorGUILayout.Space(4f);
 
         if (database == null)
         {
-            EditorGUILayout.HelpBox("未找到物品数据库。先打开 Tools/物品/物品数据库 创建。", MessageType.Warning);
+            EditorGUILayout.HelpBox("\u672a\u627e\u5230\u7269\u54c1\u6570\u636e\u5e93\u3002\u5148\u6253\u5f00 Tools/\u7269\u54c1/\u7269\u54c1\u6570\u636e\u5e93 \u521b\u5efa\u3002", MessageType.Warning);
             return;
         }
 
         if (!Application.isPlaying)
         {
-            EditorGUILayout.HelpBox("请先进入 Play 模式，再使用本窗口。", MessageType.Info);
+            EditorGUILayout.HelpBox("\u8bf7\u5148\u8fdb\u5165 Play \u6a21\u5f0f\uff0c\u518d\u4f7f\u7528\u672c\u7a97\u53e3\u3002", MessageType.Info);
             return;
         }
 
@@ -66,17 +66,17 @@ public sealed class InventoryDebugWindow : EditorWindow
 
     private void DrawAddPanel()
     {
-        EditorGUILayout.LabelField("塞入物品", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("\u6dfb\u52a0\u7269\u54c1", EditorStyles.boldLabel);
 
         selectedCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
-            "类别",
+            "\u5206\u7c7b",
             (int)selectedCategory,
             ItemEditorLabels.CategoryLabels);
 
         if (selectedCategory == ItemDatabase.ItemCategory.Equipment)
         {
             selectedEquipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
-                "装备部位",
+                "\u88c5\u5907\u90e8\u4f4d",
                 (int)selectedEquipmentSlot,
                 ItemEditorLabels.EquipmentSlotLabels);
 
@@ -91,26 +91,30 @@ public sealed class InventoryDebugWindow : EditorWindow
         List<ItemDatabase.ItemEntry> entries = database.FindEntries(selectedCategory, selectedEquipmentSlot, selectedWeaponCategory);
         if (entries.Count == 0)
         {
-            EditorGUILayout.HelpBox("当前分类下没有物品定义。", MessageType.Info);
+            EditorGUILayout.HelpBox("\u5f53\u524d\u5206\u7c7b\u4e0b\u6ca1\u6709\u7269\u54c1\u5b9a\u4e49\u3002", MessageType.Info);
             return;
         }
 
         string[] options = BuildItemOptions(entries);
         selectedItemIndex = Mathf.Clamp(selectedItemIndex, 0, options.Length - 1);
-        selectedItemIndex = EditorGUILayout.Popup("物品", selectedItemIndex, options);
+        selectedItemIndex = EditorGUILayout.Popup("\u7269\u54c1", selectedItemIndex, options);
 
         ItemDatabase.ItemEntry selectedEntry = entries[selectedItemIndex];
-        EditorGUILayout.ObjectField("预制体", selectedEntry.prefab, typeof(GameObject), false);
-        EditorGUILayout.LabelField("单格上限", selectedEntry.category == ItemDatabase.ItemCategory.Equipment ? "1" : "5");
+        EditorGUILayout.ObjectField("\u9884\u5236\u4f53", selectedEntry.prefab, typeof(GameObject), false);
+        EditorGUILayout.HelpBox(
+            selectedEntry.category == ItemDatabase.ItemCategory.Equipment
+                ? "\u88c5\u5907\u7c7b\u5355\u683c\u4e0a\u9650\u56fa\u5b9a\u4e3a 1\u3002"
+                : "\u6d88\u8017\u54c1\u3001\u6750\u6599\u3001\u8865\u7ed9\u5355\u683c\u4e0a\u9650\u56fa\u5b9a\u4e3a 5\u3002",
+            MessageType.None);
 
-        addCount = Mathf.Max(1, EditorGUILayout.IntField("数量", addCount));
+        addCount = Mathf.Max(1, EditorGUILayout.IntField("\u6570\u91cf", addCount));
 
         using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.prefab == null))
         {
-            if (GUILayout.Button("添加物品"))
+            if (GUILayout.Button("\u6dfb\u52a0\u7269\u54c1"))
             {
                 int remain = InventoryShortcutRuntimeBinder.AddItem(selectedEntry, addCount);
-                Debug.Log($"[背包调试] 添加完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
+                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u6dfb\u52a0\u5b8c\u6210\uff0c\u7269\u54c1={selectedEntry.itemId}\uff0c\u5269\u4f59\u672a\u653e\u5165\u6570\u91cf={remain}");
                 Repaint();
             }
         }
@@ -118,25 +122,25 @@ public sealed class InventoryDebugWindow : EditorWindow
 
     private void DrawRemovePanel()
     {
-        EditorGUILayout.LabelField("移除物品", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("\u79fb\u9664\u7269\u54c1", EditorStyles.boldLabel);
 
         int maxIndex = Mathf.Max(0, InventoryShortcutRuntimeBinder.BackpackSlotCount - 1);
-        removeSlot = Mathf.Clamp(EditorGUILayout.IntField("格子索引", removeSlot), 0, maxIndex);
-        removeCount = Mathf.Max(1, EditorGUILayout.IntField("移除数量", removeCount));
+        removeSlot = Mathf.Clamp(EditorGUILayout.IntField("\u683c\u5b50\u7d22\u5f15", removeSlot), 0, maxIndex);
+        removeCount = Mathf.Max(1, EditorGUILayout.IntField("\u79fb\u9664\u6570\u91cf", removeCount));
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("移除"))
+            if (GUILayout.Button("\u79fb\u9664"))
             {
                 bool ok = InventoryShortcutRuntimeBinder.RemoveItemAt(removeSlot, removeCount);
-                Debug.Log($"[背包调试] 移除 索引={removeSlot} 数量={removeCount} 结果={ok}");
+                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u79fb\u9664 \u7d22\u5f15={removeSlot} \u6570\u91cf={removeCount} \u7ed3\u679c={ok}");
                 Repaint();
             }
 
-            if (GUILayout.Button("清空此格"))
+            if (GUILayout.Button("\u6e05\u7a7a\u6b64\u683c"))
             {
                 bool ok = InventoryShortcutRuntimeBinder.RemoveItemAt(removeSlot, int.MaxValue);
-                Debug.Log($"[背包调试] 清空格子 索引={removeSlot} 结果={ok}");
+                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u6e05\u7a7a\u683c\u5b50 \u7d22\u5f15={removeSlot} \u7ed3\u679c={ok}");
                 Repaint();
             }
         }
@@ -144,28 +148,28 @@ public sealed class InventoryDebugWindow : EditorWindow
 
     private void DrawMovePanel()
     {
-        EditorGUILayout.LabelField("移动/交换", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("\u79fb\u52a8/\u4ea4\u6362", EditorStyles.boldLabel);
 
         int maxIndex = Mathf.Max(0, InventoryShortcutRuntimeBinder.BackpackSlotCount - 1);
-        moveFrom = Mathf.Clamp(EditorGUILayout.IntField("起始格", moveFrom), 0, maxIndex);
-        moveTo = Mathf.Clamp(EditorGUILayout.IntField("目标格", moveTo), 0, maxIndex);
+        moveFrom = Mathf.Clamp(EditorGUILayout.IntField("\u8d77\u59cb\u683c", moveFrom), 0, maxIndex);
+        moveTo = Mathf.Clamp(EditorGUILayout.IntField("\u76ee\u6807\u683c", moveTo), 0, maxIndex);
 
-        if (GUILayout.Button("执行移动/交换"))
+        if (GUILayout.Button("\u6267\u884c\u79fb\u52a8/\u4ea4\u6362"))
         {
             bool ok = InventoryShortcutRuntimeBinder.MoveItem(moveFrom, moveTo);
-            Debug.Log($"[背包调试] 移动/交换 from={moveFrom} to={moveTo} 结果={ok}");
+            Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u79fb\u52a8/\u4ea4\u6362 from={moveFrom} to={moveTo} \u7ed3\u679c={ok}");
             Repaint();
         }
     }
 
     private void DrawSlotsPanel()
     {
-        EditorGUILayout.LabelField("当前背包数据", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("\u5f53\u524d\u80cc\u5305\u6570\u636e", EditorStyles.boldLabel);
 
         int count = InventoryShortcutRuntimeBinder.BackpackSlotCount;
         if (count <= 0)
         {
-            EditorGUILayout.HelpBox("未检测到背包槽位数据。", MessageType.Warning);
+            EditorGUILayout.HelpBox("\u672a\u68c0\u6d4b\u5230\u80cc\u5305\u69fd\u4f4d\u6570\u636e\u3002", MessageType.Warning);
             return;
         }
 
@@ -178,8 +182,8 @@ public sealed class InventoryDebugWindow : EditorWindow
             }
 
             string text = slot.IsEmpty
-                ? $"[{i}]（空）"
-                : $"[{i}] {slot.itemId} 数量:{slot.count} 单格上限:{slot.maxStack}";
+                ? $"[{i}](\u7a7a)"
+                : $"[{i}] {slot.itemId} \u6570\u91cf:{slot.count} \u5355\u683c\u4e0a\u9650:{slot.maxStack}";
 
             EditorGUILayout.LabelField(text);
         }
@@ -199,7 +203,7 @@ public sealed class InventoryDebugWindow : EditorWindow
 
         string[] labels = ItemEditorLabels.GetWeaponCategoryLabels(equipmentSlot);
         int popupIndex = ItemEditorLabels.ToWeaponCategoryPopupIndex(equipmentSlot, weaponCategory);
-        popupIndex = EditorGUILayout.Popup("武器分类", popupIndex, labels);
+        popupIndex = EditorGUILayout.Popup("\u6b66\u5668\u5206\u7c7b", popupIndex, labels);
         weaponCategory = ItemEditorLabels.FromWeaponCategoryPopupIndex(equipmentSlot, popupIndex);
     }
 
@@ -209,7 +213,7 @@ public sealed class InventoryDebugWindow : EditorWindow
         for (int i = 0; i < entries.Count; i++)
         {
             ItemDatabase.ItemEntry entry = entries[i];
-            options[i] = entry != null ? entry.itemId : "（空）";
+            options[i] = entry != null ? entry.itemId : "(\u7a7a)";
         }
 
         return options;

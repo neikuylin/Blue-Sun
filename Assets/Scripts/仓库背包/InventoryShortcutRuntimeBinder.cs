@@ -119,6 +119,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
+    private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -176,6 +177,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipItemNameText;
     private TMP_Text itemTooltipQualityText;
     private TMP_Text itemTooltipWeaponCategoryText;
+    private TMP_Text itemTooltipOwnerText;
     private TMP_Text itemTooltipAttackPowerText;
     private TMP_Text itemTooltipFixedDamageText;
     private TMP_Text itemTooltipAttributeMultiplierText;
@@ -230,6 +232,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return data != null ? BuildSnapshots(data) : new List<ItemSlotSnapshot>();
     }
 
+    public static string GetAttackPowerDisplayTextForCharacter(string itemId, string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return string.Empty;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        return BuildAttackPowerDisplayText(entry, characterId);
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
@@ -267,7 +280,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        instance.backpackData[index] = data;
+        instance.backpackData[index] = NormalizeItemSlotData(data);
         instance.RefreshBackpackSlot(index);
         instance.RefreshQuickSlot(index);
         instance.RefreshBattleBackpackSlot(index);
@@ -311,7 +324,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        equipment[index] = data;
+        equipment[index] = NormalizeItemSlotData(data);
         instance.MarkEquipmentSkillsDirty();
         if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
         {
@@ -440,6 +453,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return entry.category == ItemDatabase.ItemCategory.Equipment ? 1 : 5;
+    }
+
+    private static ItemSlotData NormalizeItemSlotData(ItemSlotData data)
+    {
+        if (data.IsEmpty)
+        {
+            return default;
+        }
+
+        data.count = Mathf.Max(1, data.count);
+        data.maxStack = ResolveMaxStack(data.itemId, data.maxStack);
+        if (data.count > data.maxStack)
+        {
+            data.count = data.maxStack;
+        }
+
+        return data;
     }
 
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
@@ -1677,7 +1707,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        list[slot.index] = data;
+        list[slot.index] = NormalizeItemSlotData(data);
         if (slot.kind == SlotKind.Equipment)
         {
             MarkEquipmentSkillsDirty();
@@ -2115,6 +2145,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
+        itemTooltipOwnerText = FindTooltipText(textContentRoot, "装备者");
         itemTooltipAttackPowerText = FindTooltipText(textContentRoot, "攻击力");
         itemTooltipFixedDamageText = FindTooltipText(textContentRoot, "固定伤害");
         itemTooltipAttributeMultiplierText = FindTooltipText(textContentRoot, "属性加成");
@@ -2147,6 +2178,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetTooltipText(itemTooltipItemNameText, ResolveItemDisplayName(entry));
         SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
+        SetTooltipText(itemTooltipOwnerText, GetTooltipOwnerDisplayText(entry, hoveredTooltipSlot));
         SetTooltipAttackPowerText(entry, hoveredTooltipSlot);
         SetTooltipText(itemTooltipFixedDamageText, GetFixedDamageDisplayText(entry));
         SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
@@ -2313,20 +2345,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
-        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        return BuildAttackPowerDisplayText(entry, ownerCharacterId);
+    }
+
+    private static string BuildAttackPowerDisplayText(ItemDatabase.ItemEntry entry, string ownerCharacterId)
+    {
+        if (!IsAttackPowerWeaponEntry(entry))
         {
             return string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        {
+            return "攻击力：无装备者";
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
         if (statEntry == null)
         {
-            return string.Empty;
+            return "攻击力：无装备者";
         }
 
-        float attackPower = Mathf.Max(0f, entry != null ? entry.fixedDamage : 0f);
-        if (entry != null && entry.weaponAttributeMultipliers != null)
+        float attackPower = Mathf.Max(0f, entry.fixedDamage);
+        if (entry.weaponAttributeMultipliers != null)
         {
             for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
             {
@@ -2369,7 +2411,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         string activeCharacterId = CharacterSelectionState.ActiveCharacterId;
-        return string.IsNullOrWhiteSpace(activeCharacterId) ? "玩家" : activeCharacterId;
+        return string.IsNullOrWhiteSpace(activeCharacterId) ? string.Empty : activeCharacterId;
+    }
+
+    private string GetTooltipOwnerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot)
+    {
+        if (!IsAttackPowerWeaponEntry(entry) || slot.kind != SlotKind.Equipment)
+        {
+            return string.Empty;
+        }
+
+        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
+        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        {
+            return "装备者：\n无装备者";
+        }
+
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
+        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无装备者";
     }
 
     private static float GetCharacterAttributeValue(
@@ -2421,6 +2481,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipItemIconImage.sprite = iconSprite;
         itemTooltipItemIconImage.preserveAspect = true;
         itemTooltipItemIconImage.rectTransform.sizeDelta = iconSize;
+        itemTooltipItemIconImage.rectTransform.localScale = ItemTooltipIconScale;
         itemTooltipItemIconImage.enabled = iconSprite != null;
     }
 

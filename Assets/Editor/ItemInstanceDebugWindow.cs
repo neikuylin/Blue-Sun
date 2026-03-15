@@ -66,10 +66,10 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         switch (selectedSection)
         {
             case 0:
-                DrawSection("\u4ed3\u5e93\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetWarehouseSnapshots());
+                DrawSection("\u4ed3\u5e93\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetWarehouseSnapshots(), string.Empty);
                 break;
             case 1:
-                DrawSection("\u80cc\u5305\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetBackpackSnapshots());
+                DrawSection("\u80cc\u5305\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetBackpackSnapshots(), string.Empty);
                 break;
             default:
                 DrawCharacterSection();
@@ -95,10 +95,11 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         string characterId = characterIds[selectedCharacterIndex];
         DrawSection(
             $"\u89d2\u8272\u88c5\u5907\u5b9e\u4f8b - {characterId}",
-            InventoryShortcutRuntimeBinder.GetEquipmentSnapshots(characterId));
+            InventoryShortcutRuntimeBinder.GetEquipmentSnapshots(characterId),
+            characterId);
     }
 
-    private void DrawSection(string title, List<InventoryShortcutRuntimeBinder.ItemSlotSnapshot> snapshots)
+    private void DrawSection(string title, List<InventoryShortcutRuntimeBinder.ItemSlotSnapshot> snapshots, string ownerCharacterId)
     {
         EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
 
@@ -129,9 +130,21 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
                 EditorGUILayout.LabelField("\u6570\u91cf", snapshot.count.ToString());
                 EditorGUILayout.LabelField("\u5355\u683c\u4e0a\u9650", snapshot.maxStack.ToString());
                 EditorGUILayout.LabelField(
+                    "\u88c5\u5907\u8005",
+                    string.IsNullOrWhiteSpace(ownerCharacterId) ? "-" : ownerCharacterId);
+                EditorGUILayout.LabelField(
+                    "\u653b\u51fb\u529b",
+                    GetAttackPowerText(snapshot.itemId, ownerCharacterId));
+                EditorGUILayout.LabelField(
                     "\u5b9a\u4e49\u8d44\u6e90",
                     entry != null ? "\u5df2\u547d\u4e2d ItemDatabase" : "\u672a\u547d\u4e2d ItemDatabase");
             }
         }
+    }
+
+    private static string GetAttackPowerText(string itemId, string ownerCharacterId)
+    {
+        string value = InventoryShortcutRuntimeBinder.GetAttackPowerDisplayTextForCharacter(itemId, ownerCharacterId);
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 }

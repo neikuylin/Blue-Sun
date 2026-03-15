@@ -19,7 +19,7 @@ MonoBehaviour:
     quality: 0
     equipmentSlot: 3
     weaponCategory: 1
-    fixedDamage: 0
+    fixedDamage: 5
     description: "\u968F\u5904\u53EF\u89C1\u7684\u6B66\u5668\u3002"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
