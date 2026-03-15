@@ -6,11 +6,17 @@ using UnityEngine.UI;
 public sealed class JourneyAttributeDetailBinder : MonoBehaviour
 {
     private const string CharacterNamePath = "\u6587\u672c\u533a\u57df/\u89d2\u8272ID";
+    private const string HealthPath = "\u6587\u672c\u533a\u57df/\u751f\u547d\u503c";
+    private const string ManaPath = "\u6587\u672c\u533a\u57df/\u9b54\u6cd5\u503c";
+    private const string AttackPowerPath = "\u6587\u672c\u533a\u57df/\u653b\u51fb\u529b";
     private const string StrengthPath = "\u6587\u672c\u533a\u57df/\u529b\u91cf";
     private const string AgilityPath = "\u6587\u672c\u533a\u57df/\u654f\u6377";
     private const string IntelligencePath = "\u6587\u672c\u533a\u57df/\u667a\u529b";
 
     [SerializeField] private Component characterNameText;
+    [SerializeField] private Component healthText;
+    [SerializeField] private Component manaText;
+    [SerializeField] private Component attackPowerText;
     [SerializeField] private Component strengthText;
     [SerializeField] private Component agilityText;
     [SerializeField] private Component intelligenceText;
@@ -45,6 +51,9 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private void AutoBind()
     {
         characterNameText = FindTextByPath(CharacterNamePath);
+        healthText = FindTextByPath(HealthPath);
+        manaText = FindTextByPath(ManaPath);
+        attackPowerText = FindTextByPath(AttackPowerPath);
         strengthText = FindTextByPath(StrengthPath);
         agilityText = FindTextByPath(AgilityPath);
         intelligenceText = FindTextByPath(IntelligencePath);
@@ -61,6 +70,21 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         if (strengthText == null)
         {
             strengthText = FindTextByPath(StrengthPath);
+        }
+
+        if (healthText == null)
+        {
+            healthText = FindTextByPath(HealthPath);
+        }
+
+        if (manaText == null)
+        {
+            manaText = FindTextByPath(ManaPath);
+        }
+
+        if (attackPowerText == null)
+        {
+            attackPowerText = FindTextByPath(AttackPowerPath);
         }
 
         if (agilityText == null)
@@ -132,8 +156,12 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private void ApplyCharacter(string characterId)
     {
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
 
         SetText(characterNameText, ResolveDisplayName(characterId));
+        SetText(healthText, statEntry != null ? "\u751f\u547d\u503c:" + statEntry.ResolveMaxHealth() : "\u751f\u547d\u503c:");
+        SetText(manaText, statEntry != null ? "\u9b54\u6cd5\u503c:" + statEntry.ResolveMaxMana() : "\u9b54\u6cd5\u503c:");
+        SetText(attackPowerText, attackPower > 0f ? "\u653b\u51fb\u529b:" + Mathf.RoundToInt(attackPower) : "\u653b\u51fb\u529b:\u65e0\u6b66\u5668");
         SetText(strengthText, statEntry != null ? "\u529b\u91cf:" + statEntry.strength : "\u529b\u91cf:");
         SetText(agilityText, statEntry != null ? "\u654f\u6377:" + statEntry.agility : "\u654f\u6377:");
         SetText(intelligenceText, statEntry != null ? "\u667a\u529b:" + statEntry.intelligence : "\u667a\u529b:");

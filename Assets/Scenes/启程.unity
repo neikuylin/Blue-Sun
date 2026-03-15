@@ -14376,6 +14376,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterNameText: {fileID: 1955067414}
+  healthText: {fileID: 0}
+  manaText: {fileID: 0}
+  attackPowerText: {fileID: 0}
   strengthText: {fileID: 1365145140}
   agilityText: {fileID: 66360865}
   intelligenceText: {fileID: 433303075}
@@ -17557,8 +17560,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -309.52002, y: 110}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: -278.5807, y: 110}
+  m_SizeDelta: {x: 261.8787, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1471778121
 MonoBehaviour:
