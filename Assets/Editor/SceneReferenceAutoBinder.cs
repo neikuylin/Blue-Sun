@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -139,6 +140,7 @@ public static class SceneReferenceAutoBinder
         TMP_Text manaText = FindText(scene, BattleManaTextPath);
         TMP_Text spellCurrentPageText = FindText(scene, SpellCurrentPagePath);
         TMP_Text spellTotalPageText = FindText(scene, SpellTotalPagePath);
+        RectTransform skillContainer = FindRectTransform(scene, "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df");
         RectTransform battleBackpackContainer = FindRectTransform(scene, BattleBackpackContainerPath);
         RectTransform battleBackpackContent = FindRectTransform(scene, BattleBackpackContentPath);
         RectTransform battleBackpackDragHandle = FindRectTransform(scene, BattleBackpackDragHandlePath);
@@ -181,8 +183,41 @@ public static class SceneReferenceAutoBinder
         bindings.overlayCanvas = overlayCanvas;
         bindings.spellCurrentPageText = spellCurrentPageText;
         bindings.spellTotalPageText = spellTotalPageText;
+        CollectBattleSkillPageWidgets(skillContainer, bindings.skillPageButtons, bindings.skillPageIcons);
         EditorUtility.SetDirty(bindings);
         return 1;
+    }
+
+    private static void CollectBattleSkillPageWidgets(RectTransform container, List<Button> buttons, List<Image> icons)
+    {
+        if (buttons == null || icons == null)
+        {
+            return;
+        }
+
+        buttons.Clear();
+        icons.Clear();
+        if (container == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < container.childCount; i++)
+        {
+            RectTransform child = container.GetChild(i) as RectTransform;
+            if (child == null)
+            {
+                continue;
+            }
+
+            Button button = child.GetComponent<Button>();
+            Image icon = FindBestSkillIcon(child);
+            if (button != null)
+            {
+                buttons.Add(button);
+                icons.Add(icon);
+            }
+        }
     }
 
     private static T GetOrCreateRootComponent<T>(Scene scene, string rootName) where T : Component
@@ -249,61 +284,37 @@ public static class SceneReferenceAutoBinder
 
     private static Transform FindTransform(Scene scene, string path)
     {
-        if (!scene.IsValid() || !scene.isLoaded || string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        string[] segments = path.Split('/');
-        if (segments.Length == 0)
-        {
-            return null;
-        }
-
-        GameObject[] roots = scene.GetRootGameObjects();
-        Transform current = null;
-        for (int i = 0; i < roots.Length; i++)
-        {
-            if (roots[i] != null && roots[i].name == segments[0])
-            {
-                current = roots[i].transform;
-                break;
-            }
-        }
-
-        if (current == null)
-        {
-            return null;
-        }
-
-        for (int i = 1; i < segments.Length; i++)
-        {
-            current = FindChildByName(current, segments[i]);
-            if (current == null)
-            {
-                return null;
-            }
-        }
-
-        return current;
+        return SceneHierarchyPathUtility.Find(scene, path);
     }
 
-    private static Transform FindChildByName(Transform parent, string childName)
+    private static Image FindBestSkillIcon(RectTransform root)
     {
-        if (parent == null)
+        if (root == null)
         {
             return null;
         }
 
-        for (int i = 0; i < parent.childCount; i++)
+        Transform explicitPattern = SceneHierarchyPathUtility.FindDirectChildByName(root, "\u6280\u80fd\u56fe\u6848");
+        if (explicitPattern != null)
         {
-            Transform child = parent.GetChild(i);
-            if (child != null && child.name == childName)
+            Image explicitImage = explicitPattern.GetComponent<Image>();
+            if (explicitImage != null)
             {
-                return child;
+                return explicitImage;
             }
         }
 
-        return null;
+        Image[] images = root.GetComponentsInChildren<Image>(true);
+        Image rootImage = root.GetComponent<Image>();
+        for (int i = 0; i < images.Length; i++)
+        {
+            Image image = images[i];
+            if (image != null && image != rootImage)
+            {
+                return image;
+            }
+        }
+
+        return rootImage;
     }
 }

@@ -3,10 +3,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class JourneySceneBindings : MonoBehaviour
 {
-    [Header("技能栏")]
+    [Header("Skill Slots")]
     public RectTransform skillSlotContainer;
 
-    [Header("仓库与背包")]
+    [Header("Inventory")]
     public RectTransform warehouseContainer;
     public RectTransform backpackContainer;
     public RectTransform equipmentContainer;

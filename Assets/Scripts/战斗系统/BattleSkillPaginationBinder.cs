@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -416,7 +415,8 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             return null;
         }
 
-        Transform explicitPattern = FindChildByName(root, SkillPatternName);
+        Transform explicitPattern = SceneHierarchyPathUtility.FindDirectChildByName(root, SkillPatternName) ??
+            FindDescendantByName(root, SkillPatternName);
         if (explicitPattern != null)
         {
             Image explicitImage = explicitPattern.GetComponent<Image>();
@@ -461,43 +461,17 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private static Transform FindTransformByPath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        string[] segments = path.Split('/');
-        GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
-        Transform current = null;
-        for (int i = 0; i < roots.Length; i++)
-        {
-            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
-            {
-                current = roots[i].transform;
-                break;
-            }
-        }
-
-        if (current == null)
-        {
-            return null;
-        }
-
-        for (int i = 1; i < segments.Length; i++)
-        {
-            current = FindChildByName(current, segments[i]);
-            if (current == null)
-            {
-                return null;
-            }
-        }
-
-        return current;
+        return SceneHierarchyPathUtility.FindInActiveScene(path);
     }
 
     private static Transform FindChildByName(Transform parent, string targetName)
     {
-        if (parent == null)
+        return SceneHierarchyPathUtility.FindDirectChildByName(parent, targetName);
+    }
+
+    private static Transform FindDescendantByName(Transform parent, string targetName)
+    {
+        if (parent == null || string.IsNullOrWhiteSpace(targetName))
         {
             return null;
         }
@@ -505,7 +479,12 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         for (int i = 0; i < parent.childCount; i++)
         {
             Transform child = parent.GetChild(i);
-            if (child != null && string.Equals(child.name, targetName, StringComparison.Ordinal))
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(child.name, targetName, StringComparison.Ordinal))
             {
                 return child;
             }
@@ -519,7 +498,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 continue;
             }
 
-            Transform nested = FindChildByName(child, targetName);
+            Transform nested = FindDescendantByName(child, targetName);
             if (nested != null)
             {
                 return nested;

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -150,61 +149,6 @@ public sealed class BattleActionPointBinder : MonoBehaviour
 
     private static Transform FindTransformByPath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        string[] segments = path.Split('/');
-        if (segments.Length == 0)
-        {
-            return null;
-        }
-
-        GameObject[] roots = SceneManager.GetActiveScene().GetRootGameObjects();
-        Transform current = null;
-        for (int i = 0; i < roots.Length; i++)
-        {
-            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
-            {
-                current = roots[i].transform;
-                break;
-            }
-        }
-
-        if (current == null)
-        {
-            return null;
-        }
-
-        for (int i = 1; i < segments.Length; i++)
-        {
-            current = FindChildByName(current, segments[i]);
-            if (current == null)
-            {
-                return null;
-            }
-        }
-
-        return current;
-    }
-
-    private static Transform FindChildByName(Transform parent, string childName)
-    {
-        if (parent == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < parent.childCount; i++)
-        {
-            Transform child = parent.GetChild(i);
-            if (child != null && string.Equals(child.name, childName, StringComparison.Ordinal))
-            {
-                return child;
-            }
-        }
-
-        return null;
+        return SceneHierarchyPathUtility.FindInActiveScene(path);
     }
 }

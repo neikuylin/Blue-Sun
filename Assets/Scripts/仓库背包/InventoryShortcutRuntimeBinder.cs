@@ -767,34 +767,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        Scene activeScene = SceneManager.GetActiveScene();
-        GameObject[] roots = activeScene.GetRootGameObjects();
-        Transform current = null;
-
-        for (int i = 0; i < roots.Length; i++)
-        {
-            if (roots[i] != null && string.Equals(roots[i].name, segments[0], StringComparison.Ordinal))
-            {
-                current = roots[i].transform;
-                break;
-            }
-        }
-
-        if (current == null)
-        {
-            return FindTransformByAncestorChain(segments);
-        }
-
-        for (int i = 1; i < segments.Length; i++)
-        {
-            current = FindChildByName(current, segments[i]);
-            if (current == null)
-            {
-                return FindTransformByAncestorChain(segments);
-            }
-        }
-
-        return current;
+        Transform resolved = SceneHierarchyPathUtility.FindInActiveScene(path);
+        return resolved != null ? resolved : FindTransformByAncestorChain(segments);
     }
 
     private static Transform FindChildByName(Transform parent, string childName)
