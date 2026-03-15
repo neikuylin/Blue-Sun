@@ -338,6 +338,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return count;
         }
 
+        maxStack = ResolveMaxStack(itemId, maxStack);
         int remain = count;
 
         for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
@@ -398,7 +399,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         Sprite icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab);
-        return AddItem(itemEntry.itemId, icon, count, maxStack);
+        return AddItem(itemEntry.itemId, icon, count, ResolveMaxStack(itemEntry, maxStack));
     }
 
     private static List<ItemSlotSnapshot> BuildSnapshots(List<ItemSlotData> source)
@@ -423,6 +424,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static int ResolveMaxStack(string itemId, int fallback)
+    {
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        return ResolveMaxStack(entry, fallback);
+    }
+
+    private static int ResolveMaxStack(ItemDatabase.ItemEntry entry, int fallback)
+    {
+        if (entry == null)
+        {
+            return Mathf.Max(1, fallback);
+        }
+
+        return entry.category == ItemDatabase.ItemCategory.Equipment ? 1 : 5;
     }
 
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)

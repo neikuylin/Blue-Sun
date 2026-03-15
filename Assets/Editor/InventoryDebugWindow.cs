@@ -10,7 +10,6 @@ public sealed class InventoryDebugWindow : EditorWindow
     private ItemDatabase.WeaponCategory selectedWeaponCategory = ItemDatabase.WeaponCategory.None;
     private int selectedItemIndex;
     private int addCount = 1;
-    private int maxStack = 99;
 
     private int removeSlot;
     private int removeCount = 1;
@@ -102,15 +101,15 @@ public sealed class InventoryDebugWindow : EditorWindow
 
         ItemDatabase.ItemEntry selectedEntry = entries[selectedItemIndex];
         EditorGUILayout.ObjectField("预制体", selectedEntry.prefab, typeof(GameObject), false);
+        EditorGUILayout.LabelField("单格上限", selectedEntry.category == ItemDatabase.ItemCategory.Equipment ? "1" : "5");
 
         addCount = Mathf.Max(1, EditorGUILayout.IntField("数量", addCount));
-        maxStack = Mathf.Max(1, EditorGUILayout.IntField("单格上限", maxStack));
 
         using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.prefab == null))
         {
             if (GUILayout.Button("添加物品"))
             {
-                int remain = InventoryShortcutRuntimeBinder.AddItem(selectedEntry, addCount, maxStack);
+                int remain = InventoryShortcutRuntimeBinder.AddItem(selectedEntry, addCount);
                 Debug.Log($"[背包调试] 添加完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
                 Repaint();
             }
@@ -179,7 +178,7 @@ public sealed class InventoryDebugWindow : EditorWindow
             }
 
             string text = slot.IsEmpty
-                ? $"[{i}] （空）"
+                ? $"[{i}]（空）"
                 : $"[{i}] {slot.itemId} 数量:{slot.count} 单格上限:{slot.maxStack}";
 
             EditorGUILayout.LabelField(text);
