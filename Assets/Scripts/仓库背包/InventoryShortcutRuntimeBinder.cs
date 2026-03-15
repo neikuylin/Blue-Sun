@@ -9,6 +9,15 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class InventoryShortcutRuntimeBinder : MonoBehaviour
 {
+    public struct ItemSlotSnapshot
+    {
+        public int index;
+        public string itemId;
+        public int count;
+        public int maxStack;
+        public bool isEmpty;
+    }
+
     [Serializable]
     public struct ItemSlotData
     {
@@ -161,11 +170,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform itemTooltipRoot;
     private RectTransform itemTooltipBackgroundRoot;
     private RectTransform itemTooltipDetailRoot;
+    private RectTransform itemTooltipTextContentRoot;
     private Image itemTooltipDetailBackgroundImage;
     private Image itemTooltipItemIconImage;
     private TMP_Text itemTooltipItemNameText;
     private TMP_Text itemTooltipQualityText;
     private TMP_Text itemTooltipWeaponCategoryText;
+    private TMP_Text itemTooltipAttackPowerText;
     private TMP_Text itemTooltipFixedDamageText;
     private TMP_Text itemTooltipAttributeMultiplierText;
     private TMP_Text itemTooltipDescriptionText;
@@ -175,6 +186,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
+    private SlotRef pendingTooltipSlot;
+    private SlotRef hoveredTooltipSlot;
     private float pendingTooltipShownAt;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
@@ -183,6 +196,39 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
+
+    public static List<ItemSlotSnapshot> GetBackpackSnapshots()
+    {
+        return instance != null ? BuildSnapshots(instance.backpackData) : new List<ItemSlotSnapshot>();
+    }
+
+    public static List<ItemSlotSnapshot> GetWarehouseSnapshots()
+    {
+        return instance != null ? BuildSnapshots(instance.warehouseData) : new List<ItemSlotSnapshot>();
+    }
+
+    public static List<string> GetEquipmentCharacterIds()
+    {
+        if (instance == null)
+        {
+            return new List<string>();
+        }
+
+        List<string> result = new List<string>(instance.equipmentDataByCharacter.Keys);
+        result.Sort(StringComparer.Ordinal);
+        return result;
+    }
+
+    public static List<ItemSlotSnapshot> GetEquipmentSnapshots(string characterId)
+    {
+        if (instance == null)
+        {
+            return new List<ItemSlotSnapshot>();
+        }
+
+        List<ItemSlotData> data = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return data != null ? BuildSnapshots(data) : new List<ItemSlotSnapshot>();
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -355,6 +401,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return AddItem(itemEntry.itemId, icon, count, maxStack);
     }
 
+    private static List<ItemSlotSnapshot> BuildSnapshots(List<ItemSlotData> source)
+    {
+        List<ItemSlotSnapshot> result = new List<ItemSlotSnapshot>();
+        if (source == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < source.Count; i++)
+        {
+            ItemSlotData slot = source[i];
+            result.Add(new ItemSlotSnapshot
+            {
+                index = i,
+                itemId = slot.itemId,
+                count = slot.count,
+                maxStack = slot.maxStack,
+                isEmpty = slot.IsEmpty
+            });
+        }
+
+        return result;
+    }
+
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
     {
         if (prefab == null)
@@ -487,6 +557,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ShowItemTooltip(pendingTooltipWidget, pendingTooltipEntry);
         pendingTooltipWidget = null;
         pendingTooltipEntry = null;
+        pendingTooltipSlot = default;
         pendingTooltipShownAt = 0f;
     }
 
@@ -1397,6 +1468,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         pendingTooltipWidget = widget;
         pendingTooltipEntry = entry;
+        pendingTooltipSlot = slot;
         pendingTooltipShownAt = Time.unscaledTime + ItemTooltipDelaySeconds;
     }
 
@@ -2022,13 +2094,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         Transform iconRoot = FindChildByName(itemTooltipDetailRoot, "物品图标") ?? FindDescendantByName(itemTooltipDetailRoot, "物品图标");
         itemTooltipItemIconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
         Transform textContentRoot = FindChildByName(itemTooltipDetailRoot, "文本内容") ?? FindDescendantByName(itemTooltipDetailRoot, "文本内容");
+        itemTooltipTextContentRoot = textContentRoot as RectTransform;
         itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
+        itemTooltipAttackPowerText = FindTooltipText(textContentRoot, "攻击力");
         itemTooltipFixedDamageText = FindTooltipText(textContentRoot, "固定伤害");
         itemTooltipAttributeMultiplierText = FindTooltipText(textContentRoot, "属性加成");
         itemTooltipDescriptionText = FindTooltipText(textContentRoot, "文本介绍");
         itemTooltipGrantedSkillsText = FindTooltipText(textContentRoot, "附带技能");
+        EnsureTooltipAttackPowerText();
         Transform grantedSkillRoot = itemTooltipGrantedSkillsText != null
             ? (FindChildByName(itemTooltipGrantedSkillsText.transform, "技能区域") ?? FindDescendantByName(itemTooltipGrantedSkillsText.transform, "技能区域"))
             : null;
@@ -2050,10 +2125,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         hoveredTooltipWidget = widget;
+        hoveredTooltipSlot = pendingTooltipSlot;
         SetTooltipItemIcon(entry);
         SetTooltipText(itemTooltipItemNameText, ResolveItemDisplayName(entry));
         SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
         SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
+        SetTooltipAttackPowerText(entry, hoveredTooltipSlot);
         SetTooltipText(itemTooltipFixedDamageText, GetFixedDamageDisplayText(entry));
         SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
         SetTooltipText(itemTooltipDescriptionText, entry.description ?? string.Empty);
@@ -2069,8 +2146,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void HideItemTooltip()
     {
         hoveredTooltipWidget = null;
+        hoveredTooltipSlot = default;
         pendingTooltipWidget = null;
         pendingTooltipEntry = null;
+        pendingTooltipSlot = default;
         pendingTooltipShownAt = 0f;
         ClearTooltipGrantedSkillIcons();
         if (itemTooltipRoot != null)
@@ -2153,6 +2232,148 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (text != null)
         {
             text.text = value ?? string.Empty;
+        }
+    }
+
+    private void SetTooltipAttackPowerText(ItemDatabase.ItemEntry entry, SlotRef slot)
+    {
+        TMP_Text attackPowerText = EnsureTooltipAttackPowerText();
+        if (attackPowerText == null)
+        {
+            return;
+        }
+
+        string value = GetAttackPowerDisplayText(entry, slot);
+        attackPowerText.gameObject.SetActive(!string.IsNullOrEmpty(value));
+        attackPowerText.text = value ?? string.Empty;
+    }
+
+    private TMP_Text EnsureTooltipAttackPowerText()
+    {
+        if (itemTooltipAttackPowerText != null)
+        {
+            return itemTooltipAttackPowerText;
+        }
+
+        if (itemTooltipTextContentRoot == null)
+        {
+            return null;
+        }
+
+        TMP_Text template = itemTooltipFixedDamageText ?? itemTooltipAttributeMultiplierText ?? itemTooltipDescriptionText;
+        if (template == null)
+        {
+            return null;
+        }
+
+        GameObject attackPowerObject = Instantiate(template.gameObject, itemTooltipTextContentRoot, false);
+        attackPowerObject.name = "攻击力";
+
+        itemTooltipAttackPowerText = attackPowerObject.GetComponent<TMP_Text>();
+        RectTransform attackPowerRect = attackPowerObject.transform as RectTransform;
+        RectTransform templateRect = template.rectTransform;
+        if (itemTooltipAttackPowerText == null || attackPowerRect == null || templateRect == null)
+        {
+            return itemTooltipAttackPowerText;
+        }
+
+        attackPowerRect.anchorMin = templateRect.anchorMin;
+        attackPowerRect.anchorMax = templateRect.anchorMax;
+        attackPowerRect.pivot = templateRect.pivot;
+        attackPowerRect.sizeDelta = templateRect.sizeDelta;
+        attackPowerRect.localScale = templateRect.localScale;
+        attackPowerRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -36f);
+        itemTooltipAttackPowerText.text = string.Empty;
+        itemTooltipAttackPowerText.gameObject.SetActive(false);
+        return itemTooltipAttackPowerText;
+    }
+
+    private string GetAttackPowerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot)
+    {
+        if (!IsAttackPowerWeaponEntry(entry) || slot.kind != SlotKind.Equipment)
+        {
+            return string.Empty;
+        }
+
+        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
+        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        {
+            return string.Empty;
+        }
+
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
+        if (statEntry == null)
+        {
+            return string.Empty;
+        }
+
+        float attackPower = Mathf.Max(0f, entry != null ? entry.fixedDamage : 0f);
+        if (entry != null && entry.weaponAttributeMultipliers != null)
+        {
+            for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
+            {
+                ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
+                if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
+                {
+                    continue;
+                }
+
+                attackPower += GetCharacterAttributeValue(statEntry, multiplier.attributeType) * multiplier.multiplier;
+            }
+        }
+
+        return $"攻击力：{attackPower:0.##}";
+    }
+
+    private static bool IsAttackPowerWeaponEntry(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        bool isWeaponCategory = entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
+        if (!isWeaponCategory)
+        {
+            return false;
+        }
+
+        return entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ||
+            entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand;
+    }
+
+    private string ResolveTooltipEquipmentOwnerCharacterId()
+    {
+        if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        {
+            return currentEquipmentCharacterId;
+        }
+
+        string activeCharacterId = CharacterSelectionState.ActiveCharacterId;
+        return string.IsNullOrWhiteSpace(activeCharacterId) ? "玩家" : activeCharacterId;
+    }
+
+    private static float GetCharacterAttributeValue(
+        CharacterStatDatabase.StatEntry statEntry,
+        ItemDatabase.WeaponAttributeType attributeType)
+    {
+        if (statEntry == null)
+        {
+            return 0f;
+        }
+
+        switch (attributeType)
+        {
+            case ItemDatabase.WeaponAttributeType.Strength:
+                return statEntry.strength;
+            case ItemDatabase.WeaponAttributeType.Agility:
+                return statEntry.agility;
+            case ItemDatabase.WeaponAttributeType.Intelligence:
+                return statEntry.intelligence;
+            default:
+                return 0f;
         }
     }
 
