@@ -37,7 +37,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public SkillType skillType = SkillType.Target;
         public CastTarget castTarget = CastTarget.Enemy;
         public Sprite icon;
-        public float skillMultiplier = 1f;
         public float damageMultiplier = 1f;
         public int actionPointCost = 1;
         public int manaCost;

@@ -1959,6 +1959,54 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
     }
 
+    public static float GetCharacterWeaponAttackPower(string characterId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return 0f;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null || equipment.Count == 0)
+        {
+            return 0f;
+        }
+
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        if (statEntry == null)
+        {
+            return 0f;
+        }
+
+        ItemDatabase.ItemEntry weaponEntry = null;
+        int bestPriority = int.MaxValue;
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
+            if (!IsAttackPowerWeaponEntry(entry))
+            {
+                continue;
+            }
+
+            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
+                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
+            if (weaponEntry == null || priority < bestPriority)
+            {
+                weaponEntry = entry;
+                bestPriority = priority;
+            }
+        }
+
+        return weaponEntry != null ? CalculateWeaponAttackPower(weaponEntry, statEntry) : 0f;
+    }
+
     private List<string> BuildGrantedSkillList(string characterId)
     {
         List<string> result = new List<string>();
@@ -2369,22 +2417,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return "攻击力：无装备者";
         }
 
-        float attackPower = Mathf.Max(0f, entry.fixedDamage);
-        if (entry.weaponAttributeMultipliers != null)
-        {
-            for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
-            {
-                ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
-                if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
-                {
-                    continue;
-                }
-
-                attackPower += GetCharacterAttributeValue(statEntry, multiplier.attributeType) * multiplier.multiplier;
-            }
-        }
+        float attackPower = CalculateWeaponAttackPower(entry, statEntry);
 
         return $"攻击力：{attackPower:0.##}";
+    }
+
+    private static float CalculateWeaponAttackPower(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
+    {
+        if (!IsAttackPowerWeaponEntry(entry) || statEntry == null)
+        {
+            return 0f;
+        }
+
+        float attackPower = Mathf.Max(0f, entry.fixedDamage);
+        if (entry.weaponAttributeMultipliers == null)
+        {
+            return attackPower;
+        }
+
+        for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
+        {
+            ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
+            if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
+            {
+                continue;
+            }
+
+            attackPower += GetCharacterAttributeValue(statEntry, multiplier.attributeType) * multiplier.multiplier;
+        }
+
+        return attackPower;
     }
 
     private static bool IsAttackPowerWeaponEntry(ItemDatabase.ItemEntry entry)

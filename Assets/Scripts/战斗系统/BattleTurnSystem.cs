@@ -230,7 +230,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (grid.ManhattanDistance(activeUnit.currentCell, target.currentCell) <= activeUnit.attackRange)
         {
-            ExecuteAttack(activeUnit, target);
+            ExecuteTargetSkill(activeUnit, target, ResolveSkill(NormalAttackSkillId));
             yield return new WaitForSeconds(0.35f);
             EndTurn();
             yield break;
@@ -253,7 +253,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (target.IsAlive && grid.ManhattanDistance(activeUnit.currentCell, target.currentCell) <= activeUnit.attackRange)
         {
-            ExecuteAttack(activeUnit, target);
+            ExecuteTargetSkill(activeUnit, target, ResolveSkill(NormalAttackSkillId));
             yield return new WaitForSeconds(0.35f);
         }
 
@@ -301,32 +301,6 @@ public class BattleTurnSystem : MonoBehaviour
         unit.SpendMana(moveManaCost);
         ClearActiveSkillMode();
         RefreshHighlights();
-    }
-
-    private void TryAttack(BattleUnit attacker, BattleUnit defender)
-    {
-        if (attacker == null)
-        {
-            return;
-        }
-
-        if (grid.ManhattanDistance(attacker.currentCell, defender.currentCell) > attacker.attackRange)
-        {
-            return;
-        }
-
-        ExecuteAttack(attacker, defender);
-        RefreshHighlights();
-        RefreshTimeline();
-    }
-
-    private void ExecuteAttack(BattleUnit attacker, BattleUnit defender)
-    {
-        attacker.FaceToward(defender.transform.position);
-        defender.ApplyDamage(attacker.attackDamage);
-        Debug.Log(attacker.unitName + " attacks " + defender.unitName + " for " + attacker.attackDamage + " damage.");
-
-        HandleUnitDefeat(defender);
     }
 
     private void EndTurn()
@@ -1852,6 +1826,7 @@ public class BattleTurnSystem : MonoBehaviour
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(target.transform.position);
+        ApplyCombatArtDamage(caster, target, skill);
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
@@ -1875,11 +1850,92 @@ public class BattleTurnSystem : MonoBehaviour
 
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
+        ApplyCombatArtAreaDamage(caster, targetCell, skill);
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
 
         Debug.Log("Area skill selected: " + caster.unitName + " -> " + targetCell + " using " + skill.skillId);
+    }
+
+    private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return;
+        }
+
+        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            return;
+        }
+
+        int damage = CalculateCombatArtDamage(caster, skill);
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        target.ApplyDamage(damage);
+        HandleUnitDefeat(target);
+    }
+
+    private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null)
+        {
+            return;
+        }
+
+        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            return;
+        }
+
+        int damage = CalculateCombatArtDamage(caster, skill);
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            if (!IsValidSkillTarget(caster, unit, skill))
+            {
+                continue;
+            }
+
+            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            {
+                continue;
+            }
+
+            unit.ApplyDamage(damage);
+            HandleUnitDefeat(unit);
+        }
+    }
+
+    private int CalculateCombatArtDamage(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null)
+        {
+            return 0;
+        }
+
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId);
+        if (attackPower <= 0f)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(0, Mathf.RoundToInt(attackPower * Mathf.Max(0f, skill.damageMultiplier)));
     }
 
     private bool CanCastSkillAt(
