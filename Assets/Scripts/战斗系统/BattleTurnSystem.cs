@@ -1508,7 +1508,8 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!ShouldShowSkillAreaPreview(activeSkill))
+        bool shouldShowAreaPreview = ShouldShowSkillAreaPreview(activeSkill);
+        if (!shouldShowAreaPreview)
         {
             if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells)
             {
@@ -1522,20 +1523,17 @@ public class BattleTurnSystem : MonoBehaviour
 
         UpdateHoveredSkillTarget();
 
-        if (!ShouldShowSkillAreaPreview(activeSkill))
-        {
-            return;
-        }
-
         Plane clickPlane = grid.GetInteractionPlane();
         Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
         float enter;
 
         if (!clickPlane.Raycast(ray, out enter))
         {
-            if (hasSkillHoverPreview)
+            if (hasSkillHoverPreview || skillHoverValid || skillHoverActionPointCost > 0)
             {
                 hasSkillHoverPreview = false;
+                skillHoverValid = false;
+                skillHoverActionPointCost = 0;
                 RefreshHighlights();
             }
 
@@ -1547,10 +1545,12 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
-            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells)
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells || skillHoverValid || skillHoverActionPointCost > 0)
             {
                 hasSkillHoverPreview = false;
+                skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
+                skillHoverActionPointCost = 0;
                 RefreshHighlights();
             }
 
@@ -1558,18 +1558,16 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        BattleUnit hoveredUnit = grid.GetUnitAt(hoveredCell);
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
         List<Vector2Int> path = IsMovementSkillActive() && footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
-        int actionPointCost = GetHoveredSkillActionPointCost(activeUnit, path, activeSkill);
-        bool withinSkillRange = IsMovementSkillActive()
-            ? path != null && path.Count > 1 && path.Count - 1 <= GetDisplayedSkillRange(activeUnit, activeSkill)
-            : grid.IsCellWithinRange(activeUnit, hoveredCell, GetDisplayedSkillRange(activeUnit, activeSkill));
-        bool previewValid = footprintInside && withinSkillRange;
-        bool hasAnyVisibleCells = HasAnyVisibleSkillPreviewCells(hoveredCell);
+        bool canCastAtHover = CanCastSkillAt(activeUnit, hoveredCell, hoveredUnit, activeSkill, path);
+        int actionPointCost = canCastAtHover ? GetHoveredSkillActionPointCost(activeUnit, path, activeSkill) : 0;
+        bool hasAnyVisibleCells = shouldShowAreaPreview && HasAnyVisibleSkillPreviewCells(hoveredCell);
 
         if (hasSkillHoverPreview &&
             skillHoverCell == hoveredCell &&
-            skillHoverValid == previewValid &&
+            skillHoverValid == canCastAtHover &&
             skillHoverHasAnyVisibleCells == hasAnyVisibleCells &&
             skillHoverActionPointCost == actionPointCost)
         {
@@ -1579,7 +1577,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         hasSkillHoverPreview = hasAnyVisibleCells;
         skillHoverCell = hoveredCell;
-        skillHoverValid = previewValid;
+        skillHoverValid = canCastAtHover;
         skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
         skillHoverActionPointCost = actionPointCost;
         RefreshHighlights();
@@ -1726,22 +1724,31 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (activeSkill == null || activeSkill.skillType != BattleSkillDatabase.SkillType.Target)
+        if (activeSkill == null)
         {
             return;
         }
 
-        if (!grid.IsUnitWithinRange(unit, target, GetDisplayedSkillRange(unit, activeSkill)))
+        if (activeSkill.skillType == BattleSkillDatabase.SkillType.Target)
         {
+            if (!CanCastSkillAt(unit, clickedCell, target, activeSkill, null))
+            {
+                return;
+            }
+
+            ExecuteTargetSkill(unit, target, activeSkill);
             return;
         }
 
-        if (!IsValidSkillTarget(unit, target, activeSkill))
+        if (activeSkill.skillType == BattleSkillDatabase.SkillType.Area)
         {
-            return;
-        }
+            if (!CanCastSkillAt(unit, clickedCell, target, activeSkill, null))
+            {
+                return;
+            }
 
-        ExecuteTargetSkill(unit, target, activeSkill);
+            ExecuteAreaSkill(unit, clickedCell, activeSkill);
+        }
     }
 
     private int GetSkillRange(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
@@ -1850,6 +1857,65 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshTimeline();
 
         Debug.Log("Target skill selected: " + caster.unitName + " -> " + target.unitName + " using " + skill.skillId);
+    }
+
+    private void ExecuteAreaSkill(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null)
+        {
+            return;
+        }
+
+        int actionPointCost = GetSkillActionPointCost(skill);
+        int manaCost = GetSkillManaCost(skill);
+        if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
+        {
+            return;
+        }
+
+        caster.SpendActionPoints(actionPointCost);
+        caster.SpendMana(manaCost);
+        ClearActiveSkillMode();
+        RefreshHighlights();
+        RefreshTimeline();
+
+        Debug.Log("Area skill selected: " + caster.unitName + " -> " + targetCell + " using " + skill.skillId);
+    }
+
+    private bool CanCastSkillAt(
+        BattleUnit caster,
+        Vector2Int targetCell,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill,
+        List<Vector2Int> movementPath)
+    {
+        if (caster == null || skill == null || !grid.IsInside(targetCell))
+        {
+            return false;
+        }
+
+        if (IsMovementSkillId(activeSkillId))
+        {
+            return movementPath != null &&
+                movementPath.Count > 1 &&
+                grid.IsFootprintInside(caster, targetCell) &&
+                target == null &&
+                movementPath.Count - 1 <= GetDisplayedSkillRange(caster, skill);
+        }
+
+        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            return target != null &&
+                IsValidSkillTarget(caster, target, skill) &&
+                grid.IsUnitWithinRange(caster, target, GetDisplayedSkillRange(caster, skill));
+        }
+
+        if (skill.skillType == BattleSkillDatabase.SkillType.Area)
+        {
+            return grid.IsCellWithinRange(caster, targetCell, GetDisplayedSkillRange(caster, skill));
+        }
+
+        return false;
     }
 
     private void UpdateHoveredSkillTarget()
@@ -2053,7 +2119,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void UpdateSkillCostHint()
     {
-        if (!IsSkillModeActive() || !hasSkillHoverPreview || !skillHoverHasAnyVisibleCells || skillHoverActionPointCost <= 0)
+        if (!ShouldShowSkillCostHint())
         {
             HideSkillCostHint();
             return;
@@ -2075,6 +2141,16 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2 localPoint;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, Input.mousePosition, null, out localPoint);
         skillCostHintRect.anchoredPosition = localPoint + new Vector2(90f, -28f);
+    }
+
+    private bool ShouldShowSkillCostHint()
+    {
+        if (!IsSkillModeActive() || !skillHoverValid || skillHoverActionPointCost <= 0)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private TMP_Text EnsureSkillCostHint()
