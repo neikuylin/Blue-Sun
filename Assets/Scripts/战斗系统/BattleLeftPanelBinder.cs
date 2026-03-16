@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -13,7 +14,32 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private sealed class SkillSlotWidget
     {
+        public RectTransform root;
         public Image skillIcon;
+        public string skillId;
+        public SkillHoverRelay hoverRelay;
+    }
+
+    private sealed class SkillHoverRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private BattleLeftPanelBinder owner;
+        private int index;
+
+        public void Configure(BattleLeftPanelBinder binder, int slotIndex)
+        {
+            owner = binder;
+            index = slotIndex;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerEnter(index);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerExit(index, eventData);
+        }
     }
 
     private static BattleLeftPanelBinder instance;
@@ -119,6 +145,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
             skillSlots.Add(new SkillSlotWidget
             {
+                root = child,
                 skillIcon = icon
             });
         }
@@ -197,7 +224,10 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         {
             string skillId = i < skillIds.Count ? skillIds[i] : string.Empty;
             Sprite icon = ResolveSkillIcon(skillId);
-            Image target = skillSlots[i].skillIcon;
+            SkillSlotWidget widget = skillSlots[i];
+            widget.skillId = skillId;
+            EnsureHoverRelay(widget, i);
+            Image target = widget.skillIcon;
             if (target == null)
             {
                 continue;
@@ -207,6 +237,60 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
         }
+    }
+
+    private void HandleSkillPointerEnter(int index)
+    {
+        if (index < 0 || index >= skillSlots.Count)
+        {
+            return;
+        }
+
+        SkillSlotWidget widget = skillSlots[index];
+        if (widget == null || widget.root == null || string.IsNullOrWhiteSpace(widget.skillId))
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
+        if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
+        float multiplier = Mathf.Max(0f, entry.damageMultiplier);
+        SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
+        {
+            skillId = widget.skillId,
+            displayName = widget.skillId,
+            description = entry.description ?? string.Empty,
+            ownerCharacterId = currentCharacterId ?? string.Empty,
+            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
+            icon = entry.icon,
+            isEmpty = false
+        };
+
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Skill,
+            widget.root,
+            0.5f,
+            () => SkillTooltipRuntime.Show(snapshot),
+            SkillTooltipRuntime.Hide);
+    }
+
+    private void HandleSkillPointerExit(int index, PointerEventData eventData)
+    {
+        SkillSlotWidget widget = index >= 0 && index < skillSlots.Count ? skillSlots[index] : null;
+        if (widget == null || widget.root == null)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, widget.root, eventData);
     }
 
     private Sprite ResolveSkillIcon(string skillId)
@@ -384,6 +468,25 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         image.raycastTarget = false;
         image.preserveAspect = true;
         return image;
+    }
+
+    private static void EnsureHoverRelay(SkillSlotWidget widget, int index)
+    {
+        if (widget == null || widget.root == null)
+        {
+            return;
+        }
+
+        if (widget.hoverRelay == null)
+        {
+            widget.hoverRelay = widget.root.GetComponent<SkillHoverRelay>();
+            if (widget.hoverRelay == null)
+            {
+                widget.hoverRelay = widget.root.gameObject.AddComponent<SkillHoverRelay>();
+            }
+        }
+
+        widget.hoverRelay.Configure(instance, index);
     }
 
     private void OnDestroy()

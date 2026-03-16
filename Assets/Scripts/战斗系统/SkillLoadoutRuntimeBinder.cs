@@ -45,7 +45,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            owner?.HandleSkillPointerExit(index);
+            owner?.HandleSkillPointerExit(index, eventData);
         }
     }
 
@@ -56,9 +56,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
-    private SkillTooltipRuntime.Snapshot pendingTooltipSnapshot;
-    private bool hasPendingTooltip;
-    private float pendingTooltipShownAt;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -92,14 +89,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
         {
-            UpdatePendingTooltip();
             return;
         }
 
         currentCharacterId = targetCharacterId;
         lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshJourneySkillSlots();
-        UpdatePendingTooltip();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -300,22 +295,20 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         SkillSlotWidget widget = journeySkillSlots[index];
         if (widget == null || string.IsNullOrWhiteSpace(widget.skillId))
         {
-            CancelPendingTooltip();
-            SkillTooltipRuntime.Hide();
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
         }
 
         BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
         if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
         {
-            CancelPendingTooltip();
-            SkillTooltipRuntime.Hide();
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
         }
 
         float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
         float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
-        pendingTooltipSnapshot = new SkillTooltipRuntime.Snapshot
+        SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
         {
             skillId = widget.skillId,
             displayName = widget.skillId,
@@ -325,39 +318,24 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             icon = entry != null ? entry.icon : null,
             isEmpty = false
         };
-        hasPendingTooltip = true;
-        pendingTooltipShownAt = Time.unscaledTime + SkillTooltipDelaySeconds;
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Skill,
+            widget.root,
+            SkillTooltipDelaySeconds,
+            () => SkillTooltipRuntime.Show(snapshot),
+            SkillTooltipRuntime.Hide);
     }
 
-    private void HandleSkillPointerExit(int index)
+    private void HandleSkillPointerExit(int index, PointerEventData eventData)
     {
-        CancelPendingTooltip();
-        SkillTooltipRuntime.Hide();
-    }
-
-    private void UpdatePendingTooltip()
-    {
-        if (!hasPendingTooltip)
+        SkillSlotWidget widget = index >= 0 && index < journeySkillSlots.Count ? journeySkillSlots[index] : null;
+        if (widget == null || widget.root == null)
         {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
         }
 
-        if (Time.unscaledTime < pendingTooltipShownAt)
-        {
-            return;
-        }
-
-        SkillTooltipRuntime.Show(pendingTooltipSnapshot);
-        hasPendingTooltip = false;
-        pendingTooltipSnapshot = default;
-        pendingTooltipShownAt = 0f;
-    }
-
-    private void CancelPendingTooltip()
-    {
-        hasPendingTooltip = false;
-        pendingTooltipSnapshot = default;
-        pendingTooltipShownAt = 0f;
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, widget.root, eventData);
     }
 
     private static void EnsureHoverRelay(SkillSlotWidget widget, int index)

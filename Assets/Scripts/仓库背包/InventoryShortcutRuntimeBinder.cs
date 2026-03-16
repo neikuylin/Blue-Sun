@@ -625,21 +625,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void UpdatePendingTooltip()
     {
-        if (pendingTooltipWidget == null || pendingTooltipEntry == null)
-        {
-            return;
-        }
-
-        if (Time.unscaledTime < pendingTooltipShownAt)
-        {
-            return;
-        }
-
-        ShowItemTooltip(pendingTooltipWidget, pendingTooltipEntry);
-        pendingTooltipWidget = null;
-        pendingTooltipEntry = null;
-        pendingTooltipSlot = default;
-        pendingTooltipShownAt = 0f;
     }
 
     private void BindScene()
@@ -1571,27 +1556,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         pendingTooltipEntry = entry;
         pendingTooltipSlot = slot;
         pendingTooltipShownAt = Time.unscaledTime + ItemTooltipDelaySeconds;
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Item,
+            widget.root,
+            ItemTooltipDelaySeconds,
+            () => ShowItemTooltip(widget, entry),
+            HideItemTooltip);
     }
 
     private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
     {
-        if (hoveredTooltipWidget == null)
+        SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(new SlotRef { kind = kind, index = index });
+        if (widget == null || widget.root == null)
         {
+            HideItemTooltip();
             return;
         }
 
-        Transform pointerTransform = eventData != null
-            ? (eventData.pointerEnter != null
-                ? eventData.pointerEnter.transform
-                : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
-            : null;
-
-        if (pointerTransform != null && hoveredTooltipWidget.root != null && pointerTransform.IsChildOf(hoveredTooltipWidget.root))
-        {
-            return;
-        }
-
-        HideItemTooltip();
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Item, widget.root, eventData);
     }
 
     private void HandleEndDrag()
@@ -2373,6 +2355,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         pendingTooltipSlot = default;
         pendingTooltipShownAt = 0f;
         ClearTooltipGrantedSkillIcons();
+        HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item);
         if (itemTooltipRoot != null)
         {
             itemTooltipRoot.gameObject.SetActive(false);

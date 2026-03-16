@@ -45,12 +45,12 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            owner?.HandleSkillPointerEnter(index);
+            owner?.HandleSkillPointerEnter(index, eventData);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            owner?.HandleSkillPointerExit(index);
+            owner?.HandleSkillPointerExit(index, eventData);
         }
     }
 
@@ -78,9 +78,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int currentPageIndex;
     private int lastTotalPages = -1;
-    private SkillTooltipRuntime.Snapshot pendingTooltipSnapshot;
-    private bool hasPendingTooltip;
-    private float pendingTooltipShownAt;
+
     public void Initialize(BattleTurnSystem system)
     {
         instance = this;
@@ -119,7 +117,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         }
 
         Refresh(force: false);
-        UpdatePendingTooltip();
     }
 
     private void CacheBindings()
@@ -282,7 +279,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         {
             currentCharacterId = nextCharacterId;
             currentPageIndex = 0;
-            SkillTooltipRuntime.Hide();
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
         }
 
         currentPageIndex = Mathf.Clamp(currentPageIndex, 0, totalPages - 1);
@@ -352,7 +349,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private void GoToPreviousPage()
     {
         currentPageIndex = Mathf.Max(0, currentPageIndex - 1);
-        SkillTooltipRuntime.Hide();
+        HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
         Refresh(force: true);
     }
 
@@ -360,7 +357,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         int totalPages = Mathf.Max(1, Mathf.CeilToInt(GetSkillsForCharacter(currentCharacterId).Count / (float)SkillsPerPage));
         currentPageIndex = Mathf.Min(totalPages - 1, currentPageIndex + 1);
-        SkillTooltipRuntime.Hide();
+        HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
         Refresh(force: true);
     }
 
@@ -380,7 +377,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         turnSystem.ToggleSkillMode(skillId);
     }
 
-    private void HandleSkillPointerEnter(int index)
+    private void HandleSkillPointerEnter(int index, PointerEventData eventData)
     {
         if (index < 0 || index >= currentSkillSnapshots.Count)
         {
@@ -390,29 +387,48 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         SkillInstanceSnapshot snapshot = currentSkillSnapshots[index];
         if (snapshot.isEmpty)
         {
-            CancelPendingTooltip();
-            SkillTooltipRuntime.Hide();
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
         }
 
-        pendingTooltipSnapshot = new SkillTooltipRuntime.Snapshot
+        SkillButtonWidget widget = index >= 0 && index < widgets.Count ? widgets[index] : null;
+        if (widget == null || widget.button == null)
         {
-            skillId = snapshot.skillId,
-            displayName = snapshot.displayName,
-            description = snapshot.description,
-            ownerCharacterId = snapshot.ownerCharacterId,
-            damage = snapshot.damage,
-            icon = ResolveSkillIcon(snapshot.skillId),
-            isEmpty = snapshot.isEmpty
-        };
-        hasPendingTooltip = true;
-        pendingTooltipShownAt = Time.unscaledTime + SkillTooltipDelaySeconds;
+            return;
+        }
+
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Skill,
+            widget.button.transform,
+            SkillTooltipDelaySeconds,
+            () => ShowSkillContent(snapshot),
+            SkillTooltipRuntime.Hide);
     }
 
-    private void HandleSkillPointerExit(int index)
+    private void HandleSkillPointerExit(int index, PointerEventData eventData)
     {
-        CancelPendingTooltip();
-        SkillTooltipRuntime.Hide();
+        SkillButtonWidget widget = index >= 0 && index < widgets.Count ? widgets[index] : null;
+        if (widget == null || widget.button == null)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        Transform pointerTransform = eventData != null
+            ? (eventData.pointerEnter != null ? eventData.pointerEnter.transform :
+                eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
+            : null;
+
+        if (widget != null && widget.button != null && pointerTransform != null)
+        {
+            Transform buttonTransform = widget.button.transform;
+            if (pointerTransform == buttonTransform || pointerTransform.IsChildOf(buttonTransform))
+            {
+                return;
+            }
+        }
+
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, widget.button.transform, eventData);
     }
 
     private string ResolveActiveCharacterId()
@@ -486,30 +502,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             icon = ResolveSkillIcon(snapshot.skillId),
             isEmpty = snapshot.isEmpty
         });
-    }
-
-    private void UpdatePendingTooltip()
-    {
-        if (!hasPendingTooltip)
-        {
-            return;
-        }
-
-        if (Time.unscaledTime < pendingTooltipShownAt)
-        {
-            return;
-        }
-
-        SkillTooltipRuntime.Show(pendingTooltipSnapshot);
-        hasPendingTooltip = false;
-        pendingTooltipShownAt = 0f;
-    }
-
-    private void CancelPendingTooltip()
-    {
-        hasPendingTooltip = false;
-        pendingTooltipSnapshot = default;
-        pendingTooltipShownAt = 0f;
     }
 
     private static void EnsureHoverRelay(SkillButtonWidget widget, int index)
