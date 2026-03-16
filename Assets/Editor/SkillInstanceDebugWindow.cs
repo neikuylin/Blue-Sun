@@ -65,6 +65,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
                     EditorGUILayout.LabelField("技能名字", snapshot.displayName);
                     EditorGUILayout.LabelField("技能描述", snapshot.description);
                     EditorGUILayout.LabelField("使用者", snapshot.ownerCharacterId);
+                    EditorGUILayout.LabelField("来源", snapshot.source);
                     EditorGUILayout.LabelField("技能倍率", snapshot.damageMultiplier.ToString("0.##"));
                     EditorGUILayout.LabelField("技能伤害", snapshot.damage.ToString());
                 }

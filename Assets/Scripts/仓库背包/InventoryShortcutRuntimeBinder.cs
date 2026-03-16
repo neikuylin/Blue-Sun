@@ -378,6 +378,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return instance.BuildGrantedSkillList(characterId);
     }
 
+    public static string GetGrantedSkillSourceItemIdForCharacter(string characterId, string skillId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(skillId))
+        {
+            return string.Empty;
+        }
+
+        return instance.FindGrantedSkillSourceItemId(characterId, skillId);
+    }
+
     public static int AddItem(string itemId, Sprite icon, int count, int maxStack = 99)
     {
         if (instance == null || string.IsNullOrEmpty(itemId) || icon == null || count <= 0)
@@ -2085,6 +2095,40 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return result;
     }
 
+    private string FindGrantedSkillSourceItemId(string characterId, string skillId)
+    {
+        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null)
+        {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(slot.itemId);
+            if (itemEntry == null || itemEntry.grantedSkillIds == null)
+            {
+                continue;
+            }
+
+            for (int s = 0; s < itemEntry.grantedSkillIds.Count; s++)
+            {
+                if (string.Equals(itemEntry.grantedSkillIds[s], skillId, StringComparison.Ordinal))
+                {
+                    return slot.itemId;
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
     private void RefreshByRef(SlotRef slot)
     {
         if (slot.kind == SlotKind.Warehouse)
@@ -2766,6 +2810,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return entry.itemId ?? string.Empty;
+    }
+
+    public static string GetItemDisplayName(string itemId)
+    {
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        return ResolveItemDisplayName(entry);
     }
 
     private static string GetFixedDamageDisplayText(ItemDatabase.ItemEntry entry)

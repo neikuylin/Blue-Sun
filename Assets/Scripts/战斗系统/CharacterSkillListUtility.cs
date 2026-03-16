@@ -28,12 +28,6 @@ public static class CharacterSkillListUtility
             TryAddSkill(result, seen, liveGrantedSkills[i]);
         }
 
-        IReadOnlyList<string> capturedGrantedSkills = CharacterSelectionState.GetCapturedGrantedSkills(resolvedCharacterId);
-        for (int i = 0; i < capturedGrantedSkills.Count; i++)
-        {
-            TryAddSkill(result, seen, capturedGrantedSkills[i]);
-        }
-
         return result;
     }
 

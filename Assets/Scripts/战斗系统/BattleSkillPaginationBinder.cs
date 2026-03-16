@@ -27,6 +27,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         public string displayName;
         public string description;
         public string ownerCharacterId;
+        public string source;
         public float damageMultiplier;
         public int damage;
         public bool isEmpty;
@@ -484,10 +485,41 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             displayName = skillId ?? string.Empty,
             description = isCombatArt ? entry.description ?? string.Empty : string.Empty,
             ownerCharacterId = ownerCharacterId ?? string.Empty,
+            source = ResolveSkillSourceDisplay(ownerCharacterId, skillId),
             damageMultiplier = isCombatArt ? multiplier : 0f,
             damage = isCombatArt ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
             isEmpty = string.IsNullOrWhiteSpace(skillId) || !isCombatArt
         };
+    }
+
+    private static string ResolveSkillSourceDisplay(string ownerCharacterId, string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return string.Empty;
+        }
+
+        string itemId = InventoryShortcutRuntimeBinder.GetGrantedSkillSourceItemIdForCharacter(ownerCharacterId, skillId);
+        if (!string.IsNullOrWhiteSpace(itemId))
+        {
+            return InventoryShortcutRuntimeBinder.GetItemDisplayName(itemId);
+        }
+
+        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(ownerCharacterId) : null;
+        if (entry != null && entry.skillIds != null)
+        {
+            for (int i = 0; i < entry.skillIds.Count; i++)
+            {
+                if (string.Equals(entry.skillIds[i], skillId, StringComparison.Ordinal))
+                {
+                    return "角色技能栏";
+                }
+            }
+        }
+
+        return string.Empty;
     }
 
     private void ShowSkillContent(SkillInstanceSnapshot snapshot)
