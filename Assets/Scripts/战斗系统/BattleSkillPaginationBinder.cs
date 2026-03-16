@@ -10,6 +10,7 @@ using UnityEngine.UI;
 public sealed class BattleSkillPaginationBinder : MonoBehaviour
 {
     private const int SkillsPerPage = 6;
+    private const float SkillTooltipDelaySeconds = 0.5f;
     private const string DefaultCharacterId = "\u73a9\u5bb6";
     private const string SkillPatternName = "\u6280\u80fd\u56fe\u6848";
     private const string SkillSlotContainerPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
@@ -17,9 +18,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
     private const string SpellCurrentPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u6cd5\u672f\u5f53\u524d\u9875";
     private const string SpellTotalPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u603b\u9875";
-    private const string SkillContentRootPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9";
-    private const string SkillContentIconPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9/\u6218\u6280\u56fe\u6807";
-    private const string SkillContentTextRootPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9/\u6587\u672c\u533a\u57df";
 
     [Serializable]
     public struct SkillInstanceSnapshot
@@ -80,13 +78,9 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int currentPageIndex;
     private int lastTotalPages = -1;
-    private RectTransform skillContentRoot;
-    private Image skillContentIcon;
-    private TMP_Text skillNameText;
-    private TMP_Text skillDamageText;
-    private TMP_Text skillDescriptionText;
-    private TMP_Text skillUserText;
-
+    private SkillTooltipRuntime.Snapshot pendingTooltipSnapshot;
+    private bool hasPendingTooltip;
+    private float pendingTooltipShownAt;
     public void Initialize(BattleTurnSystem system)
     {
         instance = this;
@@ -107,7 +101,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
         UnhookPaginationButtons();
         UnhookSkillButtons();
-        HideSkillContent();
+        SkillTooltipRuntime.Hide();
     }
 
     public static List<SkillInstanceSnapshot> GetCurrentSkillSnapshots()
@@ -125,6 +119,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         }
 
         Refresh(force: false);
+        UpdatePendingTooltip();
     }
 
     private void CacheBindings()
@@ -142,7 +137,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         totalPageText = sceneBindings != null && sceneBindings.spellTotalPageText != null
             ? sceneBindings.spellTotalPageText
             : FindTextByPath(SpellTotalPageTextPath);
-        CacheSkillContentBindings();
     }
 
     private void CacheSkillButtons()
@@ -205,18 +199,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         }
 
         HookSkillButtons();
-    }
-
-    private void CacheSkillContentBindings()
-    {
-        skillContentRoot = FindRectTransformByPath(SkillContentRootPath);
-        skillContentIcon = FindImageByPath(SkillContentIconPath);
-        Transform textRoot = FindTransformByPath(SkillContentTextRootPath);
-        skillNameText = FindTextInRoot(textRoot, "\u6218\u6280\u540d\u5b57", "\u6280\u80fd\u540d\u5b57");
-        skillDamageText = FindTextInRoot(textRoot, "\u6218\u6280\u4f24\u5bb3", "\u6280\u80fd\u4f24\u5bb3");
-        skillDescriptionText = FindTextInRoot(textRoot, "\u6218\u6280\u63cf\u8ff0", "\u6280\u80fd\u63cf\u8ff0");
-        skillUserText = FindTextInRoot(textRoot, "\u4f7f\u7528\u8005", "\u6218\u6280\u4f7f\u7528\u8005", "\u6280\u80fd\u4f7f\u7528\u8005");
-        HideSkillContent();
     }
 
     private void HookPaginationButtons()
@@ -300,7 +282,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         {
             currentCharacterId = nextCharacterId;
             currentPageIndex = 0;
-            HideSkillContent();
+            SkillTooltipRuntime.Hide();
         }
 
         currentPageIndex = Mathf.Clamp(currentPageIndex, 0, totalPages - 1);
@@ -369,7 +351,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private void GoToPreviousPage()
     {
         currentPageIndex = Mathf.Max(0, currentPageIndex - 1);
-        HideSkillContent();
+        SkillTooltipRuntime.Hide();
         Refresh(force: true);
     }
 
@@ -377,7 +359,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         int totalPages = Mathf.Max(1, Mathf.CeilToInt(GetSkillsForCharacter(currentCharacterId).Count / (float)SkillsPerPage));
         currentPageIndex = Mathf.Min(totalPages - 1, currentPageIndex + 1);
-        HideSkillContent();
+        SkillTooltipRuntime.Hide();
         Refresh(force: true);
     }
 
@@ -407,16 +389,29 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         SkillInstanceSnapshot snapshot = currentSkillSnapshots[index];
         if (snapshot.isEmpty)
         {
-            HideSkillContent();
+            CancelPendingTooltip();
+            SkillTooltipRuntime.Hide();
             return;
         }
 
-        ShowSkillContent(snapshot);
+        pendingTooltipSnapshot = new SkillTooltipRuntime.Snapshot
+        {
+            skillId = snapshot.skillId,
+            displayName = snapshot.displayName,
+            description = snapshot.description,
+            ownerCharacterId = snapshot.ownerCharacterId,
+            damage = snapshot.damage,
+            icon = ResolveSkillIcon(snapshot.skillId),
+            isEmpty = snapshot.isEmpty
+        };
+        hasPendingTooltip = true;
+        pendingTooltipShownAt = Time.unscaledTime + SkillTooltipDelaySeconds;
     }
 
     private void HandleSkillPointerExit(int index)
     {
-        HideSkillContent();
+        CancelPendingTooltip();
+        SkillTooltipRuntime.Hide();
     }
 
     private string ResolveActiveCharacterId()
@@ -459,6 +454,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         BattleSkillDatabase.SkillEntry entry = !string.IsNullOrWhiteSpace(skillId) && skillDatabase != null
             ? skillDatabase.FindEntry(skillId)
             : null;
+        bool isCombatArt = entry != null && entry.group == BattleSkillDatabase.SkillGroup.CombatArt;
         float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
         float attackPower = string.IsNullOrWhiteSpace(ownerCharacterId)
             ? 0f
@@ -469,58 +465,50 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             index = index,
             skillId = skillId ?? string.Empty,
             displayName = skillId ?? string.Empty,
-            description = entry != null ? entry.description ?? string.Empty : string.Empty,
+            description = isCombatArt ? entry.description ?? string.Empty : string.Empty,
             ownerCharacterId = ownerCharacterId ?? string.Empty,
-            damageMultiplier = multiplier,
-            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
-            isEmpty = string.IsNullOrWhiteSpace(skillId)
+            damageMultiplier = isCombatArt ? multiplier : 0f,
+            damage = isCombatArt ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
+            isEmpty = string.IsNullOrWhiteSpace(skillId) || !isCombatArt
         };
     }
 
     private void ShowSkillContent(SkillInstanceSnapshot snapshot)
     {
-        if (skillContentRoot == null)
+        SkillTooltipRuntime.Show(new SkillTooltipRuntime.Snapshot
+        {
+            skillId = snapshot.skillId,
+            displayName = snapshot.displayName,
+            description = snapshot.description,
+            ownerCharacterId = snapshot.ownerCharacterId,
+            damage = snapshot.damage,
+            icon = ResolveSkillIcon(snapshot.skillId),
+            isEmpty = snapshot.isEmpty
+        });
+    }
+
+    private void UpdatePendingTooltip()
+    {
+        if (!hasPendingTooltip)
         {
             return;
         }
 
-        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(snapshot.skillId) : null;
-
-        if (skillContentIcon != null)
+        if (Time.unscaledTime < pendingTooltipShownAt)
         {
-            skillContentIcon.sprite = entry != null ? entry.icon : null;
-            skillContentIcon.enabled = skillContentIcon.sprite != null;
+            return;
         }
 
-        if (skillNameText != null)
-        {
-            skillNameText.text = snapshot.displayName ?? string.Empty;
-        }
-
-        if (skillDamageText != null)
-        {
-            skillDamageText.text = $"\u6218\u6280\u4f24\u5bb3\uff1a{snapshot.damage}";
-        }
-
-        if (skillDescriptionText != null)
-        {
-            skillDescriptionText.text = snapshot.description ?? string.Empty;
-        }
-
-        if (skillUserText != null)
-        {
-            skillUserText.text = $"\u4f7f\u7528\u8005\uff1a{snapshot.ownerCharacterId}";
-        }
-
-        skillContentRoot.gameObject.SetActive(true);
+        SkillTooltipRuntime.Show(pendingTooltipSnapshot);
+        hasPendingTooltip = false;
+        pendingTooltipShownAt = 0f;
     }
 
-    private void HideSkillContent()
+    private void CancelPendingTooltip()
     {
-        if (skillContentRoot != null)
-        {
-            skillContentRoot.gameObject.SetActive(false);
-        }
+        hasPendingTooltip = false;
+        pendingTooltipSnapshot = default;
+        pendingTooltipShownAt = 0f;
     }
 
     private static void EnsureHoverRelay(SkillButtonWidget widget, int index)
@@ -614,38 +602,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         Transform target = FindTransformByPath(path);
         return target != null ? target.GetComponent<TMP_Text>() : null;
-    }
-
-    private static Image FindImageByPath(string path)
-    {
-        Transform target = FindTransformByPath(path);
-        return target != null ? target.GetComponent<Image>() : null;
-    }
-
-    private static TMP_Text FindTextInRoot(Transform root, params string[] candidateNames)
-    {
-        if (root == null || candidateNames == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < candidateNames.Length; i++)
-        {
-            string candidateName = candidateNames[i];
-            Transform target = FindChildByName(root, candidateName) ?? FindDescendantByName(root, candidateName);
-            if (target == null)
-            {
-                continue;
-            }
-
-            TMP_Text text = target.GetComponent<TMP_Text>();
-            if (text != null)
-            {
-                return text;
-            }
-        }
-
-        return null;
     }
 
     private static Transform FindTransformByPath(string path)

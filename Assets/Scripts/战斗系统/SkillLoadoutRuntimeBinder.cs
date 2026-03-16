@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
+    private const float SkillTooltipDelaySeconds = 0.5f;
     private static readonly string[] JourneySkillContainerChain =
     {
         "\u89d2\u8272\u9875\u9762",
@@ -19,7 +21,32 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private sealed class SkillSlotWidget
     {
+        public RectTransform root;
         public Image skillIcon;
+        public string skillId;
+        public SkillHoverRelay hoverRelay;
+    }
+
+    private sealed class SkillHoverRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private SkillLoadoutRuntimeBinder owner;
+        private int index;
+
+        public void Configure(SkillLoadoutRuntimeBinder binder, int slotIndex)
+        {
+            owner = binder;
+            index = slotIndex;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerEnter(index);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerExit(index);
+        }
     }
 
     private static SkillLoadoutRuntimeBinder instance;
@@ -29,6 +56,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
+    private SkillTooltipRuntime.Snapshot pendingTooltipSnapshot;
+    private bool hasPendingTooltip;
+    private float pendingTooltipShownAt;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -62,12 +92,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
         {
+            UpdatePendingTooltip();
             return;
         }
 
         currentCharacterId = targetCharacterId;
         lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshJourneySkillSlots();
+        UpdatePendingTooltip();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -113,6 +145,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
             journeySkillSlots.Add(new SkillSlotWidget
             {
+                root = child,
                 skillIcon = overlay
             });
         }
@@ -220,7 +253,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         {
             string skillId = i < skillIds.Count ? skillIds[i] : string.Empty;
             Sprite icon = ResolveSkillIcon(skillId);
-            Image target = journeySkillSlots[i].skillIcon;
+            SkillSlotWidget widget = journeySkillSlots[i];
+            widget.skillId = skillId;
+            EnsureHoverRelay(widget, i);
+            Image target = widget.skillIcon;
             if (target == null)
             {
                 continue;
@@ -251,6 +287,95 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
         return entry != null ? entry.icon : null;
+    }
+
+    private void HandleSkillPointerEnter(int index)
+    {
+        if (index < 0 || index >= journeySkillSlots.Count)
+        {
+            return;
+        }
+
+        SkillSlotWidget widget = journeySkillSlots[index];
+        if (widget == null || string.IsNullOrWhiteSpace(widget.skillId))
+        {
+            CancelPendingTooltip();
+            SkillTooltipRuntime.Hide();
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
+        if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            CancelPendingTooltip();
+            SkillTooltipRuntime.Hide();
+            return;
+        }
+
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
+        float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
+        pendingTooltipSnapshot = new SkillTooltipRuntime.Snapshot
+        {
+            skillId = widget.skillId,
+            displayName = widget.skillId,
+            description = entry != null ? entry.description ?? string.Empty : string.Empty,
+            ownerCharacterId = currentCharacterId ?? string.Empty,
+            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
+            icon = entry != null ? entry.icon : null,
+            isEmpty = false
+        };
+        hasPendingTooltip = true;
+        pendingTooltipShownAt = Time.unscaledTime + SkillTooltipDelaySeconds;
+    }
+
+    private void HandleSkillPointerExit(int index)
+    {
+        CancelPendingTooltip();
+        SkillTooltipRuntime.Hide();
+    }
+
+    private void UpdatePendingTooltip()
+    {
+        if (!hasPendingTooltip)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < pendingTooltipShownAt)
+        {
+            return;
+        }
+
+        SkillTooltipRuntime.Show(pendingTooltipSnapshot);
+        hasPendingTooltip = false;
+        pendingTooltipSnapshot = default;
+        pendingTooltipShownAt = 0f;
+    }
+
+    private void CancelPendingTooltip()
+    {
+        hasPendingTooltip = false;
+        pendingTooltipSnapshot = default;
+        pendingTooltipShownAt = 0f;
+    }
+
+    private static void EnsureHoverRelay(SkillSlotWidget widget, int index)
+    {
+        if (widget == null || widget.root == null || instance == null)
+        {
+            return;
+        }
+
+        if (widget.hoverRelay == null)
+        {
+            widget.hoverRelay = widget.root.GetComponent<SkillHoverRelay>();
+            if (widget.hoverRelay == null)
+            {
+                widget.hoverRelay = widget.root.gameObject.AddComponent<SkillHoverRelay>();
+            }
+        }
+
+        widget.hoverRelay.Configure(instance, index);
     }
 
     private static Image EnsureOverlayIcon(RectTransform slotRoot)
