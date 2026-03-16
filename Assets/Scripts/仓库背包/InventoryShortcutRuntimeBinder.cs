@@ -1361,12 +1361,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return manualEquipmentCharacterId;
         }
 
-        string characterId = CharacterSelectionState.ActiveCharacterId;
-        if (!string.IsNullOrWhiteSpace(characterId))
-        {
-            return characterId;
-        }
-
         if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
         {
             return currentEquipmentCharacterId;
