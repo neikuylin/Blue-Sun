@@ -1372,7 +1372,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return currentEquipmentCharacterId;
         }
 
-        return "玩家";
+        return string.Empty;
     }
 
     private List<ItemSlotData> GetEquipmentDataForCharacter(string characterId, bool createIfMissing)
@@ -1397,13 +1397,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
     {
+        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        {
+            return null;
+        }
+
         return GetEquipmentDataForCharacter(currentEquipmentCharacterId, createIfMissing);
     }
 
     private void SetCurrentEquipmentCharacter(string characterId)
     {
-        currentEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
-        EnsureDataSize(GetCurrentEquipmentData(true), equipmentSlots.Count);
+        currentEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
+        List<ItemSlotData> currentData = GetCurrentEquipmentData(true);
+        if (currentData != null)
+        {
+            EnsureDataSize(currentData, equipmentSlots.Count);
+        }
+
         RefreshEquipmentSlots();
     }
 
