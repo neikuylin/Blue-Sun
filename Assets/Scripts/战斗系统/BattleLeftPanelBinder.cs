@@ -84,6 +84,11 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         leftPanelPortraitImage = ResolveLeftPanelPortrait();
         leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
+        Debug.Log(
+            $"[BattleLeftPanelBinder] BindScene portraitImage={(leftPanelPortraitImage != null ? leftPanelPortraitImage.name : "null")} " +
+            $"portraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")} " +
+            $"skillContainer={(leftPanelSkillContainer != null ? leftPanelSkillContainer.name : "null")} " +
+            $"bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")}");
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
@@ -140,6 +145,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         if (leftPanelPortraitImage == null && leftPanelPortraitAnchor == null)
         {
+            Debug.LogWarning("[BattleLeftPanelBinder] RefreshPortrait aborted because portraitImage and portraitAnchor are both null.");
             return;
         }
 
@@ -147,6 +153,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         {
             characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         }
+
+        Debug.Log(
+            $"[BattleLeftPanelBinder] RefreshPortrait characterId='{currentCharacterId}' " +
+            $"portraitImage={(leftPanelPortraitImage != null ? leftPanelPortraitImage.name : "null")} " +
+            $"portraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")} " +
+            $"bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")}");
 
         if (TryShowBackgroundPortraitPrefab(currentCharacterId))
         {
@@ -232,25 +244,38 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(characterId) || characterBindingDatabase == null || leftPanelPortraitAnchor == null)
         {
+            Debug.LogWarning(
+                $"[BattleLeftPanelBinder] TryShowBackgroundPortraitPrefab blocked " +
+                $"characterId='{characterId}' bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")} " +
+                $"leftPanelPortraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")}");
             return false;
         }
 
         BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
         if (binding == null || binding.backgroundPortraitPrefab == null)
         {
+            Debug.LogWarning(
+                $"[BattleLeftPanelBinder] No portrait prefab for characterId='{characterId}'. " +
+                $"bindingFound={(binding != null)}");
             return false;
         }
 
         if (activePortraitPrefabInstance != null &&
             string.Equals(activePortraitPrefabCharacterId, characterId, StringComparison.Ordinal))
         {
+            Debug.Log($"[BattleLeftPanelBinder] Reusing existing portrait prefab instance for '{characterId}'.");
             return true;
         }
 
         DestroyActivePortraitPrefabInstance();
         activePortraitPrefabInstance = Instantiate(binding.backgroundPortraitPrefab, leftPanelPortraitAnchor, false);
         activePortraitPrefabInstance.name = binding.backgroundPortraitPrefab.name;
+        activePortraitPrefabInstance.SetActive(true);
         activePortraitPrefabCharacterId = characterId;
+        Debug.Log(
+            $"[BattleLeftPanelBinder] Instantiated portrait prefab for '{characterId}' " +
+            $"prefab='{binding.backgroundPortraitPrefab.name}' activeSelf={activePortraitPrefabInstance.activeSelf} " +
+            $"parent={(activePortraitPrefabInstance.transform.parent != null ? activePortraitPrefabInstance.transform.parent.name : "null")}");
         return true;
     }
 
@@ -268,12 +293,21 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private string ResolveCharacterId()
     {
         string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        string source = "equipment";
         if (string.IsNullOrWhiteSpace(characterId))
         {
             characterId = CharacterSelectionState.ActiveCharacterId;
+            source = "active-selection";
         }
 
-        return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            characterId = DefaultCharacterId;
+            source = "default";
+        }
+
+        Debug.Log($"[BattleLeftPanelBinder] ResolveCharacterId source={source} value='{characterId}'");
+        return characterId;
     }
 
     private Image ResolveLeftPanelPortrait()
@@ -284,18 +318,34 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         }
 
         Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPortraitPath);
-        return target != null ? target.GetComponent<Image>() : null;
+        if (target == null)
+        {
+            return null;
+        }
+
+        Image image = target.GetComponent<Image>();
+        if (image != null)
+        {
+            return image;
+        }
+
+        return target.GetComponentInChildren<Image>(true);
     }
 
     private RectTransform ResolveLeftPanelPortraitAnchor()
     {
-        if (leftPanelPortraitImage != null && leftPanelPortraitImage.rectTransform.parent is RectTransform existingParent)
+        Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPortraitPath);
+        if (target is RectTransform targetRect)
         {
-            return existingParent;
+            return targetRect;
         }
 
-        Image portrait = ResolveLeftPanelPortrait();
-        return portrait != null ? portrait.rectTransform.parent as RectTransform : null;
+        if (leftPanelPortraitImage != null)
+        {
+            return leftPanelPortraitImage.rectTransform;
+        }
+
+        return null;
     }
 
     private RectTransform ResolveLeftPanelSkillContainer()
