@@ -24,7 +24,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     [SerializeField] private CharacterStatDatabase statDatabase;
     [SerializeField] private BattleCharacterBindingDatabase characterBindingDatabase;
 
-    private string lastCharacterId = string.Empty;
+    private string lastSignature = string.Empty;
 
     private void Reset()
     {
@@ -116,16 +116,41 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private void Refresh(bool force)
     {
         string characterId = ResolveCurrentCharacterId();
-        if (!force && string.Equals(lastCharacterId, characterId, System.StringComparison.Ordinal))
+        BattleUnit battleUnit = ResolveDisplayedBattleUnit(characterId);
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
+        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower);
+        if (!force && string.Equals(lastSignature, signature, System.StringComparison.Ordinal))
         {
             return;
         }
 
-        lastCharacterId = characterId ?? string.Empty;
-        ApplyCharacter(lastCharacterId);
+        lastSignature = signature;
+        ApplyCharacter(characterId, battleUnit, statEntry, attackPower);
     }
 
     private static string ResolveCurrentCharacterId()
+    {
+        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
+        {
+            return equipmentCharacterId;
+        }
+
+        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
+        if (battleTurnSystem != null && battleTurnSystem.ActiveUnit != null)
+        {
+            string activeUnitCharacterId = battleTurnSystem.ActiveUnit.characterId;
+            if (!string.IsNullOrWhiteSpace(activeUnitCharacterId))
+            {
+                return activeUnitCharacterId;
+            }
+        }
+
+        return ResolveJourneySelectedCharacterId();
+    }
+
+    private static string ResolveJourneySelectedCharacterId()
     {
         CharacterSlotView[] slots = FindObjectsOfType<CharacterSlotView>(true);
         for (int i = 0; i < slots.Length; i++)
@@ -153,14 +178,74 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         return string.Empty;
     }
 
-    private void ApplyCharacter(string characterId)
+    private static BattleUnit ResolveDisplayedBattleUnit(string characterId)
     {
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
-        float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
+        if (battleTurnSystem != null && battleTurnSystem.ActiveUnit != null &&
+            string.Equals(battleTurnSystem.ActiveUnit.characterId, characterId, System.StringComparison.Ordinal))
+        {
+            return battleTurnSystem.ActiveUnit;
+        }
+
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit != null && string.Equals(unit.characterId, characterId, System.StringComparison.Ordinal))
+            {
+                return unit;
+            }
+        }
+
+        return null;
+    }
+
+    private static string BuildSignature(string characterId, BattleUnit battleUnit, CharacterStatDatabase.StatEntry statEntry, float attackPower)
+    {
+        return string.Concat(
+            characterId ?? string.Empty,
+            "|",
+            battleUnit != null ? battleUnit.currentHealth : -1,
+            "/",
+            battleUnit != null ? battleUnit.maxHealth : -1,
+            "|",
+            battleUnit != null ? battleUnit.currentMana : -1,
+            "/",
+            battleUnit != null ? battleUnit.maxMana : -1,
+            "|",
+            battleUnit != null ? battleUnit.currentActionPoints : -1,
+            "|",
+            statEntry != null ? statEntry.strength : -1,
+            "|",
+            statEntry != null ? statEntry.agility : -1,
+            "|",
+            statEntry != null ? statEntry.intelligence : -1,
+            "|",
+            Mathf.RoundToInt(attackPower * 100f));
+    }
+
+    private void ApplyCharacter(string characterId, BattleUnit battleUnit, CharacterStatDatabase.StatEntry statEntry, float attackPower)
+    {
+        bool hasBattleValues = battleUnit != null;
+        string healthValue = statEntry != null
+            ? hasBattleValues
+                ? "生命值:" + Mathf.Max(0, battleUnit.currentHealth) + "/" + Mathf.Max(0, battleUnit.maxHealth)
+                : "生命值:" + statEntry.ResolveMaxHealth()
+            : "生命值:";
+        string manaValue = statEntry != null
+            ? hasBattleValues
+                ? "魔法值:" + Mathf.Max(0, battleUnit.currentMana) + "/" + Mathf.Max(0, battleUnit.maxMana)
+                : "魔法值:" + statEntry.ResolveMaxMana()
+            : "魔法值:";
 
         SetText(characterNameText, ResolveDisplayName(characterId));
-        SetText(healthText, statEntry != null ? "\u751f\u547d\u503c:" + statEntry.ResolveMaxHealth() : "\u751f\u547d\u503c:");
-        SetText(manaText, statEntry != null ? "\u9b54\u6cd5\u503c:" + statEntry.ResolveMaxMana() : "\u9b54\u6cd5\u503c:");
+        SetText(healthText, healthValue);
+        SetText(manaText, manaValue);
         SetText(attackPowerText, attackPower > 0f ? "\u653b\u51fb\u529b:" + Mathf.RoundToInt(attackPower) : "\u653b\u51fb\u529b:\u65e0\u6b66\u5668");
         SetText(strengthText, statEntry != null ? "\u529b\u91cf:" + statEntry.strength : "\u529b\u91cf:");
         SetText(agilityText, statEntry != null ? "\u654f\u6377:" + statEntry.agility : "\u654f\u6377:");
