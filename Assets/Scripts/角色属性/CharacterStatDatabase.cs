@@ -28,7 +28,7 @@ public sealed class CharacterStatDatabase : ScriptableObject
 
         public int ResolveMaxHealth()
         {
-            return 50 + (Mathf.Max(0, strength) * 10);
+            return 30 + (Mathf.Max(0, strength) * 6);
         }
 
         public int ResolveMaxMana()
