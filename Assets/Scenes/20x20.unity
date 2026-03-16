@@ -4259,7 +4259,7 @@ GameObject:
   - component: {fileID: 678000577}
   - component: {fileID: 678000576}
   m_Layer: 5
-  m_Name: "\u6218\u6280\u80CC\u666F"
+  m_Name: "\u6218\u6280\u5185\u5BB9\u80CC\u666F"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11768,7 +11768,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1879428918}
   m_Layer: 5
-  m_Name: "\u6218\u6280\u5F39\u7A97"
+  m_Name: "\u6218\u6280\u5185\u5BB9"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
