@@ -177,9 +177,9 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
         EditorGUI.BeginDisabledGroup(true);
-        EditorGUILayout.IntField("HP", 50 + (Mathf.Max(0, strength) * 10));
-        EditorGUILayout.IntField("MP", 5 + Mathf.Max(0, intelligence));
-        EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", Mathf.Max(0, 2 + (agility / 3)).ToString());
+        EditorGUILayout.IntField("HP", CharacterStatDatabase.ResolveMaxHealthFromStrength(strength));
+        EditorGUILayout.IntField("MP", CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence));
+        EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility).ToString());
         EditorGUI.EndDisabledGroup();
         bool statChanged = EditorGUI.EndChangeCheck();
 

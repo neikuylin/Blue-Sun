@@ -23,17 +23,17 @@ public sealed class CharacterStatDatabase : ScriptableObject
 
         public int ResolveMoveDistance()
         {
-            return Mathf.Max(0, 2 + (agility / 3));
+            return ResolveMoveDistanceFromAgility(agility);
         }
 
         public int ResolveMaxHealth()
         {
-            return 30 + (Mathf.Max(0, strength) * 6);
+            return ResolveMaxHealthFromStrength(strength);
         }
 
         public int ResolveMaxMana()
         {
-            return 5 + Mathf.Max(0, intelligence);
+            return ResolveMaxManaFromIntelligence(intelligence);
         }
     }
 
@@ -63,6 +63,21 @@ public sealed class CharacterStatDatabase : ScriptableObject
         }
 
         return null;
+    }
+
+    public static int ResolveMoveDistanceFromAgility(int agility)
+    {
+        return Mathf.Max(0, 2 + (agility / 3));
+    }
+
+    public static int ResolveMaxHealthFromStrength(int strength)
+    {
+        return 30 + (Mathf.Max(0, strength) * 6);
+    }
+
+    public static int ResolveMaxManaFromIntelligence(int intelligence)
+    {
+        return 5 + Mathf.Max(0, intelligence);
     }
 
     public static CharacterStatDatabase LoadDefault()

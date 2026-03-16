@@ -51,6 +51,12 @@ public sealed class BattleUnitFactory
             Vector2Int startCell = GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing);
             BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
             CharacterStatDatabase.StatEntry statEntry = FindStats(selection.characterId);
+            if (statEntry == null)
+            {
+                Debug.LogError($"BattleUnitFactory: missing CharacterStatDatabase entry for player '{selection.characterId}'.");
+                continue;
+            }
+
             GameObject unitObject = CreateUnitObject(
                 selection.characterId,
                 binding,
@@ -100,6 +106,13 @@ public sealed class BattleUnitFactory
 
             Vector2Int spawnCell = enemyEntry.spawnCell;
             BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(enemyEntry.enemyId);
+            CharacterStatDatabase.StatEntry statEntry = FindStats(enemyEntry.enemyId);
+            if (statEntry == null)
+            {
+                Debug.LogError($"BattleUnitFactory: missing CharacterStatDatabase entry for enemy '{enemyEntry.enemyId}'.");
+                continue;
+            }
+
             Color placeholderColor = enemyEntry.team == BattleTeam.Enemy ? enemyPlaceholderColor : playerPlaceholderColor;
             GameObject enemyObject = CreateUnitObject(
                 enemyEntry.enemyId,
@@ -121,7 +134,7 @@ public sealed class BattleUnitFactory
             unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
             unit.useAutoVisualAnchor = binding != null && binding.useAutoVisualAnchor;
             unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
-            unit.ApplyStats(FindStats(enemyEntry.enemyId));
+            unit.ApplyStats(statEntry);
             unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolveDisplayName(enemyEntry.enemyId, binding), spawnCell);
             unit.isPlayerControlled = enemyEntry.isPlayerControlled;
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));

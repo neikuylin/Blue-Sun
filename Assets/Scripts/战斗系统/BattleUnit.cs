@@ -80,17 +80,7 @@ public class BattleUnit : MonoBehaviour
     {
         if (statEntry == null)
         {
-            maxHealth = 50;
-            maxMana = 5;
-            strength = 0;
-            SetAgilityInternal(0, false);
-            intelligence = 0;
-            maxActionPoints = 4;
-            moveDistance = 3;
-            moveRange = moveDistance;
-            currentHealth = Mathf.Min(currentHealth, maxHealth);
-            currentMana = Mathf.Min(currentMana, maxMana);
-            currentActionPoints = Mathf.Min(currentActionPoints, maxActionPoints);
+            Debug.LogError($"BattleUnit.ApplyStats missing CharacterStatDatabase entry for '{characterId}' on '{name}'.");
             return;
         }
 
