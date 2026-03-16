@@ -24,6 +24,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private readonly List<RectTransform> slotContainers = new List<RectTransform>(4);
     private readonly List<Button> portraitButtons = new List<Button>(4);
     private readonly List<UnityAction> portraitButtonActions = new List<UnityAction>(4);
+    private readonly List<string> portraitButtonCharacterIds = new List<string>(4);
     private readonly List<RectLayout> slotTemplateLayouts = new List<RectLayout>(4);
     private readonly List<int> slotTemplateSiblingIndices = new List<int>(4);
     private readonly Dictionary<string, CharacterSelectionState.SlotSelection> portraitLookup = new Dictionary<string, CharacterSelectionState.SlotSelection>(StringComparer.Ordinal);
@@ -53,8 +54,8 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         battleBindings = BattleSceneBindings.FindInActiveScene();
         equipmentPanel = ResolveEquipmentPanel();
         RebuildLookup(selectedSlots);
-        RefreshPortraits(force: true);
         CachePortraitButtons();
+        RefreshPortraits(force: true);
         HookPortraitButtons();
         InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
         SetEquipmentPanelVisible(false);
@@ -133,12 +134,19 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
     private void CachePortraitButtons()
     {
-        if (portraitButtons.Count > 0)
+        for (int i = 0; i < portraitButtons.Count && i < portraitButtonActions.Count; i++)
         {
-            return;
+            Button existingButton = portraitButtons[i];
+            UnityAction existingAction = portraitButtonActions[i];
+            if (existingButton != null && existingAction != null)
+            {
+                existingButton.onClick.RemoveListener(existingAction);
+            }
         }
 
         CachePortraitSlots();
+        portraitButtons.Clear();
+        portraitButtonActions.Clear();
         for (int i = 0; i < portraitSlots.Count; i++)
         {
             Image portrait = portraitSlots[i];
@@ -147,6 +155,10 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
                 : null;
             portraitButtons.Add(button);
             portraitButtonActions.Add(null);
+            if (portraitButtonCharacterIds.Count <= i)
+            {
+                portraitButtonCharacterIds.Add(string.Empty);
+            }
         }
     }
 
@@ -271,9 +283,14 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
             CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
             ApplySelectionToImage(portraitSlot, selection, i);
+            if (i < portraitButtonCharacterIds.Count)
+            {
+                portraitButtonCharacterIds[i] = selection.HasValue ? selection.Value.characterId ?? string.Empty : string.Empty;
+            }
         }
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
+        HookPortraitButtons();
     }
 
     private IEnumerator AnimateReorder(List<CharacterSelectionState.SlotSelection> orderedSelections)
@@ -362,9 +379,14 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
             CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
             ApplySelectionToImage(portraitSlot, selection, i);
+            if (i < portraitButtonCharacterIds.Count)
+            {
+                portraitButtonCharacterIds[i] = selection.HasValue ? selection.Value.characterId ?? string.Empty : string.Empty;
+            }
         }
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
+        HookPortraitButtons();
         reorderRoutine = null;
     }
 
@@ -480,15 +502,15 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
     private void OnPortraitButtonClicked(int slotIndex)
     {
-        CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(currentDisplayedSelections, slotIndex);
-        if (!selection.HasValue || string.IsNullOrWhiteSpace(selection.Value.characterId))
+        string characterId = slotIndex >= 0 && slotIndex < portraitButtonCharacterIds.Count
+            ? portraitButtonCharacterIds[slotIndex]
+            : string.Empty;
+        if (string.IsNullOrWhiteSpace(characterId))
         {
             SetEquipmentPanelVisible(false);
             InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
             return;
         }
-
-        string characterId = selection.Value.characterId;
         bool isSameCharacter = string.Equals(
             InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId,
             characterId,
