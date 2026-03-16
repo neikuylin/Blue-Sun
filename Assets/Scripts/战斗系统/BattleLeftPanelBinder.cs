@@ -7,7 +7,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleLeftPanelBinder : MonoBehaviour
 {
-    private const string DefaultCharacterId = "\u73a9\u5bb6";
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string LeftPanelPortraitPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u89d2\u8272\u80cc\u666f\u6846\u7acb\u7ed8";
     private const string LeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
@@ -294,16 +293,18 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
         string source = "equipment";
-        if (string.IsNullOrWhiteSpace(characterId))
+
+        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
+        if (battleTurnSystem != null)
         {
-            characterId = CharacterSelectionState.ActiveCharacterId;
-            source = "active-selection";
+            Debug.Log($"[BattleLeftPanelBinder] ResolveCharacterId source={source} value='{characterId}'");
+            return string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
         }
 
         if (string.IsNullOrWhiteSpace(characterId))
         {
-            characterId = DefaultCharacterId;
-            source = "default";
+            characterId = CharacterSelectionState.ActiveCharacterId;
+            source = "active-selection";
         }
 
         Debug.Log($"[BattleLeftPanelBinder] ResolveCharacterId source={source} value='{characterId}'");

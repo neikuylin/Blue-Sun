@@ -225,6 +225,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
     }
 
+    public static void ClearDisplayedEquipmentCharacterForBattle()
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.manualEquipmentCharacterId = string.Empty;
+        instance.SetCurrentEquipmentCharacter(string.Empty);
+    }
+
     public static List<ItemSlotSnapshot> GetBackpackSnapshots()
     {
         return instance != null ? BuildSnapshots(instance.backpackData) : new List<ItemSlotSnapshot>();

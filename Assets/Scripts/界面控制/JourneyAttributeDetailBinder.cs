@@ -134,6 +134,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
         if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
         {
+            Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=equipment value='{equipmentCharacterId}'");
             return equipmentCharacterId;
         }
 
@@ -145,14 +146,18 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
                 string activeUnitCharacterId = battleTurnSystem.ActiveUnit.characterId;
                 if (!string.IsNullOrWhiteSpace(activeUnitCharacterId))
                 {
+                    Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=active-turn value='{activeUnitCharacterId}'");
                     return activeUnitCharacterId;
                 }
             }
 
+            Debug.Log("[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=active-turn value=''");
             return string.Empty;
         }
 
-        return ResolveJourneySelectedCharacterId();
+        string journeyCharacterId = ResolveJourneySelectedCharacterId();
+        Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=journey-selection value='{journeyCharacterId}'");
+        return journeyCharacterId;
     }
 
     private static string ResolveJourneySelectedCharacterId()
