@@ -33,6 +33,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
     public sealed class SkillEntry
     {
         public string skillId = string.Empty;
+        public string description = string.Empty;
         public SkillGroup group = SkillGroup.CombatArt;
         public SkillType skillType = SkillType.Target;
         public CastTarget castTarget = CastTarget.Enemy;

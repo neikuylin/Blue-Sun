@@ -115,8 +115,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
-    private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
-    private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
@@ -172,7 +170,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
     private RectTransform itemTooltipRoot;
-    private RectTransform itemTooltipBackgroundRoot;
     private RectTransform itemTooltipDetailRoot;
     private RectTransform itemTooltipTextContentRoot;
     private Image itemTooltipDetailBackgroundImage;
@@ -194,6 +191,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private SlotRef pendingTooltipSlot;
     private SlotRef hoveredTooltipSlot;
     private float pendingTooltipShownAt;
+    private GameObject runtimeTooltipRootInstance;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => BackpackSlotCount;
@@ -2244,8 +2242,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void CacheItemTooltip()
     {
-        itemTooltipRoot = FindTransformByPath(ItemTooltipRootPath) as RectTransform;
-        itemTooltipBackgroundRoot = FindTransformByPath(ItemTooltipBackgroundRootPath) as RectTransform;
+        itemTooltipRoot = null;
+        EnsureTooltipRootsFromDatabase();
         itemTooltipDetailRoot =
             FindChildByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
             FindChildByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
@@ -2273,6 +2271,64 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             : null;
         itemTooltipGrantedSkillsIconRoot = grantedSkillRoot as RectTransform;
         HideItemTooltip();
+    }
+
+    private void EnsureTooltipRootsFromDatabase()
+    {
+        ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
+        if (database == null)
+        {
+            return;
+        }
+
+        Transform parent = FindTooltipParent();
+        if (parent == null)
+        {
+            return;
+        }
+
+        runtimeTooltipRootInstance = EnsureTooltipInstance(
+            runtimeTooltipRootInstance,
+            database.oneHandedTwoHandedTooltipPrefab,
+            parent,
+            "物品内容");
+        itemTooltipRoot = runtimeTooltipRootInstance != null ? runtimeTooltipRootInstance.transform as RectTransform : null;
+    }
+
+    private Transform FindTooltipParent()
+    {
+        Transform popupRoot = FindTransformByPath("Canvas/UI控制器/弹窗");
+        if (popupRoot != null)
+        {
+            return popupRoot;
+        }
+
+        popupRoot = FindTransformByPath("Canvas/弹窗");
+        if (popupRoot != null)
+        {
+            return popupRoot;
+        }
+
+        Canvas canvas = FindObjectOfType<Canvas>(true);
+        return canvas != null ? canvas.transform : null;
+    }
+
+    private static GameObject EnsureTooltipInstance(GameObject currentInstance, GameObject prefab, Transform parent, string runtimeName)
+    {
+        if (currentInstance != null)
+        {
+            return currentInstance;
+        }
+
+        if (prefab == null || parent == null)
+        {
+            return null;
+        }
+
+        GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+        instance.name = runtimeName;
+        instance.SetActive(false);
+        return instance;
     }
 
     private static TMP_Text FindTooltipText(Transform root, string childName)
@@ -2321,42 +2377,37 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             itemTooltipRoot.gameObject.SetActive(false);
         }
-
-        if (itemTooltipBackgroundRoot != null)
-        {
-            itemTooltipBackgroundRoot.gameObject.SetActive(false);
-        }
     }
 
     private void RefreshTooltipQualityBackground(ItemDatabase.ItemQuality quality)
     {
-        if (itemTooltipBackgroundRoot == null)
+        ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
+        if (database == null)
         {
             return;
         }
 
-        string targetName = GetTooltipQualityBackgroundName(quality);
-        Sprite targetSprite = null;
-        for (int i = 0; i < itemTooltipBackgroundRoot.childCount; i++)
+        GameObject backgroundPrefab = database.GetQualityBackgroundPrefab(quality);
+        if (backgroundPrefab == null)
         {
-            Transform child = itemTooltipBackgroundRoot.GetChild(i);
-            bool isTarget = string.Equals(child.name, targetName, StringComparison.Ordinal);
-            child.gameObject.SetActive(false);
-            if (!isTarget)
+            if (itemTooltipDetailBackgroundImage != null)
             {
-                continue;
+                itemTooltipDetailBackgroundImage.sprite = null;
+                itemTooltipDetailBackgroundImage.enabled = false;
             }
+            return;
+        }
 
-            Image image = child.GetComponent<Image>();
-            if (image == null)
-            {
-                image = child.GetComponentInChildren<Image>(true);
-            }
+        Sprite targetSprite = null;
+        Image image = backgroundPrefab.GetComponent<Image>();
+        if (image == null)
+        {
+            image = backgroundPrefab.GetComponentInChildren<Image>(true);
+        }
 
-            if (image != null)
-            {
-                targetSprite = image.sprite;
-            }
+        if (image != null)
+        {
+            targetSprite = image.sprite;
         }
 
         if (itemTooltipDetailBackgroundImage != null)
@@ -2388,7 +2439,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 uiCamera,
                 out Vector2 localPoint))
         {
-            tooltip.anchoredPosition = localPoint;
+            Vector2 pivotOffset = new Vector2(
+                tooltip.rect.width * tooltip.pivot.x,
+                tooltip.rect.height * tooltip.pivot.y);
+            tooltip.anchoredPosition = localPoint + pivotOffset;
         }
     }
 
@@ -2835,21 +2889,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return "S";
-    }
-
-    private static string GetTooltipQualityBackgroundName(ItemDatabase.ItemQuality quality)
-    {
-        switch (quality)
-        {
-            case ItemDatabase.ItemQuality.Excellent:
-                return "优秀物品底（蓝）";
-            case ItemDatabase.ItemQuality.Epic:
-                return "史诗物品底（紫）";
-            case ItemDatabase.ItemQuality.Blessed:
-                return "赐福物品底（金）";
-            default:
-                return "普通物品底（白）";
-        }
     }
 
     private static void RebuildItemVisual(SlotWidget widget, ItemSlotData data)

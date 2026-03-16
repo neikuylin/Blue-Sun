@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b20f803197ad68f4d9eb0d965f3df738, type: 3}
+  m_Name: ItemTooltipPrefabDatabase
+  m_EditorClassIdentifier: 
+  oneHandedTwoHandedTooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+  commonBackgroundPrefab: {fileID: 3285891317064698256, guid: 60018fc30cbd85d49be5d2dad0e61a13, type: 3}
+  excellentBackgroundPrefab: {fileID: 3527128896730674504, guid: 8c4f431e5a9484445953a7d721fd6d03, type: 3}
+  epicBackgroundPrefab: {fileID: 5580978698064613126, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}
+  blessedBackgroundPrefab: {fileID: 6352223791230997422, guid: 73cbfec14fd862c4fb7b87142079561d, type: 3}

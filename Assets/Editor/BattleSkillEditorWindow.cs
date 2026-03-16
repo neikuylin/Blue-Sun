@@ -109,6 +109,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 SerializedProperty castTarget = entry.FindPropertyRelative("castTarget");
                 castTarget.enumValueIndex = EditorGUILayout.Popup("\u65bd\u6cd5\u5bf9\u8c61", castTarget.enumValueIndex, CastTargetLabels);
 
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
 
@@ -155,6 +156,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static void ResetEntry(SerializedProperty entry)
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
+        entry.FindPropertyRelative("description").stringValue = string.Empty;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
@@ -218,6 +220,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         return new BattleSkillDatabase.SkillEntry
         {
             skillId = BattleSkillDatabase.MoveSkillId,
+            description = string.Empty,
             group = BattleSkillDatabase.SkillGroup.Special,
             skillType = BattleSkillDatabase.SkillType.Area,
             castTarget = BattleSkillDatabase.CastTarget.Self,

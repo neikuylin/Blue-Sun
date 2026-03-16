@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - skillId: "\u79FB\u52A8"
+    description: 
     group: 0
     skillType: 1
     castTarget: 0
@@ -26,6 +27,7 @@ MonoBehaviour:
     range: 0
     effectSize: {x: 3, y: 3}
   - skillId: "\u666E\u901A\u653B\u51FB"
+    description: "\u6734\u5B9E\u65E0\u534E"
     group: 1
     skillType: 0
     castTarget: 1
