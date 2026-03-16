@@ -2746,6 +2746,7 @@ GameObject:
   - component: {fileID: 614005582}
   - component: {fileID: 614005581}
   - component: {fileID: 614005580}
+  - component: {fileID: 614005583}
   m_Layer: 5
   m_Name: "\u5173\u95ED\u6309\u94AE"
   m_TagString: Untagged
@@ -2816,10 +2817,10 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 62006364}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 614005583}
+        m_TargetAssemblyTypeName: BattleEquipmentCloseButton, Assembly-CSharp
+        m_MethodName: Close
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2866,6 +2867,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 614005578}
   m_CullTransparentMesh: 1
+--- !u!114 &614005583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 614005578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79a3141a8ce5734186944a764ea47b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &639292755
 GameObject:
   m_ObjectHideFlags: 0

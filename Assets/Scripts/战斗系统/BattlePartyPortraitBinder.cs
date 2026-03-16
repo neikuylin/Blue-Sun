@@ -27,6 +27,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private readonly List<RectLayout> slotTemplateLayouts = new List<RectLayout>(4);
     private readonly List<int> slotTemplateSiblingIndices = new List<int>(4);
     private readonly Dictionary<string, CharacterSelectionState.SlotSelection> portraitLookup = new Dictionary<string, CharacterSelectionState.SlotSelection>(StringComparer.Ordinal);
+    private static BattlePartyPortraitBinder instance;
     private BattleTurnSystem turnSystem;
     private string lastSignature = string.Empty;
     private List<CharacterSelectionState.SlotSelection> currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(4);
@@ -47,6 +48,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
     public void Initialize(BattleTurnSystem system, IReadOnlyList<CharacterSelectionState.SlotSelection> selectedSlots)
     {
+        instance = this;
         turnSystem = system;
         battleBindings = BattleSceneBindings.FindInActiveScene();
         equipmentPanel = ResolveEquipmentPanel();
@@ -56,6 +58,17 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         HookPortraitButtons();
         InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
         SetEquipmentPanelVisible(false);
+    }
+
+    public static void CloseEquipmentPanel()
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.SetEquipmentPanelVisible(false);
+        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
     }
 
     private void LateUpdate()
@@ -716,5 +729,13 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private static Transform FindTransformByPath(string path)
     {
         return SceneHierarchyPathUtility.FindInActiveScene(path);
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            instance = null;
+        }
     }
 }
