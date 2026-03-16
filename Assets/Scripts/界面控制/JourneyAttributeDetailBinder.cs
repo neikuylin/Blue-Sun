@@ -138,13 +138,18 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         }
 
         BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
-        if (battleTurnSystem != null && battleTurnSystem.ActiveUnit != null)
+        if (battleTurnSystem != null)
         {
-            string activeUnitCharacterId = battleTurnSystem.ActiveUnit.characterId;
-            if (!string.IsNullOrWhiteSpace(activeUnitCharacterId))
+            if (battleTurnSystem.ActiveUnit != null)
             {
-                return activeUnitCharacterId;
+                string activeUnitCharacterId = battleTurnSystem.ActiveUnit.characterId;
+                if (!string.IsNullOrWhiteSpace(activeUnitCharacterId))
+                {
+                    return activeUnitCharacterId;
+                }
             }
+
+            return string.Empty;
         }
 
         return ResolveJourneySelectedCharacterId();

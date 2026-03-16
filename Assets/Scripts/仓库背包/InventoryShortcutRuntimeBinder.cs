@@ -1361,6 +1361,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return manualEquipmentCharacterId;
         }
 
+        if (FindObjectOfType<BattleTurnSystem>(true) == null)
+        {
+            string characterId = CharacterSelectionState.ActiveCharacterId;
+            if (!string.IsNullOrWhiteSpace(characterId))
+            {
+                return characterId;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
         {
             return currentEquipmentCharacterId;
@@ -2155,8 +2164,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void RefreshEquipmentSlot(int index)
     {
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (index < 0 || index >= equipmentSlots.Count || index >= equipmentData.Count)
+        if (index < 0 || index >= equipmentSlots.Count)
         {
+            return;
+        }
+
+        if (equipmentData == null || index >= equipmentData.Count)
+        {
+            ApplyItemToWidget(equipmentSlots[index], default);
             return;
         }
 
@@ -2168,9 +2183,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
         for (int i = 0; i < equipmentSlots.Count; i++)
         {
-            if (i >= equipmentData.Count)
+            if (equipmentData == null || i >= equipmentData.Count)
             {
-                break;
+                ApplyItemToWidget(equipmentSlots[i], default);
+                continue;
             }
 
             ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
