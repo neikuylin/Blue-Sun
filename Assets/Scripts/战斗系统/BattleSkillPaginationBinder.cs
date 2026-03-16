@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -16,6 +17,44 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
     private const string SpellCurrentPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u6cd5\u672f\u5f53\u524d\u9875";
     private const string SpellTotalPageTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u603b\u9875";
+    private const string SkillContentRootPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9";
+    private const string SkillContentIconPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9/\u6218\u6280\u56fe\u6807";
+    private const string SkillContentTextRootPath = "Canvas/\u5f39\u7a97/\u6218\u6280\u5185\u5bb9/\u6587\u672c\u533a\u57df";
+
+    [Serializable]
+    public struct SkillInstanceSnapshot
+    {
+        public int index;
+        public string skillId;
+        public string displayName;
+        public string description;
+        public string ownerCharacterId;
+        public float damageMultiplier;
+        public int damage;
+        public bool isEmpty;
+    }
+
+    private sealed class SkillHoverRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private BattleSkillPaginationBinder owner;
+        private int index;
+
+        public void Configure(BattleSkillPaginationBinder binder, int widgetIndex)
+        {
+            owner = binder;
+            index = widgetIndex;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerEnter(index);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            owner?.HandleSkillPointerExit(index);
+        }
+    }
 
     private sealed class SkillButtonWidget
     {
@@ -23,10 +62,13 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         public Image icon;
         public GameObject iconObject;
         public string skillId = string.Empty;
+        public SkillHoverRelay hoverRelay;
     }
 
+    private static BattleSkillPaginationBinder instance;
     private readonly List<SkillButtonWidget> widgets = new List<SkillButtonWidget>();
     private readonly List<UnityAction> widgetActions = new List<UnityAction>();
+    private readonly List<SkillInstanceSnapshot> currentSkillSnapshots = new List<SkillInstanceSnapshot>();
 
     private BattleTurnSystem turnSystem;
     private BattleSkillDatabase skillDatabase;
@@ -38,9 +80,16 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int currentPageIndex;
     private int lastTotalPages = -1;
+    private RectTransform skillContentRoot;
+    private Image skillContentIcon;
+    private TMP_Text skillNameText;
+    private TMP_Text skillDamageText;
+    private TMP_Text skillDescriptionText;
+    private TMP_Text skillUserText;
 
     public void Initialize(BattleTurnSystem system)
     {
+        instance = this;
         turnSystem = system;
         skillDatabase = BattleSkillDatabase.LoadDefault();
         sceneBindings = BattleSceneBindings.FindInActiveScene();
@@ -51,8 +100,21 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (instance == this)
+        {
+            instance = null;
+        }
+
         UnhookPaginationButtons();
         UnhookSkillButtons();
+        HideSkillContent();
+    }
+
+    public static List<SkillInstanceSnapshot> GetCurrentSkillSnapshots()
+    {
+        return instance != null
+            ? new List<SkillInstanceSnapshot>(instance.currentSkillSnapshots)
+            : new List<SkillInstanceSnapshot>();
     }
 
     private void LateUpdate()
@@ -80,6 +142,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         totalPageText = sceneBindings != null && sceneBindings.spellTotalPageText != null
             ? sceneBindings.spellTotalPageText
             : FindTextByPath(SpellTotalPageTextPath);
+        CacheSkillContentBindings();
     }
 
     private void CacheSkillButtons()
@@ -144,6 +207,18 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         HookSkillButtons();
     }
 
+    private void CacheSkillContentBindings()
+    {
+        skillContentRoot = FindRectTransformByPath(SkillContentRootPath);
+        skillContentIcon = FindImageByPath(SkillContentIconPath);
+        Transform textRoot = FindTransformByPath(SkillContentTextRootPath);
+        skillNameText = FindTextInRoot(textRoot, "\u6218\u6280\u540d\u5b57", "\u6280\u80fd\u540d\u5b57");
+        skillDamageText = FindTextInRoot(textRoot, "\u6218\u6280\u4f24\u5bb3", "\u6280\u80fd\u4f24\u5bb3");
+        skillDescriptionText = FindTextInRoot(textRoot, "\u6218\u6280\u63cf\u8ff0", "\u6280\u80fd\u63cf\u8ff0");
+        skillUserText = FindTextInRoot(textRoot, "\u4f7f\u7528\u8005", "\u6218\u6280\u4f7f\u7528\u8005", "\u6280\u80fd\u4f7f\u7528\u8005");
+        HideSkillContent();
+    }
+
     private void HookPaginationButtons()
     {
         if (previousPageButton != null)
@@ -187,6 +262,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 continue;
             }
 
+            EnsureHoverRelay(widget, i);
             int capturedIndex = i;
             UnityAction action = widgetActions[i];
             if (action != null)
@@ -218,11 +294,13 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         string nextCharacterId = ResolveActiveCharacterId();
         List<string> allSkills = GetSkillsForCharacter(nextCharacterId);
         int totalPages = Mathf.Max(1, Mathf.CeilToInt(allSkills.Count / (float)SkillsPerPage));
+        bool characterChanged = !string.Equals(currentCharacterId, nextCharacterId, StringComparison.Ordinal);
 
-        if (force || !string.Equals(currentCharacterId, nextCharacterId, StringComparison.Ordinal))
+        if (force || characterChanged)
         {
             currentCharacterId = nextCharacterId;
             currentPageIndex = 0;
+            HideSkillContent();
         }
 
         currentPageIndex = Mathf.Clamp(currentPageIndex, 0, totalPages - 1);
@@ -241,12 +319,14 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private void ApplySkillsToWidgets(List<string> allSkills, int totalPages)
     {
         int startIndex = currentPageIndex * SkillsPerPage;
+        currentSkillSnapshots.Clear();
         for (int i = 0; i < widgets.Count; i++)
         {
             SkillButtonWidget widget = widgets[i];
             string skillId = startIndex + i < allSkills.Count ? allSkills[startIndex + i] : string.Empty;
             widget.skillId = skillId;
             Sprite icon = ResolveSkillIcon(skillId);
+            currentSkillSnapshots.Add(BuildSkillSnapshot(i, currentCharacterId, skillId));
 
             if (widget.icon != null)
             {
@@ -289,6 +369,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private void GoToPreviousPage()
     {
         currentPageIndex = Mathf.Max(0, currentPageIndex - 1);
+        HideSkillContent();
         Refresh(force: true);
     }
 
@@ -296,6 +377,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         int totalPages = Mathf.Max(1, Mathf.CeilToInt(GetSkillsForCharacter(currentCharacterId).Count / (float)SkillsPerPage));
         currentPageIndex = Mathf.Min(totalPages - 1, currentPageIndex + 1);
+        HideSkillContent();
         Refresh(force: true);
     }
 
@@ -313,6 +395,28 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         }
 
         turnSystem.ToggleSkillMode(skillId);
+    }
+
+    private void HandleSkillPointerEnter(int index)
+    {
+        if (index < 0 || index >= currentSkillSnapshots.Count)
+        {
+            return;
+        }
+
+        SkillInstanceSnapshot snapshot = currentSkillSnapshots[index];
+        if (snapshot.isEmpty)
+        {
+            HideSkillContent();
+            return;
+        }
+
+        ShowSkillContent(snapshot);
+    }
+
+    private void HandleSkillPointerExit(int index)
+    {
+        HideSkillContent();
     }
 
     private string ResolveActiveCharacterId()
@@ -348,6 +452,94 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
         BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
         return entry != null ? entry.icon : null;
+    }
+
+    private SkillInstanceSnapshot BuildSkillSnapshot(int index, string ownerCharacterId, string skillId)
+    {
+        BattleSkillDatabase.SkillEntry entry = !string.IsNullOrWhiteSpace(skillId) && skillDatabase != null
+            ? skillDatabase.FindEntry(skillId)
+            : null;
+        float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
+        float attackPower = string.IsNullOrWhiteSpace(ownerCharacterId)
+            ? 0f
+            : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(ownerCharacterId);
+
+        return new SkillInstanceSnapshot
+        {
+            index = index,
+            skillId = skillId ?? string.Empty,
+            displayName = skillId ?? string.Empty,
+            description = entry != null ? entry.description ?? string.Empty : string.Empty,
+            ownerCharacterId = ownerCharacterId ?? string.Empty,
+            damageMultiplier = multiplier,
+            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
+            isEmpty = string.IsNullOrWhiteSpace(skillId)
+        };
+    }
+
+    private void ShowSkillContent(SkillInstanceSnapshot snapshot)
+    {
+        if (skillContentRoot == null)
+        {
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(snapshot.skillId) : null;
+
+        if (skillContentIcon != null)
+        {
+            skillContentIcon.sprite = entry != null ? entry.icon : null;
+            skillContentIcon.enabled = skillContentIcon.sprite != null;
+        }
+
+        if (skillNameText != null)
+        {
+            skillNameText.text = snapshot.displayName ?? string.Empty;
+        }
+
+        if (skillDamageText != null)
+        {
+            skillDamageText.text = $"\u6218\u6280\u4f24\u5bb3\uff1a{snapshot.damage}";
+        }
+
+        if (skillDescriptionText != null)
+        {
+            skillDescriptionText.text = snapshot.description ?? string.Empty;
+        }
+
+        if (skillUserText != null)
+        {
+            skillUserText.text = $"\u4f7f\u7528\u8005\uff1a{snapshot.ownerCharacterId}";
+        }
+
+        skillContentRoot.gameObject.SetActive(true);
+    }
+
+    private void HideSkillContent()
+    {
+        if (skillContentRoot != null)
+        {
+            skillContentRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private static void EnsureHoverRelay(SkillButtonWidget widget, int index)
+    {
+        if (widget == null || widget.button == null || instance == null)
+        {
+            return;
+        }
+
+        if (widget.hoverRelay == null)
+        {
+            widget.hoverRelay = widget.button.GetComponent<SkillHoverRelay>();
+            if (widget.hoverRelay == null)
+            {
+                widget.hoverRelay = widget.button.gameObject.AddComponent<SkillHoverRelay>();
+            }
+        }
+
+        widget.hoverRelay.Configure(instance, index);
     }
 
     private static Image FindBestIcon(Button button)
@@ -422,6 +614,38 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     {
         Transform target = FindTransformByPath(path);
         return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
+    private static Image FindImageByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<Image>() : null;
+    }
+
+    private static TMP_Text FindTextInRoot(Transform root, params string[] candidateNames)
+    {
+        if (root == null || candidateNames == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < candidateNames.Length; i++)
+        {
+            string candidateName = candidateNames[i];
+            Transform target = FindChildByName(root, candidateName) ?? FindDescendantByName(root, candidateName);
+            if (target == null)
+            {
+                continue;
+            }
+
+            TMP_Text text = target.GetComponent<TMP_Text>();
+            if (text != null)
+            {
+                return text;
+            }
+        }
+
+        return null;
     }
 
     private static Transform FindTransformByPath(string path)
