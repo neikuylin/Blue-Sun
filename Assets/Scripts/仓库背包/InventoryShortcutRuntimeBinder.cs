@@ -115,7 +115,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
-    private const string QualityBackgroundRootPath = "Canvas/UI控制器/物品底";
     private const string ItemTooltipRootPath = "Canvas/UI控制器/弹窗/物品内容";
     private const string ItemTooltipBackgroundRootPath = "Canvas/UI控制器/弹窗/物品内容底";
     private const float ItemTooltipDelaySeconds = 0.5f;
@@ -2990,31 +2989,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CacheQualityBackgroundPrefabs()
     {
         qualityBackgroundPrefabCache.Clear();
-        Transform root = FindTransformByPath(QualityBackgroundRootPath);
-        if (root == null)
+
+        ItemQualityBackgroundDatabase database = ItemQualityBackgroundDatabase.LoadDefault();
+        if (database == null)
         {
             return;
         }
 
-        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Common, "白", "白色物品底");
-        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Excellent, "蓝", "蓝色物品底");
-        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Epic, "紫", "紫色物品底");
-        CacheQualityBackgroundPrefab(root, ItemDatabase.ItemQuality.Blessed, "金", "金色物品底");
+        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Common);
+        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Excellent);
+        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Epic);
+        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Blessed);
     }
 
-    private void CacheQualityBackgroundPrefab(Transform root, ItemDatabase.ItemQuality quality, params string[] candidateNames)
+    private void CacheQualityBackgroundPrefab(ItemQualityBackgroundDatabase database, ItemDatabase.ItemQuality quality)
     {
-        for (int i = 0; i < candidateNames.Length; i++)
+        if (database == null)
         {
-            string candidateName = candidateNames[i];
-            Transform target = FindChildByName(root, candidateName) ?? FindDescendantByName(root, candidateName);
-            if (target == null)
-            {
-                continue;
-            }
-
-            qualityBackgroundPrefabCache[quality] = target.gameObject;
             return;
+        }
+
+        GameObject prefab = database.GetPrefab(quality);
+        if (prefab != null)
+        {
+            qualityBackgroundPrefabCache[quality] = prefab;
         }
     }
 
