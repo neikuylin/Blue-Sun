@@ -1,11 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 [DisallowMultipleComponent]
 public sealed class ToggleTargetActive : MonoBehaviour
 {
     [SerializeField] private Toggle toggle;
     [SerializeField] private GameObject target;
+    [SerializeField] private List<GameObject> extraTargets = new List<GameObject>();
 
     private void Awake()
     {
@@ -37,6 +39,15 @@ public sealed class ToggleTargetActive : MonoBehaviour
         if (target != null)
         {
             target.SetActive(isOn);
+        }
+
+        for (int i = 0; i < extraTargets.Count; i++)
+        {
+            GameObject extraTarget = extraTargets[i];
+            if (extraTarget != null)
+            {
+                extraTarget.SetActive(isOn);
+            }
         }
     }
 }
