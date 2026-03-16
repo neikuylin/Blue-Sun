@@ -314,6 +314,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             {
                 widget.icon.sprite = icon;
                 widget.icon.enabled = icon != null;
+                widget.icon.raycastTarget = false;
             }
 
             if (widget.iconObject != null)

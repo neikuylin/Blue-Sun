@@ -265,6 +265,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             target.sprite = icon;
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
+            target.raycastTarget = false;
         }
     }
 
