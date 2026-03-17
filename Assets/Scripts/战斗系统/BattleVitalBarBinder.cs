@@ -161,7 +161,7 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         rectTransform.sizeDelta = new Vector2(targetWidth, snapshot.sizeDelta.y);
 
         Vector2 anchoredPosition = snapshot.anchoredPosition;
-        anchoredPosition.x += fillFromRight ? widthDelta * 0.5f : -widthDelta * 0.5f;
+        anchoredPosition.x += fillFromRight ? -widthDelta * 0.5f : widthDelta * 0.5f;
         rectTransform.anchoredPosition = anchoredPosition;
     }
 
