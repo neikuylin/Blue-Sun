@@ -27,6 +27,21 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private TMP_Text manaText;
     private string lastSignature = string.Empty;
     private BattleSceneBindings battleBindings;
+    private RectSnapshot healthFillBaseRect;
+    private RectSnapshot manaFillBaseRect;
+    private bool cachedBaseRects;
+
+    private struct RectSnapshot
+    {
+        public Vector2 anchoredPosition;
+        public Vector2 sizeDelta;
+        public Vector2 offsetMin;
+        public Vector2 offsetMax;
+        public Vector2 pivot;
+        public Vector2 anchorMin;
+        public Vector2 anchorMax;
+        public Vector3 localScale;
+    }
 
     public void Initialize(BattleTurnSystem system)
     {
@@ -75,6 +90,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
             manaText = FindChildText(panel, ManaTextName);
             ConfigureFillImage(manaSlotImage, manaFillImage, ManaBarColor, fillFromRight: false);
         }
+
+        CacheBaseRects();
     }
 
     private void Refresh(bool force)
@@ -114,7 +131,6 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         fillImage.fillOrigin = fillFromRight ? 1 : 0;
         fillImage.fillClockwise = false;
         fillImage.preserveAspect = false;
-
     }
 
     private void ApplyBar(Image fillImage, Image slotImage, int current, int max, bool fillFromRight)
@@ -125,8 +141,75 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         }
 
         ConfigureFillImage(slotImage, fillImage, fillFromRight ? HealthBarColor : ManaBarColor, fillFromRight);
+        CacheBaseRects();
         fillImage.enabled = max > 0;
-        fillImage.fillAmount = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+        float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+        fillImage.fillAmount = ratio;
+
+        RectTransform rectTransform = fillImage.rectTransform;
+        if (rectTransform == null)
+        {
+            return;
+        }
+
+        RectSnapshot snapshot = fillImage == healthFillImage ? healthFillBaseRect : manaFillBaseRect;
+        ApplySnapshot(rectTransform, snapshot);
+
+        float fullWidth = Mathf.Max(0f, snapshot.sizeDelta.x);
+        float targetWidth = fullWidth * ratio;
+        float widthDelta = fullWidth - targetWidth;
+        rectTransform.sizeDelta = new Vector2(targetWidth, snapshot.sizeDelta.y);
+
+        Vector2 anchoredPosition = snapshot.anchoredPosition;
+        anchoredPosition.x += fillFromRight ? widthDelta * 0.5f : -widthDelta * 0.5f;
+        rectTransform.anchoredPosition = anchoredPosition;
+    }
+
+    private void CacheBaseRects()
+    {
+        if (cachedBaseRects)
+        {
+            return;
+        }
+
+        if (healthFillImage != null)
+        {
+            healthFillBaseRect = CaptureSnapshot(healthFillImage.rectTransform);
+        }
+
+        if (manaFillImage != null)
+        {
+            manaFillBaseRect = CaptureSnapshot(manaFillImage.rectTransform);
+        }
+
+        cachedBaseRects = healthFillImage != null || manaFillImage != null;
+    }
+
+    private static RectSnapshot CaptureSnapshot(RectTransform rectTransform)
+    {
+        return new RectSnapshot
+        {
+            anchoredPosition = rectTransform.anchoredPosition,
+            sizeDelta = rectTransform.sizeDelta,
+            offsetMin = rectTransform.offsetMin,
+            offsetMax = rectTransform.offsetMax,
+            pivot = rectTransform.pivot,
+            anchorMin = rectTransform.anchorMin,
+            anchorMax = rectTransform.anchorMax,
+            localScale = rectTransform.localScale
+        };
+    }
+
+    private static void ApplySnapshot(RectTransform rectTransform, RectSnapshot snapshot)
+    {
+        rectTransform.anchorMin = snapshot.anchorMin;
+        rectTransform.anchorMax = snapshot.anchorMax;
+        rectTransform.pivot = snapshot.pivot;
+        rectTransform.offsetMin = snapshot.offsetMin;
+        rectTransform.offsetMax = snapshot.offsetMax;
+        rectTransform.sizeDelta = snapshot.sizeDelta;
+        rectTransform.anchoredPosition = snapshot.anchoredPosition;
+        rectTransform.localScale = snapshot.localScale;
     }
 
     private static void ApplyText(TMP_Text text, int current, int max, bool visible)
