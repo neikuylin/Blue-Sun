@@ -78,6 +78,16 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
     }
 
+    public static string GetDisplayedCharacterIdAtSlot(int slotIndex)
+    {
+        if (instance == null || slotIndex < 0 || slotIndex >= instance.portraitButtonCharacterIds.Count)
+        {
+            return string.Empty;
+        }
+
+        return instance.portraitButtonCharacterIds[slotIndex] ?? string.Empty;
+    }
+
     private void LateUpdate()
     {
         if (!Application.isPlaying || turnSystem == null)

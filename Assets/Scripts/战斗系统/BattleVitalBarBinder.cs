@@ -98,13 +98,13 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     {
         CacheReferences();
 
-        BattleUnit activeUnit = turnSystem.ActiveUnit;
-        bool showVitals = activeUnit != null && activeUnit.IsAlive && activeUnit.isPlayerControlled;
-        int currentHealth = showVitals ? Mathf.Max(0, activeUnit.currentHealth) : 0;
-        int maxHealth = showVitals ? Mathf.Max(0, activeUnit.maxHealth) : 0;
-        int currentMana = showVitals ? Mathf.Max(0, activeUnit.currentMana) : 0;
-        int maxMana = showVitals ? Mathf.Max(0, activeUnit.maxMana) : 0;
-        string unitId = showVitals ? activeUnit.characterId ?? string.Empty : string.Empty;
+        BattleUnit displayedUnit = ResolveDisplayedUnit();
+        bool showVitals = displayedUnit != null && displayedUnit.IsAlive;
+        int currentHealth = showVitals ? Mathf.Max(0, displayedUnit.currentHealth) : 0;
+        int maxHealth = showVitals ? Mathf.Max(0, displayedUnit.maxHealth) : 0;
+        int currentMana = showVitals ? Mathf.Max(0, displayedUnit.currentMana) : 0;
+        int maxMana = showVitals ? Mathf.Max(0, displayedUnit.maxMana) : 0;
+        string unitId = showVitals ? displayedUnit.characterId ?? string.Empty : string.Empty;
         string signature = string.Concat(unitId, "|", currentHealth, "/", maxHealth, "|", currentMana, "/", maxMana, "|", showVitals);
         if (!force && string.Equals(signature, lastSignature, StringComparison.Ordinal))
         {
@@ -116,6 +116,59 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         ApplyBar(manaFillImage, manaSlotImage, currentMana, maxMana, fillFromRight: false);
         ApplyText(healthText, currentHealth, maxHealth, showVitals);
         ApplyText(manaText, currentMana, maxMana, showVitals);
+    }
+
+    private BattleUnit ResolveDisplayedUnit()
+    {
+        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
+        {
+            BattleUnit equipmentUnit = FindBattleUnitByCharacterId(equipmentCharacterId);
+            if (equipmentUnit != null)
+            {
+                return equipmentUnit;
+            }
+        }
+
+        string currentPortraitCharacterId = BattlePartyPortraitBinder.GetDisplayedCharacterIdAtSlot(0);
+        if (!string.IsNullOrWhiteSpace(currentPortraitCharacterId))
+        {
+            BattleUnit portraitUnit = FindBattleUnitByCharacterId(currentPortraitCharacterId);
+            if (portraitUnit != null)
+            {
+                return portraitUnit;
+            }
+        }
+
+        BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
+        if (activeUnit != null && activeUnit.IsAlive)
+        {
+            return activeUnit;
+        }
+
+        return null;
+    }
+
+    private static BattleUnit FindBattleUnitByCharacterId(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return unit;
+        }
+
+        return null;
     }
 
     private static void ConfigureFillImage(Image slotImage, Image fillImage, Color color, bool fillFromRight)
