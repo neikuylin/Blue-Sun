@@ -688,6 +688,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        BattleUnit fallback = null;
         for (int i = 0; i < units.Length; i++)
         {
             BattleUnit unit = units[i];
@@ -698,11 +699,19 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
             if (string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
             {
-                return unit;
+                if (unit.gameObject.activeInHierarchy && unit.IsAlive)
+                {
+                    return unit;
+                }
+
+                if (fallback == null)
+                {
+                    fallback = unit;
+                }
             }
         }
 
-        return null;
+        return fallback;
     }
 
     private static RectLayout ReadLayout(RectTransform target)
