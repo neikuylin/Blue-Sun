@@ -19,10 +19,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private const string SecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string ThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
     private const string FourthPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u56fe";
-    private const string CurrentHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u751f\u547d\u503c";
-    private const string SecondHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u751f\u547d\u503c";
-    private const string ThirdHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u751f\u547d\u503c";
-    private const string FourthHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u751f\u547d\u503c";
     private const string EquipmentPanelPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
@@ -148,13 +144,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             slotTemplateSiblingIndices.Add(container != null ? container.GetSiblingIndex() : i);
         }
 
-        if (healthTexts.Count == 0)
-        {
-            healthTexts.Add(ResolveHealthText(0));
-            healthTexts.Add(ResolveHealthText(1));
-            healthTexts.Add(ResolveHealthText(2));
-            healthTexts.Add(ResolveHealthText(3));
-        }
+        RebuildHealthTextCache();
     }
 
     private void CachePortraitButtons()
@@ -316,6 +306,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
         HookPortraitButtons();
+        RebuildHealthTextCache();
         RefreshHealthTexts();
     }
 
@@ -413,6 +404,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
         HookPortraitButtons();
+        RebuildHealthTextCache();
         RefreshHealthTexts();
         reorderRoutine = null;
     }
@@ -435,6 +427,15 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             healthText.text = unit != null && unit.IsAlive
                 ? unit.currentHealth + "/" + unit.maxHealth
                 : string.Empty;
+        }
+    }
+
+    private void RebuildHealthTextCache()
+    {
+        healthTexts.Clear();
+        for (int i = 0; i < slotContainers.Count; i++)
+        {
+            healthTexts.Add(ResolveHealthText(slotContainers[i]));
         }
     }
 
@@ -611,12 +612,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         return target != null ? target.GetComponent<Image>() : null;
     }
 
-    private static TMP_Text FindTextByPath(string path)
-    {
-        Transform target = FindTransformByPath(path);
-        return target != null ? target.GetComponent<TMP_Text>() : null;
-    }
-
     private Image ResolvePortraitSlot(int index)
     {
         if (battleBindings != null)
@@ -660,24 +655,40 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         return FindImageByPath(FourthPortraitPath);
     }
 
-    private TMP_Text ResolveHealthText(int index)
+    private static TMP_Text ResolveHealthText(RectTransform container)
     {
-        if (index == 0)
+        if (container == null)
         {
-            return FindTextByPath(CurrentHealthTextPath);
+            return null;
         }
 
-        if (index == 1)
+        TMP_Text[] texts = container.GetComponentsInChildren<TMP_Text>(true);
+        for (int i = 0; i < texts.Length; i++)
         {
-            return FindTextByPath(SecondHealthTextPath);
+            TMP_Text text = texts[i];
+            if (text == null)
+            {
+                continue;
+            }
+
+            if (text.name.Contains("\u751f\u547d\u503c", StringComparison.Ordinal))
+            {
+                return text;
+            }
         }
 
-        if (index == 2)
+        for (int i = 0; i < texts.Length; i++)
         {
-            return FindTextByPath(ThirdHealthTextPath);
+            TMP_Text text = texts[i];
+            if (text == null)
+            {
+                continue;
+            }
+
+            return text;
         }
 
-        return FindTextByPath(FourthHealthTextPath);
+        return null;
     }
 
     private BattleUnit FindPlayerUnitByCharacterId(string characterId)
