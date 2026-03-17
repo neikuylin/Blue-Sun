@@ -27,9 +27,6 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private TMP_Text manaText;
     private string lastSignature = string.Empty;
     private BattleSceneBindings battleBindings;
-    private Vector3 healthFillBaseScale = Vector3.one;
-    private Vector3 manaFillBaseScale = Vector3.one;
-    private bool cachedBaseScales;
 
     public void Initialize(BattleTurnSystem system)
     {
@@ -78,8 +75,6 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
             manaText = FindChildText(panel, ManaTextName);
             ConfigureFillImage(manaSlotImage, manaFillImage, ManaBarColor, fillFromRight: false);
         }
-
-        CacheBaseScales();
     }
 
     private void Refresh(bool force)
@@ -120,11 +115,6 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         fillImage.fillClockwise = false;
         fillImage.preserveAspect = false;
 
-        RectTransform rectTransform = fillImage.rectTransform;
-        if (rectTransform != null)
-        {
-            rectTransform.pivot = new Vector2(fillFromRight ? 1f : 0f, 0.5f);
-        }
     }
 
     private void ApplyBar(Image fillImage, Image slotImage, int current, int max, bool fillFromRight)
@@ -135,37 +125,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         }
 
         ConfigureFillImage(slotImage, fillImage, fillFromRight ? HealthBarColor : ManaBarColor, fillFromRight);
-        CacheBaseScales();
         fillImage.enabled = max > 0;
-        float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
-        fillImage.fillAmount = ratio;
-
-        Vector3 baseScale = fillImage == healthFillImage ? healthFillBaseScale : manaFillBaseScale;
-        RectTransform rectTransform = fillImage.rectTransform;
-        if (rectTransform != null)
-        {
-            rectTransform.localScale = new Vector3(baseScale.x * ratio, baseScale.y, baseScale.z);
-        }
-    }
-
-    private void CacheBaseScales()
-    {
-        if (cachedBaseScales)
-        {
-            return;
-        }
-
-        if (healthFillImage != null)
-        {
-            healthFillBaseScale = healthFillImage.rectTransform.localScale;
-        }
-
-        if (manaFillImage != null)
-        {
-            manaFillBaseScale = manaFillImage.rectTransform.localScale;
-        }
-
-        cachedBaseScales = healthFillImage != null || manaFillImage != null;
+        fillImage.fillAmount = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
     }
 
     private static void ApplyText(TMP_Text text, int current, int max, bool visible)
