@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -18,10 +19,15 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private const string SecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string ThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
     private const string FourthPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u56fe";
+    private const string CurrentHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u751f\u547d\u503c";
+    private const string SecondHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u751f\u547d\u503c";
+    private const string ThirdHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u751f\u547d\u503c";
+    private const string FourthHealthTextPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u56db\u89d2\u8272/\u7b2c\u56db\u89d2\u8272\u751f\u547d\u503c";
     private const string EquipmentPanelPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
 
     private readonly List<Image> portraitSlots = new List<Image>(4);
     private readonly List<RectTransform> slotContainers = new List<RectTransform>(4);
+    private readonly List<TMP_Text> healthTexts = new List<TMP_Text>(4);
     private readonly List<Button> portraitButtons = new List<Button>(4);
     private readonly List<UnityAction> portraitButtonActions = new List<UnityAction>(4);
     private readonly List<string> portraitButtonCharacterIds = new List<string>(4);
@@ -80,6 +86,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         RefreshPortraits(force: false);
+        RefreshHealthTexts();
         SyncEquipmentPanelVisibility();
     }
 
@@ -129,6 +136,14 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             slotContainers.Add(container);
             slotTemplateLayouts.Add(ReadLayout(container));
             slotTemplateSiblingIndices.Add(container != null ? container.GetSiblingIndex() : i);
+        }
+
+        if (healthTexts.Count == 0)
+        {
+            healthTexts.Add(ResolveHealthText(0));
+            healthTexts.Add(ResolveHealthText(1));
+            healthTexts.Add(ResolveHealthText(2));
+            healthTexts.Add(ResolveHealthText(3));
         }
     }
 
@@ -291,6 +306,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
         HookPortraitButtons();
+        RefreshHealthTexts();
     }
 
     private IEnumerator AnimateReorder(List<CharacterSelectionState.SlotSelection> orderedSelections)
@@ -387,7 +403,29 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         currentDisplayedSelections = new List<CharacterSelectionState.SlotSelection>(orderedSelections);
         HookPortraitButtons();
+        RefreshHealthTexts();
         reorderRoutine = null;
+    }
+
+    private void RefreshHealthTexts()
+    {
+        CachePortraitSlots();
+        for (int i = 0; i < healthTexts.Count; i++)
+        {
+            TMP_Text healthText = healthTexts[i];
+            if (healthText == null)
+            {
+                continue;
+            }
+
+            string characterId = i < portraitButtonCharacterIds.Count
+                ? portraitButtonCharacterIds[i]
+                : string.Empty;
+            BattleUnit unit = FindPlayerUnitByCharacterId(characterId);
+            healthText.text = unit != null && unit.IsAlive
+                ? unit.currentHealth + "/" + unit.maxHealth
+                : string.Empty;
+        }
     }
 
     private List<RectTransform> BuildTargetContainerOrder(List<RectTransform> oldContainersBySlot, List<CharacterSelectionState.SlotSelection> orderedSelections)
@@ -563,6 +601,12 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         return target != null ? target.GetComponent<Image>() : null;
     }
 
+    private static TMP_Text FindTextByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
     private Image ResolvePortraitSlot(int index)
     {
         if (battleBindings != null)
@@ -604,6 +648,51 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         return FindImageByPath(FourthPortraitPath);
+    }
+
+    private TMP_Text ResolveHealthText(int index)
+    {
+        if (index == 0)
+        {
+            return FindTextByPath(CurrentHealthTextPath);
+        }
+
+        if (index == 1)
+        {
+            return FindTextByPath(SecondHealthTextPath);
+        }
+
+        if (index == 2)
+        {
+            return FindTextByPath(ThirdHealthTextPath);
+        }
+
+        return FindTextByPath(FourthHealthTextPath);
+    }
+
+    private BattleUnit FindPlayerUnitByCharacterId(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || unit.team != BattleTeam.Player || string.IsNullOrWhiteSpace(unit.characterId))
+            {
+                continue;
+            }
+
+            if (string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
+            {
+                return unit;
+            }
+        }
+
+        return null;
     }
 
     private static RectLayout ReadLayout(RectTransform target)
