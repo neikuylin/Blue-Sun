@@ -139,6 +139,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
     private readonly Dictionary<string, List<ItemSlotData>> equipmentDataByCharacter = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<ItemSlotData>> boundEnemyEquipmentDataCache = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
     private readonly Dictionary<ItemDatabase.ItemQuality, GameObject> qualityBackgroundPrefabCache = new Dictionary<ItemDatabase.ItemQuality, GameObject>();
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
@@ -1392,13 +1393,87 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (!createIfMissing)
         {
-            return null;
+            return GetBoundEnemyEquipmentDataForCharacter(resolvedCharacterId);
+        }
+
+        List<ItemSlotData> boundEnemyEquipment = GetBoundEnemyEquipmentDataForCharacter(resolvedCharacterId);
+        if (boundEnemyEquipment != null)
+        {
+            data = CloneItemSlotDataList(boundEnemyEquipment);
+            EnsureDataSize(data, Mathf.Max(GetExpectedEquipmentSlotCount(), data.Count));
+            equipmentDataByCharacter[resolvedCharacterId] = data;
+            return data;
         }
 
         data = new List<ItemSlotData>();
-        EnsureDataSize(data, equipmentSlots.Count);
+        EnsureDataSize(data, GetExpectedEquipmentSlotCount());
         equipmentDataByCharacter[resolvedCharacterId] = data;
         return data;
+    }
+
+    private List<ItemSlotData> GetBoundEnemyEquipmentDataForCharacter(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        List<ItemSlotData> cachedData;
+        if (boundEnemyEquipmentDataCache.TryGetValue(characterId, out cachedData))
+        {
+            return cachedData;
+        }
+
+        EnemyEquipmentDatabase equipmentDatabase = EnemyEquipmentDatabase.LoadDefault();
+        if (equipmentDatabase == null)
+        {
+            return null;
+        }
+
+        EnemyEquipmentDatabase.EnemyEquipmentEntry entry = equipmentDatabase.FindEntry(characterId);
+        if (entry == null || entry.itemIds == null)
+        {
+            return null;
+        }
+
+        int slotCount = Mathf.Max(GetExpectedEquipmentSlotCount(), EnemyEquipmentDatabase.SlotCount);
+        List<ItemSlotData> result = new List<ItemSlotData>(slotCount);
+        EnsureDataSize(result, slotCount);
+        for (int i = 0; i < entry.itemIds.Count && i < result.Count; i++)
+        {
+            string itemId = entry.itemIds[i];
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(itemId);
+            if (itemEntry == null || itemEntry.category != ItemDatabase.ItemCategory.Equipment)
+            {
+                continue;
+            }
+
+            result[i] = NormalizeItemSlotData(new ItemSlotData
+            {
+                itemId = itemId,
+                icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab),
+                count = 1,
+                maxStack = 1
+            });
+        }
+
+        boundEnemyEquipmentDataCache[characterId] = result;
+        return result;
+    }
+
+    private int GetExpectedEquipmentSlotCount()
+    {
+        return equipmentSlots.Count > 0 ? equipmentSlots.Count : EquipmentSlotNames.Length;
+    }
+
+    private static List<ItemSlotData> CloneItemSlotDataList(List<ItemSlotData> source)
+    {
+        return source != null ? new List<ItemSlotData>(source) : new List<ItemSlotData>();
     }
 
     private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
