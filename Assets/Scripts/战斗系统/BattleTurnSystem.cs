@@ -71,6 +71,21 @@ public class BattleTurnSystem : MonoBehaviour
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
 
+    private sealed class EnemySkillChoice
+    {
+        public string skillId = string.Empty;
+        public int weight;
+        public int order;
+        public BattleSkillDatabase.SkillEntry skill;
+    }
+
+    private struct EnemySkillAction
+    {
+        public EnemySkillChoice choice;
+        public BattleUnit targetUnit;
+        public Vector2Int targetCell;
+    }
+
     public BattleUnit ActiveUnit
     {
         get { return activeUnit; }
@@ -231,40 +246,38 @@ public class BattleTurnSystem : MonoBehaviour
         waitingForEnemyAction = true;
         yield return new WaitForSeconds(0.5f);
 
-        BattleUnit target = FindClosestLivingOpponent(activeUnit);
-        if (target == null)
+        while (activeUnit != null && activeUnit.IsAlive && activeUnit.currentActionPoints > 0)
         {
-            waitingForEnemyAction = false;
-            yield break;
-        }
-
-        if (grid.ManhattanDistance(activeUnit.currentCell, target.currentCell) <= activeUnit.attackRange)
-        {
-            ExecuteTargetSkill(activeUnit, target, ResolveSkill(NormalAttackSkillId));
-            yield return new WaitForSeconds(0.35f);
-            EndTurn();
-            yield break;
-        }
-
-        Vector2Int destination = FindBestStepToward(activeUnit, target);
-        if (destination != activeUnit.currentCell)
-        {
-            float moveDuration = grid.MoveUnit(activeUnit, destination);
-            activeUnit.FaceToward(target.transform.position);
-            if (moveDuration > 0f)
+            List<EnemySkillChoice> skillChoices = BuildEnemySkillChoices(activeUnit);
+            if (skillChoices.Count == 0)
             {
-                yield return new WaitForSeconds(moveDuration);
+                break;
             }
-        }
-        else
-        {
-            yield return new WaitForSeconds(0.1f);
-        }
 
-        if (target.IsAlive && grid.ManhattanDistance(activeUnit.currentCell, target.currentCell) <= activeUnit.attackRange)
-        {
-            ExecuteTargetSkill(activeUnit, target, ResolveSkill(NormalAttackSkillId));
-            yield return new WaitForSeconds(0.35f);
+            EnemySkillAction action;
+            if (TryFindEnemySkillAction(activeUnit, skillChoices, out action))
+            {
+                ExecuteEnemySkillAction(activeUnit, action);
+                yield return new WaitForSeconds(0.35f);
+                continue;
+            }
+
+            float moveDuration;
+            if (TryMoveEnemyTowardSkillRange(activeUnit, skillChoices, out moveDuration))
+            {
+                if (moveDuration > 0f)
+                {
+                    yield return new WaitForSeconds(moveDuration);
+                }
+                else
+                {
+                    yield return new WaitForSeconds(0.1f);
+                }
+
+                continue;
+            }
+
+            break;
         }
 
         EndTurn();
@@ -2406,27 +2419,425 @@ public class BattleTurnSystem : MonoBehaviour
         return best;
     }
 
-    private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target)
+    private List<EnemySkillChoice> BuildEnemySkillChoices(BattleUnit caster)
+    {
+        List<EnemySkillChoice> result = new List<EnemySkillChoice>();
+        if (caster == null)
+        {
+            return result;
+        }
+
+        HashSet<string> seenSkillIds = new HashSet<string>(System.StringComparer.Ordinal);
+        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry =
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(caster.characterId) : null;
+
+        if (skillEntry != null && skillEntry.skillIds != null)
+        {
+            CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, skillEntry.skillIds.Count);
+            for (int i = 0; i < skillEntry.skillIds.Count; i++)
+            {
+                TryAddEnemySkillChoice(
+                    result,
+                    seenSkillIds,
+                    skillEntry.skillIds[i],
+                    CharacterSkillLoadoutDatabase.GetSkillWeightAt(skillEntry, i),
+                    i);
+            }
+        }
+
+        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(caster.characterId);
+        for (int i = 0; i < grantedSkills.Count; i++)
+        {
+            TryAddEnemySkillChoice(result, seenSkillIds, grantedSkills[i], 0, 1000 + i);
+        }
+
+        TryAddEnemySkillChoice(result, seenSkillIds, NormalAttackSkillId, 0, int.MaxValue);
+        result.Sort(CompareEnemySkillChoices);
+        return result;
+    }
+
+    private void TryAddEnemySkillChoice(
+        List<EnemySkillChoice> choices,
+        HashSet<string> seenSkillIds,
+        string skillId,
+        int weight,
+        int order)
+    {
+        if (choices == null || seenSkillIds == null || string.IsNullOrWhiteSpace(skillId) || !seenSkillIds.Add(skillId))
+        {
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry skill = ResolveSkill(skillId);
+        if (skill == null)
+        {
+            return;
+        }
+
+        choices.Add(new EnemySkillChoice
+        {
+            skillId = skillId,
+            weight = weight,
+            order = order,
+            skill = skill
+        });
+    }
+
+    private static int CompareEnemySkillChoices(EnemySkillChoice left, EnemySkillChoice right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return 0;
+        }
+
+        if (left == null)
+        {
+            return 1;
+        }
+
+        if (right == null)
+        {
+            return -1;
+        }
+
+        int weightCompare = right.weight.CompareTo(left.weight);
+        if (weightCompare != 0)
+        {
+            return weightCompare;
+        }
+
+        return left.order.CompareTo(right.order);
+    }
+
+    private bool TryFindEnemySkillAction(BattleUnit caster, List<EnemySkillChoice> skillChoices, out EnemySkillAction action)
+    {
+        action = new EnemySkillAction();
+        if (caster == null || skillChoices == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < skillChoices.Count; i++)
+        {
+            EnemySkillChoice choice = skillChoices[i];
+            if (!CanEnemyUseSkill(caster, choice))
+            {
+                continue;
+            }
+
+            if (TryFindEnemySkillActionForChoice(caster, choice, out action))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryFindEnemySkillActionForChoice(BattleUnit caster, EnemySkillChoice choice, out EnemySkillAction action)
+    {
+        action = new EnemySkillAction();
+        if (caster == null || choice == null || choice.skill == null)
+        {
+            return false;
+        }
+
+        BattleUnit bestTarget = null;
+        int bestDistance = int.MaxValue;
+        foreach (BattleUnit unit in units)
+        {
+            if (!IsValidEnemySkillTarget(caster, unit, choice.skill))
+            {
+                continue;
+            }
+
+            Vector2Int targetCell = unit.currentCell;
+            if (!CanEnemyCastSkillAt(caster, targetCell, unit, choice.skill))
+            {
+                continue;
+            }
+
+            int distance = grid.ManhattanDistance(caster.currentCell, unit.currentCell);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestTarget = unit;
+                action = new EnemySkillAction
+                {
+                    choice = choice,
+                    targetUnit = unit,
+                    targetCell = targetCell
+                };
+            }
+        }
+
+        return bestTarget != null;
+    }
+
+    private bool TryMoveEnemyTowardSkillRange(BattleUnit caster, List<EnemySkillChoice> skillChoices, out float moveDuration)
+    {
+        moveDuration = 0f;
+        if (caster == null || grid == null || skillChoices == null || skillChoices.Count == 0)
+        {
+            return false;
+        }
+
+        BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
+        int maxMoveRange = GetMoveMaxRange(caster, moveSkill);
+        int moveManaCost = GetSkillManaCost(moveSkill);
+        if (maxMoveRange <= 0 || !caster.CanSpendMana(moveManaCost))
+        {
+            return false;
+        }
+
+        Vector2Int bestCell = caster.currentCell;
+        BattleUnit bestTarget = null;
+        int bestWeight = int.MinValue;
+        int bestDistanceAfterMove = int.MaxValue;
+        int bestPathLength = int.MaxValue;
+
+        for (int skillIndex = 0; skillIndex < skillChoices.Count; skillIndex++)
+        {
+            EnemySkillChoice choice = skillChoices[skillIndex];
+            if (!CanEnemyUseSkill(caster, choice))
+            {
+                continue;
+            }
+
+            foreach (BattleUnit unit in units)
+            {
+                if (!IsValidEnemySkillTarget(caster, unit, choice.skill))
+                {
+                    continue;
+                }
+
+                for (int y = 0; y < grid.height; y++)
+                {
+                    for (int x = 0; x < grid.width; x++)
+                    {
+                        Vector2Int candidate = new Vector2Int(x, y);
+                        if (candidate == caster.currentCell)
+                        {
+                            continue;
+                        }
+
+                        List<Vector2Int> path = grid.FindPath(caster, candidate);
+                        if (path == null || path.Count <= 1)
+                        {
+                            continue;
+                        }
+
+                        int stepCount = path.Count - 1;
+                        if (stepCount > maxMoveRange)
+                        {
+                            continue;
+                        }
+
+                        int moveActionPointCost = GetMoveActionPointCost(caster, path, moveSkill);
+                        if (!caster.CanSpendActionPoints(moveActionPointCost))
+                        {
+                            continue;
+                        }
+
+                        if (caster.currentActionPoints - moveActionPointCost < GetSkillActionPointCost(choice.skill))
+                        {
+                            continue;
+                        }
+
+                        if (caster.currentMana - moveManaCost < GetSkillManaCost(choice.skill))
+                        {
+                            continue;
+                        }
+
+                        if (!CanEnemyCastSkillFromCell(caster, candidate, unit, choice.skill))
+                        {
+                            continue;
+                        }
+
+                        int distanceAfterMove = grid.ManhattanDistance(candidate, unit.currentCell);
+                        if (choice.weight > bestWeight ||
+                            (choice.weight == bestWeight && distanceAfterMove < bestDistanceAfterMove) ||
+                            (choice.weight == bestWeight && distanceAfterMove == bestDistanceAfterMove && stepCount < bestPathLength))
+                        {
+                            bestWeight = choice.weight;
+                            bestDistanceAfterMove = distanceAfterMove;
+                            bestPathLength = stepCount;
+                            bestCell = candidate;
+                            bestTarget = unit;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bestTarget == null)
+        {
+            BattleUnit fallbackTarget = FindClosestLivingOpponent(caster);
+            if (fallbackTarget == null)
+            {
+                return false;
+            }
+
+            bestCell = FindBestStepToward(caster, fallbackTarget, GetSkillRange(skillChoices[0].skill, caster));
+            bestTarget = fallbackTarget;
+            if (bestCell == caster.currentCell)
+            {
+                return false;
+            }
+        }
+
+        if (!TryMoveEnemyToCell(caster, bestCell, out moveDuration))
+        {
+            return false;
+        }
+
+        caster.FaceToward(bestTarget.transform.position);
+        return true;
+    }
+
+    private bool TryMoveEnemyToCell(BattleUnit unit, Vector2Int destination, out float moveDuration)
+    {
+        moveDuration = 0f;
+        if (unit == null || destination == unit.currentCell)
+        {
+            return false;
+        }
+
+        BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
+        int moveManaCost = GetSkillManaCost(moveSkill);
+        if (!unit.CanSpendMana(moveManaCost))
+        {
+            return false;
+        }
+
+        List<Vector2Int> path = grid.FindPath(unit, destination);
+        if (path == null || path.Count <= 1)
+        {
+            return false;
+        }
+
+        int moveActionPointCost = GetMoveActionPointCost(unit, path, moveSkill);
+        if (!unit.CanSpendActionPoints(moveActionPointCost))
+        {
+            return false;
+        }
+
+        if (path.Count - 1 > GetMoveMaxRange(unit, moveSkill))
+        {
+            return false;
+        }
+
+        moveDuration = grid.MoveUnit(unit, destination);
+        unit.SpendActionPoints(moveActionPointCost);
+        unit.SpendMana(moveManaCost);
+        return true;
+    }
+
+    private bool CanEnemyUseSkill(BattleUnit caster, EnemySkillChoice choice)
+    {
+        if (caster == null || choice == null || choice.skill == null)
+        {
+            return false;
+        }
+
+        return caster.CanSpendActionPoints(GetSkillActionPointCost(choice.skill)) &&
+            caster.CanSpendMana(GetSkillManaCost(choice.skill));
+    }
+
+    private bool IsValidEnemySkillTarget(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        return target != null &&
+            target.IsAlive &&
+            target.team != caster.team &&
+            IsValidSkillTarget(caster, target, skill);
+    }
+
+    private bool CanEnemyCastSkillAt(
+        BattleUnit caster,
+        Vector2Int targetCell,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill)
+    {
+        return CanCastSkillAt(caster, targetCell, target, skill, null);
+    }
+
+    private bool CanEnemyCastSkillFromCell(
+        BattleUnit caster,
+        Vector2Int castCell,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return false;
+        }
+
+        int skillRange = GetSkillRange(skill, caster);
+        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            return grid.ManhattanDistance(castCell, target.currentCell) <= skillRange &&
+                IsValidSkillTarget(caster, target, skill);
+        }
+
+        if (skill.skillType == BattleSkillDatabase.SkillType.Area)
+        {
+            return grid.ManhattanDistance(castCell, target.currentCell) <= skillRange;
+        }
+
+        return false;
+    }
+
+    private void ExecuteEnemySkillAction(BattleUnit caster, EnemySkillAction action)
+    {
+        if (caster == null || action.choice == null || action.choice.skill == null)
+        {
+            return;
+        }
+
+        if (action.choice.skill.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            if (action.targetUnit != null)
+            {
+                ExecuteTargetSkill(caster, action.targetUnit, action.choice.skill);
+            }
+
+            return;
+        }
+
+        ExecuteAreaSkill(caster, action.targetCell, action.choice.skill);
+    }
+
+    private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)
     {
         Vector2Int bestCell = mover.currentCell;
-        int bestDistance = grid.ManhattanDistance(mover.currentCell, target.currentCell);
+        int bestDistance = Mathf.Max(0, grid.ManhattanDistance(mover.currentCell, target.currentCell) - Mathf.Max(0, desiredRange));
+        BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
+        int maxMoveRange = GetMoveMaxRange(mover, moveSkill);
 
-        for (int dx = -mover.moveRange; dx <= mover.moveRange; dx++)
+        for (int dx = -maxMoveRange; dx <= maxMoveRange; dx++)
         {
-            for (int dy = -mover.moveRange; dy <= mover.moveRange; dy++)
+            for (int dy = -maxMoveRange; dy <= maxMoveRange; dy++)
             {
                 Vector2Int candidate = mover.currentCell + new Vector2Int(dx, dy);
-                if (grid.ManhattanDistance(mover.currentCell, candidate) > mover.moveRange)
+                if (grid.ManhattanDistance(mover.currentCell, candidate) > maxMoveRange)
                 {
                     continue;
                 }
 
-                if (!grid.IsWalkable(mover, candidate))
+                List<Vector2Int> path = grid.FindPath(mover, candidate);
+                if (path == null || path.Count <= 1)
                 {
                     continue;
                 }
 
-                int candidateDistance = grid.ManhattanDistance(candidate, target.currentCell);
+                int moveActionPointCost = GetMoveActionPointCost(mover, path, moveSkill);
+                if (!mover.CanSpendActionPoints(moveActionPointCost))
+                {
+                    continue;
+                }
+
+                int candidateDistance = Mathf.Max(0, grid.ManhattanDistance(candidate, target.currentCell) - Mathf.Max(0, desiredRange));
                 if (candidateDistance < bestDistance)
                 {
                     bestDistance = candidateDistance;
