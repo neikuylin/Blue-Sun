@@ -130,16 +130,6 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
             }
         }
 
-        string currentPortraitCharacterId = BattlePartyPortraitBinder.GetDisplayedCharacterIdAtSlot(0);
-        if (!string.IsNullOrWhiteSpace(currentPortraitCharacterId))
-        {
-            BattleUnit portraitUnit = FindBattleUnitByCharacterId(currentPortraitCharacterId);
-            if (portraitUnit != null)
-            {
-                return portraitUnit;
-            }
-        }
-
         BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
         if (activeUnit != null && activeUnit.IsAlive)
         {
