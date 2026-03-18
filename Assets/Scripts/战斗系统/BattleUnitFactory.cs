@@ -172,13 +172,35 @@ public sealed class BattleUnitFactory
         }
 
         Animator animator = instance.GetComponentInChildren<Animator>(true);
+        Animator sourceAnimator = binding.modelPrefab != null
+            ? binding.modelPrefab.GetComponentInChildren<Animator>(true)
+            : null;
+
         if (animator == null)
         {
-            return;
+            animator = instance.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = instance.AddComponent<Animator>();
+            }
+        }
+
+        if (sourceAnimator != null && animator.avatar == null && sourceAnimator.avatar != null)
+        {
+            animator.avatar = sourceAnimator.avatar;
         }
 
         animator.runtimeAnimatorController = binding.animatorController;
         animator.enabled = true;
+
+        if (sourceAnimator == null)
+        {
+            Debug.LogWarning($"BattleUnitFactory: model '{binding.modelPrefab?.name ?? instance.name}' has no Animator component. Added Animator to '{instance.name}', but you may still need to assign a valid Avatar on the source model import settings.");
+        }
+        else if (animator.avatar == null)
+        {
+            Debug.LogWarning($"BattleUnitFactory: Animator bound for '{instance.name}', but no Avatar was found. Humanoid animations may not play correctly.");
+        }
     }
 
     private GameObject CreatePlaceholderUnitRoot(string rootName, Vector3 worldPosition, Color color)

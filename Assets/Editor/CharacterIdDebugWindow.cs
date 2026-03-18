@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 public sealed class CharacterIdDebugWindow : EditorWindow
@@ -189,6 +190,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("格子偏移"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("世界偏移"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("自动视觉锚点"));
+                DrawAnimatorBindingStatus(entry);
             }
         }
 
@@ -339,6 +341,63 @@ public sealed class CharacterIdDebugWindow : EditorWindow
         }
 
         return false;
+    }
+
+    private static void DrawAnimatorBindingStatus(SerializedProperty entry)
+    {
+        SerializedProperty modelPrefabProperty = entry.FindPropertyRelative("modelPrefab");
+        SerializedProperty animatorControllerProperty = entry.FindPropertyRelative("animatorController");
+
+        GameObject modelPrefab = modelPrefabProperty.objectReferenceValue as GameObject;
+        RuntimeAnimatorController controller = animatorControllerProperty.objectReferenceValue as RuntimeAnimatorController;
+
+        Animator prefabAnimator = modelPrefab != null ? modelPrefab.GetComponentInChildren<Animator>(true) : null;
+        Avatar avatar = prefabAnimator != null ? prefabAnimator.avatar : null;
+
+        if (modelPrefab == null)
+        {
+            EditorGUILayout.HelpBox("未绑定模型预制体。运行时会退回占位模型，也不会应用动画控制器。", MessageType.Info);
+            return;
+        }
+
+        if (prefabAnimator == null)
+        {
+            EditorGUILayout.HelpBox("当前模型预制体里没有 Animator。运行时会自动补一个 Animator，但如果模型导入设置没有 Avatar，Humanoid 动画仍然不会正常播放。", MessageType.Warning);
+        }
+        else if (avatar == null)
+        {
+            EditorGUILayout.HelpBox("模型里找到了 Animator，但 Avatar 为空。Humanoid 控制器通常无法正常驱动这个模型。", MessageType.Warning);
+        }
+
+        if (controller == null)
+        {
+            EditorGUILayout.HelpBox("未绑定 Animator Controller。", MessageType.Info);
+            return;
+        }
+
+        AnimatorController animatorController = controller as AnimatorController;
+        if (animatorController == null)
+        {
+            EditorGUILayout.HelpBox($"已绑定控制器：{controller.name}", MessageType.None);
+            return;
+        }
+
+        if (animatorController.layers == null || animatorController.layers.Length == 0)
+        {
+            EditorGUILayout.HelpBox($"控制器 {controller.name} 没有动画层。", MessageType.Warning);
+            return;
+        }
+
+        int stateCount = 0;
+        for (int i = 0; i < animatorController.layers.Length; i++)
+        {
+            if (animatorController.layers[i].stateMachine != null)
+            {
+                stateCount += animatorController.layers[i].stateMachine.states.Length;
+            }
+        }
+
+        EditorGUILayout.HelpBox($"控制器已绑定：{controller.name}，层数 {animatorController.layers.Length}，状态数 {stateCount}。", MessageType.None);
     }
 
     private static List<string> CollectKnownIds(BattleCharacterBindingDatabase database)

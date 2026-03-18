@@ -36,7 +36,7 @@ MonoBehaviour:
     backgroundPortraitSprite: {fileID: 0}
     backgroundPortraitPrefab: {fileID: 5265599817728760209, guid: 446390109c5fed64f9d117168b22bb6f, type: 3}
     modelPrefab: {fileID: 919132149155446097, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
-    animatorController: {fileID: 9100000, guid: c309a5bf0fab12248965ac32a969e9b3, type: 2}
+    animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}
     useAutoVisualAnchor: 1
@@ -54,7 +54,7 @@ MonoBehaviour:
     backgroundPortraitSprite: {fileID: 0}
     backgroundPortraitPrefab: {fileID: 8562986201867390498, guid: 2641662197c178140aa019a92845b384, type: 3}
     modelPrefab: {fileID: 919132149155446097, guid: a1ea871064bf4ec43b9cf33cfaa551f1, type: 3}
-    animatorController: {fileID: 0}
+    animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}
     useAutoVisualAnchor: 1
