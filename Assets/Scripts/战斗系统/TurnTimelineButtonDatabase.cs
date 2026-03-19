@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "TurnTimelineButtonDatabase", menuName = "角色/回合时间轴按钮库")]
+[CreateAssetMenu(fileName = "TurnTimelineButtonDatabase", menuName = "角色/回合时间轴头像库")]
 public sealed class TurnTimelineButtonDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "TurnTimelineButtonDatabase";
@@ -44,7 +44,7 @@ public sealed class TurnTimelineButtonDatabase : ScriptableObject
         return null;
     }
 
-    public GameObject FindButtonPrefab(string characterId)
+    public GameObject FindAvatarPrefab(string characterId)
     {
         Entry entry = FindEntry(characterId);
         if (entry != null && entry.buttonPrefab != null)
@@ -53,6 +53,11 @@ public sealed class TurnTimelineButtonDatabase : ScriptableObject
         }
 
         return defaultButtonPrefab;
+    }
+
+    public GameObject FindButtonPrefab(string characterId)
+    {
+        return FindAvatarPrefab(characterId);
     }
 
     public static TurnTimelineButtonDatabase LoadDefault()

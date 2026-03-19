@@ -9,6 +9,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     private const string EquipmentAssetPath = AssetFolder + "/EnemyEquipmentDatabase.asset";
     private const string SkillLoadoutAssetPath = AssetFolder + "/CharacterSkillLoadoutDatabase.asset";
     private const string BindingAssetPath = AssetFolder + "/BattleCharacterBindings.asset";
+    private const string TimelineAssetPath = AssetFolder + "/TurnTimelineButtonDatabase.asset";
     private const int DefaultSkillSlotCount = 6;
 
     private Vector2 scroll;
@@ -28,13 +29,14 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         EnemyEquipmentDatabase equipmentDatabase = EnsureEnemyEquipmentDatabase();
         CharacterSkillLoadoutDatabase skillLoadoutDatabase = EnsureSkillLoadoutDatabase();
         BattleCharacterBindingDatabase bindingDatabase = EnsureBindingDatabase();
+        TurnTimelineButtonDatabase timelineDatabase = EnsureTimelineDatabase();
         ItemDatabase itemDatabase = ItemDatabase.LoadDefault();
         BattleSkillDatabase battleSkillDatabase = BattleSkillDatabase.LoadDefault();
         BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>(true);
 
         EditorGUILayout.LabelField("\u654C\u4EBA\u88C5\u5907\u6280\u80FD\u7F16\u8F91\u5668", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "\u4E3A\u654C\u4EBA ID \u7ED1\u5B9A\u6A21\u578B\u9884\u5236\u4F53\u3001\u88C5\u5907\u548C\u6280\u80FD\u680F\u4F4D\u3002\u8FD0\u884C\u65F6\u6218\u6597\u4F1A\u6309\u89D2\u8272 ID \u8BFB\u53D6\u8FD9\u4E9B\u914D\u7F6E\u3002",
+            "\u4E3A\u654C\u4EBA ID \u7ED1\u5B9A\u6A21\u578B\u9884\u5236\u4F53\u3001\u6A21\u578B\u7F29\u653E\u3001\u65F6\u95F4\u8F74\u5934\u50CF\u9884\u5236\u4F53\u3001\u88C5\u5907\u548C\u6280\u80FD\u680F\u4F4D\u3002\u8FD0\u884C\u65F6\u6218\u6597\u4F1A\u6309\u89D2\u8272 ID \u8BFB\u53D6\u8FD9\u4E9B\u914D\u7F6E\u3002",
             MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -48,7 +50,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             {
                 if (GUILayout.Button("\u540C\u6B65\u5F53\u524D\u573A\u666F\u654C\u4EBA"))
                 {
-                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, bootstrap);
+                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase, bootstrap);
                 }
             }
         }
@@ -59,7 +61,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             return;
         }
 
-        DrawAddPanel(equipmentDatabase, skillLoadoutDatabase, bindingDatabase);
+        DrawAddPanel(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase);
         EditorGUILayout.Space(8f);
 
         List<string> enemyIds = CollectEnemyIds(equipmentDatabase, bootstrap);
@@ -72,7 +74,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < enemyIds.Count; i++)
         {
-            DrawEnemyEntry(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, itemDatabase, battleSkillDatabase, enemyIds[i]);
+            DrawEnemyEntry(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase, itemDatabase, battleSkillDatabase, enemyIds[i]);
         }
 
         EditorGUILayout.EndScrollView();
@@ -81,7 +83,8 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     private void DrawAddPanel(
         EnemyEquipmentDatabase equipmentDatabase,
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
-        BattleCharacterBindingDatabase bindingDatabase)
+        BattleCharacterBindingDatabase bindingDatabase,
+        TurnTimelineButtonDatabase timelineDatabase)
     {
         EditorGUILayout.LabelField("\u65B0\u589E\u654C\u4EBA\u7ED1\u5B9A", EditorStyles.boldLabel);
         newEnemyId = EditorGUILayout.TextField("\u654C\u4EBAID", newEnemyId);
@@ -93,12 +96,15 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                 Undo.RecordObject(equipmentDatabase, "\u65B0\u589E\u654C\u4EBA\u88C5\u5907\u7ED1\u5B9A");
                 Undo.RecordObject(skillLoadoutDatabase, "\u65B0\u589E\u654C\u4EBA\u6280\u80FD\u7ED1\u5B9A");
                 Undo.RecordObject(bindingDatabase, "\u65B0\u589E\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
+                Undo.RecordObject(timelineDatabase, "\u65B0\u589E\u654C\u4EBA\u65F6\u95F4\u8F74\u5934\u50CF\u7ED1\u5B9A");
                 equipmentDatabase.GetOrCreateEntry(newEnemyId.Trim());
                 skillLoadoutDatabase.GetOrCreateEntry(newEnemyId.Trim());
                 GetOrCreateBinding(bindingDatabase, newEnemyId.Trim());
+                GetOrCreateTimelineEntry(timelineDatabase, newEnemyId.Trim());
                 SaveDatabase(equipmentDatabase);
                 SaveDatabase(skillLoadoutDatabase);
                 SaveDatabase(bindingDatabase);
+                SaveDatabase(timelineDatabase);
                 newEnemyId = string.Empty;
             }
         }
@@ -108,6 +114,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         EnemyEquipmentDatabase equipmentDatabase,
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
         BattleCharacterBindingDatabase bindingDatabase,
+        TurnTimelineButtonDatabase timelineDatabase,
         ItemDatabase itemDatabase,
         BattleSkillDatabase battleSkillDatabase,
         string enemyId)
@@ -117,6 +124,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry = skillLoadoutDatabase.GetOrCreateEntry(enemyId);
         CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, DefaultSkillSlotCount);
         BattleCharacterBindingDatabase.BindingEntry bindingEntry = GetOrCreateBinding(bindingDatabase, enemyId);
+        TurnTimelineButtonDatabase.Entry timelineEntry = GetOrCreateTimelineEntry(timelineDatabase, enemyId);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -141,18 +149,21 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                     Undo.RecordObject(equipmentDatabase, "\u5220\u9664\u654C\u4EBA\u88C5\u5907\u7ED1\u5B9A");
                     Undo.RecordObject(skillLoadoutDatabase, "\u5220\u9664\u654C\u4EBA\u6280\u80FD\u7ED1\u5B9A");
                     Undo.RecordObject(bindingDatabase, "\u5220\u9664\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
+                    Undo.RecordObject(timelineDatabase, "\u5220\u9664\u654C\u4EBA\u65F6\u95F4\u8F74\u5934\u50CF\u7ED1\u5B9A");
                     equipmentDatabase.RemoveEntry(enemyId);
                     RemoveSkillEntry(skillLoadoutDatabase, enemyId);
                     RemoveBindingEntry(bindingDatabase, enemyId);
+                    RemoveTimelineEntry(timelineDatabase, enemyId);
                     SaveDatabase(equipmentDatabase);
                     SaveDatabase(skillLoadoutDatabase);
                     SaveDatabase(bindingDatabase);
+                    SaveDatabase(timelineDatabase);
                     GUIUtility.ExitGUI();
                 }
             }
 
             EditorGUI.BeginChangeCheck();
-            DrawBindingEditor(bindingDatabase, bindingEntry);
+            DrawBindingEditor(bindingDatabase, timelineDatabase, bindingEntry, timelineEntry);
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("\u88C5\u5907", EditorStyles.boldLabel);
@@ -170,15 +181,18 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                 SaveDatabase(equipmentDatabase);
                 SaveDatabase(skillLoadoutDatabase);
                 SaveDatabase(bindingDatabase);
+                SaveDatabase(timelineDatabase);
             }
         }
     }
 
     private static void DrawBindingEditor(
         BattleCharacterBindingDatabase bindingDatabase,
-        BattleCharacterBindingDatabase.BindingEntry bindingEntry)
+        TurnTimelineButtonDatabase timelineDatabase,
+        BattleCharacterBindingDatabase.BindingEntry bindingEntry,
+        TurnTimelineButtonDatabase.Entry timelineEntry)
     {
-        if (bindingDatabase == null || bindingEntry == null)
+        if (bindingDatabase == null || timelineDatabase == null || bindingEntry == null || timelineEntry == null)
         {
             return;
         }
@@ -190,6 +204,22 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         {
             Undo.RecordObject(bindingDatabase, "\u7F16\u8F91\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
             bindingEntry.modelPrefab = nextPrefab;
+        }
+
+        Vector3 currentScale = bindingEntry.modelScale;
+        Vector3 nextScale = EditorGUILayout.Vector3Field("\u6A21\u578B\u7F29\u653E", currentScale);
+        if (nextScale != currentScale)
+        {
+            Undo.RecordObject(bindingDatabase, "\u7F16\u8F91\u654C\u4EBA\u6A21\u578B\u7F29\u653E");
+            bindingEntry.modelScale = nextScale;
+        }
+
+        GameObject currentTimelinePrefab = timelineEntry.buttonPrefab;
+        GameObject nextTimelinePrefab = EditorGUILayout.ObjectField("\u65F6\u95F4\u8F74\u5934\u50CF\u9884\u5236\u4F53", currentTimelinePrefab, typeof(GameObject), false) as GameObject;
+        if (nextTimelinePrefab != currentTimelinePrefab)
+        {
+            Undo.RecordObject(timelineDatabase, "\u7F16\u8F91\u654C\u4EBA\u65F6\u95F4\u8F74\u5934\u50CF\u7ED1\u5B9A");
+            timelineEntry.buttonPrefab = nextTimelinePrefab;
         }
     }
 
@@ -426,9 +456,10 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         EnemyEquipmentDatabase equipmentDatabase,
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
         BattleCharacterBindingDatabase bindingDatabase,
+        TurnTimelineButtonDatabase timelineDatabase,
         BattleBootstrap bootstrap)
     {
-        if (equipmentDatabase == null || skillLoadoutDatabase == null || bindingDatabase == null || bootstrap == null || bootstrap.enemySpawns == null)
+        if (equipmentDatabase == null || skillLoadoutDatabase == null || bindingDatabase == null || timelineDatabase == null || bootstrap == null || bootstrap.enemySpawns == null)
         {
             return;
         }
@@ -436,6 +467,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         Undo.RecordObject(equipmentDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u88C5\u5907");
         Undo.RecordObject(skillLoadoutDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6280\u80FD");
         Undo.RecordObject(bindingDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
+        Undo.RecordObject(timelineDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u65F6\u95F4\u8F74\u5934\u50CF\u7ED1\u5B9A");
         for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
         {
             BattleBootstrap.EnemySpawnEntry enemy = bootstrap.enemySpawns[i];
@@ -449,11 +481,13 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                 skillLoadoutDatabase.GetOrCreateEntry(enemy.enemyId.Trim()),
                 DefaultSkillSlotCount);
             GetOrCreateBinding(bindingDatabase, enemy.enemyId.Trim());
+            GetOrCreateTimelineEntry(timelineDatabase, enemy.enemyId.Trim());
         }
 
         SaveDatabase(equipmentDatabase);
         SaveDatabase(skillLoadoutDatabase);
         SaveDatabase(bindingDatabase);
+        SaveDatabase(timelineDatabase);
     }
 
     private static BattleCharacterBindingDatabase EnsureBindingDatabase()
@@ -471,6 +505,26 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
 
         database = CreateInstance<BattleCharacterBindingDatabase>();
         AssetDatabase.CreateAsset(database, BindingAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static TurnTimelineButtonDatabase EnsureTimelineDatabase()
+    {
+        TurnTimelineButtonDatabase database = AssetDatabase.LoadAssetAtPath<TurnTimelineButtonDatabase>(TimelineAssetPath);
+        if (database != null)
+        {
+            return database;
+        }
+
+        if (!AssetDatabase.IsValidFolder(AssetFolder))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        database = CreateInstance<TurnTimelineButtonDatabase>();
+        AssetDatabase.CreateAsset(database, TimelineAssetPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         return database;
@@ -549,6 +603,17 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         AssetDatabase.SaveAssets();
     }
 
+    private static void SaveDatabase(TurnTimelineButtonDatabase timelineDatabase)
+    {
+        if (timelineDatabase == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(timelineDatabase);
+        AssetDatabase.SaveAssets();
+    }
+
     private static void RemoveSkillEntry(CharacterSkillLoadoutDatabase skillLoadoutDatabase, string characterId)
     {
         if (skillLoadoutDatabase == null || string.IsNullOrWhiteSpace(characterId) || skillLoadoutDatabase.Entries == null)
@@ -611,6 +676,50 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             }
 
             bindingDatabase.Entries.RemoveAt(i);
+            return;
+        }
+    }
+
+    private static TurnTimelineButtonDatabase.Entry GetOrCreateTimelineEntry(
+        TurnTimelineButtonDatabase timelineDatabase,
+        string characterId)
+    {
+        if (timelineDatabase == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        TurnTimelineButtonDatabase.Entry entry = timelineDatabase.FindEntry(characterId.Trim());
+        if (entry != null)
+        {
+            return entry;
+        }
+
+        entry = new TurnTimelineButtonDatabase.Entry
+        {
+            characterId = characterId.Trim(),
+            buttonPrefab = null
+        };
+        timelineDatabase.Entries.Add(entry);
+        return entry;
+    }
+
+    private static void RemoveTimelineEntry(TurnTimelineButtonDatabase timelineDatabase, string characterId)
+    {
+        if (timelineDatabase == null || string.IsNullOrWhiteSpace(characterId) || timelineDatabase.Entries == null)
+        {
+            return;
+        }
+
+        for (int i = timelineDatabase.Entries.Count - 1; i >= 0; i--)
+        {
+            TurnTimelineButtonDatabase.Entry entry = timelineDatabase.Entries[i];
+            if (entry == null || !string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            timelineDatabase.Entries.RemoveAt(i);
             return;
         }
     }

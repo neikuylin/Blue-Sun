@@ -117,10 +117,10 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
     private void DrawTimelineBindingTable(TurnTimelineButtonDatabase database)
     {
-        EditorGUILayout.LabelField("回合时间轴按钮绑定", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("回合时间轴头像绑定", EditorStyles.boldLabel);
         if (database == null)
         {
-            EditorGUILayout.HelpBox("时间轴按钮资产创建失败。", MessageType.Error);
+            EditorGUILayout.HelpBox("时间轴头像资产创建失败。", MessageType.Error);
             return;
         }
 
@@ -138,12 +138,27 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
             using (new EditorGUILayout.VerticalScope("box"))
             {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    string characterId = entry.FindPropertyRelative("characterId").stringValue;
+                    EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(characterId) ? $"时间轴头像 {i + 1}" : characterId, EditorStyles.boldLabel);
+
+                    if (GUILayout.Button("删除绑定", GUILayout.Width(88f)))
+                    {
+                        entries.DeleteArrayElementAtIndex(i);
+                        timelineDatabaseObject.ApplyModifiedProperties();
+                        EditorUtility.SetDirty(database);
+                        AssetDatabase.SaveAssets();
+                        GUIUtility.ExitGUI();
+                    }
+                }
+
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("buttonPrefab"), new GUIContent("时间轴按钮预制体"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("buttonPrefab"), new GUIContent("时间轴头像预制体"));
             }
         }
 
-        if (GUILayout.Button("新增空时间轴绑定"))
+        if (GUILayout.Button("新增空时间轴头像绑定"))
         {
             entries.InsertArrayElementAtIndex(entries.arraySize);
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
