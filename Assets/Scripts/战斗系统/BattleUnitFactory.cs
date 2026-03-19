@@ -79,9 +79,7 @@ public sealed class BattleUnitFactory
             unit.attackDamage = 5;
             unit.footprintSize = 3;
             unit.yawOffset = 0f;
-            unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
             unit.useAutoVisualAnchor = binding != null && binding.useAutoVisualAnchor;
-            unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
             unit.ApplyStats(statEntry);
             unit.Setup(selection.characterId, BattleTeam.Player, ResolveDisplayName(selection.characterId, binding), startCell);
             unit.isPlayerControlled = true;
@@ -139,9 +137,7 @@ public sealed class BattleUnitFactory
             unit.attackDamage = 2;
             unit.footprintSize = 3;
             unit.yawOffset = 0f;
-            unit.cellOffset = binding != null ? binding.cellOffset : Vector2Int.zero;
             unit.useAutoVisualAnchor = binding != null && binding.useAutoVisualAnchor;
-            unit.worldOffset = binding != null ? binding.worldOffset : Vector3.zero;
             unit.ApplyStats(statEntry);
             unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolveDisplayName(enemyEntry.enemyId, binding), spawnCell);
             unit.isPlayerControlled = enemyEntry.isPlayerControlled;

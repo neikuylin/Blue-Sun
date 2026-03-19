@@ -31,8 +31,6 @@ public class BattleUnit : MonoBehaviour
 
     [Header("Presentation")]
     public float yawOffset = 0f;
-    public Vector2Int cellOffset = Vector2Int.zero;
-    public Vector3 worldOffset = Vector3.zero;
     public bool useAutoVisualAnchor = true;
     public float moveSpeed = 8f;
 
@@ -347,8 +345,7 @@ public class BattleUnit : MonoBehaviour
 
     private Vector3 ResolveAdjustedWorldPosition(Vector3 worldPosition)
     {
-        Vector3 adjustedWorldPosition = worldPosition + new Vector3(cellOffset.x, 0f, cellOffset.y) + worldOffset;
-        return adjustedWorldPosition + anchorOffset;
+        return worldPosition + anchorOffset;
     }
 
     private IEnumerator MoveAlongPathRoutine(IReadOnlyList<Vector3> targets, float speed)

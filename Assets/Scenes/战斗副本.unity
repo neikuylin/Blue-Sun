@@ -4746,15 +4746,7 @@ MonoBehaviour:
   playerSpawnOrigin: {x: 4, y: 4}
   playerSpawnSpacing: {x: 4, y: 4}
   enemySpawnCell: {x: 13, y: 12}
-  enemySpawns:
-  - enemyId: "\u5047\u4EBA"
-    spawnCell: {x: 13, y: 12}
-    team: 1
-    isPlayerControlled: 0
-  - enemyId: "\u5047\u4EBA"
-    spawnCell: {x: 15, y: 12}
-    team: 1
-    isPlayerControlled: 0
+  enemySpawns: []
   legacyRootNamesToDisable:
   - "\u7231\u4E3D\u4E1Droot"
   - "\u7D22\u62C9\u5A1Croot"
@@ -9272,8 +9264,6 @@ MonoBehaviour:
   intelligence: 0
   maxActionPoints: 4
   yawOffset: 0
-  cellOffset: {x: 0, y: 0}
-  worldOffset: {x: 0, y: 0, z: 0}
   useAutoVisualAnchor: 0
   moveSpeed: 8
   currentHealth: 18

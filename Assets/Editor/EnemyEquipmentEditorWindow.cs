@@ -8,6 +8,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     private const string AssetFolder = "Assets/Resources";
     private const string EquipmentAssetPath = AssetFolder + "/EnemyEquipmentDatabase.asset";
     private const string SkillLoadoutAssetPath = AssetFolder + "/CharacterSkillLoadoutDatabase.asset";
+    private const string BindingAssetPath = AssetFolder + "/BattleCharacterBindings.asset";
     private const int DefaultSkillSlotCount = 6;
 
     private Vector2 scroll;
@@ -26,13 +27,14 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     {
         EnemyEquipmentDatabase equipmentDatabase = EnsureEnemyEquipmentDatabase();
         CharacterSkillLoadoutDatabase skillLoadoutDatabase = EnsureSkillLoadoutDatabase();
+        BattleCharacterBindingDatabase bindingDatabase = EnsureBindingDatabase();
         ItemDatabase itemDatabase = ItemDatabase.LoadDefault();
         BattleSkillDatabase battleSkillDatabase = BattleSkillDatabase.LoadDefault();
         BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>(true);
 
         EditorGUILayout.LabelField("\u654C\u4EBA\u88C5\u5907\u6280\u80FD\u7F16\u8F91\u5668", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "\u4E3A\u654C\u4EBA ID \u7ED1\u5B9A\u88C5\u5907\u548C\u6280\u80FD\u680F\u4F4D\u3002\u8FD0\u884C\u65F6\u6218\u6597\u4F1A\u6309\u89D2\u8272 ID \u8BFB\u53D6\u8FD9\u4E9B\u914D\u7F6E\u3002",
+            "\u4E3A\u654C\u4EBA ID \u7ED1\u5B9A\u6A21\u578B\u9884\u5236\u4F53\u3001\u88C5\u5907\u548C\u6280\u80FD\u680F\u4F4D\u3002\u8FD0\u884C\u65F6\u6218\u6597\u4F1A\u6309\u89D2\u8272 ID \u8BFB\u53D6\u8FD9\u4E9B\u914D\u7F6E\u3002",
             MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -46,7 +48,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             {
                 if (GUILayout.Button("\u540C\u6B65\u5F53\u524D\u573A\u666F\u654C\u4EBA"))
                 {
-                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bootstrap);
+                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, bootstrap);
                 }
             }
         }
@@ -57,7 +59,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             return;
         }
 
-        DrawAddPanel(equipmentDatabase, skillLoadoutDatabase);
+        DrawAddPanel(equipmentDatabase, skillLoadoutDatabase, bindingDatabase);
         EditorGUILayout.Space(8f);
 
         List<string> enemyIds = CollectEnemyIds(equipmentDatabase, bootstrap);
@@ -70,7 +72,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < enemyIds.Count; i++)
         {
-            DrawEnemyEntry(equipmentDatabase, skillLoadoutDatabase, itemDatabase, battleSkillDatabase, enemyIds[i]);
+            DrawEnemyEntry(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, itemDatabase, battleSkillDatabase, enemyIds[i]);
         }
 
         EditorGUILayout.EndScrollView();
@@ -78,7 +80,8 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
 
     private void DrawAddPanel(
         EnemyEquipmentDatabase equipmentDatabase,
-        CharacterSkillLoadoutDatabase skillLoadoutDatabase)
+        CharacterSkillLoadoutDatabase skillLoadoutDatabase,
+        BattleCharacterBindingDatabase bindingDatabase)
     {
         EditorGUILayout.LabelField("\u65B0\u589E\u654C\u4EBA\u7ED1\u5B9A", EditorStyles.boldLabel);
         newEnemyId = EditorGUILayout.TextField("\u654C\u4EBAID", newEnemyId);
@@ -89,10 +92,13 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             {
                 Undo.RecordObject(equipmentDatabase, "\u65B0\u589E\u654C\u4EBA\u88C5\u5907\u7ED1\u5B9A");
                 Undo.RecordObject(skillLoadoutDatabase, "\u65B0\u589E\u654C\u4EBA\u6280\u80FD\u7ED1\u5B9A");
+                Undo.RecordObject(bindingDatabase, "\u65B0\u589E\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
                 equipmentDatabase.GetOrCreateEntry(newEnemyId.Trim());
                 skillLoadoutDatabase.GetOrCreateEntry(newEnemyId.Trim());
+                GetOrCreateBinding(bindingDatabase, newEnemyId.Trim());
                 SaveDatabase(equipmentDatabase);
                 SaveDatabase(skillLoadoutDatabase);
+                SaveDatabase(bindingDatabase);
                 newEnemyId = string.Empty;
             }
         }
@@ -101,6 +107,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     private void DrawEnemyEntry(
         EnemyEquipmentDatabase equipmentDatabase,
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
+        BattleCharacterBindingDatabase bindingDatabase,
         ItemDatabase itemDatabase,
         BattleSkillDatabase battleSkillDatabase,
         string enemyId)
@@ -109,6 +116,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         EnemyEquipmentDatabase.EnsureValidItemList(entry);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry = skillLoadoutDatabase.GetOrCreateEntry(enemyId);
         CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, DefaultSkillSlotCount);
+        BattleCharacterBindingDatabase.BindingEntry bindingEntry = GetOrCreateBinding(bindingDatabase, enemyId);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -132,15 +140,22 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                 {
                     Undo.RecordObject(equipmentDatabase, "\u5220\u9664\u654C\u4EBA\u88C5\u5907\u7ED1\u5B9A");
                     Undo.RecordObject(skillLoadoutDatabase, "\u5220\u9664\u654C\u4EBA\u6280\u80FD\u7ED1\u5B9A");
+                    Undo.RecordObject(bindingDatabase, "\u5220\u9664\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
                     equipmentDatabase.RemoveEntry(enemyId);
                     RemoveSkillEntry(skillLoadoutDatabase, enemyId);
+                    RemoveBindingEntry(bindingDatabase, enemyId);
                     SaveDatabase(equipmentDatabase);
                     SaveDatabase(skillLoadoutDatabase);
+                    SaveDatabase(bindingDatabase);
                     GUIUtility.ExitGUI();
                 }
             }
 
             EditorGUI.BeginChangeCheck();
+            DrawBindingEditor(bindingDatabase, bindingEntry);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("\u88C5\u5907", EditorStyles.boldLabel);
             for (int slotIndex = 0; slotIndex < EnemyEquipmentDatabase.SlotCount; slotIndex++)
             {
                 DrawSlotPopup(itemDatabase, equipmentDatabase, entry, slotIndex);
@@ -154,7 +169,27 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             {
                 SaveDatabase(equipmentDatabase);
                 SaveDatabase(skillLoadoutDatabase);
+                SaveDatabase(bindingDatabase);
             }
+        }
+    }
+
+    private static void DrawBindingEditor(
+        BattleCharacterBindingDatabase bindingDatabase,
+        BattleCharacterBindingDatabase.BindingEntry bindingEntry)
+    {
+        if (bindingDatabase == null || bindingEntry == null)
+        {
+            return;
+        }
+
+        EditorGUILayout.LabelField("\u6A21\u578B\u7ED1\u5B9A", EditorStyles.boldLabel);
+        GameObject currentPrefab = bindingEntry.modelPrefab;
+        GameObject nextPrefab = EditorGUILayout.ObjectField("\u6A21\u578B\u9884\u5236\u4F53", currentPrefab, typeof(GameObject), false) as GameObject;
+        if (nextPrefab != currentPrefab)
+        {
+            Undo.RecordObject(bindingDatabase, "\u7F16\u8F91\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
+            bindingEntry.modelPrefab = nextPrefab;
         }
     }
 
@@ -390,15 +425,17 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
     private static void SyncSceneEnemies(
         EnemyEquipmentDatabase equipmentDatabase,
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
+        BattleCharacterBindingDatabase bindingDatabase,
         BattleBootstrap bootstrap)
     {
-        if (equipmentDatabase == null || skillLoadoutDatabase == null || bootstrap == null || bootstrap.enemySpawns == null)
+        if (equipmentDatabase == null || skillLoadoutDatabase == null || bindingDatabase == null || bootstrap == null || bootstrap.enemySpawns == null)
         {
             return;
         }
 
         Undo.RecordObject(equipmentDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u88C5\u5907");
         Undo.RecordObject(skillLoadoutDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6280\u80FD");
+        Undo.RecordObject(bindingDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
         for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
         {
             BattleBootstrap.EnemySpawnEntry enemy = bootstrap.enemySpawns[i];
@@ -411,10 +448,32 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             CharacterSkillLoadoutDatabase.EnsureSlotDataSize(
                 skillLoadoutDatabase.GetOrCreateEntry(enemy.enemyId.Trim()),
                 DefaultSkillSlotCount);
+            GetOrCreateBinding(bindingDatabase, enemy.enemyId.Trim());
         }
 
         SaveDatabase(equipmentDatabase);
         SaveDatabase(skillLoadoutDatabase);
+        SaveDatabase(bindingDatabase);
+    }
+
+    private static BattleCharacterBindingDatabase EnsureBindingDatabase()
+    {
+        BattleCharacterBindingDatabase database = AssetDatabase.LoadAssetAtPath<BattleCharacterBindingDatabase>(BindingAssetPath);
+        if (database != null)
+        {
+            return database;
+        }
+
+        if (!AssetDatabase.IsValidFolder(AssetFolder))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        database = CreateInstance<BattleCharacterBindingDatabase>();
+        AssetDatabase.CreateAsset(database, BindingAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
     }
 
     private static EnemyEquipmentDatabase EnsureEnemyEquipmentDatabase()
@@ -479,6 +538,17 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         AssetDatabase.SaveAssets();
     }
 
+    private static void SaveDatabase(BattleCharacterBindingDatabase bindingDatabase)
+    {
+        if (bindingDatabase == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(bindingDatabase);
+        AssetDatabase.SaveAssets();
+    }
+
     private static void RemoveSkillEntry(CharacterSkillLoadoutDatabase skillLoadoutDatabase, string characterId)
     {
         if (skillLoadoutDatabase == null || string.IsNullOrWhiteSpace(characterId) || skillLoadoutDatabase.Entries == null)
@@ -495,6 +565,52 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             }
 
             skillLoadoutDatabase.Entries.RemoveAt(i);
+            return;
+        }
+    }
+
+    private static BattleCharacterBindingDatabase.BindingEntry GetOrCreateBinding(
+        BattleCharacterBindingDatabase bindingDatabase,
+        string characterId)
+    {
+        if (bindingDatabase == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.FindBinding(characterId.Trim());
+        if (binding != null)
+        {
+            return binding;
+        }
+
+        binding = new BattleCharacterBindingDatabase.BindingEntry
+        {
+            characterId = characterId.Trim(),
+            displayName = characterId.Trim(),
+            modelScale = Vector3.one,
+            useAutoVisualAnchor = true
+        };
+        bindingDatabase.Entries.Add(binding);
+        return binding;
+    }
+
+    private static void RemoveBindingEntry(BattleCharacterBindingDatabase bindingDatabase, string characterId)
+    {
+        if (bindingDatabase == null || string.IsNullOrWhiteSpace(characterId) || bindingDatabase.Entries == null)
+        {
+            return;
+        }
+
+        for (int i = bindingDatabase.Entries.Count - 1; i >= 0; i--)
+        {
+            BattleCharacterBindingDatabase.BindingEntry entry = bindingDatabase.Entries[i];
+            if (entry == null || !string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            bindingDatabase.Entries.RemoveAt(i);
             return;
         }
     }

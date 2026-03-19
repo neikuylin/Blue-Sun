@@ -181,6 +181,21 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty entry = entries.GetArrayElementAtIndex(i);
             using (new EditorGUILayout.VerticalScope("box"))
             {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    string characterId = entry.FindPropertyRelative("characterId").stringValue;
+                    EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(characterId) ? $"绑定 {i + 1}" : characterId, EditorStyles.boldLabel);
+
+                    if (GUILayout.Button("删除绑定", GUILayout.Width(88f)))
+                    {
+                        entries.DeleteArrayElementAtIndex(i);
+                        bindingDatabaseObject.ApplyModifiedProperties();
+                        EditorUtility.SetDirty(database);
+                        AssetDatabase.SaveAssets();
+                        GUIUtility.ExitGUI();
+                    }
+                }
+
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("显示名"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitSprite"), new GUIContent("背景立绘"));
@@ -188,8 +203,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("模型预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelScale"), new GUIContent("模型缩放"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("格子偏移"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("世界偏移"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("自动视觉锚点"));
                 DrawAnimatorBindingStatus(entry);
             }
@@ -206,8 +219,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
-            added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
-            added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
         }
 
@@ -326,8 +337,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
-            added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
-            added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
         }
     }

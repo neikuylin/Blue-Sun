@@ -13,16 +13,16 @@ public class BattleBootstrap : MonoBehaviour
     [System.Serializable]
     public sealed class EnemySpawnEntry
     {
-        public string enemyId = EnemyId;
+        public string enemyId = string.Empty;
         public Vector2Int spawnCell = new Vector2Int(13, 12);
         public BattleTeam team = BattleTeam.Enemy;
         public bool isPlayerControlled;
     }
 
     private const string SceneName = "战斗副本";
+    private const string RoomEnemyPresetId = "房间预设";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
-    private const string EnemyId = "假人";
 
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
@@ -223,37 +223,37 @@ public class BattleBootstrap : MonoBehaviour
     private List<EnemySpawnEntry> GetEnemySpawnEntries()
     {
         List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
-        if (enemySpawns != null)
+        RoomEnemyPresetDatabase presetDatabase = RoomEnemyPresetDatabase.LoadDefault();
+        if (presetDatabase == null)
         {
-            for (int i = 0; i < enemySpawns.Count; i++)
-            {
-                EnemySpawnEntry entry = enemySpawns[i];
-                if (entry == null || string.IsNullOrWhiteSpace(entry.enemyId))
-                {
-                    continue;
-                }
+            Debug.LogWarning($"BattleBootstrap: missing RoomEnemyPresetDatabase. Scene '{SceneName}' expected preset '{RoomEnemyPresetId}'.");
+            return entries;
+        }
 
-                entries.Add(entry);
+        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.FindEntry(RoomEnemyPresetId);
+        if (preset == null || preset.enemies == null)
+        {
+            Debug.LogWarning($"BattleBootstrap: missing room enemy preset '{RoomEnemyPresetId}' for scene '{SceneName}'.");
+            return entries;
+        }
+
+        for (int i = 0; i < preset.enemies.Count; i++)
+        {
+            EnemySpawnEntry entry = preset.enemies[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.enemyId))
+            {
+                continue;
             }
+
+            entries.Add(RoomEnemyPresetDatabase.CloneEnemy(entry));
         }
 
         if (entries.Count == 0)
         {
-            entries.Add(CreateDefaultEnemyEntry());
+            Debug.LogWarning($"BattleBootstrap: room enemy preset '{RoomEnemyPresetId}' contains no valid enemies.");
         }
 
         return entries;
-    }
-
-    private EnemySpawnEntry CreateDefaultEnemyEntry()
-    {
-        return new EnemySpawnEntry
-        {
-            enemyId = EnemyId,
-            spawnCell = enemySpawnCell,
-            team = BattleTeam.Enemy,
-            isPlayerControlled = false
-        };
     }
 
     private void SetupBattleCamera(Camera mainCamera)
