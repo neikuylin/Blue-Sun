@@ -187,6 +187,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitPrefab"), new GUIContent("背景立绘预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("模型预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelScale"), new GUIContent("模型缩放"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cellOffset"), new GUIContent("格子偏移"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("worldOffset"), new GUIContent("世界偏移"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("自动视觉锚点"));
@@ -204,6 +205,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
+            added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
             added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
@@ -323,6 +325,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
+            added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("cellOffset").vector2IntValue = Vector2Int.zero;
             added.FindPropertyRelative("worldOffset").vector3Value = Vector3.zero;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;

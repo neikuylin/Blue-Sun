@@ -17,6 +17,7 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
         public GameObject backgroundPortraitPrefab;
         public GameObject modelPrefab;
         public RuntimeAnimatorController animatorController;
+        public Vector3 modelScale = Vector3.one;
         public Vector2Int cellOffset = Vector2Int.zero;
         public Vector3 worldOffset = Vector3.zero;
         public bool useAutoVisualAnchor = true;

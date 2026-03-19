@@ -167,6 +167,7 @@ public sealed class BattleUnitFactory
         {
             GameObject instance = Object.Instantiate(binding.modelPrefab, worldPosition, Quaternion.identity, runtimeRoot);
             instance.name = characterId + "_Unit";
+            ApplyBindingScale(instance, binding);
             ApplyAnimatorBinding(instance, binding);
             return instance;
         }
@@ -211,6 +212,26 @@ public sealed class BattleUnitFactory
         {
             Debug.LogWarning($"BattleUnitFactory: Animator bound for '{instance.name}', but no Avatar was found. Humanoid animations may not play correctly.");
         }
+    }
+
+    private static void ApplyBindingScale(GameObject instance, BattleCharacterBindingDatabase.BindingEntry binding)
+    {
+        if (instance == null || binding == null)
+        {
+            return;
+        }
+
+        Vector3 configuredScale = binding.modelScale;
+        if (configuredScale == Vector3.zero)
+        {
+            configuredScale = Vector3.one;
+        }
+
+        Vector3 prefabScale = instance.transform.localScale;
+        instance.transform.localScale = new Vector3(
+            prefabScale.x * configuredScale.x,
+            prefabScale.y * configuredScale.y,
+            prefabScale.z * configuredScale.z);
     }
 
     private GameObject CreatePlaceholderUnitRoot(string rootName, Vector3 worldPosition, Color color)
