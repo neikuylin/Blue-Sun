@@ -185,7 +185,10 @@ public class BattleBootstrap : MonoBehaviour
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
     {
+        BattleAnimationSettings animationSettings = BattleAnimationSettings.LoadDefault();
         BattleUnitFactory factory = new BattleUnitFactory(
+            animationSettings != null ? animationSettings.idleStateName : string.Empty,
+            animationSettings != null ? animationSettings.idleYawOffset : 0f,
             characterBindingDatabase,
             characterStatDatabase,
             runtimeRoot,

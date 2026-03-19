@@ -6,10 +6,12 @@ using UnityEngine;
 
 public sealed class SkillActionBindingWindow : EditorWindow
 {
-    private const string AssetPath = "Assets/Resources/BattleSkillDatabase.asset";
+    private const string SkillAssetPath = "Assets/Resources/BattleSkillDatabase.asset";
+    private const string SettingsAssetPath = "Assets/Resources/BattleAnimationSettings.asset";
 
     private Vector2 scroll;
-    private SerializedObject databaseObject;
+    private SerializedObject skillDatabaseObject;
+    private SerializedObject settingsObject;
 
     [MenuItem("Tools/技能/技能动作栏")]
     private static void Open()
@@ -22,37 +24,67 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
     private void OnGUI()
     {
-        BattleSkillDatabase database = AssetDatabase.LoadAssetAtPath<BattleSkillDatabase>(AssetPath);
-        if (database == null)
+        BattleSkillDatabase skillDatabase = AssetDatabase.LoadAssetAtPath<BattleSkillDatabase>(SkillAssetPath);
+        BattleAnimationSettings settings = EnsureSettings();
+        if (skillDatabase == null)
         {
             EditorGUILayout.HelpBox("未找到 BattleSkillDatabase.asset。请先打开技能编辑器创建技能库。", MessageType.Warning);
             return;
         }
 
-        if (databaseObject == null || databaseObject.targetObject != database)
+        if (skillDatabaseObject == null || skillDatabaseObject.targetObject != skillDatabase)
         {
-            databaseObject = new SerializedObject(database);
+            skillDatabaseObject = new SerializedObject(skillDatabase);
+        }
+
+        if (settingsObject == null || settingsObject.targetObject != settings)
+        {
+            settingsObject = new SerializedObject(settings);
         }
 
         List<string> actionOptions = BuildActionOptions();
 
         EditorGUILayout.LabelField("技能动作栏", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("把技能绑定到 Animator 状态名。动作选项来自 BattleCharacterBindings 里已绑定控制器的状态。", MessageType.Info);
+        EditorGUILayout.HelpBox("顶部固定配置待机动画和待机角度修正。下面每个技能只绑定自己的动作和角度修正。", MessageType.Info);
 
-        scroll = EditorGUILayout.BeginScrollView(scroll);
-        databaseObject.Update();
-        SerializedProperty entries = databaseObject.FindProperty("entries");
-        for (int i = 0; i < entries.arraySize; i++)
+        settingsObject.Update();
+        using (new EditorGUILayout.VerticalScope("box"))
         {
-            SerializedProperty entry = entries.GetArrayElementAtIndex(i);
-            DrawSkillRow(entry, actionOptions);
+            EditorGUILayout.LabelField("待机动画", EditorStyles.boldLabel);
+            SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
+            SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
+            string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
+            int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
+            int newIdleIndex = EditorGUILayout.Popup("绑定动作", selectedIdleIndex, actionOptions.ToArray());
+            if (idleStateNameProperty != null)
+            {
+                idleStateNameProperty.stringValue = newIdleIndex <= 0 ? string.Empty : actionOptions[newIdleIndex];
+            }
+
+            if (idleYawOffsetProperty != null)
+            {
+                idleYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", idleYawOffsetProperty.floatValue);
+            }
         }
 
+        if (settingsObject.ApplyModifiedProperties())
+        {
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+        }
+
+        scroll = EditorGUILayout.BeginScrollView(scroll);
+        skillDatabaseObject.Update();
+        SerializedProperty entries = skillDatabaseObject.FindProperty("entries");
+        for (int i = 0; i < entries.arraySize; i++)
+        {
+            DrawSkillRow(entries.GetArrayElementAtIndex(i), actionOptions);
+        }
         EditorGUILayout.EndScrollView();
 
-        if (databaseObject.ApplyModifiedProperties())
+        if (skillDatabaseObject.ApplyModifiedProperties())
         {
-            EditorUtility.SetDirty(database);
+            EditorUtility.SetDirty(skillDatabase);
             AssetDatabase.SaveAssets();
         }
     }
@@ -66,6 +98,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
         SerializedProperty skillIdProperty = entry.FindPropertyRelative("skillId");
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
         string skillId = skillIdProperty != null ? skillIdProperty.stringValue : string.Empty;
@@ -82,7 +115,32 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 actionStateNameProperty.stringValue = newIndex <= 0 ? string.Empty : actionOptions[newIndex];
             }
+
+            if (actionYawOffsetProperty != null)
+            {
+                actionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", actionYawOffsetProperty.floatValue);
+            }
         }
+    }
+
+    private static BattleAnimationSettings EnsureSettings()
+    {
+        BattleAnimationSettings settings = AssetDatabase.LoadAssetAtPath<BattleAnimationSettings>(SettingsAssetPath);
+        if (settings != null)
+        {
+            return settings;
+        }
+
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        settings = CreateInstance<BattleAnimationSettings>();
+        AssetDatabase.CreateAsset(settings, SettingsAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return settings;
     }
 
     private static int FindOptionIndex(List<string> options, string currentValue)
@@ -132,43 +190,33 @@ public sealed class SkillActionBindingWindow : EditorWindow
         {
             BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.Entries[i];
             AnimatorController controller = binding != null ? binding.animatorController as AnimatorController : null;
-            if (controller == null)
+            if (controller == null || controller.layers == null)
             {
                 continue;
             }
 
-            CollectStates(controller.layers, options, seen);
-        }
-
-        return options;
-    }
-
-    private static void CollectStates(AnimatorControllerLayer[] layers, List<string> options, HashSet<string> seen)
-    {
-        if (layers == null)
-        {
-            return;
-        }
-
-        for (int layerIndex = 0; layerIndex < layers.Length; layerIndex++)
-        {
-            AnimatorStateMachine stateMachine = layers[layerIndex].stateMachine;
-            if (stateMachine == null)
+            for (int layerIndex = 0; layerIndex < controller.layers.Length; layerIndex++)
             {
-                continue;
-            }
-
-            ChildAnimatorState[] states = stateMachine.states;
-            for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
-            {
-                AnimatorState state = states[stateIndex].state;
-                if (state == null || string.IsNullOrWhiteSpace(state.name) || !seen.Add(state.name))
+                AnimatorStateMachine stateMachine = controller.layers[layerIndex].stateMachine;
+                if (stateMachine == null)
                 {
                     continue;
                 }
 
-                options.Add(state.name);
+                ChildAnimatorState[] states = stateMachine.states;
+                for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
+                {
+                    AnimatorState state = states[stateIndex].state;
+                    if (state == null || string.IsNullOrWhiteSpace(state.name) || !seen.Add(state.name))
+                    {
+                        continue;
+                    }
+
+                    options.Add(state.name);
+                }
             }
         }
+
+        return options;
     }
 }

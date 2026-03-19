@@ -210,7 +210,7 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
-    public void PlayTimedAnimation(string stateName, float duration)
+    public void PlayTimedAnimation(string stateName, float duration, string idleStateName = "")
     {
         if (string.IsNullOrWhiteSpace(stateName) || duration <= 0.01f)
         {
@@ -228,7 +228,33 @@ public class BattleUnit : MonoBehaviour
             StopCoroutine(timedAnimationRoutine);
         }
 
-        timedAnimationRoutine = StartCoroutine(PlayTimedAnimationRoutine(animator, stateName, duration));
+        timedAnimationRoutine = StartCoroutine(PlayTimedAnimationRoutine(animator, stateName, duration, idleStateName));
+    }
+
+    public void PlayAnimationState(string stateName)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return;
+        }
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        animator.Play(stateName, 0, 0f);
+    }
+
+    public void ApplyYawOffset(float yawOffsetDegrees)
+    {
+        if (Mathf.Abs(yawOffsetDegrees) <= 0.01f)
+        {
+            return;
+        }
+
+        transform.rotation = transform.rotation * Quaternion.Euler(0f, yawOffsetDegrees, 0f);
     }
 
     public void ApplyTint(Color tintColor, float strength)
@@ -277,7 +303,7 @@ public class BattleUnit : MonoBehaviour
         get { return Mathf.Max(0, footprintSize / 2); }
     }
 
-    private IEnumerator PlayTimedAnimationRoutine(Animator animator, string stateName, float duration)
+    private IEnumerator PlayTimedAnimationRoutine(Animator animator, string stateName, float duration, string idleStateName)
     {
         if (animator == null || string.IsNullOrWhiteSpace(stateName))
         {
@@ -291,7 +317,11 @@ public class BattleUnit : MonoBehaviour
 
         yield return new WaitForSeconds(duration);
 
-        if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
+        {
+            animator.Play(idleStateName, 0, 0f);
+        }
+        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
             animator.Play(previousStateHash, 0, 0f);
         }

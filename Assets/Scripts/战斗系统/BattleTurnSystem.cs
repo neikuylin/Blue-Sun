@@ -330,7 +330,7 @@ public class BattleTurnSystem : MonoBehaviour
         float moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
-            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration);
+            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration, ResolveIdleStateName());
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -2763,7 +2763,7 @@ public class BattleTurnSystem : MonoBehaviour
         moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
-            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration);
+            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration, ResolveIdleStateName());
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -2860,6 +2860,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        Quaternion previousRotation = caster.transform.rotation;
+        if (Mathf.Abs(skill.actionYawOffset) > 0.01f)
+        {
+            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
+        }
+
         animator.Play(skill.actionStateName, 0, 0f);
 
         yield return null;
@@ -2871,10 +2877,30 @@ public class BattleTurnSystem : MonoBehaviour
             yield return new WaitForSeconds(clipDuration);
         }
 
-        if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        string idleStateName = ResolveIdleStateName();
+        float idleYawOffset = ResolveIdleYawOffset();
+        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
+        {
+            animator.Play(idleStateName, 0, 0f);
+            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, idleYawOffset, 0f);
+        }
+        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
             animator.Play(previousStateHash, 0, 0f);
+            caster.transform.rotation = previousRotation;
         }
+    }
+
+    private static string ResolveIdleStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.idleStateName : string.Empty;
+    }
+
+    private static float ResolveIdleYawOffset()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.idleYawOffset : 0f;
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)

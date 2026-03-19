@@ -3,6 +3,8 @@ using UnityEngine;
 
 public sealed class BattleUnitFactory
 {
+    private readonly string idleStateName;
+    private readonly float idleYawOffset;
     private readonly BattleCharacterBindingDatabase characterBindingDatabase;
     private readonly CharacterStatDatabase characterStatDatabase;
     private readonly Transform runtimeRoot;
@@ -12,6 +14,8 @@ public sealed class BattleUnitFactory
     private readonly Color enemyPlaceholderColor;
 
     public BattleUnitFactory(
+        string idleStateName,
+        float idleYawOffset,
         BattleCharacterBindingDatabase characterBindingDatabase,
         CharacterStatDatabase characterStatDatabase,
         Transform runtimeRoot,
@@ -20,6 +24,8 @@ public sealed class BattleUnitFactory
         Color playerPlaceholderColor,
         Color enemyPlaceholderColor)
     {
+        this.idleStateName = idleStateName;
+        this.idleYawOffset = idleYawOffset;
         this.characterBindingDatabase = characterBindingDatabase;
         this.characterStatDatabase = characterStatDatabase;
         this.runtimeRoot = runtimeRoot;
@@ -81,6 +87,8 @@ public sealed class BattleUnitFactory
             unit.isPlayerControlled = true;
             unit.SetCell(startCell, grid.GetWorldPosition(startCell));
             unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
+            unit.PlayAnimationState(idleStateName);
+            unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);
         }
@@ -140,6 +148,8 @@ public sealed class BattleUnitFactory
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
             Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
             unit.FaceToward(grid.GetWorldPosition(facingCell));
+            unit.PlayAnimationState(idleStateName);
+            unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);
         }
