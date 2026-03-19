@@ -43,3 +43,8 @@ MonoBehaviour:
     agility: 2
     intelligence: 2
     actionPoints: 4
+  - characterId: "\u5965\u624E\u514B\u58EB\u5175"
+    strength: 2
+    agility: 2
+    intelligence: 2
+    actionPoints: 4
