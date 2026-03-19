@@ -26,8 +26,8 @@ MonoBehaviour:
     displayName: "\u5E93\u9C81\u65AF"
     backgroundPortraitSprite: {fileID: 0}
     backgroundPortraitPrefab: {fileID: 4082435748922320322, guid: 9b21b2782894be340b19d8ee27e7570c, type: 3}
-    modelPrefab: {fileID: 0}
-    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 919132149155446097, guid: 59e114bf06eb81749b7e90d3043e85c5, type: 3}
+    animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     cellOffset: {x: 0, y: 0}
     worldOffset: {x: 0, y: 0, z: 0}
     useAutoVisualAnchor: 1
