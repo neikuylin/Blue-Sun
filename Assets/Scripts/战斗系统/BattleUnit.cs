@@ -45,6 +45,7 @@ public class BattleUnit : MonoBehaviour
     private Vector3 anchorOffset;
     private bool initialized;
     private Coroutine moveRoutine;
+    private Coroutine timedAnimationRoutine;
     private Renderer[] cachedRenderers;
     private Color[] originalRendererColors;
 
@@ -209,6 +210,27 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
+    public void PlayTimedAnimation(string stateName, float duration)
+    {
+        if (string.IsNullOrWhiteSpace(stateName) || duration <= 0.01f)
+        {
+            return;
+        }
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        if (timedAnimationRoutine != null)
+        {
+            StopCoroutine(timedAnimationRoutine);
+        }
+
+        timedAnimationRoutine = StartCoroutine(PlayTimedAnimationRoutine(animator, stateName, duration));
+    }
+
     public void ApplyTint(Color tintColor, float strength)
     {
         CacheRenderers();
@@ -255,6 +277,28 @@ public class BattleUnit : MonoBehaviour
         get { return Mathf.Max(0, footprintSize / 2); }
     }
 
+    private IEnumerator PlayTimedAnimationRoutine(Animator animator, string stateName, float duration)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(stateName))
+        {
+            timedAnimationRoutine = null;
+            yield break;
+        }
+
+        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
+        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        animator.Play(stateName, 0, 0f);
+
+        yield return new WaitForSeconds(duration);
+
+        if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        {
+            animator.Play(previousStateHash, 0, 0f);
+        }
+
+        timedAnimationRoutine = null;
+    }
+
     private void SetAgilityInternal(int value, bool notifyTurnSystem)
     {
         agility = value;
@@ -290,6 +334,8 @@ public class BattleUnit : MonoBehaviour
                 transform.position = targetPosition;
                 continue;
             }
+
+            FaceToward(targetPosition);
 
             float segmentDuration = segmentDistance / speed;
             float elapsed = 0f;

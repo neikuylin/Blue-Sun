@@ -15,6 +15,7 @@ MonoBehaviour:
   entries:
   - skillId: "\u79FB\u52A8"
     description: 
+    actionStateName: "\u5355\u624B\u79FB\u52A8"
     group: 0
     skillType: 1
     castTarget: 0
@@ -28,6 +29,7 @@ MonoBehaviour:
     effectSize: {x: 3, y: 3}
   - skillId: "\u666E\u901A\u653B\u51FB"
     description: "\u6734\u5B9E\u65E0\u534E"
+    actionStateName: "\u5355\u624B\u666E\u901A\u653B\u51FB"
     group: 1
     skillType: 0
     castTarget: 1

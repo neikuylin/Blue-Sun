@@ -1,5 +1,8 @@
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 
 public sealed class BattleSkillEditorWindow : EditorWindow
 {
@@ -110,6 +113,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 castTarget.enumValueIndex = EditorGUILayout.Popup("\u65bd\u6cd5\u5bf9\u8c61", castTarget.enumValueIndex, CastTargetLabels);
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
+                DrawActionStateField(entry.FindPropertyRelative("actionStateName"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
 
@@ -157,6 +161,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
         entry.FindPropertyRelative("description").stringValue = string.Empty;
+        entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
@@ -233,5 +238,79 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             range = 0,
             effectSize = new Vector2Int(3, 3)
         };
+    }
+
+    private static void DrawActionStateField(SerializedProperty actionStateNameProperty)
+    {
+        List<string> options = BuildActionOptions();
+        string currentValue = actionStateNameProperty != null ? actionStateNameProperty.stringValue : string.Empty;
+        int selectedIndex = 0;
+
+        for (int i = 1; i < options.Count; i++)
+        {
+            if (string.Equals(options[i], currentValue, StringComparison.Ordinal))
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        int newIndex = EditorGUILayout.Popup("\u52a8\u4f5c\u72b6\u6001", selectedIndex, options.ToArray());
+        if (actionStateNameProperty == null)
+        {
+            return;
+        }
+
+        if (newIndex > 0 && newIndex < options.Count)
+        {
+            actionStateNameProperty.stringValue = options[newIndex];
+            return;
+        }
+
+        actionStateNameProperty.stringValue = string.Empty;
+    }
+
+    private static List<string> BuildActionOptions()
+    {
+        List<string> options = new List<string> { "\uff08\u7a7a\uff09" };
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+        BattleCharacterBindingDatabase bindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
+        if (bindingDatabase == null)
+        {
+            return options;
+        }
+
+        for (int i = 0; i < bindingDatabase.Entries.Count; i++)
+        {
+            BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.Entries[i];
+            AnimatorController controller = binding != null ? binding.animatorController as AnimatorController : null;
+            if (controller == null || controller.layers == null)
+            {
+                continue;
+            }
+
+            for (int layerIndex = 0; layerIndex < controller.layers.Length; layerIndex++)
+            {
+                AnimatorStateMachine stateMachine = controller.layers[layerIndex].stateMachine;
+                if (stateMachine == null)
+                {
+                    continue;
+                }
+
+                ChildAnimatorState[] states = stateMachine.states;
+                for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
+                {
+                    AnimatorState state = states[stateIndex].state;
+                    if (state == null || string.IsNullOrWhiteSpace(state.name) || !seen.Add(state.name))
+                    {
+                        continue;
+                    }
+
+                    options.Add(state.name);
+                }
+            }
+        }
+
+        return options;
     }
 }

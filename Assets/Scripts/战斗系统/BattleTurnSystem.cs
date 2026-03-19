@@ -59,6 +59,7 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleSkillDatabase skillDatabase;
     private TurnTimelineButtonDatabase timelineDatabase;
     private Coroutine timelineAnimationRoutine;
+    private Coroutine skillExecutionRoutine;
     private BattleUnit timelineLeadUnit;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
@@ -70,6 +71,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
+    private bool isResolvingSkillExecution;
 
     private sealed class EnemySkillChoice
     {
@@ -124,6 +126,7 @@ public class BattleTurnSystem : MonoBehaviour
         timelineInstanceUnits.Clear();
         activeUnit = null;
         waitingForEnemyAction = false;
+        isResolvingSkillExecution = false;
         currentRoundIndex = -1;
         absoluteRoundIndex = -1;
         activeSkillId = string.Empty;
@@ -184,6 +187,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         if (activeUnit.IsMoving)
+        {
+            return;
+        }
+
+        if (isResolvingSkillExecution)
         {
             return;
         }
@@ -257,8 +265,8 @@ public class BattleTurnSystem : MonoBehaviour
             EnemySkillAction action;
             if (TryFindEnemySkillAction(activeUnit, skillChoices, out action))
             {
-                ExecuteEnemySkillAction(activeUnit, action);
-                yield return new WaitForSeconds(0.35f);
+                yield return ExecuteEnemySkillAction(activeUnit, action);
+                yield return new WaitForSeconds(0.1f);
                 continue;
             }
 
@@ -319,7 +327,12 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        grid.MoveUnit(unit, destination);
+        float moveDuration = grid.MoveUnit(unit, destination);
+        if (moveSkill != null)
+        {
+            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration);
+        }
+
         unit.SpendActionPoints(moveActionPointCost);
         unit.SpendMana(moveManaCost);
         ClearActiveSkillMode();
@@ -1705,7 +1718,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
     {
-        if (!IsSkillModeActive())
+        if (!IsSkillModeActive() || isResolvingSkillExecution)
         {
             return;
         }
@@ -1733,7 +1746,12 @@ public class BattleTurnSystem : MonoBehaviour
                 return;
             }
 
-            ExecuteTargetSkill(unit, target, activeSkill);
+            if (skillExecutionRoutine != null)
+            {
+                StopCoroutine(skillExecutionRoutine);
+            }
+
+            skillExecutionRoutine = StartCoroutine(ExecuteTargetSkillRoutine(unit, target, activeSkill));
             return;
         }
 
@@ -1744,7 +1762,12 @@ public class BattleTurnSystem : MonoBehaviour
                 return;
             }
 
-            ExecuteAreaSkill(unit, clickedCell, activeSkill);
+            if (skillExecutionRoutine != null)
+            {
+                StopCoroutine(skillExecutionRoutine);
+            }
+
+            skillExecutionRoutine = StartCoroutine(ExecuteAreaSkillRoutine(unit, clickedCell, activeSkill));
         }
     }
 
@@ -1832,53 +1855,62 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
-    private void ExecuteTargetSkill(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || target == null || skill == null)
         {
-            return;
+            yield break;
         }
 
         int actionPointCost = GetSkillActionPointCost(skill);
         int manaCost = GetSkillManaCost(skill);
         if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
         {
-            return;
+            yield break;
         }
 
+        isResolvingSkillExecution = true;
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(target.transform.position);
+        yield return PlaySkillAnimationRoutine(caster, skill);
         ApplyCombatArtDamage(caster, target, skill);
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
 
         Debug.Log("Target skill selected: " + caster.unitName + " -> " + target.unitName + " using " + skill.skillId);
+        isResolvingSkillExecution = false;
+        skillExecutionRoutine = null;
     }
 
-    private void ExecuteAreaSkill(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || skill == null)
         {
-            return;
+            yield break;
         }
 
         int actionPointCost = GetSkillActionPointCost(skill);
         int manaCost = GetSkillManaCost(skill);
         if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
         {
-            return;
+            yield break;
         }
 
+        isResolvingSkillExecution = true;
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
+        caster.FaceToward(grid.GetWorldPosition(targetCell));
+        yield return PlaySkillAnimationRoutine(caster, skill);
         ApplyCombatArtAreaDamage(caster, targetCell, skill);
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
 
         Debug.Log("Area skill selected: " + caster.unitName + " -> " + targetCell + " using " + skill.skillId);
+        isResolvingSkillExecution = false;
+        skillExecutionRoutine = null;
     }
 
     private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
@@ -2729,6 +2761,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         moveDuration = grid.MoveUnit(unit, destination);
+        if (moveSkill != null)
+        {
+            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration);
+        }
+
         unit.SpendActionPoints(moveActionPointCost);
         unit.SpendMana(moveManaCost);
         return true;
@@ -2788,24 +2825,56 @@ public class BattleTurnSystem : MonoBehaviour
         return false;
     }
 
-    private void ExecuteEnemySkillAction(BattleUnit caster, EnemySkillAction action)
+    private IEnumerator ExecuteEnemySkillAction(BattleUnit caster, EnemySkillAction action)
     {
         if (caster == null || action.choice == null || action.choice.skill == null)
         {
-            return;
+            yield break;
         }
 
         if (action.choice.skill.skillType == BattleSkillDatabase.SkillType.Target)
         {
             if (action.targetUnit != null)
             {
-                ExecuteTargetSkill(caster, action.targetUnit, action.choice.skill);
+                yield return ExecuteTargetSkillRoutine(caster, action.targetUnit, action.choice.skill);
             }
 
-            return;
+            yield break;
         }
 
-        ExecuteAreaSkill(caster, action.targetCell, action.choice.skill);
+        yield return ExecuteAreaSkillRoutine(caster, action.targetCell, action.choice.skill);
+    }
+
+    private IEnumerator PlaySkillAnimationRoutine(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null || string.IsNullOrWhiteSpace(skill.actionStateName))
+        {
+            yield break;
+        }
+
+        Animator animator = caster.GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            yield break;
+        }
+
+        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
+        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        animator.Play(skill.actionStateName, 0, 0f);
+
+        yield return null;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+        float clipDuration = currentState.length;
+        if (clipDuration > 0.01f)
+        {
+            yield return new WaitForSeconds(clipDuration);
+        }
+
+        if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        {
+            animator.Play(previousStateHash, 0, 0f);
+        }
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)
