@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8711905010607594451}
   m_Layer: 0
-  m_Name: "20x20\u53F3\u4E0A \u5F00\u95E8\u52A8\u753B"
+  m_Name: "\u6218\u6597\u526F\u672C\u53F3\u4E0A \u5F00\u95E8\u52A8\u753B"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -125,7 +125,7 @@ GameObject:
   - component: {fileID: 8711905010899894392}
   - component: {fileID: 8711905010899894393}
   m_Layer: 0
-  m_Name: "20x20\u5899\u58C1"
+  m_Name: "\u6218\u6597\u526F\u672C\u5899\u58C1"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -517,7 +517,7 @@ GameObject:
   - component: {fileID: 8711905011343383674}
   - component: {fileID: 8711905011343383677}
   m_Layer: 0
-  m_Name: "\u77F3\u5934\u5730\u677F20x20"
+  m_Name: "\u77F3\u5934\u5730\u677F-\u6218\u6597\u526F\u672C"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

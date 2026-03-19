@@ -13,7 +13,7 @@ public static class SceneReferenceAutoBinder
 
     private const string AutoBindMenu = "Tools/UI References/Auto Bind Active Scene";
     private const string AutoBindJourneyMenu = "Tools/UI References/Auto Bind Journey Scene";
-    private const string AutoBindBattleMenu = "Tools/UI References/Auto Bind 20x20 Scene";
+    private const string AutoBindBattleMenu = "Tools/UI References/Auto Bind 战斗副本 Scene";
 
     private const string DialogTitle = "\u81ea\u52a8\u7ed1\u5b9a";
     private const string DialogNoScene = "\u5f53\u524d\u6ca1\u6709\u53ef\u7ed1\u5b9a\u7684\u5df2\u52a0\u8f7d\u573a\u666f\u3002";

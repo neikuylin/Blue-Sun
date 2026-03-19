@@ -18742,7 +18742,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1741831351}
         m_TargetAssemblyTypeName: JourneySceneLoader, Assembly-CSharp
-        m_MethodName: Load20x20
+        m_MethodName: LoadBattleScene
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

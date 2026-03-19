@@ -31,7 +31,7 @@ public sealed class ItemQualityBackgroundDatabaseWindow : EditorWindow
         }
 
         EditorGUILayout.LabelField("跨场景物品品质底图", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("启程和20x20都会优先读取这套配置。", MessageType.Info);
+        EditorGUILayout.HelpBox("启程和战斗副本都会优先读取这套配置。", MessageType.Info);
         EditorGUILayout.Space(6f);
 
         DrawEntry("普通（白）", database.Common);

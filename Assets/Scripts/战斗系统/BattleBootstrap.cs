@@ -19,7 +19,7 @@ public class BattleBootstrap : MonoBehaviour
         public bool isPlayerControlled;
     }
 
-    private const string SceneName = "20x20";
+    private const string SceneName = "战斗副本";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string EnemyId = "假人";

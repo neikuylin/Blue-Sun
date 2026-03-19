@@ -3,9 +3,11 @@ using UnityEngine.SceneManagement;
 
 public sealed class JourneySceneLoader : MonoBehaviour
 {
-    public void Load20x20()
+    private const string BattleSceneName = "战斗副本";
+
+    public void LoadBattleScene()
     {
         CharacterSelectionState.CaptureFromCurrentScene();
-        SceneManager.LoadScene("20x20");
+        SceneManager.LoadScene(BattleSceneName);
     }
 }
