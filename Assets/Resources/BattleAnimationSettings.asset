@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: BattleAnimationSettings
   m_EditorClassIdentifier: 
   idleStateName: "\u5F85\u673A\u52A8\u753B"
-  idleYawOffset: 0
+  idleYawOffset: 45
