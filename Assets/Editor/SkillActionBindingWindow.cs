@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -45,19 +45,28 @@ public sealed class SkillActionBindingWindow : EditorWindow
         List<string> actionOptions = BuildActionOptions();
 
         EditorGUILayout.LabelField("技能动作栏", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("顶部配置全局待机动画、进战动画和待机角度修正。下面每个技能只绑定自己的动作和角度修正。", MessageType.Info);
+        EditorGUILayout.HelpBox("顶部配置全局待机、进战、受击、闪避动作和待机角度修正。下方每个技能只绑定自己的施放动作和角度修正。", MessageType.Info);
 
         settingsObject.Update();
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField("全局动画", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
             SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
             SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
+            SerializedProperty hitReactionStateNameProperty = settingsObject.FindProperty("hitReactionStateName");
+            SerializedProperty dodgeStateNameProperty = settingsObject.FindProperty("dodgeStateName");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
+
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
             string currentEnterBattle = enterBattleStateNameProperty != null ? enterBattleStateNameProperty.stringValue : string.Empty;
+            string currentHitReaction = hitReactionStateNameProperty != null ? hitReactionStateNameProperty.stringValue : string.Empty;
+            string currentDodge = dodgeStateNameProperty != null ? dodgeStateNameProperty.stringValue : string.Empty;
+
             int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
             int selectedEnterBattleIndex = FindOptionIndex(actionOptions, currentEnterBattle);
+            int selectedHitReactionIndex = FindOptionIndex(actionOptions, currentHitReaction);
+            int selectedDodgeIndex = FindOptionIndex(actionOptions, currentDodge);
+
             int newIdleIndex = EditorGUILayout.Popup("待机动画", selectedIdleIndex, actionOptions.ToArray());
             if (idleStateNameProperty != null)
             {
@@ -68,6 +77,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (enterBattleStateNameProperty != null)
             {
                 enterBattleStateNameProperty.stringValue = newEnterBattleIndex <= 0 ? string.Empty : actionOptions[newEnterBattleIndex];
+            }
+
+            int newHitReactionIndex = EditorGUILayout.Popup("受击动画", selectedHitReactionIndex, actionOptions.ToArray());
+            if (hitReactionStateNameProperty != null)
+            {
+                hitReactionStateNameProperty.stringValue = newHitReactionIndex <= 0 ? string.Empty : actionOptions[newHitReactionIndex];
+            }
+
+            int newDodgeIndex = EditorGUILayout.Popup("闪避动画", selectedDodgeIndex, actionOptions.ToArray());
+            if (dodgeStateNameProperty != null)
+            {
+                dodgeStateNameProperty.stringValue = newDodgeIndex <= 0 ? string.Empty : actionOptions[newDodgeIndex];
             }
 
             if (idleYawOffsetProperty != null)

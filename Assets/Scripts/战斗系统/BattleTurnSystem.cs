@@ -2283,10 +2283,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (!RollSkillHit(caster, target))
         {
+            PlayDodgeReaction(target);
             BattleDamageNumberPopup.ShowMiss(target, battleCamera);
             return;
         }
 
+        PlayHitReaction(target);
         target.ApplyDamage(damage);
         BattleDamageNumberPopup.Show(target, damage, battleCamera);
         HandleUnitDefeat(target);
@@ -2331,10 +2333,12 @@ public class BattleTurnSystem : MonoBehaviour
 
             if (!RollSkillHit(caster, unit))
             {
+                PlayDodgeReaction(unit);
                 BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
                 continue;
             }
 
+            PlayHitReaction(unit);
             unit.ApplyDamage(damage);
             BattleDamageNumberPopup.Show(unit, damage, battleCamera);
             HandleUnitDefeat(unit);
@@ -2376,6 +2380,64 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return Random.Range(0, MaxHitChancePercent) < hitChance;
+    }
+
+    private void PlayHitReaction(BattleUnit target)
+    {
+        PlayReactionAnimation(target, ResolveHitReactionStateName());
+    }
+
+    private void PlayDodgeReaction(BattleUnit target)
+    {
+        PlayReactionAnimation(target, ResolveDodgeStateName());
+    }
+
+    private void PlayReactionAnimation(BattleUnit target, string stateName)
+    {
+        if (target == null || string.IsNullOrWhiteSpace(stateName))
+        {
+            return;
+        }
+
+        Animator animator = target.GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        float duration = ResolveAnimationStateDuration(animator, stateName);
+        if (duration <= 0.01f)
+        {
+            target.PlayAnimationState(stateName);
+            return;
+        }
+
+        target.PlayTimedAnimation(stateName, duration, ResolveIdleStateName());
+    }
+
+    private static float ResolveAnimationStateDuration(Animator animator, string stateName)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(stateName) || animator.runtimeAnimatorController == null)
+        {
+            return 0f;
+        }
+
+        AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            AnimationClip clip = clips[i];
+            if (clip == null || string.IsNullOrWhiteSpace(clip.name))
+            {
+                continue;
+            }
+
+            if (string.Equals(clip.name, stateName, System.StringComparison.Ordinal))
+            {
+                return clip.length;
+            }
+        }
+
+        return 0f;
     }
 
     private bool CanCastSkillAt(
@@ -3369,6 +3431,18 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.idleYawOffset : 0f;
+    }
+
+    private static string ResolveHitReactionStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.hitReactionStateName : string.Empty;
+    }
+
+    private static string ResolveDodgeStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.dodgeStateName : string.Empty;
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)
