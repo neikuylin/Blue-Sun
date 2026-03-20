@@ -99,8 +99,6 @@ public class BattleTurnSystem : MonoBehaviour
     private Vector2Int lastCombatArtAimHoverCell;
     private float combatArtAimAnimationActiveUntilTime;
     private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
-    private Animator combatArtAimAnimationAnimator;
-    private bool combatArtAimAnimationPreviousRootMotion;
 
     private sealed class EnemySkillChoice
     {
@@ -3598,13 +3596,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        combatArtAimAnimationAnimator = activeUnit.GetComponentInChildren<Animator>(true);
-        if (combatArtAimAnimationAnimator != null)
-        {
-            combatArtAimAnimationPreviousRootMotion = combatArtAimAnimationAnimator.applyRootMotion;
-            combatArtAimAnimationAnimator.applyRootMotion = false;
-        }
-
         activeUnit.PlayAnimationState(combatArtAimStateName);
         combatArtAimAnimationActive = true;
         combatArtAimAnimationActiveUntilTime = Time.time + MinCombatArtAimAnimationDurationSeconds;
@@ -3614,7 +3605,6 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (!combatArtAimAnimationActive)
         {
-            RestoreCombatArtAimAnimationRootMotion();
             return;
         }
 
@@ -3623,7 +3613,6 @@ public class BattleTurnSystem : MonoBehaviour
             if (force)
             {
                 combatArtAimAnimationActive = false;
-                RestoreCombatArtAimAnimationRootMotion();
             }
             return;
         }
@@ -3640,7 +3629,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         combatArtAimAnimationActive = false;
-        RestoreCombatArtAimAnimationRootMotion();
     }
 
     private void UpdateCombatArtAimFacing(Vector3 worldPosition, Vector2Int hoveredCell)
@@ -3670,17 +3658,6 @@ public class BattleTurnSystem : MonoBehaviour
     private static bool ShouldUseCombatArtAimPreview(BattleSkillDatabase.SkillEntry skill)
     {
         return skill != null && skill.group == BattleSkillDatabase.SkillGroup.CombatArt;
-    }
-
-    private void RestoreCombatArtAimAnimationRootMotion()
-    {
-        if (combatArtAimAnimationAnimator == null)
-        {
-            return;
-        }
-
-        combatArtAimAnimationAnimator.applyRootMotion = combatArtAimAnimationPreviousRootMotion;
-        combatArtAimAnimationAnimator = null;
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)
