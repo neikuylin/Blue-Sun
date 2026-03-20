@@ -7308,8 +7308,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 100
+  m_fontSizeBase: 100
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -7375,6 +7375,7 @@ MonoBehaviour:
   startOffsetY: -18
   worldHeightOffset: 1.6
   damageColor: {r: 1, g: 1, b: 1, a: 1}
+  missColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &1103689490
 GameObject:
   m_ObjectHideFlags: 0

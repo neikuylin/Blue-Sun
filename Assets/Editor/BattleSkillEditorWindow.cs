@@ -115,6 +115,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 DrawActionStateField(entry.FindPropertyRelative("actionStateName"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionYawOffset"), new GUIContent("\u52a8\u4f5c\u89d2\u5ea6\u4fee\u6b63"));
+                DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
 
@@ -164,6 +165,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("description").stringValue = string.Empty;
         entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
         entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
+        entry.FindPropertyRelative("resolveFrame").intValue = 0;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
@@ -238,8 +240,39 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             cooldownTurns = 0,
             useMoveDistanceAsRange = true,
             range = 0,
+            resolveFrame = 0,
             effectSize = new Vector2Int(3, 3)
         };
+    }
+
+    private static void DrawResolveFrameField(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        SerializedProperty resolveFrameProperty = entry.FindPropertyRelative("resolveFrame");
+        if (actionStateNameProperty == null || resolveFrameProperty == null)
+        {
+            return;
+        }
+
+        string actionStateName = actionStateNameProperty.stringValue;
+        if (string.IsNullOrWhiteSpace(actionStateName))
+        {
+            resolveFrameProperty.intValue = 0;
+            return;
+        }
+
+        AnimationClip clip = FindActionClipByStateName(actionStateName);
+        int totalFrames = ResolveClipFrameCount(clip);
+        int editedResolveFrame = EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue));
+        resolveFrameProperty.intValue = totalFrames > 0
+            ? Mathf.Clamp(editedResolveFrame, 0, totalFrames)
+            : Mathf.Max(0, editedResolveFrame);
+        EditorGUILayout.LabelField("说明", totalFrames > 0 ? $"这个动画共 {totalFrames} 帧" : "未能解析动画总帧数");
     }
 
     private static void DrawActionStateField(SerializedProperty actionStateNameProperty)
@@ -270,6 +303,63 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         }
 
         actionStateNameProperty.stringValue = string.Empty;
+    }
+
+    private static AnimationClip FindActionClipByStateName(string stateName)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return null;
+        }
+
+        BattleCharacterBindingDatabase bindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
+        if (bindingDatabase == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < bindingDatabase.Entries.Count; i++)
+        {
+            BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.Entries[i];
+            AnimatorController controller = binding != null ? binding.animatorController as AnimatorController : null;
+            if (controller == null || controller.layers == null)
+            {
+                continue;
+            }
+
+            for (int layerIndex = 0; layerIndex < controller.layers.Length; layerIndex++)
+            {
+                AnimatorStateMachine stateMachine = controller.layers[layerIndex].stateMachine;
+                if (stateMachine == null)
+                {
+                    continue;
+                }
+
+                ChildAnimatorState[] states = stateMachine.states;
+                for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
+                {
+                    AnimatorState state = states[stateIndex].state;
+                    if (state == null || !string.Equals(state.name, stateName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    return state.motion as AnimationClip;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static int ResolveClipFrameCount(AnimationClip clip)
+    {
+        if (clip == null)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(1, Mathf.RoundToInt(clip.length * clip.frameRate));
     }
 
     private static List<string> BuildActionOptions()

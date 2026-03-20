@@ -2223,8 +2223,7 @@ public class BattleTurnSystem : MonoBehaviour
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(target.transform.position);
-        yield return PlaySkillAnimationRoutine(caster, skill);
-        ApplyCombatArtDamage(caster, target, skill);
+        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ApplyCombatArtDamage(caster, target, skill));
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
@@ -2252,8 +2251,7 @@ public class BattleTurnSystem : MonoBehaviour
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(grid.GetWorldPosition(targetCell));
-        yield return PlaySkillAnimationRoutine(caster, skill);
-        ApplyCombatArtAreaDamage(caster, targetCell, skill);
+        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ApplyCombatArtAreaDamage(caster, targetCell, skill));
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
@@ -3419,6 +3417,113 @@ public class BattleTurnSystem : MonoBehaviour
             animator.Play(previousStateHash, 0, 0f);
             caster.transform.rotation = previousRotation;
         }
+    }
+
+    private IEnumerator PlaySkillAnimationWithResolveRoutine(BattleUnit caster, BattleSkillDatabase.SkillEntry skill, System.Action resolveAction)
+    {
+        if (caster == null)
+        {
+            yield break;
+        }
+
+        if (skill == null || string.IsNullOrWhiteSpace(skill.actionStateName))
+        {
+            resolveAction?.Invoke();
+            yield break;
+        }
+
+        Animator animator = caster.GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            resolveAction?.Invoke();
+            yield break;
+        }
+
+        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
+        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        Quaternion previousRotation = caster.transform.rotation;
+        if (Mathf.Abs(skill.actionYawOffset) > 0.01f)
+        {
+            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
+        }
+
+        animator.Play(skill.actionStateName, 0, 0f);
+        yield return null;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+        float clipDuration = currentState.length;
+        int totalFrames = ResolveAnimationStateTotalFrames(animator, skill.actionStateName, clipDuration);
+        float resolveDelay = ResolveSkillResolveDelaySeconds(skill, totalFrames, clipDuration);
+
+        if (resolveDelay > 0.01f)
+        {
+            yield return new WaitForSeconds(resolveDelay);
+        }
+
+        resolveAction?.Invoke();
+
+        float remainingDuration = Mathf.Max(0f, clipDuration - Mathf.Max(0f, resolveDelay));
+        if (remainingDuration > 0.01f)
+        {
+            yield return new WaitForSeconds(remainingDuration);
+        }
+
+        string idleStateName = ResolveIdleStateName();
+        float idleYawOffset = ResolveIdleYawOffset();
+        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
+        {
+            animator.Play(idleStateName, 0, 0f);
+            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, idleYawOffset, 0f);
+        }
+        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        {
+            animator.Play(previousStateHash, 0, 0f);
+            caster.transform.rotation = previousRotation;
+        }
+    }
+
+    private static int ResolveAnimationStateTotalFrames(Animator animator, string stateName, float clipDuration)
+    {
+        if (animator != null && !string.IsNullOrWhiteSpace(stateName) && animator.runtimeAnimatorController != null)
+        {
+            AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                AnimationClip clip = clips[i];
+                if (clip == null || string.IsNullOrWhiteSpace(clip.name))
+                {
+                    continue;
+                }
+
+                if (string.Equals(clip.name, stateName, System.StringComparison.Ordinal))
+                {
+                    return Mathf.Max(1, Mathf.RoundToInt(clip.length * clip.frameRate));
+                }
+            }
+        }
+
+        if (clipDuration > 0.01f)
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(clipDuration * 60f));
+        }
+
+        return 0;
+    }
+
+    private static float ResolveSkillResolveDelaySeconds(BattleSkillDatabase.SkillEntry skill, int totalFrames, float clipDuration)
+    {
+        if (clipDuration <= 0.01f)
+        {
+            return 0f;
+        }
+
+        if (skill == null || skill.resolveFrame <= 0 || totalFrames <= 0)
+        {
+            return clipDuration;
+        }
+
+        int clampedFrame = Mathf.Clamp(skill.resolveFrame, 1, totalFrames);
+        return clipDuration * ((float)clampedFrame / totalFrames);
     }
 
     private static string ResolveIdleStateName()
