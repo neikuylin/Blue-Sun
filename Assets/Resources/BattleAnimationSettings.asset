@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f9f4e2f1d26479ab4ec8226bc99726f, type: 3}
   m_Name: BattleAnimationSettings
   m_EditorClassIdentifier: 
-  idleStateName: "\u5F85\u673A\u52A8\u753B"
+  idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
   idleYawOffset: 45
