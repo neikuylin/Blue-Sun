@@ -2280,6 +2280,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         target.ApplyDamage(damage);
+        BattleDamageNumberPopup.Show(target, damage, battleCamera);
         HandleUnitDefeat(target);
     }
 
@@ -2321,6 +2322,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             unit.ApplyDamage(damage);
+            BattleDamageNumberPopup.Show(unit, damage, battleCamera);
             HandleUnitDefeat(unit);
         }
     }
