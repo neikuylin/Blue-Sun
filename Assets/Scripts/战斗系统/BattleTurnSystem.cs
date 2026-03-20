@@ -39,6 +39,8 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
     private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
+    private readonly Color activePlayerFootprintColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
+    private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 0.32f);
     private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
     private readonly Color skillCostNormalColor = Color.white;
@@ -474,6 +476,14 @@ public class BattleTurnSystem : MonoBehaviour
         if (activeUnit == null)
         {
             return;
+        }
+
+        if (!IsSkillModeActive())
+        {
+            Color activeFootprintColor = activeUnit.team == BattleTeam.Enemy
+                ? activeEnemyFootprintColor
+                : activePlayerFootprintColor;
+            grid.HighlightFootprint(activeUnit, activeFootprintColor);
         }
 
         if (activeUnit.isPlayerControlled && IsSkillModeActive())
