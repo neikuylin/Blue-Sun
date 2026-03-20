@@ -90,16 +90,27 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("agility"), new GUIContent("敏捷"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("intelligence"), new GUIContent("智力"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPoints"), new GUIContent("行动力"));
+                SerializedProperty hitRateProperty = entry.FindPropertyRelative("hitRate");
+                if (hitRateProperty != null)
+                {
+                    int displayedHitRate = CharacterStatDatabase.ResolveHitRateValue(hitRateProperty.intValue);
+                    int editedHitRate = EditorGUILayout.IntField("命中", displayedHitRate);
+                    hitRateProperty.intValue = Mathf.Max(0, editedHitRate);
+                }
                 int strength = entry.FindPropertyRelative("strength").intValue;
                 int agility = entry.FindPropertyRelative("agility").intValue;
                 int intelligence = entry.FindPropertyRelative("intelligence").intValue;
+                int resolvedHitRate = CharacterStatDatabase.ResolveHitRateValue(hitRateProperty != null ? hitRateProperty.intValue : 100);
                 int resolvedMaxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(strength);
                 int resolvedMaxMana = CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence);
                 int resolvedMoveDistance = CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility);
+                int resolvedDodgeRate = CharacterStatDatabase.ResolveDodgeRateFromAgility(agility);
                 EditorGUI.BeginDisabledGroup(true);
+                EditorGUILayout.LabelField("最终命中", resolvedHitRate + "%");
                 EditorGUILayout.IntField("HP", resolvedMaxHealth);
                 EditorGUILayout.IntField("MP", resolvedMaxMana);
                 EditorGUILayout.LabelField("移动距离", resolvedMoveDistance.ToString());
+                EditorGUILayout.LabelField("闪避", resolvedDodgeRate + "%");
                 EditorGUI.EndDisabledGroup();
                 bool changed = EditorGUI.EndChangeCheck();
 
@@ -167,6 +178,18 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             unit.strength = entry.FindPropertyRelative("strength").intValue;
             unit.SetAgility(entry.FindPropertyRelative("agility").intValue);
             unit.intelligence = entry.FindPropertyRelative("intelligence").intValue;
+            SerializedProperty hitRateProperty = entry.FindPropertyRelative("hitRate");
+            if (hitRateProperty != null)
+            {
+                SerializedObject unitObject = new SerializedObject(unit);
+                unitObject.Update();
+                SerializedProperty unitHitRate = unitObject.FindProperty("hitRate");
+                if (unitHitRate != null)
+                {
+                    unitHitRate.intValue = CharacterStatDatabase.ResolveHitRateValue(hitRateProperty.intValue);
+                    unitObject.ApplyModifiedPropertiesWithoutUndo();
+                }
+            }
             unit.maxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(unit.strength);
             unit.maxMana = CharacterStatDatabase.ResolveMaxManaFromIntelligence(unit.intelligence);
             unit.currentHealth = Mathf.Min(unit.currentHealth, unit.maxHealth);
@@ -247,7 +270,8 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             database.Entries.Add(new CharacterStatDatabase.StatEntry
             {
                 characterId = knownIds[i],
-                actionPoints = 4
+                actionPoints = 4,
+                hitRate = 100
             });
             changed = true;
         }
@@ -295,6 +319,11 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         entry.FindPropertyRelative("agility").intValue = 0;
         entry.FindPropertyRelative("intelligence").intValue = 0;
         entry.FindPropertyRelative("actionPoints").intValue = 4;
+        SerializedProperty hitRateProperty = entry.FindPropertyRelative("hitRate");
+        if (hitRateProperty != null)
+        {
+            hitRateProperty.intValue = 100;
+        }
     }
 
     private static List<string> CollectKnownIds(CharacterStatDatabase database)

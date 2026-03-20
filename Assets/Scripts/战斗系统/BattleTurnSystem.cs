@@ -54,6 +54,8 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
     private readonly Color skillCostNormalColor = Color.white;
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
+    private const int MinHitChancePercent = 0;
+    private const int MaxHitChancePercent = 100;
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -2279,6 +2281,12 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (!RollSkillHit(caster, target))
+        {
+            BattleDamageNumberPopup.ShowMiss(target, battleCamera);
+            return;
+        }
+
         target.ApplyDamage(damage);
         BattleDamageNumberPopup.Show(target, damage, battleCamera);
         HandleUnitDefeat(target);
@@ -2321,6 +2329,12 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
+            if (!RollSkillHit(caster, unit))
+            {
+                BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
+                continue;
+            }
+
             unit.ApplyDamage(damage);
             BattleDamageNumberPopup.Show(unit, damage, battleCamera);
             HandleUnitDefeat(unit);
@@ -2341,6 +2355,27 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return Mathf.Max(0, Mathf.RoundToInt(attackPower * Mathf.Max(0f, skill.damageMultiplier)));
+    }
+
+    private bool RollSkillHit(BattleUnit caster, BattleUnit target)
+    {
+        if (caster == null || target == null)
+        {
+            return false;
+        }
+
+        int hitChance = Mathf.Clamp(caster.HitRate - target.DodgeRate, MinHitChancePercent, MaxHitChancePercent);
+        if (hitChance >= MaxHitChancePercent)
+        {
+            return true;
+        }
+
+        if (hitChance <= MinHitChancePercent)
+        {
+            return false;
+        }
+
+        return Random.Range(0, MaxHitChancePercent) < hitChance;
     }
 
     private bool CanCastSkillAt(

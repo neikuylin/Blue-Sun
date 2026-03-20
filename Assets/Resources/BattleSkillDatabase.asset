@@ -43,3 +43,18 @@ MonoBehaviour:
     useMoveDistanceAsRange: 0
     range: 1
     effectSize: {x: 1, y: 1}
+  - skillId: "\u56DE\u65CB\u65A9"
+    description: 
+    actionStateName: 
+    actionYawOffset: 0
+    group: 1
+    skillType: 1
+    castTarget: 1
+    icon: {fileID: 0}
+    damageMultiplier: 1
+    actionPointCost: 1
+    manaCost: 0
+    cooldownTurns: 3
+    useMoveDistanceAsRange: 0
+    range: 3
+    effectSize: {x: 3, y: 3}

@@ -28,6 +28,7 @@ public class BattleUnit : MonoBehaviour
     [SerializeField] private int agility;
     public int intelligence;
     public int maxActionPoints = 4;
+    [SerializeField] private int hitRate = 100;
 
     [Header("Presentation")]
     public float yawOffset = 0f;
@@ -55,6 +56,16 @@ public class BattleUnit : MonoBehaviour
     public int Agility
     {
         get { return agility; }
+    }
+
+    public int DodgeRate
+    {
+        get { return CharacterStatDatabase.ResolveDodgeRateFromAgility(agility); }
+    }
+
+    public int HitRate
+    {
+        get { return CharacterStatDatabase.ResolveHitRateValue(hitRate); }
     }
 
     public bool IsMoving { get; private set; }
@@ -89,6 +100,7 @@ public class BattleUnit : MonoBehaviour
         SetAgilityInternal(statEntry.agility, false);
         intelligence = statEntry.intelligence;
         maxActionPoints = statEntry.ResolveActionPoints();
+        hitRate = statEntry.ResolveHitRate();
         moveDistance = statEntry.ResolveMoveDistance();
         moveRange = moveDistance;
         currentHealth = Mathf.Min(currentHealth, maxHealth);

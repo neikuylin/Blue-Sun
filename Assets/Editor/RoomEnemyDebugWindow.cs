@@ -183,10 +183,13 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int agility = EditorGUILayout.IntField("\u654F\u6377", statEntry.agility);
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
+        int hitRate = EditorGUILayout.IntField("\u547D\u4E2D", statEntry.ResolveHitRate());
         EditorGUI.BeginDisabledGroup(true);
+        EditorGUILayout.LabelField("\u6700\u7EC8\u547D\u4E2D", CharacterStatDatabase.ResolveHitRateValue(hitRate) + "%");
         EditorGUILayout.IntField("HP", CharacterStatDatabase.ResolveMaxHealthFromStrength(strength));
         EditorGUILayout.IntField("MP", CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence));
         EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility).ToString());
+        EditorGUILayout.LabelField("\u95EA\u907F", CharacterStatDatabase.ResolveDodgeRateFromAgility(agility) + "%");
         EditorGUI.EndDisabledGroup();
         bool statChanged = EditorGUI.EndChangeCheck();
 
@@ -199,6 +202,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         statEntry.agility = agility;
         statEntry.intelligence = intelligence;
         statEntry.actionPoints = actionPoints;
+        statEntry.hitRate = CharacterStatDatabase.ResolveHitRateValue(hitRate);
         EditorUtility.SetDirty(statDatabase);
         AssetDatabase.SaveAssets();
     }
@@ -259,7 +263,8 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         CharacterStatDatabase.StatEntry created = new CharacterStatDatabase.StatEntry
         {
             characterId = enemyId,
-            actionPoints = 4
+            actionPoints = 4,
+            hitRate = 100
         };
         statDatabase.Entries.Add(created);
         EditorUtility.SetDirty(statDatabase);

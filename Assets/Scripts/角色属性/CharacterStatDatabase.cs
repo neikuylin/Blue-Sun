@@ -15,10 +15,16 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int agility;
         public int intelligence;
         public int actionPoints = 4;
+        public int hitRate = 100;
 
         public int ResolveActionPoints()
         {
             return actionPoints > 0 ? actionPoints : 4;
+        }
+
+        public int ResolveHitRate()
+        {
+            return ResolveHitRateValue(hitRate);
         }
 
         public int ResolveMoveDistance()
@@ -34,6 +40,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int ResolveMaxMana()
         {
             return ResolveMaxManaFromIntelligence(intelligence);
+        }
+
+        public int ResolveDodgeRate()
+        {
+            return ResolveDodgeRateFromAgility(agility);
         }
     }
 
@@ -78,6 +89,16 @@ public sealed class CharacterStatDatabase : ScriptableObject
     public static int ResolveMaxManaFromIntelligence(int intelligence)
     {
         return 5 + Mathf.Max(0, intelligence);
+    }
+
+    public static int ResolveHitRateValue(int hitRate)
+    {
+        return hitRate > 0 ? hitRate : 100;
+    }
+
+    public static int ResolveDodgeRateFromAgility(int agility)
+    {
+        return 10 + Mathf.Max(0, agility);
     }
 
     public static CharacterStatDatabase LoadDefault()

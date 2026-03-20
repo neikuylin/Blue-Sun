@@ -16,6 +16,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
 
     [Header("Style")]
     public Color damageColor = Color.white;
+    public Color missColor = Color.white;
 
     private RectTransform templateRect;
     private TMP_Text templateText;
@@ -54,12 +55,22 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        instance.ShowInternal(target, amount, worldCamera);
+        instance.ShowInternal(target, amount.ToString(), instance.damageColor, worldCamera);
     }
 
-    private void ShowInternal(BattleUnit target, int amount, Camera worldCamera)
+    public static void ShowMiss(BattleUnit target, Camera worldCamera = null)
     {
-        if (templateRect == null || templateText == null)
+        if (instance == null || target == null)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, "MISS", instance.missColor, worldCamera);
+    }
+
+    private void ShowInternal(BattleUnit target, string content, Color popupColor, Camera worldCamera)
+    {
+        if (templateRect == null || templateText == null || string.IsNullOrWhiteSpace(content))
         {
             return;
         }
@@ -81,8 +92,8 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        text.text = amount.ToString();
-        text.color = damageColor;
+        text.text = content;
+        text.color = popupColor;
 
         CanvasGroup canvasGroup = popup.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
