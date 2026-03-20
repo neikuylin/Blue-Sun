@@ -94,6 +94,7 @@ public class BattleTurnSystem : MonoBehaviour
     private string lastTargetUiSignature = "<unset>";
     private RectSnapshot targetHealthFillBaseRect;
     private bool cachedTargetBaseRect;
+    private bool aimAnimationActive;
 
     private sealed class EnemySkillChoice
     {
@@ -454,6 +455,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void BeginCurrentTurn()
     {
+        aimAnimationActive = false;
         CleanupDeadUnits();
         while (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
         {
@@ -1847,6 +1849,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
+            StartAimAnimation();
         }
 
         RefreshHighlights();
@@ -1902,6 +1905,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         Vector3 hitPoint = ray.GetPoint(enter);
+        UpdateAimFacing(hitPoint);
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
@@ -2064,6 +2068,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverActionPointCost = 0;
         ClearHoveredSkillTarget();
         HideSkillCostHint();
+        StopAimAnimation();
     }
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
@@ -3532,6 +3537,12 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.idleStateName : string.Empty;
     }
 
+    private static string ResolveAimStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.aimStateName : string.Empty;
+    }
+
     private static float ResolveIdleYawOffset()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -3548,6 +3559,58 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.dodgeStateName : string.Empty;
+    }
+
+    private void StartAimAnimation()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        string aimStateName = ResolveAimStateName();
+        if (string.IsNullOrWhiteSpace(aimStateName))
+        {
+            aimAnimationActive = false;
+            return;
+        }
+
+        activeUnit.PlayAnimationState(aimStateName);
+        aimAnimationActive = true;
+    }
+
+    private void StopAimAnimation()
+    {
+        if (!aimAnimationActive)
+        {
+            return;
+        }
+
+        aimAnimationActive = false;
+        if (activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving || isResolvingSkillExecution)
+        {
+            return;
+        }
+
+        string idleStateName = ResolveIdleStateName();
+        if (!string.IsNullOrWhiteSpace(idleStateName))
+        {
+            activeUnit.PlayAnimationState(idleStateName);
+        }
+    }
+
+    private void UpdateAimFacing(Vector3 worldPosition)
+    {
+        if (!IsSkillModeActive() || activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        activeUnit.FaceToward(worldPosition);
+        if (!aimAnimationActive)
+        {
+            StartAimAnimation();
+        }
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)
