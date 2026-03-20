@@ -11,6 +11,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
+    private const string TargetPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807";
+    private const string TargetHealthPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c";
+    private const string TargetHealthFillPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c/\u751f\u547d\u503c";
+    private const string TargetHealthTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c\u6570\u5b57";
+    private const string TargetNameTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u540d\u5b57/Text (TMP)";
     private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
@@ -41,6 +46,7 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
     private readonly Color activePlayerFootprintColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 0.32f);
+    private readonly Color targetHealthBarColor = new Color(0.90f, 0.18f, 0.22f, 1f);
     private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
     private readonly Color skillCostNormalColor = Color.white;
@@ -55,6 +61,10 @@ public class BattleTurnSystem : MonoBehaviour
     private RectTransform overlayCanvasRect;
     private RectTransform skillCostHintRect;
     private TMP_Text skillCostHintText;
+    private RectTransform targetPanelRect;
+    private Image targetHealthFillImage;
+    private TMP_Text targetHealthText;
+    private TMP_Text targetNameText;
     private Transform timelineAnchor;
     private Button endTurnButton;
     private Button moveSkillButton;
@@ -75,6 +85,9 @@ public class BattleTurnSystem : MonoBehaviour
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
     private bool isResolvingSkillExecution;
+    private string lastTargetUiSignature = "<unset>";
+    private RectSnapshot targetHealthFillBaseRect;
+    private bool cachedTargetBaseRect;
 
     private sealed class EnemySkillChoice
     {
@@ -89,6 +102,18 @@ public class BattleTurnSystem : MonoBehaviour
         public EnemySkillChoice choice;
         public BattleUnit targetUnit;
         public Vector2Int targetCell;
+    }
+
+    private struct RectSnapshot
+    {
+        public Vector2 anchoredPosition;
+        public Vector2 sizeDelta;
+        public Vector2 offsetMin;
+        public Vector2 offsetMax;
+        public Vector2 pivot;
+        public Vector2 anchorMin;
+        public Vector2 anchorMax;
+        public Vector3 localScale;
     }
 
     public BattleUnit ActiveUnit
@@ -212,6 +237,16 @@ public class BattleTurnSystem : MonoBehaviour
         {
             StartCoroutine(RunEnemyTurn());
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        RefreshTargetPanelUi();
     }
 
     private void HandlePlayerInput()
@@ -510,6 +545,184 @@ public class BattleTurnSystem : MonoBehaviour
                 skillEnemyOccupiedColor);
         }
         ApplySkillHoverPreview();
+    }
+
+    private void RefreshTargetPanelUi()
+    {
+        CacheTargetPanelReferences();
+
+        BattleUnit targetUnit = ResolveTargetPanelUnit();
+        string targetId = targetUnit != null && targetUnit.IsAlive
+            ? (string.IsNullOrWhiteSpace(targetUnit.characterId) ? targetUnit.unitName : targetUnit.characterId)
+            : string.Empty;
+        int currentHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.currentHealth) : 0;
+        int maxHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.maxHealth) : 0;
+        string signature = string.Concat(targetId, "|", currentHealth, "/", maxHealth);
+        if (string.Equals(signature, lastTargetUiSignature, System.StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lastTargetUiSignature = signature;
+        ApplyTargetPanelUi(targetId, currentHealth, maxHealth, targetUnit != null && targetUnit.IsAlive);
+    }
+
+    private void CacheTargetPanelReferences()
+    {
+        if (targetPanelRect == null)
+        {
+            targetPanelRect = FindTransformByPath(TargetPanelPath) as RectTransform;
+        }
+
+        if (targetHealthFillImage == null)
+        {
+            targetHealthFillImage = FindImageByPath(TargetHealthFillPath);
+            if (targetHealthFillImage != null)
+            {
+                targetHealthFillImage.color = targetHealthBarColor;
+                CacheTargetFillBaseRect();
+            }
+        }
+
+        if (targetHealthText == null)
+        {
+            targetHealthText = FindTextByPath(TargetHealthTextPath) ?? FindTargetHealthTextFallback();
+        }
+
+        if (targetNameText == null)
+        {
+            targetNameText = FindTextByPath(TargetNameTextPath);
+        }
+    }
+
+    private void CacheTargetFillBaseRect()
+    {
+        if (cachedTargetBaseRect || targetHealthFillImage == null || targetHealthFillImage.rectTransform == null)
+        {
+            return;
+        }
+
+        targetHealthFillBaseRect = CaptureSnapshot(targetHealthFillImage.rectTransform);
+        cachedTargetBaseRect = true;
+    }
+
+    private BattleUnit ResolveTargetPanelUnit()
+    {
+        if (hoveredSkillTarget != null && hoveredSkillTarget.IsAlive)
+        {
+            return hoveredSkillTarget;
+        }
+
+        if (grid == null || battleCamera == null)
+        {
+            return null;
+        }
+
+        Plane clickPlane = grid.GetInteractionPlane();
+        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
+        float enter;
+        if (!clickPlane.Raycast(ray, out enter))
+        {
+            return null;
+        }
+
+        Vector3 hitPoint = ray.GetPoint(enter);
+        Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
+        if (!grid.IsInside(hoveredCell))
+        {
+            return null;
+        }
+
+        BattleUnit unit = grid.GetUnitAt(hoveredCell);
+        return unit != null && unit.IsAlive ? unit : null;
+    }
+
+    private TMP_Text FindTargetHealthTextFallback()
+    {
+        Transform panel = FindTransformByPath(TargetHealthPanelPath);
+        if (panel == null)
+        {
+            return null;
+        }
+
+        TMP_Text existing = panel.GetComponentInChildren<TMP_Text>(true);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        GameObject textObject = new GameObject("生命值数字", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(panel, false);
+
+        RectTransform rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(0f, 0f);
+        rect.sizeDelta = new Vector2(240f, 40f);
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        text.alignment = TextAlignmentOptions.Center;
+        text.fontSize = 28f;
+        text.color = Color.white;
+        text.raycastTarget = false;
+        text.text = string.Empty;
+        return text;
+    }
+
+    private void ApplyTargetPanelUi(string targetId, int currentHealth, int maxHealth, bool visible)
+    {
+        if (targetPanelRect != null)
+        {
+            targetPanelRect.gameObject.SetActive(visible);
+        }
+
+        if (targetNameText != null)
+        {
+            targetNameText.text = visible ? targetId : string.Empty;
+        }
+
+        if (targetHealthText != null)
+        {
+            targetHealthText.text = visible ? currentHealth + "/" + maxHealth : string.Empty;
+        }
+
+        ApplyTargetHealthBar(currentHealth, maxHealth, visible);
+    }
+
+    private void ApplyTargetHealthBar(int current, int max, bool visible)
+    {
+        if (targetHealthFillImage == null)
+        {
+            return;
+        }
+
+        CacheTargetFillBaseRect();
+        targetHealthFillImage.enabled = visible && max > 0;
+        targetHealthFillImage.color = targetHealthBarColor;
+
+        RectTransform rectTransform = targetHealthFillImage.rectTransform;
+        if (rectTransform == null)
+        {
+            return;
+        }
+
+        ApplySnapshot(rectTransform, targetHealthFillBaseRect);
+        if (!visible || max <= 0)
+        {
+            rectTransform.sizeDelta = new Vector2(0f, targetHealthFillBaseRect.sizeDelta.y);
+            return;
+        }
+
+        float ratio = Mathf.Clamp01((float)current / max);
+        float fullWidth = Mathf.Max(0f, targetHealthFillBaseRect.sizeDelta.x);
+        float targetWidth = fullWidth * ratio;
+        float widthDelta = fullWidth - targetWidth;
+        rectTransform.sizeDelta = new Vector2(targetWidth, targetHealthFillBaseRect.sizeDelta.y);
+
+        Vector2 anchoredPosition = targetHealthFillBaseRect.anchoredPosition;
+        anchoredPosition.x -= widthDelta * 0.5f;
+        rectTransform.anchoredPosition = anchoredPosition;
     }
 
     private void FocusCameraOnActiveUnit()
@@ -2365,6 +2578,45 @@ public class BattleTurnSystem : MonoBehaviour
     {
         List<List<BattleUnit>> rounds = BuildTimelineRounds();
         return FlattenTimelineUnits(rounds);
+    }
+
+    private static Image FindImageByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<Image>() : null;
+    }
+
+    private static TMP_Text FindTextByPath(string path)
+    {
+        Transform target = FindTransformByPath(path);
+        return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
+    private static RectSnapshot CaptureSnapshot(RectTransform rectTransform)
+    {
+        return new RectSnapshot
+        {
+            anchoredPosition = rectTransform.anchoredPosition,
+            sizeDelta = rectTransform.sizeDelta,
+            offsetMin = rectTransform.offsetMin,
+            offsetMax = rectTransform.offsetMax,
+            pivot = rectTransform.pivot,
+            anchorMin = rectTransform.anchorMin,
+            anchorMax = rectTransform.anchorMax,
+            localScale = rectTransform.localScale
+        };
+    }
+
+    private static void ApplySnapshot(RectTransform rectTransform, RectSnapshot snapshot)
+    {
+        rectTransform.anchorMin = snapshot.anchorMin;
+        rectTransform.anchorMax = snapshot.anchorMax;
+        rectTransform.pivot = snapshot.pivot;
+        rectTransform.offsetMin = snapshot.offsetMin;
+        rectTransform.offsetMax = snapshot.offsetMax;
+        rectTransform.sizeDelta = snapshot.sizeDelta;
+        rectTransform.anchoredPosition = snapshot.anchoredPosition;
+        rectTransform.localScale = snapshot.localScale;
     }
 
     private static Transform FindTransformByPath(string path)
