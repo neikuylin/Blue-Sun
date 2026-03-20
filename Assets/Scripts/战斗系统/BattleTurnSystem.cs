@@ -336,6 +336,8 @@ public class BattleTurnSystem : MonoBehaviour
                     yield return new WaitForSeconds(0.1f);
                 }
 
+                RefreshHighlights();
+
                 continue;
             }
 
@@ -3145,6 +3147,7 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
+        grid.ResetHighlights();
         moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
