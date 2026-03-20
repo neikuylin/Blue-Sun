@@ -15,7 +15,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const string TargetHealthPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c";
     private const string TargetHealthFillPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c/\u751f\u547d\u503c";
     private const string TargetHealthTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c\u6570\u5b57";
-    private const string TargetNameTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u540d\u5b57/Text (TMP)";
+    private const string TargetNameTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u540d\u5b57/\u76ee\u6807\u540d\u5b57text";
     private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
