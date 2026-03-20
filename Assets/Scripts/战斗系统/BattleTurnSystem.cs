@@ -47,6 +47,9 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color activePlayerFootprintColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 0.32f);
     private readonly Color targetHealthBarColor = new Color(0.90f, 0.18f, 0.22f, 1f);
+    private readonly Color targetNameSelfColor = Color.white;
+    private readonly Color targetNameAllyColor = new Color(0.20f, 0.85f, 0.42f, 1f);
+    private readonly Color targetNameEnemyColor = new Color(0.95f, 0.28f, 0.20f, 1f);
     private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
     private readonly Color skillCostNormalColor = Color.white;
@@ -256,6 +259,12 @@ public class BattleTurnSystem : MonoBehaviour
         {
             ClearActiveSkillMode();
             RefreshHighlights();
+            return;
+        }
+
+        if (!IsSkillModeActive() && Input.GetMouseButtonDown(1))
+        {
+            ClearLockedTargetUnit();
             return;
         }
 
@@ -579,7 +588,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         lastTargetUiSignature = signature;
-        ApplyTargetPanelUi(targetId, currentHealth, maxHealth, targetUnit != null && targetUnit.IsAlive);
+        ApplyTargetPanelUi(targetUnit, targetId, currentHealth, maxHealth, targetUnit != null && targetUnit.IsAlive);
     }
 
     private void CacheTargetPanelReferences()
@@ -684,6 +693,18 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshHighlights();
     }
 
+    private void ClearLockedTargetUnit()
+    {
+        if (lockedTargetUnit == null)
+        {
+            return;
+        }
+
+        lockedTargetUnit = null;
+        lastTargetUiSignature = "<unset>";
+        RefreshHighlights();
+    }
+
     private TMP_Text FindTargetHealthTextFallback()
     {
         Transform panel = FindTransformByPath(TargetHealthPanelPath);
@@ -717,7 +738,7 @@ public class BattleTurnSystem : MonoBehaviour
         return text;
     }
 
-    private void ApplyTargetPanelUi(string targetId, int currentHealth, int maxHealth, bool visible)
+    private void ApplyTargetPanelUi(BattleUnit targetUnit, string targetId, int currentHealth, int maxHealth, bool visible)
     {
         if (targetPanelRect != null)
         {
@@ -727,6 +748,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (targetNameText != null)
         {
             targetNameText.text = visible ? targetId : string.Empty;
+            targetNameText.color = visible ? ResolveTargetNameColor(targetUnit) : targetNameSelfColor;
         }
 
         if (targetHealthText != null)
@@ -735,6 +757,23 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ApplyTargetHealthBar(currentHealth, maxHealth, visible);
+    }
+
+    private Color ResolveTargetNameColor(BattleUnit targetUnit)
+    {
+        if (targetUnit == null || activeUnit == null)
+        {
+            return targetNameSelfColor;
+        }
+
+        if (targetUnit == activeUnit)
+        {
+            return targetNameSelfColor;
+        }
+
+        return targetUnit.team == activeUnit.team
+            ? targetNameAllyColor
+            : targetNameEnemyColor;
     }
 
     private void ApplyTargetHealthBar(int current, int max, bool visible)
