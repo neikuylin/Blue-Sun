@@ -144,6 +144,7 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
         turnSystem.Initialize(grid, mainCamera, units);
         InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacterForBattle();
+        InventoryShortcutRuntimeBinder.RefreshRuntimeWeaponModels();
         turnSystem.SetSkillCostHintText(skillCostHintText);
         RefreshPartyPortraits(GetSelectedPlayers());
         RefreshSkillPagination(turnSystem);

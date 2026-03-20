@@ -111,6 +111,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BattleBackpackMirrorContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域/格子容器";
     private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
+    private const string WeaponMountPointName = "武器挂载点";
+    private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
     private const string SlotNameKeyword = "格子";
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
@@ -232,6 +234,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         instance.manualEquipmentCharacterId = string.Empty;
         instance.SetCurrentEquipmentCharacter(string.Empty);
+    }
+
+    public static void RefreshRuntimeWeaponModels()
+    {
+        instance?.RefreshAllRuntimeWeaponModelsInternal();
     }
 
     public static List<ItemSlotSnapshot> GetBackpackSnapshots()
@@ -365,6 +372,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             instance.RefreshEquipmentSlot(index);
         }
+
+        instance.RefreshRuntimeWeaponModelForCharacter(characterId);
 
         return true;
     }
@@ -685,6 +694,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         BindDragRelays();
         RefreshAll();
+        RefreshAllRuntimeWeaponModelsInternal();
     }
 
     private void CollectWarehouseSlots()
@@ -1496,6 +1506,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         RefreshEquipmentSlots();
+        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
     }
 
     private void EnsureBackpackDataSize(int size)
@@ -2285,6 +2296,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
+        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
     }
 
     private void RefreshEquipmentSlots()
@@ -2300,6 +2312,123 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
             ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
         }
+
+        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+    }
+
+    private void RefreshAllRuntimeWeaponModelsInternal()
+    {
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            RefreshRuntimeWeaponModel(units[i]);
+        }
+    }
+
+    private void RefreshRuntimeWeaponModelForCharacter(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return;
+        }
+
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            RefreshRuntimeWeaponModel(unit);
+        }
+    }
+
+    private void RefreshRuntimeWeaponModel(BattleUnit unit)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        Transform mountPoint = FindChildByName(unit.transform, WeaponMountPointName) ?? FindDescendantByName(unit.transform, WeaponMountPointName);
+        if (mountPoint == null)
+        {
+            return;
+        }
+
+        ClearRuntimeWeaponModel(mountPoint);
+
+        ItemDatabase.ItemEntry weaponEntry = ResolveEquippedWeaponModelEntry(unit.characterId);
+        if (weaponEntry == null || weaponEntry.weaponModelPrefab == null)
+        {
+            return;
+        }
+
+        GameObject instance = Instantiate(weaponEntry.weaponModelPrefab, mountPoint, false);
+        instance.name = RuntimeWeaponModelName;
+        instance.transform.localPosition = Vector3.zero;
+        instance.transform.localRotation = Quaternion.identity;
+        instance.transform.localScale = Vector3.one;
+    }
+
+    private static void ClearRuntimeWeaponModel(Transform mountPoint)
+    {
+        if (mountPoint == null)
+        {
+            return;
+        }
+
+        for (int i = mountPoint.childCount - 1; i >= 0; i--)
+        {
+            Transform child = mountPoint.GetChild(i);
+            if (child == null || !string.Equals(child.name, RuntimeWeaponModelName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            Destroy(child.gameObject);
+        }
+    }
+
+    private ItemDatabase.ItemEntry ResolveEquippedWeaponModelEntry(string characterId)
+    {
+        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null || equipment.Count == 0)
+        {
+            return null;
+        }
+
+        ItemDatabase.ItemEntry bestEntry = null;
+        int bestPriority = int.MaxValue;
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
+            if (entry == null ||
+                entry.category != ItemDatabase.ItemCategory.Equipment ||
+                entry.weaponModelPrefab == null ||
+                !ItemDatabase.SupportsWeaponModelPrefab(entry.equipmentSlot))
+            {
+                continue;
+            }
+
+            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
+                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
+            if (bestEntry == null || priority < bestPriority)
+            {
+                bestEntry = entry;
+                bestPriority = priority;
+            }
+        }
+
+        return bestEntry;
     }
 
     private void RefreshQuickSlot(int index)

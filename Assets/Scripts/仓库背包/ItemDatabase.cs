@@ -73,6 +73,7 @@ public sealed class ItemDatabase : ScriptableObject
         public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
         public GameObject prefab;
+        public GameObject weaponModelPrefab;
     }
 
     [SerializeField] private List<ItemEntry> entries = new List<ItemEntry>();
@@ -134,6 +135,12 @@ public sealed class ItemDatabase : ScriptableObject
     }
 
     public static bool ShouldFilterWeaponCategory(EquipmentSlotType equipmentSlot)
+    {
+        return equipmentSlot == EquipmentSlotType.MainHand ||
+            equipmentSlot == EquipmentSlotType.MainOrOffHand;
+    }
+
+    public static bool SupportsWeaponModelPrefab(EquipmentSlotType equipmentSlot)
     {
         return equipmentSlot == EquipmentSlotType.MainHand ||
             equipmentSlot == EquipmentSlotType.MainOrOffHand;

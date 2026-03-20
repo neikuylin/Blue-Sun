@@ -20,6 +20,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private string newItemId = "itm_eq_mainhand_001";
     private string newDisplayName = "新物品";
     private GameObject newItemPrefab;
+    private GameObject newWeaponModelPrefab;
 
     private ItemDatabase.ItemCategory filterCategory = ItemDatabase.ItemCategory.Equipment;
     private ItemDatabase.EquipmentSlotType filterEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
@@ -106,6 +107,16 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         newItemPrefab = (GameObject)EditorGUILayout.ObjectField("预制体", newItemPrefab, typeof(GameObject), false);
 
+        if (createCategory == ItemDatabase.ItemCategory.Equipment &&
+            ItemDatabase.SupportsWeaponModelPrefab(createEquipmentSlot))
+        {
+            newWeaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("Weapon Model Prefab", newWeaponModelPrefab, typeof(GameObject), false);
+        }
+        else
+        {
+            newWeaponModelPrefab = null;
+        }
+
         using (new EditorGUI.DisabledScope(!CanCreateEntry()))
         {
             if (GUILayout.Button("新增物品定义"))
@@ -176,6 +187,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
             GameObject originalPrefab = entry.prefab;
+            GameObject originalWeaponModelPrefab = entry.weaponModelPrefab;
 
             EditorGUILayout.LabelField($"条目 {index + 1}", EditorStyles.boldLabel);
             entry.itemId = EditorGUILayout.TextField("物品ID", entry.itemId);
@@ -218,6 +230,16 @@ public sealed class ItemDatabaseWindow : EditorWindow
             entry.weaponCategory = ItemDatabase.NormalizeWeaponCategory(entry.equipmentSlot, entry.weaponCategory);
             entry.prefab = (GameObject)EditorGUILayout.ObjectField("预制体", entry.prefab, typeof(GameObject), false);
 
+            if (entry.category == ItemDatabase.ItemCategory.Equipment &&
+                ItemDatabase.SupportsWeaponModelPrefab(entry.equipmentSlot))
+            {
+                entry.weaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("Weapon Model Prefab", entry.weaponModelPrefab, typeof(GameObject), false);
+            }
+            else
+            {
+                entry.weaponModelPrefab = null;
+            }
+
             string validationMessage = ValidateEntry(entry, index);
             if (!string.IsNullOrEmpty(validationMessage))
             {
@@ -244,6 +266,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
                     entry.prefab = originalPrefab;
+                    entry.weaponModelPrefab = originalWeaponModelPrefab;
                     GUIUtility.ExitGUI();
                 }
 
@@ -312,7 +335,11 @@ public sealed class ItemDatabaseWindow : EditorWindow
             weaponAttributeMultipliers = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? CloneWeaponAttributeList(createWeaponAttributeMultipliers)
                 : new List<ItemDatabase.WeaponAttributeMultiplierEntry>(),
-            prefab = newItemPrefab
+            prefab = newItemPrefab,
+            weaponModelPrefab = createCategory == ItemDatabase.ItemCategory.Equipment &&
+                ItemDatabase.SupportsWeaponModelPrefab(createEquipmentSlot)
+                ? newWeaponModelPrefab
+                : null
         });
 
         SaveDatabase();
