@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -101,18 +102,18 @@ public class BattleBootstrap : MonoBehaviour
         bootstrapObject.AddComponent<BattleBootstrap>();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
         if (!Application.isPlaying)
         {
-            return;
+            yield break;
         }
 
         Camera mainCamera = Camera.main;
         if (mainCamera == null)
         {
             Debug.LogWarning("BattleBootstrap: no Main Camera found.");
-            return;
+            yield break;
         }
 
         ResolveReferences();
@@ -127,8 +128,10 @@ public class BattleBootstrap : MonoBehaviour
         if (units.Count < 2)
         {
             Debug.LogWarning("BattleBootstrap: not enough units for turn-based combat.");
-            return;
+            yield break;
         }
+
+        yield return PlayEnterBattleAnimations(units);
 
         BattleTurnSystem turnSystem = ResetTurnSystems();
         turnSystem.timelineSpacing = timelineSpacing;
@@ -200,6 +203,100 @@ public class BattleBootstrap : MonoBehaviour
         List<BattleUnit> units = factory.CreatePlayers(GetSelectedPlayers(), playerSpawnOrigin, playerSpawnSpacing);
         units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
         return units;
+    }
+
+    private static IEnumerator PlayEnterBattleAnimations(IReadOnlyList<BattleUnit> units)
+    {
+        string enterBattleStateName = ResolveEnterBattleStateName();
+        if (string.IsNullOrWhiteSpace(enterBattleStateName) || units == null || units.Count == 0)
+        {
+            yield break;
+        }
+
+        int enterBattleStateHash = Animator.StringToHash(enterBattleStateName);
+        bool playedAny = false;
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            animator.Play(enterBattleStateName, 0, 0f);
+            playedAny = true;
+        }
+
+        if (!playedAny)
+        {
+            yield break;
+        }
+
+        yield return null;
+
+        float longestDuration = 0f;
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            if (stateInfo.shortNameHash != enterBattleStateHash)
+            {
+                continue;
+            }
+
+            longestDuration = Mathf.Max(longestDuration, stateInfo.length);
+        }
+
+        if (longestDuration > 0.01f)
+        {
+            yield return new WaitForSeconds(longestDuration);
+        }
+
+        string idleStateName = ResolveIdleStateName();
+        if (string.IsNullOrWhiteSpace(idleStateName))
+        {
+            yield break;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            unit.PlayAnimationState(idleStateName);
+        }
+    }
+
+    private static string ResolveEnterBattleStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.enterBattleStateName : string.Empty;
+    }
+
+    private static string ResolveIdleStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.idleStateName : string.Empty;
     }
 
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()

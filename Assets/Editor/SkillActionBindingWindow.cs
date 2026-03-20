@@ -28,7 +28,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         BattleAnimationSettings settings = EnsureSettings();
         if (skillDatabase == null)
         {
-            EditorGUILayout.HelpBox("未找到 BattleSkillDatabase.asset。请先打开技能编辑器创建技能库。", MessageType.Warning);
+            EditorGUILayout.HelpBox("未找到 BattleSkillDatabase.asset。请先创建技能库。", MessageType.Warning);
             return;
         }
 
@@ -45,25 +45,34 @@ public sealed class SkillActionBindingWindow : EditorWindow
         List<string> actionOptions = BuildActionOptions();
 
         EditorGUILayout.LabelField("技能动作栏", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("顶部固定配置待机动画和待机角度修正。下面每个技能只绑定自己的动作和角度修正。", MessageType.Info);
+        EditorGUILayout.HelpBox("顶部配置全局待机动画、进战动画和待机角度修正。下面每个技能只绑定自己的动作和角度修正。", MessageType.Info);
 
         settingsObject.Update();
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField("待机动画", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("全局动画", EditorStyles.boldLabel);
             SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
+            SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
+            string currentEnterBattle = enterBattleStateNameProperty != null ? enterBattleStateNameProperty.stringValue : string.Empty;
             int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
-            int newIdleIndex = EditorGUILayout.Popup("绑定动作", selectedIdleIndex, actionOptions.ToArray());
+            int selectedEnterBattleIndex = FindOptionIndex(actionOptions, currentEnterBattle);
+            int newIdleIndex = EditorGUILayout.Popup("待机动画", selectedIdleIndex, actionOptions.ToArray());
             if (idleStateNameProperty != null)
             {
                 idleStateNameProperty.stringValue = newIdleIndex <= 0 ? string.Empty : actionOptions[newIdleIndex];
             }
 
+            int newEnterBattleIndex = EditorGUILayout.Popup("进战动画", selectedEnterBattleIndex, actionOptions.ToArray());
+            if (enterBattleStateNameProperty != null)
+            {
+                enterBattleStateNameProperty.stringValue = newEnterBattleIndex <= 0 ? string.Empty : actionOptions[newEnterBattleIndex];
+            }
+
             if (idleYawOffsetProperty != null)
             {
-                idleYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", idleYawOffsetProperty.floatValue);
+                idleYawOffsetProperty.floatValue = EditorGUILayout.FloatField("待机角度修正", idleYawOffsetProperty.floatValue);
             }
         }
 

@@ -6,6 +6,7 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public const string DefaultResourcePath = "BattleAnimationSettings";
 
     public string idleStateName = string.Empty;
+    public string enterBattleStateName = string.Empty;
     public float idleYawOffset;
 
     public static BattleAnimationSettings LoadDefault()
