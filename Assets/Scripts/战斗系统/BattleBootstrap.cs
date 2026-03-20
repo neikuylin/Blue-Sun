@@ -102,18 +102,18 @@ public class BattleBootstrap : MonoBehaviour
         bootstrapObject.AddComponent<BattleBootstrap>();
     }
 
-    private IEnumerator Start()
+    private void Start()
     {
         if (!Application.isPlaying)
         {
-            yield break;
+            return;
         }
 
         Camera mainCamera = Camera.main;
         if (mainCamera == null)
         {
             Debug.LogWarning("BattleBootstrap: no Main Camera found.");
-            yield break;
+            return;
         }
 
         ResolveReferences();
@@ -128,10 +128,8 @@ public class BattleBootstrap : MonoBehaviour
         if (units.Count < 2)
         {
             Debug.LogWarning("BattleBootstrap: not enough units for turn-based combat.");
-            yield break;
+            return;
         }
-
-        yield return PlayEnterBattleAnimations(units);
 
         BattleTurnSystem turnSystem = ResetTurnSystems();
         turnSystem.timelineSpacing = timelineSpacing;
@@ -151,6 +149,7 @@ public class BattleBootstrap : MonoBehaviour
         RefreshSkillPagination(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
+        StartCoroutine(PlayEnterBattleAnimations(units));
     }
 
     private void ResolveReferences()
