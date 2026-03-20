@@ -99,6 +99,7 @@ public class BattleTurnSystem : MonoBehaviour
     private Vector2Int lastCombatArtAimHoverCell;
     private float combatArtAimAnimationActiveUntilTime;
     private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
+    private string currentCombatArtAimStateName = string.Empty;
 
     private sealed class EnemySkillChoice
     {
@@ -462,6 +463,7 @@ public class BattleTurnSystem : MonoBehaviour
         StopCombatArtAimAnimation(force: true);
         hasLastCombatArtAimHoverCell = false;
         combatArtAimAnimationActiveUntilTime = 0f;
+        currentCombatArtAimStateName = string.Empty;
         CleanupDeadUnits();
         while (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
         {
@@ -1856,10 +1858,6 @@ public class BattleTurnSystem : MonoBehaviour
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
             hasLastCombatArtAimHoverCell = false;
-            if (ShouldUseCombatArtAimPreview(nextSkill))
-            {
-                StartCombatArtAimAnimation();
-            }
         }
 
         RefreshHighlights();
@@ -2090,6 +2088,7 @@ public class BattleTurnSystem : MonoBehaviour
         StopCombatArtAimAnimation(force: true);
         hasLastCombatArtAimHoverCell = false;
         combatArtAimAnimationActiveUntilTime = 0f;
+        currentCombatArtAimStateName = string.Empty;
     }
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
@@ -3558,10 +3557,16 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.idleStateName : string.Empty;
     }
 
-    private static string ResolveCombatArtAimStateName()
+    private static string ResolveCombatArtLeftAimStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtAimStateName : string.Empty;
+        return settings != null ? settings.combatArtLeftAimStateName : string.Empty;
+    }
+
+    private static string ResolveCombatArtRightAimStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.combatArtRightAimStateName : string.Empty;
     }
 
     private static float ResolveIdleYawOffset()
@@ -3582,23 +3587,24 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.dodgeStateName : string.Empty;
     }
 
-    private void StartCombatArtAimAnimation()
+    private void StartCombatArtAimAnimation(string stateName)
     {
         if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
         {
             return;
         }
 
-        string combatArtAimStateName = ResolveCombatArtAimStateName();
-        if (string.IsNullOrWhiteSpace(combatArtAimStateName))
+        if (string.IsNullOrWhiteSpace(stateName))
         {
             combatArtAimAnimationActive = false;
+            currentCombatArtAimStateName = string.Empty;
             return;
         }
 
-        activeUnit.PlayAnimationState(combatArtAimStateName);
+        activeUnit.PlayAnimationState(stateName);
         combatArtAimAnimationActive = true;
         combatArtAimAnimationActiveUntilTime = Time.time + MinCombatArtAimAnimationDurationSeconds;
+        currentCombatArtAimStateName = stateName;
     }
 
     private void StopCombatArtAimAnimation(bool force = false)
@@ -3613,6 +3619,7 @@ public class BattleTurnSystem : MonoBehaviour
             if (force)
             {
                 combatArtAimAnimationActive = false;
+                currentCombatArtAimStateName = string.Empty;
             }
             return;
         }
@@ -3629,6 +3636,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         combatArtAimAnimationActive = false;
+        currentCombatArtAimStateName = string.Empty;
     }
 
     private void UpdateCombatArtAimFacing(Vector3 worldPosition, Vector2Int hoveredCell)
@@ -3637,6 +3645,9 @@ public class BattleTurnSystem : MonoBehaviour
         {
             return;
         }
+
+        // Root 朝向始终由代码接管，瞄准动画只负责脚步表现。
+        activeUnit.FaceToward(worldPosition);
 
         bool cellChanged = !hasLastCombatArtAimHoverCell || hoveredCell != lastCombatArtAimHoverCell;
         lastCombatArtAimHoverCell = hoveredCell;
@@ -3648,16 +3659,62 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        activeUnit.FaceToward(worldPosition);
-        if (!combatArtAimAnimationActive)
+        string stateName = ResolveCombatArtAimStateNameForTarget(worldPosition);
+        if (string.IsNullOrWhiteSpace(stateName))
         {
-            StartCombatArtAimAnimation();
+            StopCombatArtAimAnimation(force: true);
+            activeUnit.FaceToward(worldPosition);
+            return;
+        }
+
+        if (!combatArtAimAnimationActive || !string.Equals(currentCombatArtAimStateName, stateName, System.StringComparison.Ordinal))
+        {
+            StartCombatArtAimAnimation(stateName);
         }
     }
 
     private static bool ShouldUseCombatArtAimPreview(BattleSkillDatabase.SkillEntry skill)
     {
         return skill != null && skill.group == BattleSkillDatabase.SkillGroup.CombatArt;
+    }
+
+    private string ResolveCombatArtAimStateNameForTarget(Vector3 worldPosition)
+    {
+        if (activeUnit == null)
+        {
+            return string.Empty;
+        }
+
+        Vector3 localDirection = activeUnit.transform.InverseTransformPoint(worldPosition);
+        string leftStateName = ResolveCombatArtLeftAimStateName();
+        string rightStateName = ResolveCombatArtRightAimStateName();
+
+        if (localDirection.x < -0.001f)
+        {
+            if (!string.IsNullOrWhiteSpace(leftStateName))
+            {
+                return leftStateName;
+            }
+
+            return rightStateName;
+        }
+
+        if (localDirection.x > 0.001f)
+        {
+            if (!string.IsNullOrWhiteSpace(rightStateName))
+            {
+                return rightStateName;
+            }
+
+            return leftStateName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentCombatArtAimStateName))
+        {
+            return currentCombatArtAimStateName;
+        }
+
+        return !string.IsNullOrWhiteSpace(rightStateName) ? rightStateName : leftStateName;
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)

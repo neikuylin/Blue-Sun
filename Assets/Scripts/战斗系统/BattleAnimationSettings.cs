@@ -9,7 +9,9 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public string idleStateName = string.Empty;
     public string enterBattleStateName = string.Empty;
     [FormerlySerializedAs("aimStateName")]
-    public string combatArtAimStateName = string.Empty;
+    [FormerlySerializedAs("combatArtAimStateName")]
+    public string combatArtLeftAimStateName = string.Empty;
+    public string combatArtRightAimStateName = string.Empty;
     public string hitReactionStateName = string.Empty;
     public string dodgeStateName = string.Empty;
     public float idleYawOffset;
