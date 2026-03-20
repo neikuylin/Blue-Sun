@@ -3201,13 +3201,56 @@ public class BattleTurnSystem : MonoBehaviour
         int skillRange = GetSkillRange(skill, caster);
         if (skill.skillType == BattleSkillDatabase.SkillType.Target)
         {
-            return grid.ManhattanDistance(castCell, target.currentCell) <= skillRange &&
+            return IsUnitWithinRangeFromCell(caster, castCell, target, skillRange) &&
                 IsValidSkillTarget(caster, target, skill);
         }
 
         if (skill.skillType == BattleSkillDatabase.SkillType.Area)
         {
             return grid.ManhattanDistance(castCell, target.currentCell) <= skillRange;
+        }
+
+        return false;
+    }
+
+    private bool IsUnitWithinRangeFromCell(BattleUnit caster, Vector2Int castCell, BattleUnit target, int range)
+    {
+        if (caster == null || target == null || grid == null)
+        {
+            return false;
+        }
+
+        int casterRadius = caster.FootprintRadius;
+        int targetRadius = target.FootprintRadius;
+        int clampedRange = Mathf.Max(0, range);
+
+        for (int casterY = castCell.y - casterRadius; casterY <= castCell.y + casterRadius; casterY++)
+        {
+            for (int casterX = castCell.x - casterRadius; casterX <= castCell.x + casterRadius; casterX++)
+            {
+                Vector2Int casterFootprintCell = new Vector2Int(casterX, casterY);
+                if (!grid.IsInside(casterFootprintCell))
+                {
+                    continue;
+                }
+
+                for (int targetY = target.currentCell.y - targetRadius; targetY <= target.currentCell.y + targetRadius; targetY++)
+                {
+                    for (int targetX = target.currentCell.x - targetRadius; targetX <= target.currentCell.x + targetRadius; targetX++)
+                    {
+                        Vector2Int targetFootprintCell = new Vector2Int(targetX, targetY);
+                        if (!grid.IsInside(targetFootprintCell))
+                        {
+                            continue;
+                        }
+
+                        if (grid.ManhattanDistance(casterFootprintCell, targetFootprintCell) <= clampedRange)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
 
         return false;
