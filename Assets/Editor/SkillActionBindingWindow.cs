@@ -45,7 +45,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         List<string> actionOptions = BuildActionOptions();
 
         EditorGUILayout.LabelField("技能动作栏", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("顶部配置全局待机、进战、瞄准、受击、闪避动作和待机角度修正。下方每个技能只绑定自己的施放动作和角度修正。", MessageType.Info);
+        EditorGUILayout.HelpBox("顶部配置全局待机、进战、战技瞄准、受击、闪避动作和待机角度修正。下方每个技能只绑定自己的施放动作和角度修正。", MessageType.Info);
 
         settingsObject.Update();
         using (new EditorGUILayout.VerticalScope("box"))
@@ -53,20 +53,20 @@ public sealed class SkillActionBindingWindow : EditorWindow
             EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
             SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
             SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
-            SerializedProperty aimStateNameProperty = settingsObject.FindProperty("aimStateName");
+            SerializedProperty combatArtAimStateNameProperty = settingsObject.FindProperty("combatArtAimStateName");
             SerializedProperty hitReactionStateNameProperty = settingsObject.FindProperty("hitReactionStateName");
             SerializedProperty dodgeStateNameProperty = settingsObject.FindProperty("dodgeStateName");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
 
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
             string currentEnterBattle = enterBattleStateNameProperty != null ? enterBattleStateNameProperty.stringValue : string.Empty;
-            string currentAim = aimStateNameProperty != null ? aimStateNameProperty.stringValue : string.Empty;
+            string currentCombatArtAim = combatArtAimStateNameProperty != null ? combatArtAimStateNameProperty.stringValue : string.Empty;
             string currentHitReaction = hitReactionStateNameProperty != null ? hitReactionStateNameProperty.stringValue : string.Empty;
             string currentDodge = dodgeStateNameProperty != null ? dodgeStateNameProperty.stringValue : string.Empty;
 
             int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
             int selectedEnterBattleIndex = FindOptionIndex(actionOptions, currentEnterBattle);
-            int selectedAimIndex = FindOptionIndex(actionOptions, currentAim);
+            int selectedCombatArtAimIndex = FindOptionIndex(actionOptions, currentCombatArtAim);
             int selectedHitReactionIndex = FindOptionIndex(actionOptions, currentHitReaction);
             int selectedDodgeIndex = FindOptionIndex(actionOptions, currentDodge);
 
@@ -82,10 +82,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
                 enterBattleStateNameProperty.stringValue = newEnterBattleIndex <= 0 ? string.Empty : actionOptions[newEnterBattleIndex];
             }
 
-            int newAimIndex = EditorGUILayout.Popup("瞄准动画", selectedAimIndex, actionOptions.ToArray());
-            if (aimStateNameProperty != null)
+            int newCombatArtAimIndex = EditorGUILayout.Popup("战技瞄准动画", selectedCombatArtAimIndex, actionOptions.ToArray());
+            if (combatArtAimStateNameProperty != null)
             {
-                aimStateNameProperty.stringValue = newAimIndex <= 0 ? string.Empty : actionOptions[newAimIndex];
+                combatArtAimStateNameProperty.stringValue = newCombatArtAimIndex <= 0 ? string.Empty : actionOptions[newCombatArtAimIndex];
             }
 
             int newHitReactionIndex = EditorGUILayout.Popup("受击动画", selectedHitReactionIndex, actionOptions.ToArray());

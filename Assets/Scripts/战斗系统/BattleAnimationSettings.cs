@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "BattleAnimationSettings", menuName = "Battle/Animation Settings")]
 public sealed class BattleAnimationSettings : ScriptableObject
@@ -7,7 +8,8 @@ public sealed class BattleAnimationSettings : ScriptableObject
 
     public string idleStateName = string.Empty;
     public string enterBattleStateName = string.Empty;
-    public string aimStateName = string.Empty;
+    [FormerlySerializedAs("aimStateName")]
+    public string combatArtAimStateName = string.Empty;
     public string hitReactionStateName = string.Empty;
     public string dodgeStateName = string.Empty;
     public float idleYawOffset;
