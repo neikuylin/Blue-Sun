@@ -84,6 +84,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
+    private BattleUnit lockedTargetUnit;
     private bool isResolvingSkillExecution;
     private string lastTargetUiSignature = "<unset>";
     private RectSnapshot targetHealthFillBaseRect;
@@ -284,6 +285,11 @@ public class BattleTurnSystem : MonoBehaviour
         {
             TryUseActiveSkill(activeUnit, clickedCell, target);
             return;
+        }
+
+        if (target != null && target.IsAlive)
+        {
+            SetLockedTargetUnit(target);
         }
 
     }
@@ -523,6 +529,15 @@ public class BattleTurnSystem : MonoBehaviour
                 ? activeEnemyFootprintColor
                 : activePlayerFootprintColor;
             grid.HighlightFootprint(activeUnit, activeFootprintColor);
+
+            BattleUnit persistentTarget = ResolvePersistentTargetUnit();
+            if (persistentTarget != null && persistentTarget != activeUnit)
+            {
+                Color targetFootprintColor = persistentTarget.team == BattleTeam.Enemy
+                    ? activeEnemyFootprintColor
+                    : skillAllyOccupiedColor;
+                grid.HighlightFootprint(persistentTarget, targetFootprintColor);
+            }
         }
 
         if (activeUnit.isPlayerControlled && IsSkillModeActive())
@@ -630,11 +645,43 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
-            return null;
+            return ResolvePersistentTargetUnit();
         }
 
         BattleUnit unit = grid.GetUnitAt(hoveredCell);
-        return unit != null && unit.IsAlive ? unit : null;
+        if (unit != null && unit.IsAlive)
+        {
+            return unit;
+        }
+
+        return ResolvePersistentTargetUnit();
+    }
+
+    private BattleUnit ResolvePersistentTargetUnit()
+    {
+        if (lockedTargetUnit != null && lockedTargetUnit.IsAlive)
+        {
+            return lockedTargetUnit;
+        }
+
+        if (lockedTargetUnit != null && !lockedTargetUnit.IsAlive)
+        {
+            lockedTargetUnit = null;
+        }
+
+        return null;
+    }
+
+    private void SetLockedTargetUnit(BattleUnit unit)
+    {
+        if (IsSkillModeActive())
+        {
+            return;
+        }
+
+        lockedTargetUnit = unit != null && unit.IsAlive ? unit : null;
+        lastTargetUiSignature = "<unset>";
+        RefreshHighlights();
     }
 
     private TMP_Text FindTargetHealthTextFallback()
@@ -1499,6 +1546,12 @@ public class BattleTurnSystem : MonoBehaviour
         if (grid != null)
         {
             grid.RemoveUnit(unit);
+        }
+
+        if (lockedTargetUnit == unit)
+        {
+            lockedTargetUnit = null;
+            lastTargetUiSignature = "<unset>";
         }
 
         units.Remove(unit);
