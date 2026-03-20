@@ -12,7 +12,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
     public float speed = 90f;
     public float lifetime = 0.6f;
     public float startOffsetY = -18f;
-    public float worldHeightOffset = 1.6f;
+    public float worldHeightOffset = 0.9f;
 
     [Header("Style")]
     public Color damageColor = Color.white;
@@ -156,18 +156,6 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
 
     private Vector3 ResolvePopupWorldPosition(BattleUnit target)
     {
-        Renderer[] renderers = target.GetComponentsInChildren<Renderer>(true);
-        if (renderers != null && renderers.Length > 0)
-        {
-            Bounds bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-
-            return new Vector3(bounds.center.x, bounds.max.y + worldHeightOffset, bounds.center.z);
-        }
-
         return target.transform.position + Vector3.up * worldHeightOffset;
     }
 
