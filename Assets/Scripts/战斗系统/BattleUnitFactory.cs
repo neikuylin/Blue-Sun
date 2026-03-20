@@ -139,6 +139,13 @@ public sealed class BattleUnitFactory
             unit.yawOffset = 0f;
             unit.useAutoVisualAnchor = binding != null && binding.useAutoVisualAnchor;
             unit.ApplyStats(statEntry);
+            if (!grid.IsFootprintInside(unit, spawnCell) || !grid.IsWalkable(unit, spawnCell))
+            {
+                Debug.LogError($"BattleUnitFactory: rejected enemy spawn '{enemyEntry.enemyId}' at {spawnCell}. The 3x3 footprint is outside the board or overlaps an existing unit.");
+                Object.Destroy(enemyObject);
+                continue;
+            }
+
             unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolveDisplayName(enemyEntry.enemyId, binding), spawnCell);
             unit.isPlayerControlled = enemyEntry.isPlayerControlled;
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));

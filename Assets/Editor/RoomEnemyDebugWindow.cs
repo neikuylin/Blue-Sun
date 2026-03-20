@@ -4,6 +4,7 @@ using UnityEngine;
 
 public sealed class RoomEnemyDebugWindow : EditorWindow
 {
+    private const int EnemyFootprintSize = 3;
     private const string StatAssetFolder = "Assets/Resources";
     private const string StatAssetPath = StatAssetFolder + "/CharacterStatDatabase.asset";
     private const string DefaultEnemyId = "\u5047\u4EBA";
@@ -24,11 +25,17 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
     {
         BattleBootstrap bootstrap = FindBootstrapInScene();
         CharacterStatDatabase statDatabase = EnsureStatDatabase();
+        string overlapMessage = BuildOverlapMessage(bootstrap);
 
         EditorGUILayout.LabelField("\u5F53\u524D\u623F\u95F4\u654C\u4EBA\u8C03\u8BD5\u5668", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
             "\u7F16\u8F91\u5F53\u524D\u573A\u666F BattleBootstrap \u7684\u623F\u95F4\u654C\u4EBA\u5217\u8868\u3002\u65B0\u589E\u654C\u4EBA\u65F6\uFF0C\u4F1A\u540C\u65F6\u786E\u4FDD\u89D2\u8272\u5C5E\u6027\u5E93\u4E2D\u5B58\u5728\u540C ID \u6761\u76EE\u3002",
             MessageType.Info);
+
+        if (!string.IsNullOrEmpty(overlapMessage))
+        {
+            EditorGUILayout.HelpBox(overlapMessage, MessageType.Error);
+        }
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -37,7 +44,7 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
                 Repaint();
             }
 
-            using (new EditorGUI.DisabledScope(bootstrap == null || !CanSaveScene()))
+            using (new EditorGUI.DisabledScope(bootstrap == null || !CanSaveScene() || !string.IsNullOrEmpty(overlapMessage)))
             {
                 if (GUILayout.Button("\u4FDD\u5B58\u573A\u666F"))
                 {
@@ -353,6 +360,13 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             return;
         }
 
+        string overlapMessage = BuildOverlapMessage(bootstrap);
+        if (!string.IsNullOrEmpty(overlapMessage))
+        {
+            Debug.LogError("RoomEnemyDebugWindow: " + overlapMessage);
+            return;
+        }
+
         SaveScene(bootstrap);
     }
 
@@ -368,6 +382,14 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
             return;
         }
 
+        string overlapMessage = BuildOverlapMessage(bootstrap);
+        if (!string.IsNullOrEmpty(overlapMessage))
+        {
+            Debug.LogError("RoomEnemyDebugWindow: " + overlapMessage);
+            EditorUtility.DisplayDialog("出生格冲突", overlapMessage, "确定");
+            return;
+        }
+
         EditorSceneManager.MarkSceneDirty(bootstrap.gameObject.scene);
         EditorSceneManager.SaveScene(bootstrap.gameObject.scene);
         AssetDatabase.SaveAssets();
@@ -376,5 +398,46 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
     private static bool CanSaveScene()
     {
         return !Application.isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode;
+    }
+
+    private static string BuildOverlapMessage(BattleBootstrap bootstrap)
+    {
+        if (bootstrap == null || bootstrap.enemySpawns == null || bootstrap.enemySpawns.Count <= 1)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
+        {
+            BattleBootstrap.EnemySpawnEntry a = bootstrap.enemySpawns[i];
+            if (a == null || string.IsNullOrWhiteSpace(a.enemyId))
+            {
+                continue;
+            }
+
+            for (int j = i + 1; j < bootstrap.enemySpawns.Count; j++)
+            {
+                BattleBootstrap.EnemySpawnEntry b = bootstrap.enemySpawns[j];
+                if (b == null || string.IsNullOrWhiteSpace(b.enemyId))
+                {
+                    continue;
+                }
+
+                if (!FootprintsOverlap(a.spawnCell, b.spawnCell, EnemyFootprintSize))
+                {
+                    continue;
+                }
+
+                return $"出生格冲突：'{a.enemyId}' ({a.spawnCell.x}, {a.spawnCell.y}) 与 '{b.enemyId}' ({b.spawnCell.x}, {b.spawnCell.y}) 的 {EnemyFootprintSize}x{EnemyFootprintSize} 占地重叠。请先调整出生格，再保存场景。";
+            }
+        }
+
+        return null;
+    }
+
+    private static bool FootprintsOverlap(Vector2Int a, Vector2Int b, int footprintSize)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        return Mathf.Abs(a.x - b.x) <= radius * 2 && Mathf.Abs(a.y - b.y) <= radius * 2;
     }
 }

@@ -20,6 +20,6 @@ MonoBehaviour:
       team: 1
       isPlayerControlled: 0
     - enemyId: "\u5965\u624E\u514B\u58EB\u5175"
-      spawnCell: {x: 13, y: 14}
+      spawnCell: {x: 15, y: 16}
       team: 1
       isPlayerControlled: 0

@@ -4,6 +4,7 @@ using UnityEngine;
 
 public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 {
+    private const int EnemyFootprintSize = 3;
     private const string ResourceFolder = "Assets/Resources";
     private const string PresetAssetPath = ResourceFolder + "/RoomEnemyPresetDatabase.asset";
     private const string StatAssetPath = ResourceFolder + "/CharacterStatDatabase.asset";
@@ -30,7 +31,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
         EditorGUILayout.LabelField("房间敌人编辑器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "维护房间敌人预设库。这里编辑的是预设，不会实时改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
+            "维护房间敌人预设。这里编辑的是预设资产，不会实时修改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
             MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -42,7 +43,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
             using (new EditorGUI.DisabledScope(bootstrap == null))
             {
-                if (GUILayout.Button("从当前场景抓取到新预设"))
+                if (GUILayout.Button("从当前场景创建新预设"))
                 {
                     CreatePresetFromScene(presetDatabase, bootstrap, statDatabase);
                 }
@@ -109,6 +110,8 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         SerializedProperty presetIdProperty = presetProperty.FindPropertyRelative("presetId");
         SerializedProperty enemiesProperty = presetProperty.FindPropertyRelative("enemies");
         string presetId = presetIdProperty.stringValue;
+        string overlapMessage = BuildOverlapMessage(enemiesProperty);
+        bool hasOverlap = !string.IsNullOrEmpty(overlapMessage);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -122,9 +125,12 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                     GUIUtility.ExitGUI();
                 }
 
-                if (GUILayout.Button("应用到当前场景", GUILayout.Width(112f)))
+                using (new EditorGUI.DisabledScope(hasOverlap))
                 {
-                    ApplyPresetToScene(enemiesProperty, bootstrap, statDatabase);
+                    if (GUILayout.Button("应用到当前场景", GUILayout.Width(112f)))
+                    {
+                        ApplyPresetToScene(enemiesProperty, bootstrap, statDatabase);
+                    }
                 }
 
                 if (GUILayout.Button("删除预设", GUILayout.Width(88f)))
@@ -134,6 +140,11 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                     SaveAsset(presetDatabase);
                     GUIUtility.ExitGUI();
                 }
+            }
+
+            if (hasOverlap)
+            {
+                EditorGUILayout.HelpBox(overlapMessage, MessageType.Error);
             }
 
             if (enemiesProperty.arraySize == 0)
@@ -318,6 +329,14 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             return;
         }
 
+        string overlapMessage = BuildOverlapMessage(enemiesProperty);
+        if (!string.IsNullOrEmpty(overlapMessage))
+        {
+            Debug.LogError("RoomEnemyPresetEditorWindow: " + overlapMessage);
+            EditorUtility.DisplayDialog("出生格冲突", overlapMessage, "确定");
+            return;
+        }
+
         Undo.RecordObject(bootstrap, "应用房间敌人预设");
         if (bootstrap.enemySpawns == null)
         {
@@ -441,5 +460,50 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
         EditorUtility.SetDirty(asset);
         AssetDatabase.SaveAssets();
+    }
+
+    private static string BuildOverlapMessage(SerializedProperty enemiesProperty)
+    {
+        if (enemiesProperty == null || enemiesProperty.arraySize <= 1)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < enemiesProperty.arraySize; i++)
+        {
+            SerializedProperty a = enemiesProperty.GetArrayElementAtIndex(i);
+            string enemyA = a.FindPropertyRelative("enemyId").stringValue.Trim();
+            if (string.IsNullOrWhiteSpace(enemyA))
+            {
+                continue;
+            }
+
+            Vector2Int cellA = a.FindPropertyRelative("spawnCell").vector2IntValue;
+            for (int j = i + 1; j < enemiesProperty.arraySize; j++)
+            {
+                SerializedProperty b = enemiesProperty.GetArrayElementAtIndex(j);
+                string enemyB = b.FindPropertyRelative("enemyId").stringValue.Trim();
+                if (string.IsNullOrWhiteSpace(enemyB))
+                {
+                    continue;
+                }
+
+                Vector2Int cellB = b.FindPropertyRelative("spawnCell").vector2IntValue;
+                if (!FootprintsOverlap(cellA, cellB, EnemyFootprintSize))
+                {
+                    continue;
+                }
+
+                return $"出生格冲突：'{enemyA}' ({cellA.x}, {cellA.y}) 与 '{enemyB}' ({cellB.x}, {cellB.y}) 的 {EnemyFootprintSize}x{EnemyFootprintSize} 占地重叠。请先调整出生格，再应用到场景。";
+            }
+        }
+
+        return null;
+    }
+
+    private static bool FootprintsOverlap(Vector2Int a, Vector2Int b, int footprintSize)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        return Mathf.Abs(a.x - b.x) <= radius * 2 && Mathf.Abs(a.y - b.y) <= radius * 2;
     }
 }
