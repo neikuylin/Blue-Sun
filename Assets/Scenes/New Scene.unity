@@ -668,11 +668,47 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7317318537085620868, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -2592512076664401700, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1608922179581714452, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -385989914682024509, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 863018392041717055, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
       propertyPath: m_Name
       value: "\u7231\u4E3D\u4E1D"
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1183741412846189495, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1514851957616577063, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4137772544566241819, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4475224043933329799, guid: f4f067955505ba4499ea1ca6f4fa4ff5, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
