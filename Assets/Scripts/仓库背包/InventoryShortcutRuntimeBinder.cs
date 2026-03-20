@@ -2370,7 +2370,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.name = RuntimeWeaponModelName;
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = Quaternion.identity;
-        instance.transform.localScale = Vector3.one;
+        ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
     }
 
     private static void ClearRuntimeWeaponModel(Transform mountPoint)
@@ -2390,6 +2390,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
             Destroy(child.gameObject);
         }
+    }
+
+    private static void ApplyMountedModelScaleCompensation(Transform instance, Transform mountPoint)
+    {
+        if (instance == null || mountPoint == null)
+        {
+            return;
+        }
+
+        Vector3 prefabLocalScale = instance.localScale;
+        Vector3 parentLossyScale = mountPoint.lossyScale;
+        instance.localScale = new Vector3(
+            DivideScaleAxis(prefabLocalScale.x, parentLossyScale.x),
+            DivideScaleAxis(prefabLocalScale.y, parentLossyScale.y),
+            DivideScaleAxis(prefabLocalScale.z, parentLossyScale.z));
+    }
+
+    private static float DivideScaleAxis(float value, float parentScale)
+    {
+        return Mathf.Abs(parentScale) <= 0.0001f ? value : value / parentScale;
     }
 
     private ItemDatabase.ItemEntry ResolveEquippedWeaponModelEntry(string characterId)

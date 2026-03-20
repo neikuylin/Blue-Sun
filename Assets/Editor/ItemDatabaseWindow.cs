@@ -110,7 +110,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         if (createCategory == ItemDatabase.ItemCategory.Equipment &&
             ItemDatabase.SupportsWeaponModelPrefab(createEquipmentSlot))
         {
-            newWeaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("Weapon Model Prefab", newWeaponModelPrefab, typeof(GameObject), false);
+            newWeaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("模型预制体", newWeaponModelPrefab, typeof(GameObject), false);
         }
         else
         {
@@ -233,7 +233,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             if (entry.category == ItemDatabase.ItemCategory.Equipment &&
                 ItemDatabase.SupportsWeaponModelPrefab(entry.equipmentSlot))
             {
-                entry.weaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("Weapon Model Prefab", entry.weaponModelPrefab, typeof(GameObject), false);
+                entry.weaponModelPrefab = (GameObject)EditorGUILayout.ObjectField("模型预制体", entry.weaponModelPrefab, typeof(GameObject), false);
             }
             else
             {
