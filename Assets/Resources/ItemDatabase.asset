@@ -29,3 +29,4 @@ MonoBehaviour:
     - attributeType: 2
       multiplier: 0.5
     prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
+    weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
