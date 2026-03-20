@@ -8,6 +8,9 @@ public class BattleCameraController : MonoBehaviour
     public float maxZoom = 16f;
 
     private Camera attachedCamera;
+    private Transform followTarget;
+    private Vector3 lastFollowTargetPosition;
+    private float focusPlaneY;
 
     private void Awake()
     {
@@ -16,25 +19,30 @@ public class BattleCameraController : MonoBehaviour
 
     private void Update()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
         float scroll = Input.GetAxis("Mouse ScrollWheel");
+        bool isFollowingTarget = followTarget != null;
 
-        Vector3 forward = transform.forward;
-        Vector3 right = transform.right;
-        forward.y = 0f;
-        right.y = 0f;
-
-        forward.Normalize();
-        right.Normalize();
-
-        Vector3 move = (forward * vertical + right * horizontal);
-        if (move.sqrMagnitude > 1f)
+        if (!isFollowingTarget)
         {
-            move.Normalize();
-        }
+            float horizontal = Input.GetAxisRaw("Horizontal");
+            float vertical = Input.GetAxisRaw("Vertical");
 
-        transform.position += move * moveSpeed * Time.deltaTime;
+            Vector3 forward = transform.forward;
+            Vector3 right = transform.right;
+            forward.y = 0f;
+            right.y = 0f;
+
+            forward.Normalize();
+            right.Normalize();
+
+            Vector3 move = (forward * vertical + right * horizontal);
+            if (move.sqrMagnitude > 1f)
+            {
+                move.Normalize();
+            }
+
+            transform.position += move * moveSpeed * Time.deltaTime;
+        }
 
         if (attachedCamera != null && attachedCamera.orthographic && Mathf.Abs(scroll) > 0.001f)
         {
@@ -43,5 +51,85 @@ public class BattleCameraController : MonoBehaviour
                 minZoom,
                 maxZoom);
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (followTarget == null)
+        {
+            return;
+        }
+
+        Vector3 currentTargetPosition = followTarget.position;
+        Vector3 delta = currentTargetPosition - lastFollowTargetPosition;
+        delta.y = 0f;
+
+        if (delta.sqrMagnitude > 0f)
+        {
+            transform.position += delta;
+        }
+
+        lastFollowTargetPosition = currentTargetPosition;
+    }
+
+    public void SnapToTarget(Transform target, float planeY = 0f)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        focusPlaneY = planeY;
+        Vector3 focusPoint = GetCameraFocusPointOnPlane(focusPlaneY);
+        Vector3 targetPoint = target.position;
+        Vector3 delta = targetPoint - focusPoint;
+        delta.y = 0f;
+        transform.position += delta;
+    }
+
+    public void StartFollowing(Transform target, float planeY = 0f, bool snapImmediately = true)
+    {
+        if (target == null)
+        {
+            StopFollowing();
+            return;
+        }
+
+        if (snapImmediately)
+        {
+            SnapToTarget(target, planeY);
+        }
+        else
+        {
+            focusPlaneY = planeY;
+        }
+
+        followTarget = target;
+        lastFollowTargetPosition = target.position;
+    }
+
+    public void StopFollowing()
+    {
+        followTarget = null;
+    }
+
+    private Vector3 GetCameraFocusPointOnPlane(float planeY)
+    {
+        if (attachedCamera == null)
+        {
+            return transform.position;
+        }
+
+        Plane plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
+        Ray centerRay = attachedCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        float enter;
+        if (plane.Raycast(centerRay, out enter))
+        {
+            return centerRay.GetPoint(enter);
+        }
+
+        Vector3 fallback = transform.position;
+        fallback.y = planeY;
+        return fallback;
     }
 }

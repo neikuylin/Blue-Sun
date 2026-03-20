@@ -48,6 +48,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private BattleGrid grid;
     private Camera battleCamera;
+    private BattleCameraController battleCameraController;
     private BattleUnit activeUnit;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
@@ -109,6 +110,7 @@ public class BattleTurnSystem : MonoBehaviour
     {
         grid = battleGrid;
         battleCamera = mainCamera;
+        battleCameraController = battleCamera != null ? battleCamera.GetComponent<BattleCameraController>() : null;
         activeUnitIdText = FindActiveUnitIdText();
         overlayCanvasRect = null;
         skillCostHintRect = null;
@@ -406,6 +408,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 activeUnit = candidate;
                 activeUnit.BeginTurn();
+                FocusCameraOnActiveUnit();
                 ClearActiveSkillMode();
                 RefreshHighlights();
                 RefreshActiveUnitUi();
@@ -428,6 +431,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         activeUnit = null;
+        StopCameraFollow();
         RefreshActiveUnitUi();
         RefreshTimeline();
     }
@@ -506,6 +510,33 @@ public class BattleTurnSystem : MonoBehaviour
                 skillEnemyOccupiedColor);
         }
         ApplySkillHoverPreview();
+    }
+
+    private void FocusCameraOnActiveUnit()
+    {
+        if (battleCameraController == null || activeUnit == null)
+        {
+            return;
+        }
+
+        battleCameraController.SnapToTarget(activeUnit.transform);
+        if (activeUnit.team == BattleTeam.Enemy)
+        {
+            battleCameraController.StartFollowing(activeUnit.transform, snapImmediately: false);
+            return;
+        }
+
+        battleCameraController.StopFollowing();
+    }
+
+    private void StopCameraFollow()
+    {
+        if (battleCameraController == null)
+        {
+            return;
+        }
+
+        battleCameraController.StopFollowing();
     }
 
     private void CleanupDeadUnits()
