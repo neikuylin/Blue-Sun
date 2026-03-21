@@ -207,18 +207,22 @@ public class BattleBootstrap : MonoBehaviour
 
     private static IEnumerator PlayEnterBattleAnimations(IReadOnlyList<BattleUnit> units)
     {
-        string enterBattleStateName = ResolveEnterBattleStateName();
-        if (string.IsNullOrWhiteSpace(enterBattleStateName) || units == null || units.Count == 0)
+        if (units == null || units.Count == 0)
         {
             yield break;
         }
 
-        int enterBattleStateHash = Animator.StringToHash(enterBattleStateName);
         bool playedAny = false;
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
             if (unit == null)
+            {
+                continue;
+            }
+
+            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
+            if (string.IsNullOrWhiteSpace(enterBattleStateName))
             {
                 continue;
             }
@@ -249,6 +253,12 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
+            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
+            if (string.IsNullOrWhiteSpace(enterBattleStateName))
+            {
+                continue;
+            }
+
             Animator animator = unit.GetComponentInChildren<Animator>(true);
             if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
             {
@@ -256,11 +266,6 @@ public class BattleBootstrap : MonoBehaviour
             }
 
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            if (stateInfo.shortNameHash != enterBattleStateHash)
-            {
-                continue;
-            }
-
             longestDuration = Mathf.Max(longestDuration, stateInfo.length);
         }
 
@@ -283,7 +288,7 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
-            unit.PlayAnimationState(idleStateName);
+            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
         }
     }
 

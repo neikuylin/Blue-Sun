@@ -35,6 +35,15 @@ public class BattleUnit : MonoBehaviour
     public bool useAutoVisualAnchor = true;
     public float moveSpeed = 8f;
 
+    [Header("Animation Bindings")]
+    [SerializeField] private string idleStateName = string.Empty;
+    [SerializeField] private string enterBattleStateName = string.Empty;
+    [SerializeField] private string moveStateName = string.Empty;
+    [SerializeField] private string hitReactionStateName = string.Empty;
+    [SerializeField] private string dodgeStateName = string.Empty;
+    [SerializeField] private string combatArtLeftAimStateName = string.Empty;
+    [SerializeField] private string combatArtRightAimStateName = string.Empty;
+
     [Header("Runtime")]
     public int currentHealth;
     public int currentMana;
@@ -69,6 +78,64 @@ public class BattleUnit : MonoBehaviour
     }
 
     public bool IsMoving { get; private set; }
+
+    public void ConfigureAnimationBindings(BattleCharacterBindingDatabase.BindingEntry binding)
+    {
+        if (binding == null)
+        {
+            idleStateName = string.Empty;
+            enterBattleStateName = string.Empty;
+            moveStateName = string.Empty;
+            hitReactionStateName = string.Empty;
+            dodgeStateName = string.Empty;
+            combatArtLeftAimStateName = string.Empty;
+            combatArtRightAimStateName = string.Empty;
+            return;
+        }
+
+        idleStateName = binding.idleStateName ?? string.Empty;
+        enterBattleStateName = binding.enterBattleStateName ?? string.Empty;
+        moveStateName = binding.moveStateName ?? string.Empty;
+        hitReactionStateName = binding.hitReactionStateName ?? string.Empty;
+        dodgeStateName = binding.dodgeStateName ?? string.Empty;
+        combatArtLeftAimStateName = binding.combatArtLeftAimStateName ?? string.Empty;
+        combatArtRightAimStateName = binding.combatArtRightAimStateName ?? string.Empty;
+    }
+
+    public string GetIdleAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(idleStateName) ? fallback : idleStateName;
+    }
+
+    public string GetEnterBattleAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(enterBattleStateName) ? fallback : enterBattleStateName;
+    }
+
+    public string GetMoveAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(moveStateName) ? fallback : moveStateName;
+    }
+
+    public string GetHitReactionAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(hitReactionStateName) ? fallback : hitReactionStateName;
+    }
+
+    public string GetDodgeAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(dodgeStateName) ? fallback : dodgeStateName;
+    }
+
+    public string GetCombatArtLeftAimAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(combatArtLeftAimStateName) ? fallback : combatArtLeftAimStateName;
+    }
+
+    public string GetCombatArtRightAimAnimationStateName(string fallback = "")
+    {
+        return string.IsNullOrWhiteSpace(combatArtRightAimStateName) ? fallback : combatArtRightAimStateName;
+    }
 
     public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)
     {
@@ -257,6 +324,27 @@ public class BattleUnit : MonoBehaviour
         animator.Play(stateName, 0, 0f);
     }
 
+    public void PlayAnimationStateForCurrentClipDuration(string stateName, string idleStateName = "")
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return;
+        }
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        if (timedAnimationRoutine != null)
+        {
+            StopCoroutine(timedAnimationRoutine);
+        }
+
+        timedAnimationRoutine = StartCoroutine(PlayAnimationStateForCurrentClipDurationRoutine(animator, stateName, idleStateName));
+    }
+
     public void ApplyYawOffset(float yawOffsetDegrees)
     {
         if (Mathf.Abs(yawOffsetDegrees) <= 0.01f)
@@ -326,6 +414,39 @@ public class BattleUnit : MonoBehaviour
         animator.Play(stateName, 0, 0f);
 
         yield return new WaitForSeconds(duration);
+
+        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
+        {
+            animator.Play(idleStateName, 0, 0f);
+        }
+        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
+        {
+            animator.Play(previousStateHash, 0, 0f);
+        }
+
+        timedAnimationRoutine = null;
+    }
+
+    private IEnumerator PlayAnimationStateForCurrentClipDurationRoutine(Animator animator, string stateName, string idleStateName)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(stateName))
+        {
+            timedAnimationRoutine = null;
+            yield break;
+        }
+
+        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
+        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        animator.Play(stateName, 0, 0f);
+
+        yield return null;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+        float duration = currentState.length;
+        if (duration > 0.01f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
 
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {

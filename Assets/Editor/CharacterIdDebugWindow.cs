@@ -219,6 +219,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelScale"), new GUIContent("模型缩放"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("useAutoVisualAnchor"), new GUIContent("自动视觉锚点"));
+                DrawAnimationBindings(entry);
                 DrawAnimatorBindingStatus(entry);
             }
         }
@@ -235,6 +236,13 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
+            added.FindPropertyRelative("idleStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("enterBattleStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("moveStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("hitReactionStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("dodgeStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("combatArtLeftAimStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("combatArtRightAimStateName").stringValue = string.Empty;
         }
 
         if (bindingDatabaseObject.ApplyModifiedProperties())
@@ -353,6 +361,13 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
+            added.FindPropertyRelative("idleStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("enterBattleStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("moveStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("hitReactionStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("dodgeStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("combatArtLeftAimStateName").stringValue = string.Empty;
+            added.FindPropertyRelative("combatArtRightAimStateName").stringValue = string.Empty;
         }
     }
 
@@ -425,6 +440,123 @@ public sealed class CharacterIdDebugWindow : EditorWindow
         }
 
         EditorGUILayout.HelpBox($"控制器已绑定：{controller.name}，层数 {animatorController.layers.Length}，状态数 {stateCount}。", MessageType.None);
+    }
+
+    private static void DrawAnimationBindings(SerializedProperty entry)
+    {
+        RuntimeAnimatorController controller = entry.FindPropertyRelative("animatorController").objectReferenceValue as RuntimeAnimatorController;
+        AnimatorController animatorController = controller as AnimatorController;
+        if (animatorController == null)
+        {
+            return;
+        }
+
+        List<string> stateNames = CollectAnimatorStateNames(animatorController);
+        string defaultStateName = ResolveDefaultStateName(animatorController);
+        entry.FindPropertyRelative("idleStateName").stringValue = defaultStateName;
+
+        EditorGUILayout.Space(2f);
+        EditorGUILayout.LabelField("动画绑定", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("待机状态（默认状态）", string.IsNullOrWhiteSpace(defaultStateName) ? "（空）" : defaultStateName);
+
+        DrawAnimationStatePopup(entry.FindPropertyRelative("enterBattleStateName"), "入场动画", stateNames);
+        DrawAnimationStatePopup(entry.FindPropertyRelative("moveStateName"), "移动动画", stateNames);
+        DrawAnimationStatePopup(entry.FindPropertyRelative("hitReactionStateName"), "受击动画", stateNames);
+        DrawAnimationStatePopup(entry.FindPropertyRelative("dodgeStateName"), "闪避动画", stateNames);
+        DrawAnimationStatePopup(entry.FindPropertyRelative("combatArtLeftAimStateName"), "左瞄准动画", stateNames);
+        DrawAnimationStatePopup(entry.FindPropertyRelative("combatArtRightAimStateName"), "右瞄准动画", stateNames);
+    }
+
+    private static void DrawAnimationStatePopup(SerializedProperty property, string label, List<string> stateNames)
+    {
+        string currentValue = property.stringValue;
+        string[] options = new string[stateNames.Count + 1];
+        options[0] = "（空）";
+        int selectedIndex = 0;
+        for (int i = 0; i < stateNames.Count; i++)
+        {
+            string option = stateNames[i];
+            options[i + 1] = option;
+            if (string.Equals(option, currentValue, StringComparison.Ordinal))
+            {
+                selectedIndex = i + 1;
+            }
+        }
+
+        int nextIndex = EditorGUILayout.Popup(label, selectedIndex, options);
+        property.stringValue = nextIndex <= 0 ? string.Empty : options[nextIndex];
+    }
+
+    private static string ResolveDefaultStateName(AnimatorController controller)
+    {
+        if (controller == null || controller.layers == null || controller.layers.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
+        if (stateMachine == null || stateMachine.defaultState == null)
+        {
+            return string.Empty;
+        }
+
+        return stateMachine.defaultState.name ?? string.Empty;
+    }
+
+    private static List<string> CollectAnimatorStateNames(AnimatorController controller)
+    {
+        List<string> stateNames = new List<string>();
+        if (controller == null || controller.layers == null)
+        {
+            return stateNames;
+        }
+
+        HashSet<string> uniqueNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < controller.layers.Length; i++)
+        {
+            AnimatorStateMachine stateMachine = controller.layers[i].stateMachine;
+            if (stateMachine == null)
+            {
+                continue;
+            }
+
+            CollectAnimatorStateNamesRecursive(stateMachine, uniqueNames, stateNames);
+        }
+
+        stateNames.Sort(StringComparer.Ordinal);
+        return stateNames;
+    }
+
+    private static void CollectAnimatorStateNamesRecursive(
+        AnimatorStateMachine stateMachine,
+        HashSet<string> uniqueNames,
+        List<string> stateNames)
+    {
+        if (stateMachine == null)
+        {
+            return;
+        }
+
+        ChildAnimatorState[] childStates = stateMachine.states;
+        for (int i = 0; i < childStates.Length; i++)
+        {
+            AnimatorState state = childStates[i].state;
+            if (state == null || string.IsNullOrWhiteSpace(state.name))
+            {
+                continue;
+            }
+
+            if (uniqueNames.Add(state.name))
+            {
+                stateNames.Add(state.name);
+            }
+        }
+
+        ChildAnimatorStateMachine[] childStateMachines = stateMachine.stateMachines;
+        for (int i = 0; i < childStateMachines.Length; i++)
+        {
+            CollectAnimatorStateNamesRecursive(childStateMachines[i].stateMachine, uniqueNames, stateNames);
+        }
     }
 
     private static List<string> CollectKnownIds(BattleCharacterBindingDatabase database)

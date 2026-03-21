@@ -398,7 +398,10 @@ public class BattleTurnSystem : MonoBehaviour
         float moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
-            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration, ResolveIdleStateName());
+            unit.PlayTimedAnimation(
+                unit.GetMoveAnimationStateName(moveSkill.actionStateName),
+                moveDuration,
+                unit.GetIdleAnimationStateName(ResolveIdleStateName()));
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -2536,12 +2539,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void PlayHitReaction(BattleUnit target)
     {
-        PlayReactionAnimation(target, ResolveHitReactionStateName());
+        PlayReactionAnimation(target, target != null ? target.GetHitReactionAnimationStateName(ResolveHitReactionStateName()) : ResolveHitReactionStateName());
     }
 
     private void PlayDodgeReaction(BattleUnit target)
     {
-        PlayReactionAnimation(target, ResolveDodgeStateName());
+        PlayReactionAnimation(target, target != null ? target.GetDodgeAnimationStateName(ResolveDodgeStateName()) : ResolveDodgeStateName());
     }
 
     private void PlayReactionAnimation(BattleUnit target, string stateName)
@@ -2557,39 +2560,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        float duration = ResolveAnimationStateDuration(animator, stateName);
-        if (duration <= 0.01f)
-        {
-            target.PlayAnimationState(stateName);
-            return;
-        }
-
-        target.PlayTimedAnimation(stateName, duration, ResolveIdleStateName());
-    }
-
-    private static float ResolveAnimationStateDuration(Animator animator, string stateName)
-    {
-        if (animator == null || string.IsNullOrWhiteSpace(stateName) || animator.runtimeAnimatorController == null)
-        {
-            return 0f;
-        }
-
-        AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
-        for (int i = 0; i < clips.Length; i++)
-        {
-            AnimationClip clip = clips[i];
-            if (clip == null || string.IsNullOrWhiteSpace(clip.name))
-            {
-                continue;
-            }
-
-            if (string.Equals(clip.name, stateName, System.StringComparison.Ordinal))
-            {
-                return clip.length;
-            }
-        }
-
-        return 0f;
+        target.PlayAnimationStateForCurrentClipDuration(stateName, target.GetIdleAnimationStateName(ResolveIdleStateName()));
     }
 
     private bool CanCastSkillAt(
@@ -3402,7 +3373,10 @@ public class BattleTurnSystem : MonoBehaviour
         moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
-            unit.PlayTimedAnimation(moveSkill.actionStateName, moveDuration, ResolveIdleStateName());
+            unit.PlayTimedAnimation(
+                unit.GetMoveAnimationStateName(moveSkill.actionStateName),
+                moveDuration,
+                unit.GetIdleAnimationStateName(ResolveIdleStateName()));
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -3559,7 +3533,7 @@ public class BattleTurnSystem : MonoBehaviour
             yield return new WaitForSeconds(clipDuration);
         }
 
-        string idleStateName = ResolveIdleStateName();
+        string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName());
         float idleYawOffset = ResolveIdleYawOffset();
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
@@ -3622,7 +3596,7 @@ public class BattleTurnSystem : MonoBehaviour
             yield return new WaitForSeconds(remainingDuration);
         }
 
-        string idleStateName = ResolveIdleStateName();
+        string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName());
         float idleYawOffset = ResolveIdleYawOffset();
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
@@ -3881,7 +3855,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        string idleStateName = ResolveIdleStateName();
+        string idleStateName = activeUnit.GetIdleAnimationStateName(ResolveIdleStateName());
         if (!string.IsNullOrWhiteSpace(idleStateName))
         {
             activeUnit.PlayAnimationState(idleStateName);
@@ -3938,8 +3912,8 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         Vector3 localDirection = activeUnit.transform.InverseTransformPoint(worldPosition);
-        string leftStateName = ResolveCombatArtLeftAimStateName();
-        string rightStateName = ResolveCombatArtRightAimStateName();
+        string leftStateName = activeUnit.GetCombatArtLeftAimAnimationStateName(ResolveCombatArtLeftAimStateName());
+        string rightStateName = activeUnit.GetCombatArtRightAimAnimationStateName(ResolveCombatArtRightAimStateName());
 
         if (localDirection.x < -0.001f)
         {

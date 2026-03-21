@@ -74,6 +74,7 @@ public sealed class BattleUnitFactory
             }
 
             BattleUnit unit = EnsureBattleUnit(unitObject);
+            unit.ConfigureAnimationBindings(binding);
             unit.moveRange = 4;
             unit.attackRange = 1;
             unit.attackDamage = 5;
@@ -85,7 +86,7 @@ public sealed class BattleUnitFactory
             unit.isPlayerControlled = true;
             unit.SetCell(startCell, grid.GetWorldPosition(startCell));
             unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
-            unit.PlayAnimationState(idleStateName);
+            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
             unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);
@@ -133,6 +134,7 @@ public sealed class BattleUnitFactory
             enemyObject.name = enemyEntry.enemyId + "_" + i;
 
             BattleUnit unit = EnsureBattleUnit(enemyObject);
+            unit.ConfigureAnimationBindings(binding);
             unit.attackRange = 1;
             unit.attackDamage = 2;
             unit.footprintSize = 3;
@@ -151,7 +153,7 @@ public sealed class BattleUnitFactory
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
             Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
             unit.FaceToward(grid.GetWorldPosition(facingCell));
-            unit.PlayAnimationState(idleStateName);
+            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
             unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);
