@@ -103,16 +103,10 @@ public sealed class BattleInfoWindowPresenter : MonoBehaviour
             return;
         }
 
+        target.enableWordWrapping = true;
+        target.overflowMode = TextOverflowModes.Masking;
+        target.raycastTarget = false;
         target.text = string.Join("\n", detailMessages);
-        target.ForceMeshUpdate();
-
-        float maxHeight = Mathf.Max(0f, target.rectTransform.rect.height);
-        while (detailMessages.Count > 0 && maxHeight > 0f && target.preferredHeight > maxHeight)
-        {
-            detailMessages.RemoveAt(0);
-            target.text = string.Join("\n", detailMessages);
-            target.ForceMeshUpdate();
-        }
     }
 
     private void Awake()
