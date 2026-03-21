@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public sealed class ReplayToggleStateOnOpen : MonoBehaviour
 {
     [SerializeField] private Toggle sourceToggle;
+    [SerializeField] private Toggle defaultToggleOnOpen;
     [SerializeField] private List<Toggle> replayToggles = new List<Toggle>();
 
     private Coroutine replayRoutine;
@@ -59,6 +60,21 @@ public sealed class ReplayToggleStateOnOpen : MonoBehaviour
     private IEnumerator ReplayStateNextFrame()
     {
         yield return null;
+
+        if (defaultToggleOnOpen != null)
+        {
+            if (!defaultToggleOnOpen.isOn)
+            {
+                defaultToggleOnOpen.isOn = true;
+            }
+            else
+            {
+                defaultToggleOnOpen.onValueChanged.Invoke(true);
+            }
+
+            replayRoutine = null;
+            yield break;
+        }
 
         for (int i = 0; i < replayToggles.Count; i++)
         {

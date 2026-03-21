@@ -5385,6 +5385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sourceToggle: {fileID: 837212765}
+  defaultToggleOnOpen: {fileID: 1260596608}
   replayToggles:
   - {fileID: 459366610}
   - {fileID: 1260596608}
