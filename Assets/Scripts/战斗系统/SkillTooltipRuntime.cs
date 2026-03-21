@@ -102,6 +102,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
 
         runtimeTooltipInstance = Instantiate(database.combatArtTooltipPrefab, parent, false);
         runtimeTooltipInstance.name = "战技内容";
+        DisableRaycasts(runtimeTooltipInstance);
         runtimeTooltipInstance.SetActive(false);
         tooltipRoot = runtimeTooltipInstance.transform as RectTransform;
     }
@@ -304,5 +305,33 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static void DisableRaycasts(GameObject root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            Graphic graphic = graphics[i];
+            if (graphic != null)
+            {
+                graphic.raycastTarget = false;
+            }
+        }
+
+        CanvasGroup[] canvasGroups = root.GetComponentsInChildren<CanvasGroup>(true);
+        for (int i = 0; i < canvasGroups.Length; i++)
+        {
+            CanvasGroup canvasGroup = canvasGroups[i];
+            if (canvasGroup != null)
+            {
+                canvasGroup.blocksRaycasts = false;
+            }
+        }
     }
 }

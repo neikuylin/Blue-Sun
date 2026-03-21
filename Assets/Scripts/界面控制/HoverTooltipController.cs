@@ -71,11 +71,7 @@ public sealed class HoverTooltipController : MonoBehaviour
             return;
         }
 
-        Transform pointerTransform = eventData != null
-            ? (eventData.pointerEnter != null
-                ? eventData.pointerEnter.transform
-                : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
-            : null;
+        Transform pointerTransform = instance.ResolvePointerTransform(eventData);
 
         if (pointerTransform != null && (pointerTransform == root || pointerTransform.IsChildOf(root)))
         {
@@ -155,7 +151,7 @@ public sealed class HoverTooltipController : MonoBehaviour
             return;
         }
 
-        Transform pointerTransform = ResolvePointerTransform();
+        Transform pointerTransform = ResolvePointerTransform(null);
         if (pointerTransform != null && (pointerTransform == hoveredRoot || pointerTransform.IsChildOf(hoveredRoot)))
         {
             return;
@@ -165,7 +161,22 @@ public sealed class HoverTooltipController : MonoBehaviour
         pendingHide?.Invoke();
     }
 
-    private Transform ResolvePointerTransform()
+    private Transform ResolvePointerTransform(PointerEventData eventData)
+    {
+        Transform pointerTransform = eventData != null
+            ? (eventData.pointerEnter != null
+                ? eventData.pointerEnter.transform
+                : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
+            : null;
+        if (pointerTransform != null)
+        {
+            return pointerTransform;
+        }
+
+        return ResolvePointerTransformFromCurrentPosition();
+    }
+
+    private Transform ResolvePointerTransformFromCurrentPosition()
     {
         EventSystem eventSystem = EventSystem.current;
         if (eventSystem == null)
