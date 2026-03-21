@@ -178,6 +178,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
         string skillId = skillIdProperty != null ? skillIdProperty.stringValue : string.Empty;
@@ -203,6 +204,11 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionSoundProperty != null)
             {
                 EditorGUILayout.PropertyField(actionSoundProperty, new GUIContent("技能音效"));
+            }
+
+            if (compensateActionMotionProperty != null)
+            {
+                compensateActionMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateActionMotionProperty.boolValue);
             }
         }
     }

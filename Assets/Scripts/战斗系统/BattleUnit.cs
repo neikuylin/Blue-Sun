@@ -56,6 +56,10 @@ public class BattleUnit : MonoBehaviour
     private Coroutine timedAnimationRoutine;
     private Renderer[] cachedRenderers;
     private Color[] originalRendererColors;
+    private bool animationPositionCompensationEnabled;
+    private Transform animationCompensationTarget;
+    private Vector3 animationCompensationLocalPosition;
+    private Vector3 animationCompensationWorldPosition;
 
     public bool IsAlive
     {
@@ -345,6 +349,30 @@ public class BattleUnit : MonoBehaviour
         timedAnimationRoutine = StartCoroutine(PlayAnimationStateForCurrentClipDurationRoutine(animator, stateName, idleStateName));
     }
 
+    public void SetAnimationPositionCompensation(bool enabled)
+    {
+        if (!enabled)
+        {
+            animationPositionCompensationEnabled = false;
+            animationCompensationTarget = null;
+            return;
+        }
+
+        Animator animator = GetComponentInChildren<Animator>(true);
+        animationCompensationTarget = animator != null ? animator.transform : transform;
+        if (animationCompensationTarget == transform)
+        {
+            animationCompensationWorldPosition = transform.position;
+        }
+        else
+        {
+            animationCompensationLocalPosition = animationCompensationTarget.localPosition;
+        }
+
+        animationPositionCompensationEnabled = true;
+        ApplyAnimationPositionCompensation();
+    }
+
     public void ApplyYawOffset(float yawOffsetDegrees)
     {
         if (Mathf.Abs(yawOffsetDegrees) <= 0.01f)
@@ -474,6 +502,27 @@ public class BattleUnit : MonoBehaviour
         {
             turnSystem.NotifyUnitInitiativeChanged(this);
         }
+    }
+
+    private void LateUpdate()
+    {
+        ApplyAnimationPositionCompensation();
+    }
+
+    private void ApplyAnimationPositionCompensation()
+    {
+        if (!animationPositionCompensationEnabled || animationCompensationTarget == null)
+        {
+            return;
+        }
+
+        if (animationCompensationTarget == transform)
+        {
+            transform.position = animationCompensationWorldPosition;
+            return;
+        }
+
+        animationCompensationTarget.localPosition = animationCompensationLocalPosition;
     }
 
     private Vector3 ResolveAdjustedWorldPosition(Vector3 worldPosition)

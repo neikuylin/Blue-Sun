@@ -17,6 +17,8 @@ MonoBehaviour:
     description: 
     actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
     actionYawOffset: 0
+    actionSound: {fileID: 0}
+    compensateActionMotion: 0
     resolveFrame: 0
     group: 0
     skillType: 1
@@ -33,6 +35,8 @@ MonoBehaviour:
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
     actionYawOffset: 45
+    actionSound: {fileID: 0}
+    compensateActionMotion: 0
     resolveFrame: 27
     group: 1
     skillType: 0
@@ -47,8 +51,10 @@ MonoBehaviour:
     effectSize: {x: 1, y: 1}
   - skillId: "\u56DE\u65CB\u65A9"
     description: 
-    actionStateName: 
+    actionStateName: "\u56DE\u65CB\u65A9"
     actionYawOffset: 0
+    actionSound: {fileID: 0}
+    compensateActionMotion: 1
     resolveFrame: 0
     group: 1
     skillType: 1

@@ -3514,6 +3514,8 @@ public class BattleTurnSystem : MonoBehaviour
             yield break;
         }
 
+        caster.SetAnimationPositionCompensation(skill.compensateActionMotion);
+
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
         Quaternion previousRotation = caster.transform.rotation;
@@ -3545,6 +3547,8 @@ public class BattleTurnSystem : MonoBehaviour
             animator.Play(previousStateHash, 0, 0f);
             caster.transform.rotation = previousRotation;
         }
+
+        caster.SetAnimationPositionCompensation(false);
     }
 
     private IEnumerator PlaySkillAnimationWithResolveRoutine(BattleUnit caster, BattleSkillDatabase.SkillEntry skill, System.Action resolveAction)
@@ -3566,6 +3570,8 @@ public class BattleTurnSystem : MonoBehaviour
             resolveAction?.Invoke();
             yield break;
         }
+
+        caster.SetAnimationPositionCompensation(skill.compensateActionMotion);
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
@@ -3608,6 +3614,8 @@ public class BattleTurnSystem : MonoBehaviour
             animator.Play(previousStateHash, 0, 0f);
             caster.transform.rotation = previousRotation;
         }
+
+        caster.SetAnimationPositionCompensation(false);
     }
 
     private static int ResolveAnimationStateTotalFrames(Animator animator, string stateName, float clipDuration)

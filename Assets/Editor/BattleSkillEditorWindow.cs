@@ -166,6 +166,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
         entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
         entry.FindPropertyRelative("actionSound").objectReferenceValue = null;
+        entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
