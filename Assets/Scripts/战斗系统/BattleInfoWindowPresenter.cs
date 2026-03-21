@@ -104,9 +104,42 @@ public sealed class BattleInfoWindowPresenter : MonoBehaviour
         }
 
         target.enableWordWrapping = true;
-        target.overflowMode = TextOverflowModes.Masking;
+        target.overflowMode = TextOverflowModes.Overflow;
         target.raycastTarget = false;
-        target.text = string.Join("\n", detailMessages);
+        target.text = BuildVisibleDetailText(target);
+    }
+
+    private string BuildVisibleDetailText(TMP_Text target)
+    {
+        if (detailMessages.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        float maxHeight = Mathf.Max(0f, target.rectTransform.rect.height);
+        if (maxHeight <= 0f)
+        {
+            return string.Join("\n", detailMessages);
+        }
+
+        string bestText = detailMessages[detailMessages.Count - 1];
+        for (int startIndex = detailMessages.Count - 1; startIndex >= 0; startIndex--)
+        {
+            string candidate = string.Join("\n", detailMessages.GetRange(startIndex, detailMessages.Count - startIndex));
+            target.text = candidate;
+            target.ForceMeshUpdate();
+
+            if (target.preferredHeight <= maxHeight)
+            {
+                bestText = candidate;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return bestText;
     }
 
     private void Awake()
