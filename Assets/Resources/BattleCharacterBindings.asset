@@ -33,7 +33,7 @@ MonoBehaviour:
     displayName: "\u7231\u4E3D\u4E1D"
     backgroundPortraitSprite: {fileID: 0}
     backgroundPortraitPrefab: {fileID: 5265599817728760209, guid: 446390109c5fed64f9d117168b22bb6f, type: 3}
-    modelPrefab: {fileID: 8414876434386434168, guid: ffac072e671a2e344a008067ab17c86f, type: 3}
+    modelPrefab: {fileID: 2090111222257796701, guid: 6f8a9eaecbb143447ab46203ee3cdf6c, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.3, y: 1.3, z: 1.3}
     useAutoVisualAnchor: 1
