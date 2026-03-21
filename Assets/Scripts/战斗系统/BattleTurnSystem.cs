@@ -56,7 +56,6 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
     private const string PlayerInfoColorHex = "#33CC66";
     private const string EnemyInfoColorHex = "#E14B4B";
-    private const string DamageInfoColorHex = "#8A8A8A";
     private const int MinHitChancePercent = 0;
     private const int MaxHitChancePercent = 100;
 
@@ -2361,7 +2360,7 @@ public class BattleTurnSystem : MonoBehaviour
         target.ApplyDamage(damage);
         BattleDamageNumberPopup.Show(target, damage, battleCamera);
         HandleUnitDefeat(target);
-            return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{FormatBattleInfoDamage(damage)}点伤害";
+            return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{damage}点伤害";
     }
 
     private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
@@ -2481,7 +2480,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (hitTargets.Count > 0)
         {
             string message =
-                $"{casterName}对{string.Join("、", hitTargets)}使用了{skillName}，对{string.Join("、", hitTargets)}造成了{FormatBattleInfoDamage(damage)}点伤害";
+                $"{casterName}对{string.Join("、", hitTargets)}使用了{skillName}，对{string.Join("、", hitTargets)}造成了{damage}点伤害";
             if (missedTargets.Count > 0)
             {
                 message += $"，被{string.Join("、", missedTargets)}闪避了";
@@ -3791,11 +3790,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return skill.skillId;
-    }
-
-    private static string FormatBattleInfoDamage(int damage)
-    {
-        return WrapBattleInfoColor(damage.ToString(), DamageInfoColorHex);
     }
 
     private static string WrapBattleInfoColor(string content, string colorHex)
