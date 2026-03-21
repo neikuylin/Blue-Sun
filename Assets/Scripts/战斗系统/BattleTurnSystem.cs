@@ -11,6 +11,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
+    private const string InfoWindowTextPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u4FE1\u606F\u7A97\u53E3/\u653E\u5927\u72B6\u6001/\u653E\u5927\u540E\u4FE1\u606F";
     private const string TargetPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807";
     private const string TargetHealthPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c";
     private const string TargetHealthFillPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c/\u751f\u547d\u503c";
@@ -70,6 +71,7 @@ public class BattleTurnSystem : MonoBehaviour
     private Image targetHealthFillImage;
     private TMP_Text targetHealthText;
     private TMP_Text targetNameText;
+    private TMP_Text battleInfoWindowText;
     private Transform timelineAnchor;
     private Button endTurnButton;
     private Button moveSkillButton;
@@ -152,6 +154,7 @@ public class BattleTurnSystem : MonoBehaviour
         overlayCanvasRect = null;
         skillCostHintRect = null;
         skillCostHintText = null;
+        battleInfoWindowText = ResolveBattleInfoWindowText();
         sceneBindings = BattleSceneBindings.FindInActiveScene();
         timelineAnchor = ResolveTimelineAnchor();
         EnsureTimelineMask();
@@ -2248,7 +2251,7 @@ public class BattleTurnSystem : MonoBehaviour
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(target.transform.position);
-        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ApplyCombatArtDamage(caster, target, skill));
+        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ResolveTargetSkillInfoAndDamage(caster, target, skill));
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
@@ -2276,7 +2279,7 @@ public class BattleTurnSystem : MonoBehaviour
         caster.SpendActionPoints(actionPointCost);
         caster.SpendMana(manaCost);
         caster.FaceToward(grid.GetWorldPosition(targetCell));
-        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ApplyCombatArtAreaDamage(caster, targetCell, skill));
+        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ResolveAreaSkillInfoAndDamage(caster, targetCell, skill));
         ClearActiveSkillMode();
         RefreshHighlights();
         RefreshTimeline();
@@ -2315,6 +2318,48 @@ public class BattleTurnSystem : MonoBehaviour
         target.ApplyDamage(damage);
         BattleDamageNumberPopup.Show(target, damage, battleCamera);
         HandleUnitDefeat(target);
+    }
+
+    private void ResolveTargetSkillInfoAndDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        string message = ApplyCombatArtDamageWithMessage(caster, target, skill);
+        ShowBattleInfoMessage(message);
+    }
+
+    private string ApplyCombatArtDamageWithMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return string.Empty;
+        }
+
+        string casterName = ResolveBattleInfoUnitName(caster);
+        string targetName = ResolveBattleInfoUnitName(target);
+        string skillName = ResolveBattleInfoSkillName(skill);
+
+        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            return $"{casterName}对{targetName}使用了{skillName}";
+        }
+
+        int damage = CalculateCombatArtDamage(caster, skill);
+        if (damage <= 0)
+        {
+            return $"{casterName}对{targetName}使用了{skillName}";
+        }
+
+        if (!RollSkillHit(caster, target))
+        {
+            PlayDodgeReaction(target);
+            BattleDamageNumberPopup.ShowMiss(target, battleCamera);
+            return $"{casterName}对{targetName}使用了{skillName}，但未命中";
+        }
+
+        PlayHitReaction(target);
+        target.ApplyDamage(damage);
+        BattleDamageNumberPopup.Show(target, damage, battleCamera);
+        HandleUnitDefeat(target);
+        return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{damage}点伤害";
     }
 
     private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
@@ -2366,6 +2411,82 @@ public class BattleTurnSystem : MonoBehaviour
             BattleDamageNumberPopup.Show(unit, damage, battleCamera);
             HandleUnitDefeat(unit);
         }
+    }
+
+    private void ResolveAreaSkillInfoAndDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        string message = ApplyCombatArtAreaDamageWithMessage(caster, targetCell, skill);
+        ShowBattleInfoMessage(message);
+    }
+
+    private string ApplyCombatArtAreaDamageWithMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null)
+        {
+            return string.Empty;
+        }
+
+        string casterName = ResolveBattleInfoUnitName(caster);
+        string skillName = ResolveBattleInfoSkillName(skill);
+        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            return FormatAreaSkillMessage(caster, targetCell, skill);
+        }
+
+        int damage = CalculateCombatArtDamage(caster, skill);
+        if (damage <= 0)
+        {
+            return FormatAreaSkillMessage(caster, targetCell, skill);
+        }
+
+        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        List<string> hitTargets = new List<string>();
+        List<string> missedTargets = new List<string>();
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            if (!IsValidSkillTarget(caster, unit, skill))
+            {
+                continue;
+            }
+
+            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            {
+                continue;
+            }
+
+            string unitName = ResolveBattleInfoUnitName(unit);
+            if (!RollSkillHit(caster, unit))
+            {
+                PlayDodgeReaction(unit);
+                BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
+                missedTargets.Add(unitName);
+                continue;
+            }
+
+            PlayHitReaction(unit);
+            unit.ApplyDamage(damage);
+            BattleDamageNumberPopup.Show(unit, damage, battleCamera);
+            HandleUnitDefeat(unit);
+            hitTargets.Add(unitName);
+        }
+
+        if (hitTargets.Count > 0)
+        {
+            return $"{casterName}对{string.Join("、", hitTargets)}使用了{skillName}，对{string.Join("、", hitTargets)}造成了{damage}点伤害";
+        }
+
+        if (missedTargets.Count > 0)
+        {
+            return $"{casterName}对{string.Join("、", missedTargets)}使用了{skillName}，但未命中";
+        }
+
+        return $"{casterName}在{targetCell}使用了{skillName}";
     }
 
     private int CalculateCombatArtDamage(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
@@ -3549,6 +3670,113 @@ public class BattleTurnSystem : MonoBehaviour
 
         int clampedFrame = Mathf.Clamp(skill.resolveFrame, 1, totalFrames);
         return clipDuration * ((float)clampedFrame / totalFrames);
+    }
+
+    private void ShowBattleInfoMessage(string message)
+    {
+        TMP_Text text = battleInfoWindowText != null ? battleInfoWindowText : ResolveBattleInfoWindowText();
+        battleInfoWindowText = text;
+        if (text == null)
+        {
+            return;
+        }
+
+        text.text = string.IsNullOrWhiteSpace(message) ? string.Empty : message;
+    }
+
+    private TMP_Text ResolveBattleInfoWindowText()
+    {
+        Transform target = SceneHierarchyPathUtility.FindInActiveScene(InfoWindowTextPath);
+        return target != null ? target.GetComponent<TMP_Text>() : null;
+    }
+
+    private static string FormatTargetSkillMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        string casterName = ResolveBattleInfoUnitName(caster);
+        string targetName = ResolveBattleInfoUnitName(target);
+        string skillName = ResolveBattleInfoSkillName(skill);
+        return $"{casterName}对{targetName}使用了{skillName}";
+    }
+
+    private string FormatAreaSkillMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        string casterName = ResolveBattleInfoUnitName(caster);
+        string skillName = ResolveBattleInfoSkillName(skill);
+        List<string> targetNames = CollectAreaSkillTargetNames(caster, targetCell, skill);
+        if (targetNames.Count == 1)
+        {
+            return $"{casterName}对{targetNames[0]}使用了{skillName}";
+        }
+
+        if (targetNames.Count > 1)
+        {
+            return $"{casterName}对{string.Join("、", targetNames)}使用了{skillName}";
+        }
+
+        return $"{casterName}在{targetCell}使用了{skillName}";
+    }
+
+    private List<string> CollectAreaSkillTargetNames(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        List<string> names = new List<string>();
+        if (caster == null || skill == null)
+        {
+            return names;
+        }
+
+        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            if (!IsValidSkillTarget(caster, unit, skill))
+            {
+                continue;
+            }
+
+            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            {
+                continue;
+            }
+
+            names.Add(ResolveBattleInfoUnitName(unit));
+        }
+
+        return names;
+    }
+
+    private static string ResolveBattleInfoUnitName(BattleUnit unit)
+    {
+        if (unit == null)
+        {
+            return "未知目标";
+        }
+
+        if (!string.IsNullOrWhiteSpace(unit.unitName))
+        {
+            return unit.unitName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(unit.characterId))
+        {
+            return unit.characterId;
+        }
+
+        return unit.name;
+    }
+
+    private static string ResolveBattleInfoSkillName(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null || string.IsNullOrWhiteSpace(skill.skillId))
+        {
+            return "技能";
+        }
+
+        return skill.skillId;
     }
 
     private static string ResolveIdleStateName()
