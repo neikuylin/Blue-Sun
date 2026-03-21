@@ -52,11 +52,17 @@ public sealed class SkillActionBindingWindow : EditorWindow
         {
             EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
             SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
+            SerializedProperty idleSoundProperty = settingsObject.FindProperty("idleSound");
             SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
+            SerializedProperty enterBattleSoundProperty = settingsObject.FindProperty("enterBattleSound");
             SerializedProperty combatArtLeftAimStateNameProperty = settingsObject.FindProperty("combatArtLeftAimStateName");
+            SerializedProperty combatArtLeftAimSoundProperty = settingsObject.FindProperty("combatArtLeftAimSound");
             SerializedProperty combatArtRightAimStateNameProperty = settingsObject.FindProperty("combatArtRightAimStateName");
+            SerializedProperty combatArtRightAimSoundProperty = settingsObject.FindProperty("combatArtRightAimSound");
             SerializedProperty hitReactionStateNameProperty = settingsObject.FindProperty("hitReactionStateName");
+            SerializedProperty hitReactionSoundProperty = settingsObject.FindProperty("hitReactionSound");
             SerializedProperty dodgeStateNameProperty = settingsObject.FindProperty("dodgeStateName");
+            SerializedProperty dodgeSoundProperty = settingsObject.FindProperty("dodgeSound");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
 
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
@@ -78,11 +84,19 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 idleStateNameProperty.stringValue = newIdleIndex <= 0 ? string.Empty : actionOptions[newIdleIndex];
             }
+            if (idleSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(idleSoundProperty, new GUIContent("待机音效"));
+            }
 
             int newEnterBattleIndex = EditorGUILayout.Popup("进战动画", selectedEnterBattleIndex, actionOptions.ToArray());
             if (enterBattleStateNameProperty != null)
             {
                 enterBattleStateNameProperty.stringValue = newEnterBattleIndex <= 0 ? string.Empty : actionOptions[newEnterBattleIndex];
+            }
+            if (enterBattleSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(enterBattleSoundProperty, new GUIContent("进战音效"));
             }
 
             int newCombatArtLeftAimIndex = EditorGUILayout.Popup("战技左转身瞄准动画", selectedCombatArtLeftAimIndex, actionOptions.ToArray());
@@ -90,11 +104,19 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 combatArtLeftAimStateNameProperty.stringValue = newCombatArtLeftAimIndex <= 0 ? string.Empty : actionOptions[newCombatArtLeftAimIndex];
             }
+            if (combatArtLeftAimSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(combatArtLeftAimSoundProperty, new GUIContent("战技左瞄准音效"));
+            }
 
             int newCombatArtRightAimIndex = EditorGUILayout.Popup("战技右转身瞄准动画", selectedCombatArtRightAimIndex, actionOptions.ToArray());
             if (combatArtRightAimStateNameProperty != null)
             {
                 combatArtRightAimStateNameProperty.stringValue = newCombatArtRightAimIndex <= 0 ? string.Empty : actionOptions[newCombatArtRightAimIndex];
+            }
+            if (combatArtRightAimSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(combatArtRightAimSoundProperty, new GUIContent("战技右瞄准音效"));
             }
 
             int newHitReactionIndex = EditorGUILayout.Popup("受击动画", selectedHitReactionIndex, actionOptions.ToArray());
@@ -102,11 +124,19 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 hitReactionStateNameProperty.stringValue = newHitReactionIndex <= 0 ? string.Empty : actionOptions[newHitReactionIndex];
             }
+            if (hitReactionSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(hitReactionSoundProperty, new GUIContent("受击音效"));
+            }
 
             int newDodgeIndex = EditorGUILayout.Popup("闪避动画", selectedDodgeIndex, actionOptions.ToArray());
             if (dodgeStateNameProperty != null)
             {
                 dodgeStateNameProperty.stringValue = newDodgeIndex <= 0 ? string.Empty : actionOptions[newDodgeIndex];
+            }
+            if (dodgeSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(dodgeSoundProperty, new GUIContent("闪避音效"));
             }
 
             if (idleYawOffsetProperty != null)
@@ -147,6 +177,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty skillIdProperty = entry.FindPropertyRelative("skillId");
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
         string skillId = skillIdProperty != null ? skillIdProperty.stringValue : string.Empty;
@@ -167,6 +198,11 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionYawOffsetProperty != null)
             {
                 actionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", actionYawOffsetProperty.floatValue);
+            }
+
+            if (actionSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(actionSoundProperty, new GUIContent("技能音效"));
             }
         }
     }

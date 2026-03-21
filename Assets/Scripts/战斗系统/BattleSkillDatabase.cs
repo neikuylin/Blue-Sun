@@ -36,6 +36,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string description = string.Empty;
         public string actionStateName = string.Empty;
         public float actionYawOffset;
+        public AudioClip actionSound;
         public int resolveFrame;
         public SkillGroup group = SkillGroup.CombatArt;
         public SkillType skillType = SkillType.Target;
