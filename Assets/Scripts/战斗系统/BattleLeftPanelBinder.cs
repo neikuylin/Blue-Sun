@@ -109,11 +109,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         leftPanelPortraitImage = ResolveLeftPanelPortrait();
         leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
-        Debug.Log(
-            $"[BattleLeftPanelBinder] BindScene portraitImage={(leftPanelPortraitImage != null ? leftPanelPortraitImage.name : "null")} " +
-            $"portraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")} " +
-            $"skillContainer={(leftPanelSkillContainer != null ? leftPanelSkillContainer.name : "null")} " +
-            $"bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")}");
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
@@ -171,7 +166,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         if (leftPanelPortraitImage == null && leftPanelPortraitAnchor == null)
         {
-            Debug.LogWarning("[BattleLeftPanelBinder] RefreshPortrait aborted because portraitImage and portraitAnchor are both null.");
             return;
         }
 
@@ -179,12 +173,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         {
             characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         }
-
-        Debug.Log(
-            $"[BattleLeftPanelBinder] RefreshPortrait characterId='{currentCharacterId}' " +
-            $"portraitImage={(leftPanelPortraitImage != null ? leftPanelPortraitImage.name : "null")} " +
-            $"portraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")} " +
-            $"bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")}");
 
         if (TryShowBackgroundPortraitPrefab(currentCharacterId))
         {
@@ -204,11 +192,10 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return;
         }
 
-        Sprite portraitSprite = ResolveBackgroundPortraitSprite(currentCharacterId);
-        leftPanelPortraitImage.sprite = portraitSprite;
-        leftPanelPortraitImage.enabled = portraitSprite != null;
+        leftPanelPortraitImage.sprite = null;
+        leftPanelPortraitImage.enabled = false;
         leftPanelPortraitImage.preserveAspect = true;
-        leftPanelPortraitImage.color = portraitSprite != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+        leftPanelPortraitImage.color = new Color(1f, 1f, 1f, 0f);
         leftPanelPortraitImage.gameObject.SetActive(true);
     }
 
@@ -327,26 +314,18 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(characterId) || characterBindingDatabase == null || leftPanelPortraitAnchor == null)
         {
-            Debug.LogWarning(
-                $"[BattleLeftPanelBinder] TryShowBackgroundPortraitPrefab blocked " +
-                $"characterId='{characterId}' bindingDatabase={(characterBindingDatabase != null ? "ok" : "null")} " +
-                $"leftPanelPortraitAnchor={(leftPanelPortraitAnchor != null ? leftPanelPortraitAnchor.name : "null")}");
             return false;
         }
 
         BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
         if (binding == null || binding.backgroundPortraitPrefab == null)
         {
-            Debug.LogWarning(
-                $"[BattleLeftPanelBinder] No portrait prefab for characterId='{characterId}'. " +
-                $"bindingFound={(binding != null)}");
             return false;
         }
 
         if (activePortraitPrefabInstance != null &&
             string.Equals(activePortraitPrefabCharacterId, characterId, StringComparison.Ordinal))
         {
-            Debug.Log($"[BattleLeftPanelBinder] Reusing existing portrait prefab instance for '{characterId}'.");
             return true;
         }
 
@@ -355,10 +334,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         activePortraitPrefabInstance.name = binding.backgroundPortraitPrefab.name;
         activePortraitPrefabInstance.SetActive(true);
         activePortraitPrefabCharacterId = characterId;
-        Debug.Log(
-            $"[BattleLeftPanelBinder] Instantiated portrait prefab for '{characterId}' " +
-            $"prefab='{binding.backgroundPortraitPrefab.name}' activeSelf={activePortraitPrefabInstance.activeSelf} " +
-            $"parent={(activePortraitPrefabInstance.transform.parent != null ? activePortraitPrefabInstance.transform.parent.name : "null")}");
         return true;
     }
 
@@ -381,7 +356,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
         if (battleTurnSystem != null)
         {
-            Debug.Log($"[BattleLeftPanelBinder] ResolveCharacterId source={source} value='{characterId}'");
             return string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
         }
 
@@ -390,8 +364,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             characterId = CharacterSelectionState.ActiveCharacterId;
             source = "active-selection";
         }
-
-        Debug.Log($"[BattleLeftPanelBinder] ResolveCharacterId source={source} value='{characterId}'");
         return characterId;
     }
 
