@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -22,6 +23,7 @@ public sealed class HoverTooltipController : MonoBehaviour
 
     private HoverCategory hoveredCategory;
     private Transform hoveredRoot;
+    private readonly List<RaycastResult> pointerRaycastResults = new List<RaycastResult>();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -121,6 +123,12 @@ public sealed class HoverTooltipController : MonoBehaviour
 
     private void Update()
     {
+        UpdateHoveredState();
+        UpdatePendingState();
+    }
+
+    private void UpdatePendingState()
+    {
         if (pendingRoot == null || pendingShow == null)
         {
             return;
@@ -138,5 +146,49 @@ public sealed class HoverTooltipController : MonoBehaviour
         Action showAction = pendingShow;
         pendingShow = null;
         showAction.Invoke();
+    }
+
+    private void UpdateHoveredState()
+    {
+        if (hoveredRoot == null)
+        {
+            return;
+        }
+
+        Transform pointerTransform = ResolvePointerTransform();
+        if (pointerTransform != null && (pointerTransform == hoveredRoot || pointerTransform.IsChildOf(hoveredRoot)))
+        {
+            return;
+        }
+
+        hoveredRoot = null;
+        pendingHide?.Invoke();
+    }
+
+    private Transform ResolvePointerTransform()
+    {
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null)
+        {
+            return null;
+        }
+
+        PointerEventData pointerData = new PointerEventData(eventSystem)
+        {
+            position = Input.mousePosition
+        };
+
+        pointerRaycastResults.Clear();
+        eventSystem.RaycastAll(pointerData, pointerRaycastResults);
+        for (int i = 0; i < pointerRaycastResults.Count; i++)
+        {
+            GameObject hitObject = pointerRaycastResults[i].gameObject;
+            if (hitObject != null)
+            {
+                return hitObject.transform;
+            }
+        }
+
+        return null;
     }
 }
