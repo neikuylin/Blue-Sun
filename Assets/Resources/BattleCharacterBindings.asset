@@ -77,7 +77,7 @@ MonoBehaviour:
     displayName: "\u7D22\u62C9\u5A1C"
     backgroundPortraitSprite: {fileID: 0}
     backgroundPortraitPrefab: {fileID: 8562986201867390498, guid: 2641662197c178140aa019a92845b384, type: 3}
-    modelPrefab: {fileID: 5275995114432673508, guid: 5dde469eb5331714583a2b80715f86e5, type: 3}
+    modelPrefab: {fileID: 5538131438774278257, guid: 5dde469eb5331714583a2b80715f86e5, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
