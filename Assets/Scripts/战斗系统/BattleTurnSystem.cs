@@ -103,6 +103,7 @@ public class BattleTurnSystem : MonoBehaviour
     private float combatArtAimAnimationActiveUntilTime;
     private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
     private string currentCombatArtAimStateName = string.Empty;
+    private BattleAudioUtility.PlaybackHandle currentCombatArtAimAudioHandle;
 
     private sealed class EnemySkillChoice
     {
@@ -2539,13 +2540,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void PlayHitReaction(BattleUnit target)
     {
-        BattleAudioUtility.PlayClipForUnit(ResolveHitReactionSound(), target, battleCamera);
+        BattleAudioUtility.PlayOnce(ResolveHitReactionSound(), ResolveHitReactionSoundPrefab(), target, battleCamera);
         PlayReactionAnimation(target, target != null ? target.GetHitReactionAnimationStateName(ResolveHitReactionStateName()) : ResolveHitReactionStateName());
     }
 
     private void PlayDodgeReaction(BattleUnit target)
     {
-        BattleAudioUtility.PlayClipForUnit(ResolveDodgeSound(), target, battleCamera);
+        BattleAudioUtility.PlayOnce(ResolveDodgeSound(), ResolveDodgeSoundPrefab(), target, battleCamera);
         PlayReactionAnimation(target, target != null ? target.GetDodgeAnimationStateName(ResolveDodgeStateName()) : ResolveDodgeStateName());
     }
 
@@ -3512,7 +3513,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(skill.actionStateName))
         {
-            BattleAudioUtility.PlayClipForUnit(skill.actionSound, caster, battleCamera);
+            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
             yield break;
         }
 
@@ -3532,7 +3533,7 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
         }
 
-        BattleAudioUtility.PlayClipForUnit(skill.actionSound, caster, battleCamera);
+        BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
         animator.Play(skill.actionStateName, 0, 0f);
 
         yield return null;
@@ -3575,7 +3576,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(skill.actionStateName))
         {
-            BattleAudioUtility.PlayClipForUnit(skill.actionSound, caster, battleCamera);
+            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
             resolveAction?.Invoke();
             yield break;
         }
@@ -3583,7 +3584,7 @@ public class BattleTurnSystem : MonoBehaviour
         Animator animator = caster.GetComponentInChildren<Animator>(true);
         if (animator == null || animator.runtimeAnimatorController == null)
         {
-            BattleAudioUtility.PlayClipForUnit(skill.actionSound, caster, battleCamera);
+            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
             resolveAction?.Invoke();
             yield break;
         }
@@ -3598,7 +3599,7 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
         }
 
-        BattleAudioUtility.PlayClipForUnit(skill.actionSound, caster, battleCamera);
+        BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
         animator.Play(skill.actionStateName, 0, 0f);
         yield return null;
 
@@ -3821,6 +3822,12 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.combatArtLeftAimSound : null;
     }
 
+    private static GameObject ResolveCombatArtLeftAimSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.combatArtLeftAimSoundPrefab : null;
+    }
+
     private static string ResolveCombatArtRightAimStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -3831,6 +3838,12 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.combatArtRightAimSound : null;
+    }
+
+    private static GameObject ResolveCombatArtRightAimSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.combatArtRightAimSoundPrefab : null;
     }
 
     private static float ResolveIdleYawOffset()
@@ -3851,6 +3864,12 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.hitReactionSound : null;
     }
 
+    private static GameObject ResolveHitReactionSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.hitReactionSoundPrefab : null;
+    }
+
     private static string ResolveDodgeStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -3861,6 +3880,12 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.dodgeSound : null;
+    }
+
+    private static GameObject ResolveDodgeSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.dodgeSoundPrefab : null;
     }
 
     private void StartCombatArtAimAnimation(string stateName)
@@ -3877,8 +3902,9 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        AudioClip aimSound = ResolveCombatArtAimSoundForState(stateName);
-        BattleAudioUtility.PlayClipForUnit(aimSound, activeUnit, battleCamera);
+        StopCombatArtAimAudio();
+        ResolveCombatArtAimAudioForState(stateName, out AudioClip aimSound, out GameObject aimSoundPrefab);
+        currentCombatArtAimAudioHandle = BattleAudioUtility.StartTracked(aimSound, aimSoundPrefab, activeUnit, battleCamera);
         activeUnit.PlayAnimationState(stateName);
         combatArtAimAnimationActive = true;
         combatArtAimAnimationActiveUntilTime = Time.time + MinCombatArtAimAnimationDurationSeconds;
@@ -3896,6 +3922,7 @@ public class BattleTurnSystem : MonoBehaviour
         {
             if (force)
             {
+                StopCombatArtAimAudio();
                 combatArtAimAnimationActive = false;
                 currentCombatArtAimStateName = string.Empty;
             }
@@ -3913,6 +3940,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeUnit.PlayAnimationState(idleStateName);
         }
 
+        StopCombatArtAimAudio();
         combatArtAimAnimationActive = false;
         currentCombatArtAimStateName = string.Empty;
     }
@@ -3956,28 +3984,43 @@ public class BattleTurnSystem : MonoBehaviour
         return skill != null && skill.group == BattleSkillDatabase.SkillGroup.CombatArt;
     }
 
-    private static AudioClip ResolveCombatArtAimSoundForState(string stateName)
+    private static void ResolveCombatArtAimAudioForState(string stateName, out AudioClip clip, out GameObject soundPrefab)
     {
+        clip = null;
+        soundPrefab = null;
+
         if (string.IsNullOrWhiteSpace(stateName))
         {
-            return null;
+            return;
         }
 
         string leftStateName = ResolveCombatArtLeftAimStateName();
         if (!string.IsNullOrWhiteSpace(leftStateName) &&
             string.Equals(stateName, leftStateName, System.StringComparison.Ordinal))
         {
-            return ResolveCombatArtLeftAimSound();
+            clip = ResolveCombatArtLeftAimSound();
+            soundPrefab = ResolveCombatArtLeftAimSoundPrefab();
+            return;
         }
 
         string rightStateName = ResolveCombatArtRightAimStateName();
         if (!string.IsNullOrWhiteSpace(rightStateName) &&
             string.Equals(stateName, rightStateName, System.StringComparison.Ordinal))
         {
-            return ResolveCombatArtRightAimSound();
+            clip = ResolveCombatArtRightAimSound();
+            soundPrefab = ResolveCombatArtRightAimSoundPrefab();
+        }
+    }
+
+    private void StopCombatArtAimAudio()
+    {
+        if (currentCombatArtAimAudioHandle == null)
+        {
+            return;
         }
 
-        return null;
+        currentCombatArtAimAudioHandle.Stop();
+        currentCombatArtAimAudioHandle = null;
     }
 
     private string ResolveCombatArtAimStateNameForTarget(Vector3 worldPosition)

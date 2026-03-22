@@ -115,6 +115,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 DrawActionStateField(entry.FindPropertyRelative("actionStateName"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionYawOffset"), new GUIContent("\u52a8\u4f5c\u89d2\u5ea6\u4fee\u6b63"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionSound"), new GUIContent("\u6280\u80fd\u97f3\u6548"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionSoundPrefab"), new GUIContent("\u6280\u80fd\u97f3\u6548\u9884\u5236\u4f53"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
@@ -166,6 +168,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
         entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
         entry.FindPropertyRelative("actionSound").objectReferenceValue = null;
+        entry.FindPropertyRelative("actionSoundPrefab").objectReferenceValue = null;
         entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;

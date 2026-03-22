@@ -53,16 +53,22 @@ public sealed class SkillActionBindingWindow : EditorWindow
             EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
             SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
             SerializedProperty idleSoundProperty = settingsObject.FindProperty("idleSound");
+            SerializedProperty idleSoundPrefabProperty = settingsObject.FindProperty("idleSoundPrefab");
             SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
             SerializedProperty enterBattleSoundProperty = settingsObject.FindProperty("enterBattleSound");
+            SerializedProperty enterBattleSoundPrefabProperty = settingsObject.FindProperty("enterBattleSoundPrefab");
             SerializedProperty combatArtLeftAimStateNameProperty = settingsObject.FindProperty("combatArtLeftAimStateName");
             SerializedProperty combatArtLeftAimSoundProperty = settingsObject.FindProperty("combatArtLeftAimSound");
+            SerializedProperty combatArtLeftAimSoundPrefabProperty = settingsObject.FindProperty("combatArtLeftAimSoundPrefab");
             SerializedProperty combatArtRightAimStateNameProperty = settingsObject.FindProperty("combatArtRightAimStateName");
             SerializedProperty combatArtRightAimSoundProperty = settingsObject.FindProperty("combatArtRightAimSound");
+            SerializedProperty combatArtRightAimSoundPrefabProperty = settingsObject.FindProperty("combatArtRightAimSoundPrefab");
             SerializedProperty hitReactionStateNameProperty = settingsObject.FindProperty("hitReactionStateName");
             SerializedProperty hitReactionSoundProperty = settingsObject.FindProperty("hitReactionSound");
+            SerializedProperty hitReactionSoundPrefabProperty = settingsObject.FindProperty("hitReactionSoundPrefab");
             SerializedProperty dodgeStateNameProperty = settingsObject.FindProperty("dodgeStateName");
             SerializedProperty dodgeSoundProperty = settingsObject.FindProperty("dodgeSound");
+            SerializedProperty dodgeSoundPrefabProperty = settingsObject.FindProperty("dodgeSoundPrefab");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
 
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
@@ -88,6 +94,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 EditorGUILayout.PropertyField(idleSoundProperty, new GUIContent("待机音效"));
             }
+            if (idleSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(idleSoundPrefabProperty, new GUIContent("待机音效预制体"));
+            }
 
             int newEnterBattleIndex = EditorGUILayout.Popup("进战动画", selectedEnterBattleIndex, actionOptions.ToArray());
             if (enterBattleStateNameProperty != null)
@@ -97,6 +107,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (enterBattleSoundProperty != null)
             {
                 EditorGUILayout.PropertyField(enterBattleSoundProperty, new GUIContent("进战音效"));
+            }
+            if (enterBattleSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(enterBattleSoundPrefabProperty, new GUIContent("进战音效预制体"));
             }
 
             int newCombatArtLeftAimIndex = EditorGUILayout.Popup("战技左转身瞄准动画", selectedCombatArtLeftAimIndex, actionOptions.ToArray());
@@ -108,6 +122,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 EditorGUILayout.PropertyField(combatArtLeftAimSoundProperty, new GUIContent("战技左瞄准音效"));
             }
+            if (combatArtLeftAimSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(combatArtLeftAimSoundPrefabProperty, new GUIContent("战技左瞄准音效预制体"));
+            }
 
             int newCombatArtRightAimIndex = EditorGUILayout.Popup("战技右转身瞄准动画", selectedCombatArtRightAimIndex, actionOptions.ToArray());
             if (combatArtRightAimStateNameProperty != null)
@@ -117,6 +135,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (combatArtRightAimSoundProperty != null)
             {
                 EditorGUILayout.PropertyField(combatArtRightAimSoundProperty, new GUIContent("战技右瞄准音效"));
+            }
+            if (combatArtRightAimSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(combatArtRightAimSoundPrefabProperty, new GUIContent("战技右瞄准音效预制体"));
             }
 
             int newHitReactionIndex = EditorGUILayout.Popup("受击动画", selectedHitReactionIndex, actionOptions.ToArray());
@@ -128,6 +150,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 EditorGUILayout.PropertyField(hitReactionSoundProperty, new GUIContent("受击音效"));
             }
+            if (hitReactionSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(hitReactionSoundPrefabProperty, new GUIContent("受击音效预制体"));
+            }
 
             int newDodgeIndex = EditorGUILayout.Popup("闪避动画", selectedDodgeIndex, actionOptions.ToArray());
             if (dodgeStateNameProperty != null)
@@ -137,6 +163,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (dodgeSoundProperty != null)
             {
                 EditorGUILayout.PropertyField(dodgeSoundProperty, new GUIContent("闪避音效"));
+            }
+            if (dodgeSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(dodgeSoundPrefabProperty, new GUIContent("闪避音效预制体"));
             }
 
             if (idleYawOffsetProperty != null)
@@ -178,6 +208,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
@@ -204,6 +235,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionSoundProperty != null)
             {
                 EditorGUILayout.PropertyField(actionSoundProperty, new GUIContent("技能音效"));
+            }
+            if (actionSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
             }
 
             if (compensateActionMotionProperty != null)

@@ -17,7 +17,8 @@ MonoBehaviour:
     description: 
     actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
     actionYawOffset: 0
-    actionSound: {fileID: 8300000, guid: 5dfebab2e9d0a124c8d5aaa896192027, type: 3}
+    actionSound: {fileID: 0}
+    actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
     compensateActionMotion: 0
     resolveFrame: 0
     group: 0
@@ -36,6 +37,7 @@ MonoBehaviour:
     actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
     actionYawOffset: 45
     actionSound: {fileID: 8300000, guid: d5d38d81e867b23488ddb534d6e62d1f, type: 3}
+    actionSoundPrefab: {fileID: 0}
     compensateActionMotion: 0
     resolveFrame: 27
     group: 1
@@ -54,6 +56,7 @@ MonoBehaviour:
     actionStateName: "\u56DE\u65CB\u65A9"
     actionYawOffset: 0
     actionSound: {fileID: 0}
+    actionSoundPrefab: {fileID: 0}
     compensateActionMotion: 1
     resolveFrame: 0
     group: 1
