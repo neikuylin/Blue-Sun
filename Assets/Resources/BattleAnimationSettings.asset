@@ -18,16 +18,21 @@ MonoBehaviour:
   enterBattleStateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
   enterBattleSound: {fileID: 0}
   enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+  enterBattleCompensateMotion: 0
   combatArtLeftAimStateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
   combatArtLeftAimSound: {fileID: 0}
   combatArtLeftAimSoundPrefab: {fileID: 0}
+  combatArtLeftAimCompensateMotion: 1
   combatArtRightAimStateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
   combatArtRightAimSound: {fileID: 0}
   combatArtRightAimSoundPrefab: {fileID: 0}
+  combatArtRightAimCompensateMotion: 1
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
   hitReactionSoundPrefab: {fileID: 0}
+  hitReactionCompensateMotion: 0
   dodgeStateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
   dodgeSound: {fileID: 0}
   dodgeSoundPrefab: {fileID: 0}
+  dodgeCompensateMotion: 0
   idleYawOffset: 45

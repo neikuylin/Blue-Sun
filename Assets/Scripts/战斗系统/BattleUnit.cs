@@ -291,7 +291,7 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
-    public void PlayTimedAnimation(string stateName, float duration, string idleStateName = "")
+    public void PlayTimedAnimation(string stateName, float duration, string idleStateName = "", bool compensateMotion = false)
     {
         if (string.IsNullOrWhiteSpace(stateName) || duration <= 0.01f)
         {
@@ -309,10 +309,10 @@ public class BattleUnit : MonoBehaviour
             StopCoroutine(timedAnimationRoutine);
         }
 
-        timedAnimationRoutine = StartCoroutine(PlayTimedAnimationRoutine(animator, stateName, duration, idleStateName));
+        timedAnimationRoutine = StartCoroutine(PlayTimedAnimationRoutine(animator, stateName, duration, idleStateName, compensateMotion));
     }
 
-    public void PlayAnimationState(string stateName)
+    public void PlayAnimationState(string stateName, bool compensateMotion = false)
     {
         if (string.IsNullOrWhiteSpace(stateName))
         {
@@ -325,10 +325,19 @@ public class BattleUnit : MonoBehaviour
             return;
         }
 
+        if (compensateMotion)
+        {
+            SetAnimationPositionCompensation(true);
+        }
+        else
+        {
+            SetAnimationPositionCompensation(false);
+        }
+
         animator.Play(stateName, 0, 0f);
     }
 
-    public void PlayAnimationStateForCurrentClipDuration(string stateName, string idleStateName = "")
+    public void PlayAnimationStateForCurrentClipDuration(string stateName, string idleStateName = "", bool compensateMotion = false)
     {
         if (string.IsNullOrWhiteSpace(stateName))
         {
@@ -346,7 +355,7 @@ public class BattleUnit : MonoBehaviour
             StopCoroutine(timedAnimationRoutine);
         }
 
-        timedAnimationRoutine = StartCoroutine(PlayAnimationStateForCurrentClipDurationRoutine(animator, stateName, idleStateName));
+        timedAnimationRoutine = StartCoroutine(PlayAnimationStateForCurrentClipDurationRoutine(animator, stateName, idleStateName, compensateMotion));
     }
 
     public void SetAnimationPositionCompensation(bool enabled)
@@ -429,12 +438,21 @@ public class BattleUnit : MonoBehaviour
         get { return Mathf.Max(0, footprintSize / 2); }
     }
 
-    private IEnumerator PlayTimedAnimationRoutine(Animator animator, string stateName, float duration, string idleStateName)
+    private IEnumerator PlayTimedAnimationRoutine(Animator animator, string stateName, float duration, string idleStateName, bool compensateMotion)
     {
         if (animator == null || string.IsNullOrWhiteSpace(stateName))
         {
+            if (compensateMotion)
+            {
+                SetAnimationPositionCompensation(false);
+            }
             timedAnimationRoutine = null;
             yield break;
+        }
+
+        if (compensateMotion)
+        {
+            SetAnimationPositionCompensation(true);
         }
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
@@ -452,15 +470,29 @@ public class BattleUnit : MonoBehaviour
             animator.Play(previousStateHash, 0, 0f);
         }
 
+        if (compensateMotion)
+        {
+            SetAnimationPositionCompensation(false);
+        }
+
         timedAnimationRoutine = null;
     }
 
-    private IEnumerator PlayAnimationStateForCurrentClipDurationRoutine(Animator animator, string stateName, string idleStateName)
+    private IEnumerator PlayAnimationStateForCurrentClipDurationRoutine(Animator animator, string stateName, string idleStateName, bool compensateMotion)
     {
         if (animator == null || string.IsNullOrWhiteSpace(stateName))
         {
+            if (compensateMotion)
+            {
+                SetAnimationPositionCompensation(false);
+            }
             timedAnimationRoutine = null;
             yield break;
+        }
+
+        if (compensateMotion)
+        {
+            SetAnimationPositionCompensation(true);
         }
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
@@ -483,6 +515,11 @@ public class BattleUnit : MonoBehaviour
         else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
             animator.Play(previousStateHash, 0, 0f);
+        }
+
+        if (compensateMotion)
+        {
+            SetAnimationPositionCompensation(false);
         }
 
         timedAnimationRoutine = null;

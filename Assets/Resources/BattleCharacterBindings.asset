@@ -34,7 +34,7 @@ MonoBehaviour:
     backgroundPortraitPrefab: {fileID: 4082435748922320322, guid: 9b21b2782894be340b19d8ee27e7570c, type: 3}
     modelPrefab: {fileID: 1270907211640003584, guid: 79b0b5b04cb352747909406b8b789741, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
-    modelScale: {x: 2, y: 2, z: 2}
+    modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
     idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
     enterBattleStateName: 
@@ -49,7 +49,7 @@ MonoBehaviour:
     backgroundPortraitPrefab: {fileID: 5265599817728760209, guid: 446390109c5fed64f9d117168b22bb6f, type: 3}
     modelPrefab: {fileID: 2090111222257796701, guid: 6f8a9eaecbb143447ab46203ee3cdf6c, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
-    modelScale: {x: 2, y: 2, z: 2}
+    modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
     idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
     enterBattleStateName: 
@@ -79,7 +79,7 @@ MonoBehaviour:
     backgroundPortraitPrefab: {fileID: 8562986201867390498, guid: 2641662197c178140aa019a92845b384, type: 3}
     modelPrefab: {fileID: 5275995114432673508, guid: 5dde469eb5331714583a2b80715f86e5, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
-    modelScale: {x: 2, y: 2, z: 2}
+    modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
     idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
     enterBattleStateName: 

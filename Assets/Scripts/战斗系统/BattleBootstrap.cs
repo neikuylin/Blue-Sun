@@ -234,6 +234,7 @@ public class BattleBootstrap : MonoBehaviour
             }
 
             BattleAudioUtility.PlayOnce(ResolveEnterBattleSound(), ResolveEnterBattleSoundPrefab(), unit);
+            unit.SetAnimationPositionCompensation(ShouldCompensateEnterBattleMotion());
             animator.Play(enterBattleStateName, 0, 0f);
             playedAny = true;
         }
@@ -289,6 +290,7 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
+            unit.SetAnimationPositionCompensation(false);
             unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
         }
     }
@@ -315,6 +317,12 @@ public class BattleBootstrap : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.enterBattleSoundPrefab : null;
+    }
+
+    private static bool ShouldCompensateEnterBattleMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.enterBattleCompensateMotion;
     }
 
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()

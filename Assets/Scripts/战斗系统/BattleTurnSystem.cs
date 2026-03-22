@@ -2564,7 +2564,10 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        target.PlayAnimationStateForCurrentClipDuration(stateName, target.GetIdleAnimationStateName(ResolveIdleStateName()));
+        target.PlayAnimationStateForCurrentClipDuration(
+            stateName,
+            target.GetIdleAnimationStateName(ResolveIdleStateName()),
+            ShouldCompensateGlobalMotionForState(stateName));
     }
 
     private bool CanCastSkillAt(
@@ -3889,6 +3892,12 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.combatArtLeftAimStateName : string.Empty;
     }
 
+    private static bool ResolveCombatArtLeftAimCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.combatArtLeftAimCompensateMotion;
+    }
+
     private static AudioClip ResolveCombatArtLeftAimSound()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -3905,6 +3914,12 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.combatArtRightAimStateName : string.Empty;
+    }
+
+    private static bool ResolveCombatArtRightAimCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.combatArtRightAimCompensateMotion;
     }
 
     private static AudioClip ResolveCombatArtRightAimSound()
@@ -3931,6 +3946,12 @@ public class BattleTurnSystem : MonoBehaviour
         return settings != null ? settings.hitReactionStateName : string.Empty;
     }
 
+    private static bool ResolveHitReactionCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.hitReactionCompensateMotion;
+    }
+
     private static AudioClip ResolveHitReactionSound()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -3947,6 +3968,12 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.dodgeStateName : string.Empty;
+    }
+
+    private static bool ResolveDodgeCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.dodgeCompensateMotion;
     }
 
     private static AudioClip ResolveDodgeSound()
@@ -3978,7 +4005,7 @@ public class BattleTurnSystem : MonoBehaviour
         StopCombatArtAimAudio();
         ResolveCombatArtAimAudioForState(stateName, out AudioClip aimSound, out GameObject aimSoundPrefab);
         currentCombatArtAimAudioHandle = BattleAudioUtility.StartTracked(aimSound, aimSoundPrefab, activeUnit, battleCamera);
-        activeUnit.PlayAnimationState(stateName);
+        activeUnit.PlayAnimationState(stateName, ShouldCompensateGlobalMotionForState(stateName));
         combatArtAimAnimationActive = true;
         combatArtAimAnimationActiveUntilTime = Time.time + MinCombatArtAimAnimationDurationSeconds;
         currentCombatArtAimStateName = stateName;
@@ -4013,6 +4040,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeUnit.PlayAnimationState(idleStateName);
         }
 
+        activeUnit.SetAnimationPositionCompensation(false);
         StopCombatArtAimAudio();
         combatArtAimAnimationActive = false;
         currentCombatArtAimStateName = string.Empty;
@@ -4083,6 +4111,44 @@ public class BattleTurnSystem : MonoBehaviour
             clip = ResolveCombatArtRightAimSound();
             soundPrefab = ResolveCombatArtRightAimSoundPrefab();
         }
+    }
+
+    private static bool ShouldCompensateGlobalMotionForState(string stateName)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return false;
+        }
+
+        string leftStateName = ResolveCombatArtLeftAimStateName();
+        if (!string.IsNullOrWhiteSpace(leftStateName) &&
+            string.Equals(stateName, leftStateName, System.StringComparison.Ordinal))
+        {
+            return ResolveCombatArtLeftAimCompensateMotion();
+        }
+
+        string rightStateName = ResolveCombatArtRightAimStateName();
+        if (!string.IsNullOrWhiteSpace(rightStateName) &&
+            string.Equals(stateName, rightStateName, System.StringComparison.Ordinal))
+        {
+            return ResolveCombatArtRightAimCompensateMotion();
+        }
+
+        string hitStateName = ResolveHitReactionStateName();
+        if (!string.IsNullOrWhiteSpace(hitStateName) &&
+            string.Equals(stateName, hitStateName, System.StringComparison.Ordinal))
+        {
+            return ResolveHitReactionCompensateMotion();
+        }
+
+        string dodgeStateName = ResolveDodgeStateName();
+        if (!string.IsNullOrWhiteSpace(dodgeStateName) &&
+            string.Equals(stateName, dodgeStateName, System.StringComparison.Ordinal))
+        {
+            return ResolveDodgeCompensateMotion();
+        }
+
+        return false;
     }
 
     private void StopCombatArtAimAudio()
