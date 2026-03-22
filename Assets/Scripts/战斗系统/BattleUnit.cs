@@ -603,15 +603,27 @@ public class BattleUnit : MonoBehaviour
     private Vector3 GetVisualAnchorWorldPosition()
     {
         Renderer[] renderers = GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0)
+        List<Renderer> validRenderers = new List<Renderer>();
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null)
+            {
+                continue;
+            }
+
+            validRenderers.Add(renderer);
+        }
+
+        if (validRenderers.Count == 0)
         {
             return transform.position;
         }
 
-        Bounds combinedBounds = renderers[0].bounds;
-        for (int i = 1; i < renderers.Length; i++)
+        Bounds combinedBounds = validRenderers[0].bounds;
+        for (int i = 1; i < validRenderers.Count; i++)
         {
-            combinedBounds.Encapsulate(renderers[i].bounds);
+            combinedBounds.Encapsulate(validRenderers[i].bounds);
         }
 
         return new Vector3(combinedBounds.center.x, combinedBounds.min.y, combinedBounds.center.z);
@@ -624,7 +636,20 @@ public class BattleUnit : MonoBehaviour
             return;
         }
 
-        cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        Renderer[] allRenderers = GetComponentsInChildren<Renderer>(true);
+        List<Renderer> filteredRenderers = new List<Renderer>();
+        for (int i = 0; i < allRenderers.Length; i++)
+        {
+            Renderer renderer = allRenderers[i];
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null)
+            {
+                continue;
+            }
+
+            filteredRenderers.Add(renderer);
+        }
+
+        cachedRenderers = filteredRenderers.ToArray();
         originalRendererColors = new Color[cachedRenderers.Length];
         for (int i = 0; i < cachedRenderers.Length; i++)
         {

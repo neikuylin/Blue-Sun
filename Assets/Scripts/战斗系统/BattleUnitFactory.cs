@@ -3,6 +3,9 @@ using UnityEngine;
 
 public sealed class BattleUnitFactory
 {
+    private static readonly Color DefaultOutlineColor = Color.black;
+    private const float DefaultOutlineWidth = 0.025f;
+
     private readonly string idleStateName;
     private readonly float idleYawOffset;
     private readonly BattleCharacterBindingDatabase characterBindingDatabase;
@@ -174,10 +177,13 @@ public sealed class BattleUnitFactory
             instance.name = characterId + "_Unit";
             ApplyBindingScale(instance, binding);
             ApplyAnimatorBinding(instance, binding);
+            BattleUnitOutlineBuilder.Apply(instance, DefaultOutlineColor, DefaultOutlineWidth);
             return instance;
         }
 
-        return CreatePlaceholderUnitRoot(characterId + "_Placeholder", worldPosition, placeholderColor);
+        GameObject placeholder = CreatePlaceholderUnitRoot(characterId + "_Placeholder", worldPosition, placeholderColor);
+        BattleUnitOutlineBuilder.Apply(placeholder, DefaultOutlineColor, DefaultOutlineWidth);
+        return placeholder;
     }
 
     private static void ApplyAnimatorBinding(GameObject instance, BattleCharacterBindingDatabase.BindingEntry binding)
