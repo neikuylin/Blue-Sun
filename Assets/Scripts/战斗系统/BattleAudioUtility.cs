@@ -122,11 +122,46 @@ public static class BattleAudioUtility
 
         if (unit != null)
         {
-            return Object.Instantiate(soundPrefab, unit.transform, false);
+            GameObject instance = Object.Instantiate(soundPrefab, unit.transform, false);
+            PrepareRuntimeSoundInstance(instance);
+            return instance;
         }
 
         Vector3 worldPosition = ResolvePlaybackPosition(null, fallbackCamera);
-        return Object.Instantiate(soundPrefab, worldPosition, Quaternion.identity);
+        GameObject detachedInstance = Object.Instantiate(soundPrefab, worldPosition, Quaternion.identity);
+        PrepareRuntimeSoundInstance(detachedInstance);
+        return detachedInstance;
+    }
+
+    private static void PrepareRuntimeSoundInstance(GameObject instance)
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.name = "__BattleRuntimeAudio";
+
+#if UNITY_EDITOR
+        instance.hideFlags = HideFlags.HideAndDontSave;
+        Transform[] transforms = instance.GetComponentsInChildren<Transform>(true);
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            if (transforms[i] != null)
+            {
+                transforms[i].hideFlags = HideFlags.HideAndDontSave;
+            }
+        }
+
+        Component[] components = instance.GetComponentsInChildren<Component>(true);
+        for (int i = 0; i < components.Length; i++)
+        {
+            if (components[i] != null)
+            {
+                components[i].hideFlags = HideFlags.HideAndDontSave;
+            }
+        }
+#endif
     }
 
     private static Vector3 ResolvePlaybackPosition(BattleUnit unit, Camera fallbackCamera)

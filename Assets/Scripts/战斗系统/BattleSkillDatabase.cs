@@ -38,6 +38,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float actionYawOffset;
         public AudioClip actionSound;
         public GameObject actionSoundPrefab;
+        public int soundDelayFrame;
         public bool compensateActionMotion;
         public int resolveFrame;
         public SkillGroup group = SkillGroup.CombatArt;

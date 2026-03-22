@@ -14,14 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
   idleSound: {fileID: 0}
+  idleSoundPrefab: {fileID: 0}
   enterBattleStateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
-  enterBattleSound: {fileID: 8300000, guid: c00250b14bcb1804a87822353974184b, type: 3}
+  enterBattleSound: {fileID: 0}
+  enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
   combatArtLeftAimStateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
   combatArtLeftAimSound: {fileID: 0}
+  combatArtLeftAimSoundPrefab: {fileID: 0}
   combatArtRightAimStateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
   combatArtRightAimSound: {fileID: 0}
+  combatArtRightAimSoundPrefab: {fileID: 0}
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
+  hitReactionSoundPrefab: {fileID: 0}
   dodgeStateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
   dodgeSound: {fileID: 0}
+  dodgeSoundPrefab: {fileID: 0}
   idleYawOffset: 45

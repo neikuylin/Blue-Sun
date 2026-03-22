@@ -209,6 +209,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
@@ -239,6 +240,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionSoundPrefabProperty != null)
             {
                 EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
+            }
+            if (soundDelayFrameProperty != null)
+            {
+                soundDelayFrameProperty.intValue = EditorGUILayout.IntField("音效延迟帧数", Mathf.Max(0, soundDelayFrameProperty.intValue));
             }
 
             if (compensateActionMotionProperty != null)

@@ -19,7 +19,8 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
-    compensateActionMotion: 0
+    soundDelayFrame: 0
+    compensateActionMotion: 1
     resolveFrame: 0
     group: 0
     skillType: 1
@@ -38,7 +39,8 @@ MonoBehaviour:
     actionYawOffset: 45
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
-    compensateActionMotion: 0
+    soundDelayFrame: 5
+    compensateActionMotion: 1
     resolveFrame: 27
     group: 1
     skillType: 0
@@ -57,6 +59,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    soundDelayFrame: 0
     compensateActionMotion: 1
     resolveFrame: 0
     group: 1
