@@ -27,6 +27,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private TMP_Text manaText;
     private string lastSignature = string.Empty;
     private BattleSceneBindings battleBindings;
+    private GameObject healthPanelObject;
+    private GameObject manaPanelObject;
     private RectSnapshot healthFillBaseRect;
     private RectSnapshot manaFillBaseRect;
     private bool cachedBaseRects;
@@ -76,19 +78,29 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         if (healthSlotImage == null || healthFillImage == null || healthText == null)
         {
             Transform panel = FindTransformByPath(HealthPanelPath);
+            healthPanelObject = panel != null ? panel.gameObject : healthPanelObject;
             healthSlotImage = FindChildImage(panel, HealthSlotName);
             healthFillImage = FindChildImage(panel, HealthFillName);
             healthText = FindChildText(panel, HealthTextName);
             ConfigureFillImage(healthSlotImage, healthFillImage, HealthBarColor, fillFromRight: true);
         }
+        else if (healthPanelObject == null)
+        {
+            healthPanelObject = healthSlotImage.transform.parent != null ? healthSlotImage.transform.parent.gameObject : null;
+        }
 
         if (manaSlotImage == null || manaFillImage == null || manaText == null)
         {
             Transform panel = FindTransformByPath(ManaPanelPath);
+            manaPanelObject = panel != null ? panel.gameObject : manaPanelObject;
             manaSlotImage = FindChildImage(panel, ManaSlotName);
             manaFillImage = FindChildImage(panel, ManaFillName);
             manaText = FindChildText(panel, ManaTextName);
             ConfigureFillImage(manaSlotImage, manaFillImage, ManaBarColor, fillFromRight: false);
+        }
+        else if (manaPanelObject == null)
+        {
+            manaPanelObject = manaSlotImage.transform.parent != null ? manaSlotImage.transform.parent.gameObject : null;
         }
 
         CacheBaseRects();
@@ -98,8 +110,12 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     {
         CacheReferences();
 
+        bool shouldShowForTurn = ShouldShowForCurrentTurn();
+        SetPanelVisible(healthPanelObject, shouldShowForTurn);
+        SetPanelVisible(manaPanelObject, shouldShowForTurn);
+
         BattleUnit displayedUnit = ResolveDisplayedUnit();
-        bool showVitals = displayedUnit != null && displayedUnit.IsAlive;
+        bool showVitals = shouldShowForTurn && displayedUnit != null && displayedUnit.IsAlive;
         int currentHealth = showVitals ? Mathf.Max(0, displayedUnit.currentHealth) : 0;
         int maxHealth = showVitals ? Mathf.Max(0, displayedUnit.maxHealth) : 0;
         int currentMana = showVitals ? Mathf.Max(0, displayedUnit.currentMana) : 0;
@@ -116,6 +132,15 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         ApplyBar(manaFillImage, manaSlotImage, currentMana, maxMana, fillFromRight: false);
         ApplyText(healthText, currentHealth, maxHealth, showVitals);
         ApplyText(manaText, currentMana, maxMana, showVitals);
+    }
+
+    private bool ShouldShowForCurrentTurn()
+    {
+        BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
+        return activeUnit != null &&
+            activeUnit.IsAlive &&
+            activeUnit.isPlayerControlled &&
+            activeUnit.team == BattleTeam.Player;
     }
 
     private BattleUnit ResolveDisplayedUnit()
@@ -272,6 +297,16 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         }
 
         text.text = visible ? current + "/" + max : string.Empty;
+    }
+
+    private static void SetPanelVisible(GameObject panelObject, bool visible)
+    {
+        if (panelObject == null || panelObject.activeSelf == visible)
+        {
+            return;
+        }
+
+        panelObject.SetActive(visible);
     }
 
     private static Image FindChildImage(Transform parent, string childName)

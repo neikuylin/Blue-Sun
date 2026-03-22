@@ -1041,7 +1041,17 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (activeUnit == null)
+        bool shouldShow = activeUnit != null &&
+            activeUnit.IsAlive &&
+            activeUnit.isPlayerControlled &&
+            activeUnit.team == BattleTeam.Player;
+
+        if (activeUnitIdText.gameObject.activeSelf != shouldShow)
+        {
+            activeUnitIdText.gameObject.SetActive(shouldShow);
+        }
+
+        if (!shouldShow)
         {
             activeUnitIdText.text = string.Empty;
             return;
