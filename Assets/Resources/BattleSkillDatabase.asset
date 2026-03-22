@@ -43,7 +43,7 @@ MonoBehaviour:
     soundDelayFrame: 5
     enableHitFeel: 1
     compensateActionMotion: 0
-    resolveFrame: 27
+    resolveFrame: 35
     group: 1
     skillType: 0
     castTarget: 1
