@@ -233,6 +233,7 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
+            BattleAudioUtility.PlayClipForUnit(ResolveEnterBattleSound(), unit);
             animator.Play(enterBattleStateName, 0, 0f);
             playedAny = true;
         }
@@ -302,6 +303,12 @@ public class BattleBootstrap : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.idleStateName : string.Empty;
+    }
+
+    private static AudioClip ResolveEnterBattleSound()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.enterBattleSound : null;
     }
 
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()
