@@ -399,6 +399,7 @@ public class BattleTurnSystem : MonoBehaviour
         float moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
+            BattleAudioUtility.PlayOnce(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
             unit.PlayTimedAnimation(
                 unit.GetMoveAnimationStateName(moveSkill.actionStateName),
                 moveDuration,
@@ -3376,6 +3377,7 @@ public class BattleTurnSystem : MonoBehaviour
         moveDuration = grid.MoveUnit(unit, destination);
         if (moveSkill != null)
         {
+            BattleAudioUtility.PlayOnce(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
             unit.PlayTimedAnimation(
                 unit.GetMoveAnimationStateName(moveSkill.actionStateName),
                 moveDuration,
