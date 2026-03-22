@@ -40,7 +40,7 @@ MonoBehaviour:
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
     soundDelayFrame: 5
-    compensateActionMotion: 1
+    compensateActionMotion: 0
     resolveFrame: 27
     group: 1
     skillType: 0
