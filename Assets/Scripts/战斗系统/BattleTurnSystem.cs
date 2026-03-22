@@ -58,6 +58,9 @@ public class BattleTurnSystem : MonoBehaviour
     private const string EnemyInfoColorHex = "#E14B4B";
     private const int MinHitChancePercent = 0;
     private const int MaxHitChancePercent = 100;
+    private const float HitFeelDurationSeconds = 0.3f;
+    private const float HitFeelTimeScale = 0.1f;
+    private const float DefaultFixedDeltaTime = 0.02f;
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -81,7 +84,11 @@ public class BattleTurnSystem : MonoBehaviour
     private TurnTimelineButtonDatabase timelineDatabase;
     private Coroutine timelineAnimationRoutine;
     private Coroutine skillExecutionRoutine;
+    private Coroutine hitFeelRoutine;
     private BattleUnit timelineLeadUnit;
+    private float hitFeelRestoreTimeScale = 1f;
+    private float hitFeelRestoreFixedDeltaTime = DefaultFixedDeltaTime;
+    private bool hitFeelActive;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
     private string activeSkillId = string.Empty;
@@ -208,6 +215,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        RestoreGlobalTimeScale();
         UnbindEndTurnButton();
         UnbindSkillButton();
     }
@@ -3618,6 +3626,7 @@ public class BattleTurnSystem : MonoBehaviour
             yield return new WaitForSeconds(resolveDelay);
         }
 
+        TriggerSkillHitFeel(skill);
         resolveAction?.Invoke();
 
         float remainingDuration = Mathf.Max(0f, clipDuration - Mathf.Max(0f, resolveDelay));
@@ -3755,6 +3764,70 @@ public class BattleTurnSystem : MonoBehaviour
         int totalFrames = Mathf.Max(1, Mathf.RoundToInt(clipDuration * 60f));
         int clampedFrame = Mathf.Clamp(soundDelayFrame, 0, totalFrames);
         return clipDuration * ((float)clampedFrame / totalFrames);
+    }
+
+    private void TriggerSkillHitFeel(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null || !skill.enableHitFeel)
+        {
+            return;
+        }
+
+        if (!hitFeelActive)
+        {
+            hitFeelRestoreTimeScale = Time.timeScale;
+            hitFeelRestoreFixedDeltaTime = Time.fixedDeltaTime > 0f ? Time.fixedDeltaTime : DefaultFixedDeltaTime;
+        }
+
+        if (hitFeelRoutine != null)
+        {
+            StopCoroutine(hitFeelRoutine);
+        }
+
+        hitFeelRoutine = StartCoroutine(PlayHitFeelRoutine());
+    }
+
+    private IEnumerator PlayHitFeelRoutine()
+    {
+        hitFeelActive = true;
+        Time.timeScale = HitFeelTimeScale;
+        Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime * HitFeelTimeScale;
+
+        yield return new WaitForSecondsRealtime(HitFeelDurationSeconds);
+
+        if (Mathf.Approximately(Time.timeScale, HitFeelTimeScale))
+        {
+            Time.timeScale = hitFeelRestoreTimeScale;
+        }
+
+        if (Mathf.Approximately(Time.fixedDeltaTime, hitFeelRestoreFixedDeltaTime * HitFeelTimeScale))
+        {
+            Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime;
+        }
+
+        hitFeelActive = false;
+        hitFeelRoutine = null;
+    }
+
+    private void RestoreGlobalTimeScale()
+    {
+        if (hitFeelRoutine != null)
+        {
+            StopCoroutine(hitFeelRoutine);
+            hitFeelRoutine = null;
+        }
+
+        if (Mathf.Approximately(Time.timeScale, HitFeelTimeScale))
+        {
+            Time.timeScale = hitFeelRestoreTimeScale;
+        }
+
+        if (Mathf.Approximately(Time.fixedDeltaTime, hitFeelRestoreFixedDeltaTime * HitFeelTimeScale))
+        {
+            Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime;
+        }
+
+        hitFeelActive = false;
     }
 
     private void ShowBattleInfoMessage(string message)

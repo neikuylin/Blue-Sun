@@ -235,6 +235,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        SerializedProperty enableHitFeelProperty = entry.FindPropertyRelative("enableHitFeel");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
 
@@ -269,6 +270,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (soundDelayFrameProperty != null)
             {
                 soundDelayFrameProperty.intValue = EditorGUILayout.IntField("音效延迟帧数", Mathf.Max(0, soundDelayFrameProperty.intValue));
+            }
+            if (enableHitFeelProperty != null)
+            {
+                enableHitFeelProperty.boolValue = EditorGUILayout.Toggle("打击感", enableHitFeelProperty.boolValue);
             }
 
             if (compensateActionMotionProperty != null)
