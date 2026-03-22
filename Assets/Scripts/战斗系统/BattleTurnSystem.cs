@@ -397,13 +397,19 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float moveDuration = grid.MoveUnit(unit, destination);
+        BattleAudioUtility.PlaybackHandle moveAudioHandle = null;
         if (moveSkill != null)
         {
-            BattleAudioUtility.PlayOnce(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
+            moveAudioHandle = BattleAudioUtility.StartTracked(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
             unit.PlayTimedAnimation(
                 unit.GetMoveAnimationStateName(moveSkill.actionStateName),
                 moveDuration,
                 unit.GetIdleAnimationStateName(ResolveIdleStateName()));
+        }
+
+        if (moveAudioHandle != null)
+        {
+            StartCoroutine(StopTrackedAudioAfterDelay(moveAudioHandle, moveDuration));
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -3375,13 +3381,19 @@ public class BattleTurnSystem : MonoBehaviour
 
         grid.ResetHighlights();
         moveDuration = grid.MoveUnit(unit, destination);
+        BattleAudioUtility.PlaybackHandle moveAudioHandle = null;
         if (moveSkill != null)
         {
-            BattleAudioUtility.PlayOnce(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
+            moveAudioHandle = BattleAudioUtility.StartTracked(moveSkill.actionSound, moveSkill.actionSoundPrefab, unit, battleCamera);
             unit.PlayTimedAnimation(
                 unit.GetMoveAnimationStateName(moveSkill.actionStateName),
                 moveDuration,
                 unit.GetIdleAnimationStateName(ResolveIdleStateName()));
+        }
+
+        if (moveAudioHandle != null)
+        {
+            StartCoroutine(StopTrackedAudioAfterDelay(moveAudioHandle, moveDuration));
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -3515,7 +3527,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(skill.actionStateName))
         {
-            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            BattleAudioUtility.PlaybackHandle audioHandle = BattleAudioUtility.StartTracked(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            StopTrackedAudio(audioHandle);
             yield break;
         }
 
@@ -3535,7 +3548,7 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
         }
 
-        BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+        BattleAudioUtility.PlaybackHandle trackedAudioHandle = BattleAudioUtility.StartTracked(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
         animator.Play(skill.actionStateName, 0, 0f);
 
         yield return null;
@@ -3560,6 +3573,7 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation;
         }
 
+        StopTrackedAudio(trackedAudioHandle);
         caster.SetAnimationPositionCompensation(false);
     }
 
@@ -3578,7 +3592,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(skill.actionStateName))
         {
-            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            BattleAudioUtility.PlaybackHandle audioHandle = BattleAudioUtility.StartTracked(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            StopTrackedAudio(audioHandle);
             resolveAction?.Invoke();
             yield break;
         }
@@ -3586,7 +3601,8 @@ public class BattleTurnSystem : MonoBehaviour
         Animator animator = caster.GetComponentInChildren<Animator>(true);
         if (animator == null || animator.runtimeAnimatorController == null)
         {
-            BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            BattleAudioUtility.PlaybackHandle audioHandle = BattleAudioUtility.StartTracked(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+            StopTrackedAudio(audioHandle);
             resolveAction?.Invoke();
             yield break;
         }
@@ -3601,7 +3617,7 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation * Quaternion.Euler(0f, skill.actionYawOffset, 0f);
         }
 
-        BattleAudioUtility.PlayOnce(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
+        BattleAudioUtility.PlaybackHandle trackedAudioHandle = BattleAudioUtility.StartTracked(skill.actionSound, skill.actionSoundPrefab, caster, battleCamera);
         animator.Play(skill.actionStateName, 0, 0f);
         yield return null;
 
@@ -3636,7 +3652,37 @@ public class BattleTurnSystem : MonoBehaviour
             caster.transform.rotation = previousRotation;
         }
 
+        StopTrackedAudio(trackedAudioHandle);
         caster.SetAnimationPositionCompensation(false);
+    }
+
+    private IEnumerator StopTrackedAudioAfterDelay(BattleAudioUtility.PlaybackHandle handle, float delay)
+    {
+        if (handle == null)
+        {
+            yield break;
+        }
+
+        if (delay > 0.01f)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+        else
+        {
+            yield return null;
+        }
+
+        StopTrackedAudio(handle);
+    }
+
+    private static void StopTrackedAudio(BattleAudioUtility.PlaybackHandle handle)
+    {
+        if (handle == null)
+        {
+            return;
+        }
+
+        handle.Stop();
     }
 
     private static int ResolveAnimationStateTotalFrames(Animator animator, string stateName, float clipDuration)
