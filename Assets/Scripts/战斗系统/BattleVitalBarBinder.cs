@@ -29,6 +29,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
     private BattleSceneBindings battleBindings;
     private GameObject healthPanelObject;
     private GameObject manaPanelObject;
+    private CanvasGroup healthPanelCanvasGroup;
+    private CanvasGroup manaPanelCanvasGroup;
     private RectSnapshot healthFillBaseRect;
     private RectSnapshot manaFillBaseRect;
     private bool cachedBaseRects;
@@ -111,8 +113,8 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         CacheReferences();
 
         bool shouldShowForTurn = ShouldShowForCurrentTurn();
-        SetPanelVisible(healthPanelObject, shouldShowForTurn);
-        SetPanelVisible(manaPanelObject, shouldShowForTurn);
+        SetPanelVisible(healthPanelObject, ref healthPanelCanvasGroup, shouldShowForTurn);
+        SetPanelVisible(manaPanelObject, ref manaPanelCanvasGroup, shouldShowForTurn);
 
         BattleUnit displayedUnit = ResolveDisplayedUnit();
         bool showVitals = shouldShowForTurn && displayedUnit != null && displayedUnit.IsAlive;
@@ -299,14 +301,25 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
         text.text = visible ? current + "/" + max : string.Empty;
     }
 
-    private static void SetPanelVisible(GameObject panelObject, bool visible)
+    private static void SetPanelVisible(GameObject panelObject, ref CanvasGroup canvasGroup, bool visible)
     {
-        if (panelObject == null || panelObject.activeSelf == visible)
+        if (panelObject == null)
         {
             return;
         }
 
-        panelObject.SetActive(visible);
+        if (canvasGroup == null)
+        {
+            canvasGroup = panelObject.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+            {
+                canvasGroup = panelObject.AddComponent<CanvasGroup>();
+            }
+        }
+
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.interactable = visible;
+        canvasGroup.blocksRaycasts = visible;
     }
 
     private static Image FindChildImage(Transform parent, string childName)

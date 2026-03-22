@@ -1046,10 +1046,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeUnit.isPlayerControlled &&
             activeUnit.team == BattleTeam.Player;
 
-        if (activeUnitIdText.gameObject.activeSelf != shouldShow)
-        {
-            activeUnitIdText.gameObject.SetActive(shouldShow);
-        }
+        activeUnitIdText.enabled = shouldShow;
 
         if (!shouldShow)
         {
