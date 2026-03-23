@@ -51,6 +51,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public int index;
     }
 
+    private sealed class CategoryFilterBinding
+    {
+        public Transform panelRoot;
+        public readonly List<Toggle> toggles = new List<Toggle>();
+        public readonly HashSet<ItemDatabase.ItemCategory> selectedCategories = new HashSet<ItemDatabase.ItemCategory>();
+    }
+
     private sealed class SlotWidget
     {
         public RectTransform root;
@@ -165,6 +172,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> battleBackpackSlots = new List<SlotWidget>();
+    private readonly List<Action> categoryFilterUnbindActions = new List<Action>();
 
     private bool isDragging;
     private SlotRef draggingSource;
@@ -188,6 +196,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int equipmentSkillRevision;
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
+    private readonly CategoryFilterBinding warehouseFilter = new CategoryFilterBinding();
+    private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
     private RectTransform itemTooltipDetailRoot;
     private RectTransform itemTooltipTextContentRoot;
@@ -707,6 +717,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         EnsureBattleBackpackDrag();
+        BindCategoryFilters();
 
         BindDragRelays();
         RefreshAll();
@@ -2436,7 +2447,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ApplyItemToWidget(warehouseSlots[index], warehouseData[index]);
+        ApplyItemToWidget(
+            warehouseSlots[index],
+            ShouldDisplayItem(warehouseFilter, warehouseData[index]) ? warehouseData[index] : default);
     }
 
     private void RefreshBackpackSlot(int index)
@@ -2446,7 +2459,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ApplyItemToWidget(backpackSlots[index], backpackData[index]);
+        ApplyItemToWidget(
+            backpackSlots[index],
+            ShouldDisplayItem(backpackFilter, backpackData[index]) ? backpackData[index] : default);
     }
 
     private void RefreshEquipmentSlot(int index)
@@ -3553,8 +3568,278 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return database != null ? database.FindEntry(itemId) : null;
     }
 
+    private void BindCategoryFilters()
+    {
+        BindCategoryFilterForPanel(FindCategoryFilterPanel("仓库面板"), warehouseFilter, RefreshWarehouseFilteredView);
+        BindCategoryFilterForPanel(FindCategoryFilterPanel("背包面板"), backpackFilter, RefreshBackpackFilteredView);
+    }
+
+    private Transform FindCategoryFilterPanel(string panelName)
+    {
+        if (string.IsNullOrWhiteSpace(panelName))
+        {
+            return null;
+        }
+
+        Transform direct = FindTransformByPath("Canvas/UI控制器/目录/仓库页面/" + panelName);
+        if (direct != null)
+        {
+            return direct;
+        }
+
+        RectTransform container = null;
+        if (journeyBindings != null)
+        {
+            container = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
+                ? journeyBindings.warehouseContainer
+                : journeyBindings.backpackContainer;
+        }
+
+        return FindAncestorByName(container, panelName);
+    }
+
+    private void BindCategoryFilterForPanel(Transform panelRoot, CategoryFilterBinding binding, Action refreshAction)
+    {
+        binding.panelRoot = panelRoot;
+        binding.toggles.Clear();
+        binding.selectedCategories.Clear();
+
+        if (panelRoot == null || refreshAction == null)
+        {
+            return;
+        }
+
+        BindCategoryToggle(panelRoot, binding, "装备", refreshAction);
+        BindCategoryToggle(panelRoot, binding, "消耗品", refreshAction);
+        BindCategoryToggle(panelRoot, binding, "材料", refreshAction);
+        BindCategoryToggle(panelRoot, binding, "补给", refreshAction);
+
+        RebuildSelectedCategories(binding);
+    }
+
+    private void BindCategoryToggle(
+        Transform panelRoot,
+        CategoryFilterBinding binding,
+        string categoryName,
+        Action refreshAction)
+    {
+        Toggle toggle = FindCategoryToggle(panelRoot, categoryName);
+        if (toggle == null)
+        {
+            return;
+        }
+
+        if (!binding.toggles.Contains(toggle))
+        {
+            binding.toggles.Add(toggle);
+        }
+
+        UnityEngine.Events.UnityAction<bool> onChanged = _ =>
+        {
+            RebuildSelectedCategories(binding);
+            refreshAction();
+        };
+
+        toggle.onValueChanged.AddListener(onChanged);
+        categoryFilterUnbindActions.Add(() =>
+        {
+            if (toggle != null)
+            {
+                toggle.onValueChanged.RemoveListener(onChanged);
+            }
+        });
+    }
+
+    private static Toggle FindCategoryToggle(Transform panelRoot, string categoryName)
+    {
+        if (panelRoot == null || string.IsNullOrWhiteSpace(categoryName))
+        {
+            return null;
+        }
+
+        Transform header = FindChildByName(panelRoot, "头部区域") ?? FindDescendantByName(panelRoot, "头部区域") ?? panelRoot;
+        Transform namedTransform = FindChildByName(header, categoryName) ?? FindDescendantByName(header, categoryName);
+        if (namedTransform != null)
+        {
+            Toggle directToggle = namedTransform.GetComponent<Toggle>();
+            if (directToggle != null)
+            {
+                return directToggle;
+            }
+
+            Toggle childToggle = namedTransform.GetComponentInChildren<Toggle>(true);
+            if (childToggle != null)
+            {
+                return childToggle;
+            }
+        }
+
+        Toggle[] toggles = header.GetComponentsInChildren<Toggle>(true);
+        for (int i = 0; i < toggles.Length; i++)
+        {
+            Toggle toggle = toggles[i];
+            if (toggle == null)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(toggle.name) && toggle.name.IndexOf(categoryName, StringComparison.Ordinal) >= 0)
+            {
+                return toggle;
+            }
+
+            if (GetToggleCategoryLabel(toggle).IndexOf(categoryName, StringComparison.Ordinal) >= 0)
+            {
+                return toggle;
+            }
+        }
+
+        return null;
+    }
+
+    private static Transform FindAncestorByName(Transform child, string ancestorName)
+    {
+        if (child == null || string.IsNullOrWhiteSpace(ancestorName))
+        {
+            return null;
+        }
+
+        Transform current = child;
+        while (current != null)
+        {
+            if (string.Equals(current.name, ancestorName, StringComparison.Ordinal))
+            {
+                return current;
+            }
+
+            current = current.parent;
+        }
+
+        return null;
+    }
+
+    private static void RebuildSelectedCategories(CategoryFilterBinding binding)
+    {
+        if (binding == null)
+        {
+            return;
+        }
+
+        binding.selectedCategories.Clear();
+        for (int i = 0; i < binding.toggles.Count; i++)
+        {
+            Toggle toggle = binding.toggles[i];
+            if (toggle == null || !toggle.isOn)
+            {
+                continue;
+            }
+
+            if (TryResolveCategoryFromLabel(GetToggleCategoryLabel(toggle), out ItemDatabase.ItemCategory category))
+            {
+                binding.selectedCategories.Add(category);
+            }
+        }
+    }
+
+    private static string GetToggleCategoryLabel(Toggle toggle)
+    {
+        if (toggle == null)
+        {
+            return string.Empty;
+        }
+
+        TMP_Text tmpText = toggle.GetComponentInChildren<TMP_Text>(true);
+        if (tmpText != null && !string.IsNullOrWhiteSpace(tmpText.text))
+        {
+            return tmpText.text;
+        }
+
+        Text text = toggle.GetComponentInChildren<Text>(true);
+        if (text != null && !string.IsNullOrWhiteSpace(text.text))
+        {
+            return text.text;
+        }
+
+        return toggle.name ?? string.Empty;
+    }
+
+    private static bool TryResolveCategoryFromLabel(string label, out ItemDatabase.ItemCategory category)
+    {
+        category = ItemDatabase.ItemCategory.Consumable;
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return false;
+        }
+
+        if (label.IndexOf("装备", StringComparison.Ordinal) >= 0)
+        {
+            category = ItemDatabase.ItemCategory.Equipment;
+            return true;
+        }
+
+        if (label.IndexOf("消耗品", StringComparison.Ordinal) >= 0)
+        {
+            category = ItemDatabase.ItemCategory.Consumable;
+            return true;
+        }
+
+        if (label.IndexOf("材料", StringComparison.Ordinal) >= 0)
+        {
+            category = ItemDatabase.ItemCategory.Material;
+            return true;
+        }
+
+        if (label.IndexOf("补给", StringComparison.Ordinal) >= 0)
+        {
+            category = ItemDatabase.ItemCategory.Supply;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool ShouldDisplayItem(CategoryFilterBinding binding, ItemSlotData data)
+    {
+        if (data.IsEmpty || binding == null || binding.selectedCategories.Count == 0)
+        {
+            return true;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        return entry != null && binding.selectedCategories.Contains(entry.category);
+    }
+
+    private void RefreshWarehouseFilteredView()
+    {
+        for (int i = 0; i < warehouseSlots.Count; i++)
+        {
+            RefreshWarehouseSlot(i);
+        }
+    }
+
+    private void RefreshBackpackFilteredView()
+    {
+        for (int i = 0; i < backpackSlots.Count; i++)
+        {
+            RefreshBackpackSlot(i);
+        }
+    }
+
     private void UnbindAll()
     {
+        for (int i = 0; i < categoryFilterUnbindActions.Count; i++)
+        {
+            categoryFilterUnbindActions[i]?.Invoke();
+        }
+
+        categoryFilterUnbindActions.Clear();
+        warehouseFilter.panelRoot = null;
+        warehouseFilter.toggles.Clear();
+        warehouseFilter.selectedCategories.Clear();
+        backpackFilter.panelRoot = null;
+        backpackFilter.toggles.Clear();
+        backpackFilter.selectedCategories.Clear();
+
         HandleEndDrag();
         HideItemTooltip();
         ClearRuntimeVisuals(warehouseSlots);
