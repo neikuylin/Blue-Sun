@@ -89,6 +89,11 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
             }
         }
 
+        if (GUILayout.Button("从当前场景读取已有音效"))
+        {
+            ImportFromOpenScenes();
+        }
+
         EditorGUILayout.Space(6f);
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < ButtonSoundEditorState.instance.entries.Count; i++)
@@ -140,6 +145,7 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
 
                 if (GUILayout.Button("删除"))
                 {
+                    RemoveFromTarget(entry);
                     ButtonSoundEditorState.instance.entries.RemoveAt(index);
                     if (ButtonSoundEditorState.instance.entries.Count == 0)
                     {
@@ -222,6 +228,24 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         EditorUtility.SetDirty(trigger);
     }
 
+    private static void RemoveFromTarget(ButtonSoundEditorState.SoundEntry entry)
+    {
+        GameObject targetObject = entry != null ? entry.targetObject : null;
+        if (targetObject == null)
+        {
+            return;
+        }
+
+        UISoundTrigger trigger = targetObject.GetComponent<UISoundTrigger>();
+        if (trigger == null)
+        {
+            return;
+        }
+
+        Undo.DestroyObjectImmediate(trigger);
+        EditorUtility.SetDirty(targetObject);
+    }
+
     private void ApplyAll()
     {
         for (int i = 0; i < ButtonSoundEditorState.instance.entries.Count; i++)
@@ -230,5 +254,62 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         }
 
         ButtonSoundEditorState.instance.SaveState();
+    }
+
+    private void ImportFromOpenScenes()
+    {
+        UISoundTrigger[] triggers = Resources.FindObjectsOfTypeAll<UISoundTrigger>();
+        Dictionary<GameObject, ButtonSoundEditorState.SoundEntry> importedEntries =
+            new Dictionary<GameObject, ButtonSoundEditorState.SoundEntry>();
+
+        for (int i = 0; i < triggers.Length; i++)
+        {
+            UISoundTrigger trigger = triggers[i];
+            if (trigger == null)
+            {
+                continue;
+            }
+
+            GameObject targetObject = trigger.gameObject;
+            if (targetObject == null)
+            {
+                continue;
+            }
+
+            if (!targetObject.scene.IsValid() || !targetObject.scene.isLoaded)
+            {
+                continue;
+            }
+
+            if (EditorUtility.IsPersistent(targetObject))
+            {
+                continue;
+            }
+
+            SerializedObject serializedObject = new SerializedObject(trigger);
+            AudioClip clickClip = serializedObject.FindProperty("clickClip").objectReferenceValue as AudioClip;
+            float volume = serializedObject.FindProperty("volume").floatValue;
+
+            importedEntries[targetObject] = new ButtonSoundEditorState.SoundEntry
+            {
+                targetObject = targetObject,
+                clickClip = clickClip,
+                volume = volume
+            };
+        }
+
+        ButtonSoundEditorState.instance.entries.Clear();
+        foreach (ButtonSoundEditorState.SoundEntry importedEntry in importedEntries.Values)
+        {
+            ButtonSoundEditorState.instance.entries.Add(importedEntry);
+        }
+
+        if (ButtonSoundEditorState.instance.entries.Count == 0)
+        {
+            ButtonSoundEditorState.instance.entries.Add(new ButtonSoundEditorState.SoundEntry());
+        }
+
+        ButtonSoundEditorState.instance.SaveState();
+        Repaint();
     }
 }
