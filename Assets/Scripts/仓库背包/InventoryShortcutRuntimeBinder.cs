@@ -1582,7 +1582,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         draggingSourceWidget = widget;
         SetWidgetDraggingVisible(widget, false);
         isDragging = true;
-        ItemSoundUtility.PlayForItem(data.itemId);
     }
 
     private void HandleDrag(PointerEventData eventData)

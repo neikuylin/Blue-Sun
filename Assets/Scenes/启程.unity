@@ -9275,7 +9275,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1001 &315522300
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10052,7 +10052,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!224 &411264668 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -10080,6 +10080,7 @@ GameObject:
   - component: {fileID: 429784515}
   - component: {fileID: 429784514}
   - component: {fileID: 429784513}
+  - component: {fileID: 429784516}
   m_Layer: 5
   m_Name: "\u5E95\u56FE"
   m_TagString: Untagged
@@ -10193,6 +10194,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 429784511}
   m_CullTransparentMesh: 1
+--- !u!114 &429784516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 429784511}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 0}
+  toggle: {fileID: 429784513}
+  audioSource: {fileID: 0}
+  clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
+  toggleOnClip: {fileID: 0}
+  toggleOffClip: {fileID: 0}
+  volume: 0.2
 --- !u!1 &433303073
 GameObject:
   m_ObjectHideFlags: 0
@@ -11189,7 +11209,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1 &554621712
 GameObject:
   m_ObjectHideFlags: 0
@@ -12097,7 +12117,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!224 &654418530 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -12506,7 +12526,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!224 &783061359 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -12727,6 +12747,7 @@ GameObject:
   - component: {fileID: 793308170}
   - component: {fileID: 793308169}
   - component: {fileID: 793308168}
+  - component: {fileID: 793308171}
   m_Layer: 5
   m_Name: "\u5E95\u56FE"
   m_TagString: Untagged
@@ -12840,6 +12861,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 793308166}
   m_CullTransparentMesh: 1
+--- !u!114 &793308171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 793308166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 0}
+  toggle: {fileID: 793308168}
+  audioSource: {fileID: 0}
+  clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
+  toggleOnClip: {fileID: 0}
+  toggleOffClip: {fileID: 0}
+  volume: 0.2
 --- !u!1 &800460028
 GameObject:
   m_ObjectHideFlags: 0
@@ -13134,6 +13174,7 @@ GameObject:
   - component: {fileID: 854797491}
   - component: {fileID: 854797490}
   - component: {fileID: 854797489}
+  - component: {fileID: 854797492}
   m_Layer: 5
   m_Name: "\u5E95\u56FE"
   m_TagString: Untagged
@@ -13248,6 +13289,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 854797487}
   m_CullTransparentMesh: 1
+--- !u!114 &854797492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 854797487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 0}
+  toggle: {fileID: 854797489}
+  audioSource: {fileID: 0}
+  clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
+  toggleOnClip: {fileID: 0}
+  toggleOffClip: {fileID: 0}
+  volume: 0.2
 --- !u!1001 &867891908
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13682,7 +13742,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1 &981358825
 GameObject:
   m_ObjectHideFlags: 0
@@ -14017,7 +14077,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!224 &993537626 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -15657,7 +15717,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1 &1253379853
 GameObject:
   m_ObjectHideFlags: 0
@@ -16208,7 +16268,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1 &1329669416
 GameObject:
   m_ObjectHideFlags: 0
@@ -17060,7 +17120,7 @@ MonoBehaviour:
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   toggleOnClip: {fileID: 0}
   toggleOffClip: {fileID: 0}
-  volume: 1
+  volume: 0.2
 --- !u!1 &1398563647
 GameObject:
   m_ObjectHideFlags: 0
@@ -21316,6 +21376,7 @@ GameObject:
   - component: {fileID: 2013033614}
   - component: {fileID: 2013033613}
   - component: {fileID: 2013033612}
+  - component: {fileID: 2013033615}
   m_Layer: 5
   m_Name: "\u5E95\u56FE"
   m_TagString: Untagged
@@ -21429,6 +21490,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2013033610}
   m_CullTransparentMesh: 1
+--- !u!114 &2013033615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013033610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 0}
+  toggle: {fileID: 2013033612}
+  audioSource: {fileID: 0}
+  clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
+  toggleOnClip: {fileID: 0}
+  toggleOffClip: {fileID: 0}
+  volume: 0.2
 --- !u!1 &2013772278
 GameObject:
   m_ObjectHideFlags: 0
