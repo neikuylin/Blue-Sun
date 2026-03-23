@@ -9269,13 +9269,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 314111948}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1001 &315522300
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10046,13 +10041,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 381348036}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!224 &411264668 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -10206,13 +10196,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 429784513}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &433303073
 GameObject:
   m_ObjectHideFlags: 0
@@ -11203,13 +11188,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 550866890}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &554621712
 GameObject:
   m_ObjectHideFlags: 0
@@ -12111,13 +12091,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 653090535}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!224 &654418530 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -12520,13 +12495,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 780893865}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!224 &783061359 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -12873,13 +12843,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 793308168}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &800460028
 GameObject:
   m_ObjectHideFlags: 0
@@ -13301,13 +13266,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 854797489}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1001 &867891908
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13736,13 +13696,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 977556274}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &981358825
 GameObject:
   m_ObjectHideFlags: 0
@@ -14071,13 +14026,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 989823225}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!224 &993537626 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -15711,13 +15661,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 1246552050}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &1253379853
 GameObject:
   m_ObjectHideFlags: 0
@@ -16262,13 +16207,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 1319888459}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &1329669416
 GameObject:
   m_ObjectHideFlags: 0
@@ -17114,13 +17054,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 1393632394}
-  toggle: {fileID: 0}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &1398563647
 GameObject:
   m_ObjectHideFlags: 0
@@ -21502,13 +21437,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4360bce2d51033746a53b1454572e3ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
-  toggle: {fileID: 2013033612}
-  audioSource: {fileID: 0}
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
-  toggleOnClip: {fileID: 0}
-  toggleOffClip: {fileID: 0}
-  volume: 0.2
+  volume: 1
 --- !u!1 &2013772278
 GameObject:
   m_ObjectHideFlags: 0
