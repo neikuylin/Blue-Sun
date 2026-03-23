@@ -4,17 +4,40 @@ using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 
-public sealed class ButtonSoundEditorWindow : EditorWindow
+[FilePath("UserSettings/ButtonSoundEditorState.asset", FilePathAttribute.Location.ProjectFolder)]
+internal sealed class ButtonSoundEditorState : ScriptableSingleton<ButtonSoundEditorState>
 {
     [Serializable]
-    private sealed class SoundEntry
+    internal sealed class SoundEntry
     {
         public GameObject targetObject;
         public AudioClip clickClip;
         public float volume = 1f;
     }
 
-    private readonly List<SoundEntry> entries = new List<SoundEntry>();
+    [SerializeField] internal List<SoundEntry> entries = new List<SoundEntry>();
+
+    internal void EnsureInitialized()
+    {
+        if (entries == null)
+        {
+            entries = new List<SoundEntry>();
+        }
+
+        if (entries.Count == 0)
+        {
+            entries.Add(new SoundEntry());
+        }
+    }
+
+    internal void SaveState()
+    {
+        Save(true);
+    }
+}
+
+public sealed class ButtonSoundEditorWindow : EditorWindow
+{
     private Vector2 scroll;
 
     [MenuItem("Tools/音效/按钮")]
@@ -33,10 +56,12 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
 
     private void OnEnable()
     {
-        if (entries.Count == 0)
-        {
-            entries.Add(new SoundEntry());
-        }
+        ButtonSoundEditorState.instance.EnsureInitialized();
+    }
+
+    private void OnDisable()
+    {
+        ButtonSoundEditorState.instance.SaveState();
     }
 
     private void OnGUI()
@@ -49,13 +74,14 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         EditorGUILayout.Space(6f);
         if (GUILayout.Button("新增按钮音效"))
         {
-            entries.Add(new SoundEntry
+            ButtonSoundEditorState.instance.entries.Add(new ButtonSoundEditorState.SoundEntry
             {
                 targetObject = Selection.activeGameObject
             });
+            ButtonSoundEditorState.instance.SaveState();
         }
 
-        using (new EditorGUI.DisabledScope(entries.Count == 0))
+        using (new EditorGUI.DisabledScope(ButtonSoundEditorState.instance.entries.Count == 0))
         {
             if (GUILayout.Button("应用全部"))
             {
@@ -65,14 +91,19 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
 
         EditorGUILayout.Space(6f);
         scroll = EditorGUILayout.BeginScrollView(scroll);
-        for (int i = 0; i < entries.Count; i++)
+        for (int i = 0; i < ButtonSoundEditorState.instance.entries.Count; i++)
         {
-            DrawEntry(entries[i], i);
+            DrawEntry(ButtonSoundEditorState.instance.entries[i], i);
         }
         EditorGUILayout.EndScrollView();
+
+        if (GUI.changed)
+        {
+            ButtonSoundEditorState.instance.SaveState();
+        }
     }
 
-    private void DrawEntry(SoundEntry entry, int index)
+    private void DrawEntry(ButtonSoundEditorState.SoundEntry entry, int index)
     {
         if (entry == null)
         {
@@ -109,12 +140,13 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
 
                 if (GUILayout.Button("删除"))
                 {
-                    entries.RemoveAt(index);
-                    if (entries.Count == 0)
+                    ButtonSoundEditorState.instance.entries.RemoveAt(index);
+                    if (ButtonSoundEditorState.instance.entries.Count == 0)
                     {
-                        entries.Add(new SoundEntry());
+                        ButtonSoundEditorState.instance.entries.Add(new ButtonSoundEditorState.SoundEntry());
                     }
 
+                    ButtonSoundEditorState.instance.SaveState();
                     GUIUtility.ExitGUI();
                 }
             }
@@ -137,7 +169,7 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         return targetObject.GetComponent<Toggle>();
     }
 
-    private static void LoadFromExisting(SoundEntry entry)
+    private static void LoadFromExisting(ButtonSoundEditorState.SoundEntry entry)
     {
         if (entry == null || entry.targetObject == null)
         {
@@ -155,7 +187,7 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         entry.volume = serializedObject.FindProperty("volume").floatValue;
     }
 
-    private static void ApplyToTarget(SoundEntry entry)
+    private static void ApplyToTarget(ButtonSoundEditorState.SoundEntry entry)
     {
         GameObject targetObject = entry != null ? entry.targetObject : null;
         if (targetObject == null)
@@ -192,9 +224,11 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
 
     private void ApplyAll()
     {
-        for (int i = 0; i < entries.Count; i++)
+        for (int i = 0; i < ButtonSoundEditorState.instance.entries.Count; i++)
         {
-            ApplyToTarget(entries[i]);
+            ApplyToTarget(ButtonSoundEditorState.instance.entries[i]);
         }
+
+        ButtonSoundEditorState.instance.SaveState();
     }
 }
