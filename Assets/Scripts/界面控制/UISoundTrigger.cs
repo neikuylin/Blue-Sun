@@ -1,79 +1,39 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 [DisallowMultipleComponent]
-public sealed class UISoundTrigger : MonoBehaviour
+public sealed class UISoundTrigger : MonoBehaviour, IPointerClickHandler, ISubmitHandler
 {
-    [SerializeField] private Button button;
-    [SerializeField] private Toggle toggle;
-    [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip clickClip;
-    [SerializeField] private AudioClip toggleOnClip;
-    [SerializeField] private AudioClip toggleOffClip;
     [SerializeField] [Range(0f, 1f)] private float volume = 1f;
 
+    private Selectable selectable;
     private static AudioSource fallbackAudioSource;
-
-    private void Reset()
-    {
-        button = GetComponent<Button>();
-        toggle = GetComponent<Toggle>();
-        audioSource = GetComponent<AudioSource>();
-    }
 
     private void Awake()
     {
-        if (button == null)
-        {
-            button = GetComponent<Button>();
-        }
-
-        if (toggle == null)
-        {
-            toggle = GetComponent<Toggle>();
-        }
+        selectable = GetComponent<Selectable>();
     }
 
-    private void OnEnable()
+    public void OnPointerClick(PointerEventData eventData)
     {
-        if (button != null)
-        {
-            button.onClick.AddListener(HandleButtonClick);
-        }
-
-        if (toggle != null)
-        {
-            toggle.onValueChanged.AddListener(HandleToggleValueChanged);
-        }
+        PlayClick();
     }
 
-    private void OnDisable()
+    public void OnSubmit(BaseEventData eventData)
     {
-        if (button != null)
-        {
-            button.onClick.RemoveListener(HandleButtonClick);
-        }
-
-        if (toggle != null)
-        {
-            toggle.onValueChanged.RemoveListener(HandleToggleValueChanged);
-        }
+        PlayClick();
     }
 
-    private void HandleButtonClick()
+    private void PlayClick()
     {
+        if (selectable != null && !selectable.IsInteractable())
+        {
+            return;
+        }
+
         PlayClip(clickClip);
-    }
-
-    private void HandleToggleValueChanged(bool isOn)
-    {
-        AudioClip clip = isOn ? toggleOnClip : toggleOffClip;
-        if (clip == null)
-        {
-            clip = clickClip;
-        }
-
-        PlayClip(clip);
     }
 
     private void PlayClip(AudioClip clip)
@@ -94,11 +54,6 @@ public sealed class UISoundTrigger : MonoBehaviour
 
     private AudioSource ResolveAudioSource()
     {
-        if (audioSource != null)
-        {
-            return audioSource;
-        }
-
         if (fallbackAudioSource == null)
         {
             GameObject runtimeObject = new GameObject("__UIRuntimeAudio");

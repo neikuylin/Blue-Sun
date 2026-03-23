@@ -217,12 +217,7 @@ public sealed class ButtonSoundEditorWindow : EditorWindow
         Undo.RecordObject(trigger, "Apply UI Sound Trigger");
         SerializedObject serializedObject = new SerializedObject(trigger);
         serializedObject.Update();
-        serializedObject.FindProperty("button").objectReferenceValue = button;
-        serializedObject.FindProperty("toggle").objectReferenceValue = toggle;
-        serializedObject.FindProperty("audioSource").objectReferenceValue = null;
         serializedObject.FindProperty("clickClip").objectReferenceValue = entry.clickClip;
-        serializedObject.FindProperty("toggleOnClip").objectReferenceValue = null;
-        serializedObject.FindProperty("toggleOffClip").objectReferenceValue = null;
         serializedObject.FindProperty("volume").floatValue = entry.volume;
         serializedObject.ApplyModifiedProperties();
         EditorUtility.SetDirty(trigger);
