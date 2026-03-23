@@ -1582,6 +1582,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         draggingSourceWidget = widget;
         SetWidgetDraggingVisible(widget, false);
         isDragging = true;
+        ItemSoundUtility.PlayForItem(data.itemId);
     }
 
     private void HandleDrag(PointerEventData eventData)
@@ -1610,6 +1611,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!TryGetSlotData(draggingSource, out ItemSlotData sourceData))
+        {
+            return;
+        }
+
         if (!CanSwapSlots(draggingSource, target))
         {
             return;
@@ -1618,6 +1624,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SwapSlotData(draggingSource, target);
         RefreshByRef(draggingSource);
         RefreshByRef(target);
+        ItemSoundUtility.PlayForItem(sourceData.itemId);
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
