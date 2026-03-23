@@ -36,6 +36,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         Equipment
     }
 
+    private enum SlotSurface
+    {
+        Warehouse,
+        WarehouseBackpack,
+        QuickBackpack,
+        BattleBackpack,
+        Equipment
+    }
+
     private struct SlotRef
     {
         public SlotKind kind;
@@ -57,16 +66,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
     }
 
-    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler
+    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         private InventoryShortcutRuntimeBinder owner;
         private SlotKind kind;
+        private SlotSurface surface;
         private int index;
 
-        public void Configure(InventoryShortcutRuntimeBinder binder, SlotKind slotKind, int slotIndex)
+        public void Configure(InventoryShortcutRuntimeBinder binder, SlotKind slotKind, SlotSurface slotSurface, int slotIndex)
         {
             owner = binder;
             kind = slotKind;
+            surface = slotSurface;
             index = slotIndex;
         }
 
@@ -98,6 +109,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public void OnPointerExit(PointerEventData eventData)
         {
             owner?.HandlePointerExit(kind, index, eventData);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            owner?.HandlePointerClick(kind, surface, index, eventData);
         }
     }
 
@@ -1519,14 +1535,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void BindDragRelays()
     {
-        BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse);
-        BindDragRelaysForList(backpackSlots, SlotKind.Backpack);
-        BindDragRelaysForList(quickSlots, SlotKind.Backpack);
-        BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack);
-        BindDragRelaysForList(equipmentSlots, SlotKind.Equipment);
+        BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse, SlotSurface.Warehouse);
+        BindDragRelaysForList(backpackSlots, SlotKind.Backpack, SlotSurface.WarehouseBackpack);
+        BindDragRelaysForList(quickSlots, SlotKind.Backpack, SlotSurface.QuickBackpack);
+        BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack, SlotSurface.BattleBackpack);
+        BindDragRelaysForList(equipmentSlots, SlotKind.Equipment, SlotSurface.Equipment);
     }
 
-    private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind)
+    private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind, SlotSurface surface)
     {
         for (int i = 0; i < slots.Count; i++)
         {
@@ -1542,7 +1558,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 relay = root.gameObject.AddComponent<SlotDragRelay>();
             }
 
-            relay.Configure(this, kind, i);
+            relay.Configure(this, kind, surface, i);
         }
     }
 
@@ -1676,6 +1692,152 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Item, widget.root, eventData);
+    }
+
+    private void HandlePointerClick(SlotKind kind, SlotSurface surface, int index, PointerEventData eventData)
+    {
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Right || isDragging)
+        {
+            return;
+        }
+
+        SlotRef source = new SlotRef { kind = kind, index = index };
+        if (!TryGetSlotData(source, out ItemSlotData sourceData) || sourceData.IsEmpty)
+        {
+            return;
+        }
+
+        if (!TryHandleRightClickMove(source, surface, sourceData))
+        {
+            return;
+        }
+
+        eventData.Use();
+    }
+
+    private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, ItemSlotData sourceData)
+    {
+        switch (surface)
+        {
+            case SlotSurface.Warehouse:
+                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+            case SlotSurface.WarehouseBackpack:
+                return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
+            case SlotSurface.QuickBackpack:
+            case SlotSurface.BattleBackpack:
+                return TryAutoEquipFromBackpack(source, sourceData);
+            case SlotSurface.Equipment:
+                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+            default:
+                return false;
+        }
+    }
+
+    private bool TryAutoMoveToFirstEmpty(SlotRef source, SlotKind targetKind, ItemSlotData sourceData)
+    {
+        int targetIndex = FindFirstEmptySlotIndex(targetKind);
+        if (targetIndex < 0)
+        {
+            return false;
+        }
+
+        SlotRef target = new SlotRef { kind = targetKind, index = targetIndex };
+        return TryExecuteSlotTransfer(source, target, sourceData);
+    }
+
+    private bool TryAutoEquipFromBackpack(SlotRef source, ItemSlotData sourceData)
+    {
+        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        {
+            return false;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
+        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        int targetIndex = FindRightClickEquipmentTargetIndex(entry);
+        if (targetIndex < 0)
+        {
+            return false;
+        }
+
+        SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = targetIndex };
+        return TryExecuteSlotTransfer(source, target, sourceData);
+    }
+
+    private bool TryExecuteSlotTransfer(SlotRef source, SlotRef target, ItemSlotData sourceData)
+    {
+        if (!CanSwapSlots(source, target))
+        {
+            return false;
+        }
+
+        SwapSlotData(source, target);
+        RefreshByRef(source);
+        RefreshByRef(target);
+        ItemSoundUtility.PlayForItem(sourceData.itemId);
+        return true;
+    }
+
+    private int FindFirstEmptySlotIndex(SlotKind kind)
+    {
+        List<ItemSlotData> dataList = GetDataList(kind);
+        for (int i = 0; i < dataList.Count; i++)
+        {
+            if (dataList[i].IsEmpty)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindRightClickEquipmentTargetIndex(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || equipmentSlots.Count == 0)
+        {
+            return -1;
+        }
+
+        ItemDatabase.EquipmentSlotType desiredSlotType = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand
+            ? ItemDatabase.EquipmentSlotType.MainHand
+            : entry.equipmentSlot;
+
+        int emptySlotIndex = FindEquipmentSlotIndex(desiredSlotType, requireEmpty: true);
+        return emptySlotIndex >= 0
+            ? emptySlotIndex
+            : FindEquipmentSlotIndex(desiredSlotType, requireEmpty: false);
+    }
+
+    private int FindEquipmentSlotIndex(ItemDatabase.EquipmentSlotType slotType, bool requireEmpty)
+    {
+        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
+        if (equipmentData == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < equipmentSlots.Count; i++)
+        {
+            SlotWidget widget = equipmentSlots[i];
+            if (widget == null || widget.equipmentSlotType != slotType)
+            {
+                continue;
+            }
+
+            if (requireEmpty && i < equipmentData.Count && !equipmentData[i].IsEmpty)
+            {
+                continue;
+            }
+
+            return i;
+        }
+
+        return -1;
     }
 
     private void HandleEndDrag()
