@@ -2457,12 +2457,8 @@ public class BattleTurnSystem : MonoBehaviour
                 return;
             }
 
-            float circlePulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
             Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
-            previewColor.a = Mathf.Lerp(
-                skillHoverValid ? 0.18f : 0.16f,
-                previewColor.a,
-                circlePulse);
+            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
             grid.HighlightCircleAt(skillHoverCell, GetContinuousAreaRadiusWorld(activeSkill), previewColor);
             grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, previewColor);
             return;
@@ -2470,12 +2466,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (IsCircularAxisAreaSkill(activeSkill))
         {
-            float axisPulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
             Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
-            previewColor.a = Mathf.Lerp(
-                skillHoverValid ? 0.18f : 0.16f,
-                previewColor.a,
-                axisPulse);
+            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
 
             Vector3 origin = grid.GetWorldPosition(activeUnit.currentCell);
             Vector3 direction = ResolveAxisDirectionWorld(activeUnit, skillHoverCell);
@@ -2498,18 +2490,16 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
-
         if (skillHoverValid)
         {
             Color previewColor = skillPreviewValidColor;
-            previewColor.a = Mathf.Lerp(0.18f, skillPreviewValidColor.a, pulse);
+            previewColor.a = 0.18f;
             grid.HighlightCells(previewCells, previewColor);
             return;
         }
 
         Color invalidColor = skillPreviewInvalidColor;
-        invalidColor.a = Mathf.Lerp(0.16f, skillPreviewInvalidColor.a, pulse);
+        invalidColor.a = 0.16f;
         grid.HighlightPartialCells(previewCells, activeUnit, invalidColor);
     }
 
