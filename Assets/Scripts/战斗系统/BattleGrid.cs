@@ -483,7 +483,7 @@ public class BattleGrid : MonoBehaviour
 
     public void HighlightAxisRay(Vector3 origin, Vector3 direction, float lengthWorld, float widthWorld, Color color)
     {
-        CreateCapsuleOverlay(
+        CreateClippedRayOverlay(
             origin,
             direction,
             Mathf.Max(0f, lengthWorld),
@@ -760,7 +760,7 @@ public class BattleGrid : MonoBehaviour
         highlightLayerOrder++;
     }
 
-    private void CreateCapsuleOverlay(Vector3 origin, Vector3 direction, float lengthWorld, float widthWorld, Color fillColor, Color outlineColor, string name)
+    private void CreateClippedRayOverlay(Vector3 origin, Vector3 direction, float lengthWorld, float widthWorld, Color fillColor, Color outlineColor, string name)
     {
         if (lengthWorld <= 0.001f || widthWorld <= 0.001f)
         {
@@ -774,12 +774,12 @@ public class BattleGrid : MonoBehaviour
 
         MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildCapsuleFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, overlayY + (highlightLayerOrder * 0.002f));
+        meshFilter.sharedMesh = BuildClippedRayFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, overlayY + (highlightLayerOrder * 0.002f));
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
         meshRenderer.sortingOrder = highlightLayerOrder * 10;
 
-        CreateCapsuleOutline(
+        CreateClippedRayOutline(
             overlay.transform,
             origin,
             direction,
@@ -822,6 +822,119 @@ public class BattleGrid : MonoBehaviour
             (highlightLayerOrder * 10) + 1);
 
         highlightLayerOrder++;
+    }
+
+    private Mesh BuildClippedRayFillMesh(Vector3 origin, Vector3 direction, float lengthWorld, float halfWidthWorld, float y)
+    {
+        Mesh mesh = new Mesh
+        {
+            name = "BattleGridClippedRayOverlay"
+        };
+
+        Vector3 flatDirection = direction;
+        flatDirection.y = 0f;
+        if (flatDirection.sqrMagnitude <= 0.0001f)
+        {
+            flatDirection = Vector3.right;
+        }
+
+        flatDirection.Normalize();
+        Vector3 right = new Vector3(-flatDirection.z, 0f, flatDirection.x);
+        float radius = Mathf.Max(0f, lengthWorld);
+        float halfWidth = Mathf.Clamp(halfWidthWorld, 0f, radius);
+        float forwardLimit = Mathf.Sqrt(Mathf.Max(0f, (radius * radius) - (halfWidth * halfWidth)));
+        float seamOverlap = Mathf.Min(cellSize * 0.08f, Mathf.Max(0.01f, radius * 0.02f));
+        float rectangleForward = Mathf.Min(radius, forwardLimit + seamOverlap);
+        float arcStartForward = Mathf.Max(0f, forwardLimit - seamOverlap);
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangles = new List<int>();
+
+        Vector3 rearLeft = new Vector3(origin.x - right.x * halfWidth, y, origin.z - right.z * halfWidth);
+        Vector3 frontLeft = new Vector3(origin.x + flatDirection.x * rectangleForward - right.x * halfWidth, y, origin.z + flatDirection.z * rectangleForward - right.z * halfWidth);
+        Vector3 frontRight = new Vector3(origin.x + flatDirection.x * rectangleForward + right.x * halfWidth, y, origin.z + flatDirection.z * rectangleForward + right.z * halfWidth);
+        Vector3 rearRight = new Vector3(origin.x + right.x * halfWidth, y, origin.z + right.z * halfWidth);
+
+        vertices.Add(rearLeft);
+        vertices.Add(frontLeft);
+        vertices.Add(frontRight);
+        vertices.Add(rearRight);
+        triangles.Add(0);
+        triangles.Add(1);
+        triangles.Add(2);
+        triangles.Add(0);
+        triangles.Add(2);
+        triangles.Add(3);
+
+        const int ArcSegments = 24;
+        float startAngle = Mathf.Acos(Mathf.Clamp(arcStartForward / Mathf.Max(0.0001f, radius), -1f, 1f)) * Mathf.Rad2Deg;
+        float arcStart = -startAngle;
+        float arcEnd = startAngle;
+        Vector3 arcFanCenter = new Vector3(
+            origin.x + flatDirection.x * ((arcStartForward + radius) * 0.5f),
+            y + 0.0002f,
+            origin.z + flatDirection.z * ((arcStartForward + radius) * 0.5f));
+        int fanCenterIndex = vertices.Count;
+        vertices.Add(arcFanCenter);
+
+        int arcStartIndex = vertices.Count;
+        for (int i = 0; i <= ArcSegments; i++)
+        {
+            float t = ArcSegments == 0 ? 0f : (float)i / ArcSegments;
+            float angle = Mathf.Lerp(arcStart, arcEnd, t);
+            Vector3 radial = Quaternion.AngleAxis(angle, Vector3.up) * flatDirection;
+            vertices.Add(new Vector3(
+                origin.x + radial.x * radius,
+                y + 0.0002f,
+                origin.z + radial.z * radius));
+        }
+
+        for (int i = 0; i < ArcSegments; i++)
+        {
+            triangles.Add(fanCenterIndex);
+            triangles.Add(arcStartIndex + i);
+            triangles.Add(arcStartIndex + i + 1);
+        }
+
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private Mesh BuildSectorFillMesh(Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, float y)
+    {
+        List<Vector3> perimeter = BuildSectorPerimeter(origin, direction, radiusWorld, angleDegrees, y);
+        return BuildConvexPolygonMesh(perimeter, "BattleGridSectorOverlay");
+    }
+
+    private Mesh BuildConvexPolygonMesh(List<Vector3> perimeter, string meshName)
+    {
+        Mesh mesh = new Mesh
+        {
+            name = meshName
+        };
+
+        if (perimeter == null || perimeter.Count < 3)
+        {
+            return mesh;
+        }
+
+        List<Vector3> vertices = new List<Vector3>(perimeter);
+        List<int> triangles = new List<int>((perimeter.Count - 2) * 3);
+        for (int i = 1; i < perimeter.Count - 1; i++)
+        {
+            triangles.Add(0);
+            triangles.Add(i);
+            triangles.Add(i + 1);
+        }
+
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     private void ApplyHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
@@ -951,71 +1064,6 @@ public class BattleGrid : MonoBehaviour
         return mesh;
     }
 
-    private Mesh BuildCapsuleFillMesh(Vector3 origin, Vector3 direction, float lengthWorld, float radiusWorld, float y)
-    {
-        const int EndCapSegments = 18;
-        List<Vector3> perimeter = BuildCapsulePerimeter(origin, direction, lengthWorld, radiusWorld, EndCapSegments, y);
-        return BuildTriangleFanMesh(origin, perimeter, y, "BattleGridCapsuleOverlay");
-    }
-
-    private Mesh BuildSectorFillMesh(Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, float y)
-    {
-        int segmentCount = Mathf.Max(12, Mathf.CeilToInt(angleDegrees / 8f));
-        List<Vector3> perimeter = new List<Vector3>(segmentCount + 1);
-
-        Vector3 flatDirection = direction;
-        flatDirection.y = 0f;
-        if (flatDirection.sqrMagnitude <= 0.0001f)
-        {
-            flatDirection = Vector3.right;
-        }
-
-        flatDirection.Normalize();
-        float halfAngle = angleDegrees * 0.5f;
-        for (int i = 0; i <= segmentCount; i++)
-        {
-            float t = segmentCount == 0 ? 0f : (float)i / segmentCount;
-            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
-            Vector3 rotated = Quaternion.Euler(0f, angle, 0f) * flatDirection;
-            perimeter.Add(new Vector3(
-                origin.x + rotated.x * radiusWorld,
-                y,
-                origin.z + rotated.z * radiusWorld));
-        }
-
-        return BuildTriangleFanMesh(origin, perimeter, y, "BattleGridSectorOverlay");
-    }
-
-    private Mesh BuildTriangleFanMesh(Vector3 origin, List<Vector3> perimeter, float y, string meshName)
-    {
-        Mesh mesh = new Mesh
-        {
-            name = meshName
-        };
-
-        if (perimeter == null || perimeter.Count < 2)
-        {
-            return mesh;
-        }
-
-        List<Vector3> vertices = new List<Vector3>(perimeter.Count + 1);
-        List<int> triangles = new List<int>((perimeter.Count - 1) * 3);
-        vertices.Add(new Vector3(origin.x, y, origin.z));
-        vertices.AddRange(perimeter);
-
-        for (int i = 1; i < vertices.Count - 1; i++)
-        {
-            triangles.Add(0);
-            triangles.Add(i);
-            triangles.Add(i + 1);
-        }
-
-        mesh.SetVertices(vertices);
-        mesh.SetTriangles(triangles, 0);
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        return mesh;
-    }
 
     private List<List<Vector2Int>> BuildBoundaryLoops(HashSet<Vector2Int> cells)
     {
@@ -1186,40 +1234,20 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    private void CreateCapsuleOutline(Transform parent, Vector3 origin, Vector3 direction, float lengthWorld, float radiusWorld, Color lineColor, float y, int sortingOrder)
+    private void CreateClippedRayOutline(Transform parent, Vector3 origin, Vector3 direction, float lengthWorld, float halfWidthWorld, Color lineColor, float y, int sortingOrder)
     {
-        const int EndCapSegments = 18;
-        List<Vector3> perimeter = BuildCapsulePerimeter(origin, direction, lengthWorld, radiusWorld, EndCapSegments, y);
-        CreatePolylineOutline(parent, perimeter, true, lineColor, y, sortingOrder, "CapsuleOutline");
+        const int ArcSegments = 24;
+        List<Vector3> perimeter = BuildClippedRayPerimeter(origin, direction, lengthWorld, halfWidthWorld, ArcSegments, y);
+        CreatePolylineOutline(parent, perimeter, true, lineColor, y, sortingOrder, "ClippedRayOutline");
     }
 
     private void CreateSectorOutline(Transform parent, Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, Color lineColor, float y, int sortingOrder)
     {
-        int segmentCount = Mathf.Max(12, Mathf.CeilToInt(angleDegrees / 8f));
-        List<Vector3> points = new List<Vector3>(segmentCount + 3);
-
-        Vector3 flatDirection = direction;
-        flatDirection.y = 0f;
-        if (flatDirection.sqrMagnitude <= 0.0001f)
+        List<Vector3> points = BuildSectorPerimeter(origin, direction, radiusWorld, angleDegrees, y);
+        if (points.Count > 0)
         {
-            flatDirection = Vector3.right;
+            points.Add(points[0]);
         }
-
-        flatDirection.Normalize();
-        float halfAngle = angleDegrees * 0.5f;
-        Vector3 startDir = Quaternion.Euler(0f, -halfAngle, 0f) * flatDirection;
-        points.Add(new Vector3(origin.x, y, origin.z));
-        points.Add(new Vector3(origin.x + startDir.x * radiusWorld, y, origin.z + startDir.z * radiusWorld));
-
-        for (int i = 0; i <= segmentCount; i++)
-        {
-            float t = segmentCount == 0 ? 0f : (float)i / segmentCount;
-            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
-            Vector3 rotated = Quaternion.Euler(0f, angle, 0f) * flatDirection;
-            points.Add(new Vector3(origin.x + rotated.x * radiusWorld, y, origin.z + rotated.z * radiusWorld));
-        }
-
-        points.Add(new Vector3(origin.x, y, origin.z));
         CreatePolylineOutline(parent, points, false, lineColor, y, sortingOrder, "SectorOutline");
     }
 
@@ -1251,7 +1279,7 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    private static List<Vector3> BuildCapsulePerimeter(Vector3 origin, Vector3 direction, float lengthWorld, float radiusWorld, int endCapSegments, float y)
+    private static List<Vector3> BuildClippedRayPerimeter(Vector3 origin, Vector3 direction, float radiusWorld, float halfWidthWorld, int arcSegments, float y)
     {
         Vector3 flatDirection = direction;
         flatDirection.y = 0f;
@@ -1262,21 +1290,64 @@ public class BattleGrid : MonoBehaviour
 
         flatDirection.Normalize();
         Vector3 right = new Vector3(-flatDirection.z, 0f, flatDirection.x);
-        Vector3 endCenter = origin + flatDirection * lengthWorld;
-        List<Vector3> points = new List<Vector3>((endCapSegments * 2) + 2);
+        float clampedRadius = Mathf.Max(0f, radiusWorld);
+        float clampedHalfWidth = Mathf.Clamp(halfWidthWorld, 0f, clampedRadius);
+        float forwardLimit = Mathf.Sqrt(Mathf.Max(0f, (clampedRadius * clampedRadius) - (clampedHalfWidth * clampedHalfWidth)));
+        List<Vector3> points = new List<Vector3>(arcSegments + 4);
 
-        for (int i = 0; i <= endCapSegments; i++)
+        points.Add(new Vector3(origin.x - right.x * clampedHalfWidth, y, origin.z - right.z * clampedHalfWidth));
+        points.Add(new Vector3(
+            origin.x + flatDirection.x * forwardLimit - right.x * clampedHalfWidth,
+            y,
+            origin.z + flatDirection.z * forwardLimit - right.z * clampedHalfWidth));
+
+        float arcStart = -Mathf.Asin(Mathf.Clamp(clampedHalfWidth / Mathf.Max(0.0001f, clampedRadius), -1f, 1f)) * Mathf.Rad2Deg;
+        float arcEnd = -arcStart;
+        for (int i = 0; i <= arcSegments; i++)
         {
-            float angle = Mathf.Lerp(-90f, 90f, (float)i / endCapSegments);
-            Vector3 offset = Quaternion.AngleAxis(angle, Vector3.up) * right * radiusWorld;
-            points.Add(new Vector3(endCenter.x + offset.x, y, endCenter.z + offset.z));
+            float t = arcSegments == 0 ? 0f : (float)i / arcSegments;
+            float angle = Mathf.Lerp(arcStart, arcEnd, t);
+            Vector3 radial = Quaternion.AngleAxis(angle, Vector3.up) * flatDirection;
+            points.Add(new Vector3(
+                origin.x + radial.x * clampedRadius,
+                y,
+                origin.z + radial.z * clampedRadius));
         }
 
-        for (int i = 0; i <= endCapSegments; i++)
+        points.Add(new Vector3(
+            origin.x + flatDirection.x * forwardLimit + right.x * clampedHalfWidth,
+            y,
+            origin.z + flatDirection.z * forwardLimit + right.z * clampedHalfWidth));
+        points.Add(new Vector3(origin.x + right.x * clampedHalfWidth, y, origin.z + right.z * clampedHalfWidth));
+
+        return points;
+    }
+
+    private static List<Vector3> BuildSectorPerimeter(Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, float y)
+    {
+        int segmentCount = Mathf.Max(12, Mathf.CeilToInt(angleDegrees / 8f));
+        List<Vector3> points = new List<Vector3>(segmentCount + 3);
+
+        Vector3 flatDirection = direction;
+        flatDirection.y = 0f;
+        if (flatDirection.sqrMagnitude <= 0.0001f)
         {
-            float angle = Mathf.Lerp(90f, 270f, (float)i / endCapSegments);
-            Vector3 offset = Quaternion.AngleAxis(angle, Vector3.up) * right * radiusWorld;
-            points.Add(new Vector3(origin.x + offset.x, y, origin.z + offset.z));
+            flatDirection = Vector3.right;
+        }
+
+        flatDirection.Normalize();
+        float halfAngle = angleDegrees * 0.5f;
+        points.Add(new Vector3(origin.x, y, origin.z));
+
+        for (int i = 0; i <= segmentCount; i++)
+        {
+            float t = segmentCount == 0 ? 0f : (float)i / segmentCount;
+            float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
+            Vector3 rotated = Quaternion.Euler(0f, angle, 0f) * flatDirection;
+            points.Add(new Vector3(
+                origin.x + rotated.x * radiusWorld,
+                y,
+                origin.z + rotated.z * radiusWorld));
         }
 
         return points;

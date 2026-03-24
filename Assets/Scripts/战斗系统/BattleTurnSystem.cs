@@ -2449,6 +2449,14 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (UsesContinuousCircularArea(activeSkill))
         {
+            if (IsMovementSkillActive())
+            {
+                Color movePreviewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
+                movePreviewColor.a = skillHoverValid ? 0.24f : 0.20f;
+                grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, movePreviewColor);
+                return;
+            }
+
             float circlePulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
             Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
             previewColor.a = Mathf.Lerp(
@@ -2604,6 +2612,7 @@ public class BattleTurnSystem : MonoBehaviour
     {
         return skill != null &&
             skill.skillType == BattleSkillDatabase.SkillType.Area &&
+            !string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal) &&
             !IsCircularAxisAreaSkill(skill);
     }
 
@@ -2663,7 +2672,7 @@ public class BattleTurnSystem : MonoBehaviour
             return 0f;
         }
 
-        return Mathf.Max(0, GetDisplayedSkillRange(caster, skill)) * grid.cellSize;
+        return grid.GetCastRadiusWorld(caster, GetDisplayedSkillRange(caster, skill));
     }
 
     private float GetAxisWidthWorld(BattleSkillDatabase.SkillEntry skill)
@@ -2708,22 +2717,41 @@ public class BattleTurnSystem : MonoBehaviour
             return angleToTarget <= (Mathf.Clamp(skill.axisAngle, 1f, 360f) * 0.5f) + extraAngle + 0.001f;
         }
 
-        Vector3 end = origin + direction * rangeWorld;
-        return DistancePointToSegment(unitCenter, origin, end) <= (GetAxisWidthWorld(skill) * 0.5f) + targetRadius + 0.001f;
-    }
+        float halfWidth = GetAxisWidthWorld(skill) * 0.5f;
+        Vector3 toTargetOnPlane = unitCenter - origin;
+        toTargetOnPlane.y = 0f;
+        float forwardDistance = Vector3.Dot(toTargetOnPlane, direction);
+        Vector3 right = new Vector3(-direction.z, 0f, direction.x);
+        float lateralDistance = Mathf.Abs(Vector3.Dot(toTargetOnPlane, right));
+        float centerDistance = toTargetOnPlane.magnitude;
 
-    private static float DistancePointToSegment(Vector3 point, Vector3 segmentStart, Vector3 segmentEnd)
-    {
-        Vector3 segment = segmentEnd - segmentStart;
-        float lengthSquared = segment.sqrMagnitude;
-        if (lengthSquared <= 0.0001f)
+        if (forwardDistance < -targetRadius)
         {
-            return Vector3.Distance(point, segmentStart);
+            return false;
         }
 
-        float t = Mathf.Clamp01(Vector3.Dot(point - segmentStart, segment) / lengthSquared);
-        Vector3 projection = segmentStart + segment * t;
-        return Vector3.Distance(point, projection);
+        if (centerDistance > rangeWorld + targetRadius + 0.001f)
+        {
+            return false;
+        }
+
+        if (lateralDistance > halfWidth + targetRadius + 0.001f)
+        {
+            return false;
+        }
+
+        if (forwardDistance < 0f)
+        {
+            return targetRadius >= -forwardDistance;
+        }
+
+        float arcStartForward = Mathf.Sqrt(Mathf.Max(0f, (rangeWorld * rangeWorld) - (halfWidth * halfWidth)));
+        if (forwardDistance <= arcStartForward)
+        {
+            return lateralDistance <= halfWidth + targetRadius + 0.001f;
+        }
+
+        return centerDistance <= rangeWorld + targetRadius + 0.001f;
     }
 
     private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
