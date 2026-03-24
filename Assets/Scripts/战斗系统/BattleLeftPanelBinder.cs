@@ -97,6 +97,8 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private void Update()
     {
+        UpdatePreviewCameraFollow();
+
         string targetCharacterId = ResolveCharacterId();
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
@@ -108,6 +110,22 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         currentCharacterId = targetCharacterId;
         lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshLeftPanel();
+    }
+
+    private void UpdatePreviewCameraFollow()
+    {
+        if (previewTargetUnit == null || previewCamera == null || string.IsNullOrWhiteSpace(previewCharacterId))
+        {
+            return;
+        }
+
+        if (!previewTargetUnit.IsAlive)
+        {
+            ClearPreviewTargetUnit();
+            return;
+        }
+
+        PositionPreviewCamera(previewTargetUnit.gameObject);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
