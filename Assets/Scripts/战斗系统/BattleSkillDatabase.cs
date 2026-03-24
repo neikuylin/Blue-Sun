@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -59,7 +59,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public bool useMoveDistanceAsRange = true;
         public int range;
         public AreaCastType areaCastType = AreaCastType.ImpactPoint;
-        public bool useCastRangeAsEffectRange;
         public Vector2Int effectSize = new Vector2Int(3, 3);
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
 
@@ -145,3 +144,4 @@ public sealed class BattleSkillDatabase : ScriptableObject
         return Resources.Load<BattleSkillDatabase>(DefaultResourcePath);
     }
 }
+

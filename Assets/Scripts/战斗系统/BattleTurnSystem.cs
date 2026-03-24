@@ -2529,11 +2529,6 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        if (skill.useCastRangeAsEffectRange)
-        {
-            return true;
-        }
-
         int width = Mathf.Max(1, skill.effectSize.x);
         int height = Mathf.Max(1, skill.effectSize.y);
         return width > 1 || height > 1;
@@ -2551,47 +2546,11 @@ public class BattleTurnSystem : MonoBehaviour
         return Mathf.Max(width, height);
     }
 
-    private static bool UsesCastRangeAsEffectRange(BattleSkillDatabase.SkillEntry skill)
-    {
-        return skill != null &&
-            skill.skillType == BattleSkillDatabase.SkillType.Area &&
-            skill.areaCastType == BattleSkillDatabase.AreaCastType.ImpactPoint &&
-            skill.useCastRangeAsEffectRange;
-    }
-
     private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
     {
         HashSet<Vector2Int> result = new HashSet<Vector2Int>();
         if (grid == null || skill == null || !grid.IsInside(centerCell))
         {
-            return result;
-        }
-
-        if (UsesCastRangeAsEffectRange(skill))
-        {
-            int radius = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
-            int radiusSquared = radius * radius;
-            for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
-            {
-                for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
-                {
-                    Vector2Int cell = new Vector2Int(x, y);
-                    if (!grid.IsInside(cell))
-                    {
-                        continue;
-                    }
-
-                    int dx = cell.x - centerCell.x;
-                    int dy = cell.y - centerCell.y;
-                    if (dx * dx + dy * dy > radiusSquared)
-                    {
-                        continue;
-                    }
-
-                    result.Add(cell);
-                }
-            }
-
             return result;
         }
 
@@ -5239,4 +5198,5 @@ public class BattleTurnSystem : MonoBehaviour
         return bestCell;
     }
 }
+
 
