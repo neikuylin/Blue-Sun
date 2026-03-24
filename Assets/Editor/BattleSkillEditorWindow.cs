@@ -41,6 +41,12 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         "圆轴"
     };
 
+    private static readonly string[] CircularAxisAreaTypeLabels =
+    {
+        "射线",
+        "扇形"
+    };
+
     private Vector2 scroll;
     private SerializedObject databaseObject;
     private readonly Dictionary<string, bool> entryFoldoutStates = new Dictionary<string, bool>();
@@ -171,16 +177,24 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 if ((BattleSkillDatabase.SkillType)skillType.enumValueIndex == BattleSkillDatabase.SkillType.Area)
                 {
                     SerializedProperty areaCastType = entry.FindPropertyRelative("areaCastType");
-                    SerializedProperty axisNearWidth = entry.FindPropertyRelative("axisNearWidth");
-                    SerializedProperty axisFarWidth = entry.FindPropertyRelative("axisFarWidth");
+                    SerializedProperty circularAxisAreaType = entry.FindPropertyRelative("circularAxisAreaType");
+                    SerializedProperty axisWidth = entry.FindPropertyRelative("axisWidth");
+                    SerializedProperty axisAngle = entry.FindPropertyRelative("axisAngle");
                     SerializedProperty effectSize = entry.FindPropertyRelative("effectSize");
                     areaCastType.enumValueIndex = EditorGUILayout.Popup("施法类型", areaCastType.enumValueIndex, AreaCastTypeLabels);
                     if ((BattleSkillDatabase.AreaCastType)areaCastType.enumValueIndex == BattleSkillDatabase.AreaCastType.CircularAxis)
                     {
-                        axisNearWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("近端宽", Mathf.Max(1, axisNearWidth.intValue)));
-                        axisFarWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("远端宽", Mathf.Max(1, axisFarWidth.intValue)));
-                        EditorGUILayout.LabelField("长度", "等于射程");
-                        EditorGUILayout.HelpBox("3x3角色参考：近端宽先从 5 开始试，7 会更接近把自己包住；远端宽可在此基础上继续放大。", MessageType.Info);
+                        circularAxisAreaType.enumValueIndex = EditorGUILayout.Popup("作用范围分类", circularAxisAreaType.enumValueIndex, CircularAxisAreaTypeLabels);
+                        EditorGUILayout.LabelField("作用范围", "长度/半径等于射程");
+                        if ((BattleSkillDatabase.CircularAxisAreaType)circularAxisAreaType.enumValueIndex == BattleSkillDatabase.CircularAxisAreaType.Ray)
+                        {
+                            axisWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("宽度", Mathf.Max(1, axisWidth.intValue)));
+                        }
+                        else
+                        {
+                            axisAngle.floatValue = Mathf.Clamp(EditorGUILayout.FloatField("角度", axisAngle.floatValue), 1f, 360f);
+                            EditorGUILayout.HelpBox("180° = 半圆，360° = 全圆。扇形作用范围直接等于射程。", MessageType.Info);
+                        }
                     }
                     else
                     {
@@ -232,8 +246,9 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = false;
         entry.FindPropertyRelative("range").intValue = 1;
         entry.FindPropertyRelative("areaCastType").enumValueIndex = (int)BattleSkillDatabase.AreaCastType.ImpactPoint;
-        entry.FindPropertyRelative("axisNearWidth").intValue = 3;
-        entry.FindPropertyRelative("axisFarWidth").intValue = 3;
+        entry.FindPropertyRelative("circularAxisAreaType").enumValueIndex = (int)BattleSkillDatabase.CircularAxisAreaType.Ray;
+        entry.FindPropertyRelative("axisWidth").intValue = 3;
+        entry.FindPropertyRelative("axisAngle").floatValue = 180f;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
     }

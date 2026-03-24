@@ -34,8 +34,9 @@ MonoBehaviour:
     useMoveDistanceAsRange: 1
     range: 0
     areaCastType: 0
-    axisNearWidth: 3
-    axisFarWidth: 3
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 
   - skillId: "\u666E\u901A\u653B\u51FB"
@@ -59,8 +60,9 @@ MonoBehaviour:
     useMoveDistanceAsRange: 0
     range: 1
     areaCastType: 0
-    axisNearWidth: 3
-    axisFarWidth: 3
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
     effectSize: {x: 1, y: 1}
     requiredWeaponCategories: 0100000002000000
   - skillId: "\u56DE\u65CB\u65A9"
@@ -83,8 +85,9 @@ MonoBehaviour:
     cooldownTurns: 3
     useMoveDistanceAsRange: 0
     range: 6
-    areaCastType: 0
-    axisNearWidth: 2
-    axisFarWidth: 3
+    areaCastType: 1
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000

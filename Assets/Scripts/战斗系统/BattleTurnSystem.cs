@@ -2460,6 +2460,30 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (IsCircularAxisAreaSkill(activeSkill))
+        {
+            float axisPulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+            Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
+            previewColor.a = Mathf.Lerp(
+                skillHoverValid ? 0.18f : 0.16f,
+                previewColor.a,
+                axisPulse);
+
+            Vector3 origin = grid.GetWorldPosition(activeUnit.currentCell);
+            Vector3 direction = ResolveAxisDirectionWorld(activeUnit, skillHoverCell);
+            float rangeWorld = GetAxisRangeWorld(activeUnit, activeSkill);
+            if (activeSkill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
+            {
+                grid.HighlightAxisFan(origin, direction, rangeWorld, activeSkill.axisAngle, previewColor);
+            }
+            else
+            {
+                grid.HighlightAxisRay(origin, direction, rangeWorld, GetAxisWidthWorld(activeSkill), previewColor);
+            }
+
+            return;
+        }
+
         HashSet<Vector2Int> previewCells = CollectVisibleAreaEffectCells(activeUnit, skillHoverCell, activeSkill);
         if (previewCells == null || previewCells.Count == 0)
         {
@@ -2526,7 +2550,7 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        if (UsesContinuousCircularArea(activeSkill))
+        if (UsesContinuousCircularArea(activeSkill) || IsCircularAxisAreaSkill(activeSkill))
         {
             return grid != null && grid.IsInside(centerCell);
         }
@@ -2606,133 +2630,100 @@ public class BattleTurnSystem : MonoBehaviour
         return Vector3.Distance(areaCenter, targetCenter) <= maxDistance + 0.001f;
     }
 
-    private Vector2 ResolveAreaDirection(BattleUnit caster, Vector2Int targetCell)
+    private Vector3 ResolveAxisDirectionWorld(BattleUnit caster, Vector2Int targetCell)
     {
-        if (caster == null)
+        if (caster == null || grid == null)
         {
-            return Vector2.right;
+            return Vector3.right;
         }
 
-        Vector2 direction = new Vector2(
-            targetCell.x - caster.currentCell.x,
-            targetCell.y - caster.currentCell.y);
+        Vector3 origin = grid.GetWorldPosition(caster.currentCell);
+        Vector3 target = grid.GetWorldPosition(targetCell);
+        Vector3 direction = target - origin;
+        direction.y = 0f;
         if (direction.sqrMagnitude > 0.0001f)
         {
             return direction.normalized;
         }
 
-        Vector3 forward3 = caster.transform.forward;
-        Vector2 forward = new Vector2(forward3.x, forward3.z);
+        Vector3 forward = caster.transform.forward;
+        forward.y = 0f;
         if (forward.sqrMagnitude > 0.0001f)
         {
             return forward.normalized;
         }
 
-        return Vector2.right;
+        return Vector3.right;
     }
 
-    private HashSet<Vector2Int> CollectCircularAxisEffectCells(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    private float GetAxisRangeWorld(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
     {
-        HashSet<Vector2Int> result = new HashSet<Vector2Int>();
         if (grid == null || caster == null || skill == null)
         {
-            return result;
+            return 0f;
         }
 
-        int length = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
-        int nearWidth = Mathf.Max(1, skill.axisNearWidth);
-        int farWidth = Mathf.Max(1, skill.axisFarWidth);
-        int footprintRadiusCells = caster.FootprintRadius;
-        Vector2 forward = ResolveAreaDirection(caster, targetCell);
-        Vector2 right = new Vector2(-forward.y, forward.x);
-        Vector2 casterCenter = new Vector2(caster.currentCell.x, caster.currentCell.y);
+        return Mathf.Max(0, GetDisplayedSkillRange(caster, skill)) * grid.cellSize;
+    }
 
-        for (int outwardStep = 1; outwardStep <= length; outwardStep++)
+    private float GetAxisWidthWorld(BattleSkillDatabase.SkillEntry skill)
+    {
+        return grid == null || skill == null
+            ? 0f
+            : Mathf.Max(1, skill.axisWidth) * grid.cellSize;
+    }
+
+    private bool IsUnitInsideCircularAxisArea(BattleUnit caster, BattleUnit target, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (grid == null || caster == null || target == null || skill == null)
         {
-            int ringDistance = footprintRadiusCells + outwardStep;
-            float t = length <= 1 ? 0f : (outwardStep - 1f) / Mathf.Max(1f, length - 1f);
-            int desiredWidth = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(nearWidth, farWidth, t)));
-            List<Vector2Int> ringCells = new List<Vector2Int>();
-
-            int minX = caster.currentCell.x - ringDistance;
-            int maxX = caster.currentCell.x + ringDistance;
-            int minY = caster.currentCell.y - ringDistance;
-            int maxY = caster.currentCell.y + ringDistance;
-
-            for (int y = minY; y <= maxY; y++)
-            {
-                for (int x = minX; x <= maxX; x++)
-                {
-                    Vector2Int cell = new Vector2Int(x, y);
-                    if (!grid.IsInside(cell))
-                    {
-                        continue;
-                    }
-
-                    int chebyshevDistance = Mathf.Max(
-                        Mathf.Abs(x - caster.currentCell.x),
-                        Mathf.Abs(y - caster.currentCell.y));
-                    if (chebyshevDistance != ringDistance)
-                    {
-                        continue;
-                    }
-
-                    Vector2 cellOffset = new Vector2(x - casterCenter.x, y - casterCenter.y);
-                    float radialDistance = cellOffset.magnitude;
-                    if (radialDistance <= 0.0001f)
-                    {
-                        continue;
-                    }
-
-                    Vector2 radialDirection = cellOffset / radialDistance;
-                    float forwardDot = Vector2.Dot(radialDirection, forward);
-                    if (forwardDot < 0f)
-                    {
-                        continue;
-                    }
-
-                    ringCells.Add(cell);
-                }
-            }
-
-            ringCells.Sort((left, rightCell) =>
-            {
-                Vector2 leftOffset = new Vector2(left.x - casterCenter.x, left.y - casterCenter.y).normalized;
-                Vector2 rightOffset = new Vector2(rightCell.x - casterCenter.x, rightCell.y - casterCenter.y).normalized;
-
-                float leftForward = Vector2.Dot(leftOffset, forward);
-                float rightForward = Vector2.Dot(rightOffset, forward);
-                int forwardCompare = rightForward.CompareTo(leftForward);
-                if (forwardCompare != 0)
-                {
-                    return forwardCompare;
-                }
-
-                float leftLateral = Mathf.Abs(Vector2.Dot(leftOffset, right));
-                float rightLateral = Mathf.Abs(Vector2.Dot(rightOffset, right));
-                int lateralCompare = leftLateral.CompareTo(rightLateral);
-                if (lateralCompare != 0)
-                {
-                    return lateralCompare;
-                }
-
-                int yCompare = rightCell.y.CompareTo(left.y);
-                if (yCompare != 0)
-                {
-                    return yCompare;
-                }
-
-                return left.x.CompareTo(rightCell.x);
-            });
-
-            int takeCount = Mathf.Min(desiredWidth, ringCells.Count);
-            for (int i = 0; i < takeCount; i++)
-            {
-                result.Add(ringCells[i]);
-            }
+            return false;
         }
 
-        return result;
+        Vector3 origin = grid.GetWorldPosition(caster.currentCell);
+        Vector3 direction = ResolveAxisDirectionWorld(caster, targetCell);
+        Vector3 unitCenter = grid.GetWorldPosition(target.currentCell);
+        float targetRadius = grid.GetUnitRadiusWorld(target);
+        float rangeWorld = GetAxisRangeWorld(caster, skill);
+
+        if (skill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
+        {
+            Vector3 toTarget = unitCenter - origin;
+            toTarget.y = 0f;
+            float distance = toTarget.magnitude;
+            if (distance <= 0.0001f)
+            {
+                return true;
+            }
+
+            if (distance > rangeWorld + targetRadius + 0.001f)
+            {
+                return false;
+            }
+
+            float angleToTarget = Vector3.Angle(direction, toTarget);
+            float extraAngle = distance <= targetRadius
+                ? 180f
+                : Mathf.Rad2Deg * Mathf.Asin(Mathf.Clamp(targetRadius / distance, 0f, 1f));
+            return angleToTarget <= (Mathf.Clamp(skill.axisAngle, 1f, 360f) * 0.5f) + extraAngle + 0.001f;
+        }
+
+        Vector3 end = origin + direction * rangeWorld;
+        return DistancePointToSegment(unitCenter, origin, end) <= (GetAxisWidthWorld(skill) * 0.5f) + targetRadius + 0.001f;
+    }
+
+    private static float DistancePointToSegment(Vector3 point, Vector3 segmentStart, Vector3 segmentEnd)
+    {
+        Vector3 segment = segmentEnd - segmentStart;
+        float lengthSquared = segment.sqrMagnitude;
+        if (lengthSquared <= 0.0001f)
+        {
+            return Vector3.Distance(point, segmentStart);
+        }
+
+        float t = Mathf.Clamp01(Vector3.Dot(point - segmentStart, segment) / lengthSquared);
+        Vector3 projection = segmentStart + segment * t;
+        return Vector3.Distance(point, projection);
     }
 
     private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
@@ -2745,7 +2736,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (IsCircularAxisAreaSkill(skill))
         {
-            return CollectCircularAxisEffectCells(caster, centerCell, skill);
+            return result;
         }
 
         int footprintSize = GetSkillPreviewFootprintSize(skill);
@@ -3138,6 +3129,13 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
             }
+            else if (IsCircularAxisAreaSkill(skill))
+            {
+                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
             else
             {
                 HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
@@ -3205,6 +3203,13 @@ public class BattleTurnSystem : MonoBehaviour
             if (UsesContinuousCircularArea(skill))
             {
                 if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
+            else if (IsCircularAxisAreaSkill(skill))
+            {
+                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
                 {
                     continue;
                 }
@@ -3451,6 +3456,13 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
             }
+            else if (IsCircularAxisAreaSkill(skill))
+            {
+                if (!IsUnitInsideCircularAxisArea(caster, unit, hoveredCell, skill))
+                {
+                    continue;
+                }
+            }
             else
             {
                 HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
@@ -3518,6 +3530,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (UsesContinuousCircularArea(skill))
         {
             return IsUnitInsideContinuousArea(target, hoveredCell, skill);
+        }
+
+        if (IsCircularAxisAreaSkill(skill))
+        {
+            return IsUnitInsideCircularAxisArea(caster, target, hoveredCell, skill);
         }
 
         HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
@@ -4744,6 +4761,13 @@ public class BattleTurnSystem : MonoBehaviour
             if (UsesContinuousCircularArea(skill))
             {
                 if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
+            else if (IsCircularAxisAreaSkill(skill))
+            {
+                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
                 {
                     continue;
                 }

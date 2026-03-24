@@ -35,6 +35,12 @@ public sealed class BattleSkillDatabase : ScriptableObject
         CircularAxis
     }
 
+    public enum CircularAxisAreaType
+    {
+        Ray,
+        Fan
+    }
+
     [Serializable]
     public sealed class SkillEntry
     {
@@ -59,8 +65,9 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public bool useMoveDistanceAsRange = true;
         public int range;
         public AreaCastType areaCastType = AreaCastType.ImpactPoint;
-        public int axisNearWidth = 3;
-        public int axisFarWidth = 3;
+        public CircularAxisAreaType circularAxisAreaType = CircularAxisAreaType.Ray;
+        public int axisWidth = 3;
+        public float axisAngle = 180f;
         public Vector2Int effectSize = new Vector2Int(3, 3);
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
 
