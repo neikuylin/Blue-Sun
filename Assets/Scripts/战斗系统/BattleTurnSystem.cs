@@ -3362,7 +3362,7 @@ public class BattleTurnSystem : MonoBehaviour
             return movementPath != null &&
                 movementPath.Count > 1 &&
                 grid.IsFootprintInside(caster, targetCell) &&
-                target == null &&
+                (target == null || target == caster) &&
                 movementPath.Count - 1 <= GetDisplayedSkillRange(caster, skill);
         }
 

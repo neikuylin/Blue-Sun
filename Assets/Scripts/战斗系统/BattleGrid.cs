@@ -727,11 +727,6 @@ public class BattleGrid : MonoBehaviour
                 (highlightLayerOrder * 10) + 1);
         }
 
-        Debug.Log(
-            $"[BattleGrid] CreateOverlay name={name} layer={highlightLayerOrder} cells={cells.Count} " +
-            $"fill=({fillColor.r:F3},{fillColor.g:F3},{fillColor.b:F3},{fillColor.a:F3}) " +
-            $"outline=({outlineColor.r:F3},{outlineColor.g:F3},{outlineColor.b:F3},{outlineColor.a:F3})");
-
         highlightLayerOrder++;
     }
 
@@ -761,12 +756,6 @@ public class BattleGrid : MonoBehaviour
             outlineColor,
             overlayY + 0.001f + (highlightLayerOrder * 0.002f),
             (highlightLayerOrder * 10) + 1);
-
-        Debug.Log(
-            $"[BattleGrid] CreateCircleOverlay name={name} layer={highlightLayerOrder} " +
-            $"center=({center.x:F3},{center.y:F3},{center.z:F3}) radius={radiusWorld:F3} mesh={meshFilter.sharedMesh.name} " +
-            $"fill=({fillColor.r:F3},{fillColor.g:F3},{fillColor.b:F3},{fillColor.a:F3}) " +
-            $"outline=({outlineColor.r:F3},{outlineColor.g:F3},{outlineColor.b:F3},{outlineColor.a:F3})");
 
         highlightLayerOrder++;
     }
@@ -800,13 +789,6 @@ public class BattleGrid : MonoBehaviour
             overlayY + 0.001f + (highlightLayerOrder * 0.002f),
             (highlightLayerOrder * 10) + 1);
 
-        Debug.Log(
-            $"[BattleGrid] CreateClippedRayOverlay name={name} layer={highlightLayerOrder} " +
-            $"origin=({origin.x:F3},{origin.y:F3},{origin.z:F3}) dir=({direction.x:F3},{direction.y:F3},{direction.z:F3}) " +
-            $"length={lengthWorld:F3} width={widthWorld:F3} mesh={meshFilter.sharedMesh.name} " +
-            $"fill=({fillColor.r:F3},{fillColor.g:F3},{fillColor.b:F3},{fillColor.a:F3}) " +
-            $"outline=({outlineColor.r:F3},{outlineColor.g:F3},{outlineColor.b:F3},{outlineColor.a:F3})");
-
         highlightLayerOrder++;
     }
 
@@ -838,13 +820,6 @@ public class BattleGrid : MonoBehaviour
             outlineColor,
             overlayY + 0.001f + (highlightLayerOrder * 0.002f),
             (highlightLayerOrder * 10) + 1);
-
-        Debug.Log(
-            $"[BattleGrid] CreateSectorOverlay name={name} layer={highlightLayerOrder} " +
-            $"origin=({origin.x:F3},{origin.y:F3},{origin.z:F3}) dir=({direction.x:F3},{direction.y:F3},{direction.z:F3}) " +
-            $"radius={radiusWorld:F3} angle={angleDegrees:F3} mesh={meshFilter.sharedMesh.name} " +
-            $"fill=({fillColor.r:F3},{fillColor.g:F3},{fillColor.b:F3},{fillColor.a:F3}) " +
-            $"outline=({outlineColor.r:F3},{outlineColor.g:F3},{outlineColor.b:F3},{outlineColor.a:F3})");
 
         highlightLayerOrder++;
     }
