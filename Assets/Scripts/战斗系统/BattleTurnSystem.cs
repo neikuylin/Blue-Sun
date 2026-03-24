@@ -2456,6 +2456,7 @@ public class BattleTurnSystem : MonoBehaviour
                 previewColor.a,
                 circlePulse);
             grid.HighlightCircleAt(skillHoverCell, GetContinuousAreaRadiusWorld(activeSkill), previewColor);
+            grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, previewColor);
             return;
         }
 
