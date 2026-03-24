@@ -104,6 +104,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
+    private BattleUnit hoveredTargetUnit;
     private BattleUnit lockedTargetUnit;
     private bool isResolvingSkillExecution;
     private string lastTargetUiSignature = "<unset>";
@@ -614,7 +615,14 @@ public class BattleTurnSystem : MonoBehaviour
     {
         CacheTargetPanelReferences();
 
-        BattleUnit targetUnit = ResolveTargetPanelUnit();
+        BattleUnit directHoveredUnit = ResolveHoveredPanelUnit();
+        if (hoveredTargetUnit != directHoveredUnit)
+        {
+            hoveredTargetUnit = directHoveredUnit;
+            RefreshSelectionOutlines();
+        }
+
+        BattleUnit targetUnit = directHoveredUnit != null ? directHoveredUnit : ResolvePersistentTargetUnit();
         string targetId = targetUnit != null && targetUnit.IsAlive
             ? (string.IsNullOrWhiteSpace(targetUnit.characterId) ? targetUnit.unitName : targetUnit.characterId)
             : string.Empty;
@@ -669,7 +677,7 @@ public class BattleTurnSystem : MonoBehaviour
         cachedTargetBaseRect = true;
     }
 
-    private BattleUnit ResolveTargetPanelUnit()
+    private BattleUnit ResolveHoveredPanelUnit()
     {
         if (hoveredSkillTarget != null && hoveredSkillTarget.IsAlive)
         {
@@ -693,7 +701,7 @@ public class BattleTurnSystem : MonoBehaviour
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
-            return ResolvePersistentTargetUnit();
+            return null;
         }
 
         BattleUnit unit = grid.GetUnitAt(hoveredCell);
@@ -702,7 +710,7 @@ public class BattleTurnSystem : MonoBehaviour
             return unit;
         }
 
-        return ResolvePersistentTargetUnit();
+        return null;
     }
 
     private BattleUnit ResolvePersistentTargetUnit()
@@ -754,6 +762,17 @@ public class BattleTurnSystem : MonoBehaviour
         if (activeUnit != null && activeUnit.IsAlive)
         {
             activeUnit.SetLockOutline(activeUnitOutlineColor, ActiveUnitOutlineWidth, true);
+        }
+
+        if (hoveredTargetUnit != null &&
+            hoveredTargetUnit.IsAlive &&
+            hoveredTargetUnit != activeUnit &&
+            hoveredTargetUnit != lockedTargetUnit)
+        {
+            Color hoverOutlineColor = hoveredTargetUnit.team == BattleTeam.Enemy
+                ? lockedEnemyOutlineColor
+                : lockedAllyOutlineColor;
+            hoveredTargetUnit.SetLockOutline(hoverOutlineColor, LockedTargetOutlineWidth, true);
         }
 
         if (lockedTargetUnit == null || !lockedTargetUnit.IsAlive || lockedTargetUnit == activeUnit)
@@ -1672,6 +1691,12 @@ public class BattleTurnSystem : MonoBehaviour
         {
             lockedTargetUnit.ClearLockOutline();
             lockedTargetUnit = null;
+            lastTargetUiSignature = "<unset>";
+        }
+
+        if (hoveredTargetUnit == unit)
+        {
+            hoveredTargetUnit = null;
             lastTargetUiSignature = "<unset>";
         }
 
