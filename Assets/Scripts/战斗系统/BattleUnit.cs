@@ -468,6 +468,41 @@ public class BattleUnit : MonoBehaviour
         SetLockOutline(DefaultOutlineColor, DefaultOutlineWidth, false);
     }
 
+    public void RefreshOutlineBindings()
+    {
+        Color currentColor = DefaultOutlineColor;
+        float currentWidth = DefaultOutlineWidth;
+
+        if (outlineMaterials != null)
+        {
+            for (int i = 0; i < outlineMaterials.Length; i++)
+            {
+                Material material = outlineMaterials[i];
+                if (material == null)
+                {
+                    continue;
+                }
+
+                if (material.HasProperty("_OutlineColor"))
+                {
+                    currentColor = material.GetColor("_OutlineColor");
+                }
+
+                if (material.HasProperty("_OutlineWidth"))
+                {
+                    currentWidth = material.GetFloat("_OutlineWidth");
+                }
+
+                break;
+            }
+        }
+
+        outlineRenderers = null;
+        outlineMaterials = null;
+        EnsureOutlineMaterials();
+        SetLockOutline(currentColor, currentWidth, true);
+    }
+
     public int FootprintRadius
     {
         get { return Mathf.Max(0, footprintSize / 2); }

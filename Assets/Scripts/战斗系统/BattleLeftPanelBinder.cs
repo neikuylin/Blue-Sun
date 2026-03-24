@@ -125,6 +125,8 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return;
         }
 
+        StoreAndApplyPreviewLayer(previewTargetUnit.transform);
+        previewTargetUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
         PositionPreviewCamera(previewTargetUnit.gameObject);
     }
 

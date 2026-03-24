@@ -136,6 +136,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string WeaponMountPointName = "武器挂载点";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
+    private const float DefaultOutlineWidth = 0.025f;
     private const string SlotNameKeyword = "格子";
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
@@ -2554,6 +2555,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = Quaternion.identity;
         ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
+        BattleUnitOutlineBuilder.Apply(instance, Color.black, DefaultOutlineWidth);
+        unit.RefreshOutlineBindings();
     }
 
     private static void ClearRuntimeWeaponModel(Transform mountPoint)
