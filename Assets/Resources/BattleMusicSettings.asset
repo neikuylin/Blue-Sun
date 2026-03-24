@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 472aff97fa9af204eb4ccecb94abe0eb, type: 3}
   m_Name: BattleMusicSettings
   m_EditorClassIdentifier: 
-  combatMusic: {fileID: 0}
+  combatMusic: {fileID: 8300000, guid: c787b28b19a87b141971aaeccb08358e, type: 3}
   explorationMusic: {fileID: 0}
   volume: 1

@@ -533,7 +533,7 @@ public class BattleTurnSystem : MonoBehaviour
         unit.PlayTimedAnimation(
             unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
             moveDuration,
-            unit.GetIdleAnimationStateName(idleStateName),
+            idleStateName,
             ResolveExplorationMoveCompensateMotion());
         RefreshHighlights();
     }
@@ -2275,7 +2275,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.Equals(actionId, ExplorationIdleSkillId, System.StringComparison.Ordinal))
         {
-            string idleStateName = activeUnit.GetIdleAnimationStateName(ResolveExplorationIdleStateName());
+            string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
                 BattleAudioUtility.PlayOnce(ResolveExplorationIdleSound(), ResolveExplorationIdleSoundPrefab(), activeUnit, battleCamera);
@@ -2285,7 +2285,7 @@ public class BattleTurnSystem : MonoBehaviour
         else
         {
             string moveStateName = activeUnit.GetMoveAnimationStateName(ResolveExplorationMoveStateName());
-            string idleStateName = activeUnit.GetIdleAnimationStateName(ResolveExplorationIdleStateName());
+            string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(moveStateName))
             {
                 BattleAudioUtility.PlayOnce(ResolveExplorationMoveSound(), ResolveExplorationMoveSoundPrefab(), activeUnit, battleCamera);
