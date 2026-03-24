@@ -429,6 +429,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void EndTurn()
     {
         waitingForEnemyAction = false;
+        ClearLockedTargetUnit();
         ClearActiveSkillMode();
         AdvanceTurn();
     }
@@ -1926,6 +1927,8 @@ public class BattleTurnSystem : MonoBehaviour
         {
             return;
         }
+
+        ClearLockedTargetUnit();
 
         BattleSkillDatabase.SkillEntry nextSkill = ResolveSkill(skillId);
         if (nextSkill == null)
