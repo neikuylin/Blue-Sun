@@ -2473,16 +2473,40 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ApplyHoveredTargetPreview()
     {
-        if (hoveredSkillTarget == null || !hoveredSkillTarget.IsAlive)
+        if (hoveredSkillTargets.Count == 0)
         {
             grid.ClearHoveredFootprint();
             return;
         }
 
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+        HashSet<Vector2Int> hoveredCells = new HashSet<Vector2Int>();
         Color overlayColor = ResolveHoveredTargetFlashColor(hoveredSkillTarget);
         overlayColor.a = Mathf.Lerp(0.18f, overlayColor.a, pulse);
-        grid.SetHoveredFootprint(hoveredSkillTarget, overlayColor);
+
+        for (int i = 0; i < hoveredSkillTargets.Count; i++)
+        {
+            BattleUnit target = hoveredSkillTargets[i];
+            if (target == null || !target.IsAlive)
+            {
+                continue;
+            }
+
+            int radius = target.FootprintRadius;
+            for (int y = target.currentCell.y - radius; y <= target.currentCell.y + radius; y++)
+            {
+                for (int x = target.currentCell.x - radius; x <= target.currentCell.x + radius; x++)
+                {
+                    Vector2Int cell = new Vector2Int(x, y);
+                    if (grid.IsInside(cell))
+                    {
+                        hoveredCells.Add(cell);
+                    }
+                }
+            }
+        }
+
+        grid.SetHoveredFootprint(hoveredCells, overlayColor);
     }
 
     private bool HasAnyVisibleSkillPreviewCells(Vector2Int centerCell)

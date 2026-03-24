@@ -268,7 +268,18 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        SetHoveredFootprint(CollectFootprintCells(unit.currentCell, unit.footprintSize), color);
+        ApplyHoveredFootprint(CollectFootprintCells(unit.currentCell, unit.footprintSize), color);
+    }
+
+    public void SetHoveredFootprint(HashSet<Vector2Int> cells, Color color)
+    {
+        if (cells == null || cells.Count == 0)
+        {
+            ClearHoveredFootprint();
+            return;
+        }
+
+        ApplyHoveredFootprint(cells, color);
     }
 
     public void ClearHoveredFootprint()
@@ -588,7 +599,7 @@ public class BattleGrid : MonoBehaviour
         highlightLayerOrder++;
     }
 
-    private void SetHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
+    private void ApplyHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
     {
         if (cells == null || cells.Count == 0)
         {

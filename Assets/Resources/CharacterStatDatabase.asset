@@ -38,9 +38,9 @@ MonoBehaviour:
     actionPoints: 4
     hitRate: 100
   - characterId: "\u7231\u4E3D\u4E1D"
-    strength: 5
-    agility: 4
-    intelligence: 4
+    strength: 10
+    agility: 10
+    intelligence: 10
     actionPoints: 6
     hitRate: 100
   - characterId: "\u5047\u4EBA"
