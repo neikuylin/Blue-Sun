@@ -19,6 +19,10 @@ MonoBehaviour:
   enterBattleSound: {fileID: 0}
   enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
   enterBattleCompensateMotion: 0
+  exitBattleStateName: "\u5929\u706B"
+  exitBattleSound: {fileID: 0}
+  exitBattleSoundPrefab: {fileID: 0}
+  exitBattleCompensateMotion: 0
   combatArtLeftAimStateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
   combatArtLeftAimSound: {fileID: 0}
   combatArtLeftAimSoundPrefab: {fileID: 0}
@@ -41,6 +45,6 @@ MonoBehaviour:
   explorationIdleCompensateMotion: 0
   explorationMoveStateName: "\u975E\u6218\u6597\u79FB\u52A8"
   explorationMoveSound: {fileID: 0}
-  explorationMoveSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
+  explorationMoveSoundPrefab: {fileID: 2428638727268532093, guid: 16182c7b8dc8b494682f80d220398bd1, type: 3}
   explorationMoveCompensateMotion: 0
   idleYawOffset: 45

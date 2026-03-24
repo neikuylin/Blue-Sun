@@ -18,6 +18,7 @@ public class BattleTurnSystem : MonoBehaviour
     }
 
     private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
+    private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
@@ -530,7 +531,10 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        float originalMoveSpeed = unit.moveSpeed;
+        unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
         float moveDuration = grid.MoveUnit(unit, destination);
+        unit.moveSpeed = originalMoveSpeed;
         string idleStateName = ResolveExplorationIdleStateName();
         PlayExplorationMoveAudio(unit, moveDuration);
         unit.PlayTimedAnimation(
@@ -4528,6 +4532,56 @@ public class BattleTurnSystem : MonoBehaviour
                 stateName,
                 ResolveExplorationIdleStateName(),
                 ResolveExitBattleCompensateMotion());
+            StartCoroutine(HideRuntimeWeaponsAfterExitAnimation(unit, stateName));
+        }
+    }
+
+    private IEnumerator HideRuntimeWeaponsAfterExitAnimation(BattleUnit unit, string stateName)
+    {
+        if (unit == null || string.IsNullOrWhiteSpace(stateName))
+        {
+            yield break;
+        }
+
+        Animator animator = unit.GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            yield break;
+        }
+
+        yield return null;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+        float duration = currentState.length;
+        if (duration > 0.01f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
+
+        SetRuntimeWeaponModelsVisible(unit.transform, false);
+    }
+
+    private static void SetRuntimeWeaponModelsVisible(Transform root, bool visible)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(child.name, RuntimeWeaponModelName, System.StringComparison.Ordinal))
+            {
+                child.gameObject.SetActive(visible);
+            }
+
+            SetRuntimeWeaponModelsVisible(child, visible);
         }
     }
 

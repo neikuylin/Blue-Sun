@@ -18,33 +18,40 @@ MonoBehaviour:
     agility: 3
     intelligence: 3
     actionPoints: 4
+    hitRate: 100
   - characterId: "\u7D22\u62C9\u5A1C"
     strength: 3
     agility: 4
     intelligence: 5
     actionPoints: 4
+    hitRate: 100
   - characterId: "\u5E93\u9C81\u65AF"
     strength: 4
     agility: 3
     intelligence: 3
     actionPoints: 4
+    hitRate: 100
   - characterId: "\u745F\u838E"
     strength: 3
     agility: 6
     intelligence: 3
     actionPoints: 4
+    hitRate: 100
   - characterId: "\u7231\u4E3D\u4E1D"
     strength: 5
     agility: 4
     intelligence: 4
-    actionPoints: 4
+    actionPoints: 6
+    hitRate: 100
   - characterId: "\u5047\u4EBA"
     strength: 2
     agility: 2
     intelligence: 2
     actionPoints: 4
+    hitRate: 100
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
     strength: 2
     agility: 2
     intelligence: 2
     actionPoints: 4
+    hitRate: 100
