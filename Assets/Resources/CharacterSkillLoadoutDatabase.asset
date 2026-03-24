@@ -78,9 +78,9 @@ MonoBehaviour:
     skillWeights: 000000000000000000000000000000000000000000000000
   - characterId: "\u7231\u4E3D\u4E1D"
     skillIds:
-    - 
     - "\u56DE\u65CB\u65A9"
-    - 
+    - "\u56DE\u65CB\u65A9"
+    - "\u56DE\u65CB\u65A9"
     - 
     - 
     - 

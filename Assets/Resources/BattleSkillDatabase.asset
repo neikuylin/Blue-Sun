@@ -83,7 +83,7 @@ MonoBehaviour:
     cooldownTurns: 3
     useMoveDistanceAsRange: 0
     range: 6
-    areaCastType: 1
+    areaCastType: 0
     axisNearWidth: 2
     axisFarWidth: 3
     effectSize: {x: 3, y: 3}

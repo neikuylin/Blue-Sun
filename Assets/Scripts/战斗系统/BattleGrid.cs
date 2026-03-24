@@ -392,7 +392,6 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(activeUnit, range);
         HashSet<BattleUnit> highlightedUnits = new HashSet<BattleUnit>();
         HashSet<Vector2Int> selfCells = new HashSet<Vector2Int>();
         HashSet<Vector2Int> allyCells = new HashSet<Vector2Int>();
@@ -405,7 +404,7 @@ public class BattleGrid : MonoBehaviour
                 continue;
             }
 
-            if (!HasAnyFootprintCellInRange(occupant, reachableCells))
+            if (!IsUnitWithinCircularRange(activeUnit, occupant, range))
             {
                 continue;
             }
@@ -450,6 +449,82 @@ public class BattleGrid : MonoBehaviour
 
         HashSet<Vector2Int> cells = CollectCellsWithinRange(unit, range);
         CreateOverlay(cells, reachableColor, reachableOutlineColor, "Range");
+    }
+
+    public void HighlightCircularRange(BattleUnit unit, int range)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        CreateCircleOverlay(
+            GetWorldPosition(unit.currentCell),
+            GetCastRadiusWorld(unit, range),
+            reachableColor,
+            reachableOutlineColor,
+            "CircularRange");
+    }
+
+    public void HighlightCircleAt(Vector2Int centerCell, float radiusWorld, Color color)
+    {
+        if (!IsInside(centerCell))
+        {
+            return;
+        }
+
+        CreateCircleOverlay(
+            GetWorldPosition(centerCell),
+            Mathf.Max(0f, radiusWorld),
+            color,
+            ResolveOutlineColor(color),
+            "Circle");
+    }
+
+    public float GetUnitRadiusWorld(BattleUnit unit)
+    {
+        if (unit == null)
+        {
+            return cellSize * 0.5f;
+        }
+
+        return (unit.FootprintRadius + 0.5f) * cellSize;
+    }
+
+    public float GetAreaRadiusWorld(int footprintSize)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        return (radius + 0.5f) * cellSize;
+    }
+
+    public float GetCastRadiusWorld(BattleUnit unit, int range)
+    {
+        return Mathf.Max(0, range) * cellSize + GetUnitRadiusWorld(unit);
+    }
+
+    public bool IsUnitWithinCircularRange(BattleUnit source, BattleUnit target, int range)
+    {
+        if (source == null || target == null)
+        {
+            return false;
+        }
+
+        Vector3 sourcePosition = GetWorldPosition(source.currentCell);
+        Vector3 targetPosition = GetWorldPosition(target.currentCell);
+        float maxDistance = GetCastRadiusWorld(source, range) + GetUnitRadiusWorld(target);
+        return Vector3.Distance(sourcePosition, targetPosition) <= maxDistance + 0.001f;
+    }
+
+    public bool IsCellWithinCircularRange(BattleUnit source, Vector2Int cell, int range)
+    {
+        if (source == null || !IsInside(cell))
+        {
+            return false;
+        }
+
+        Vector3 sourcePosition = GetWorldPosition(source.currentCell);
+        Vector3 targetPosition = GetWorldPosition(cell);
+        return Vector3.Distance(sourcePosition, targetPosition) <= GetCastRadiusWorld(source, range) + 0.001f;
     }
 
     public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
@@ -631,6 +706,36 @@ public class BattleGrid : MonoBehaviour
         highlightLayerOrder++;
     }
 
+    private void CreateCircleOverlay(Vector3 center, float radiusWorld, Color fillColor, Color outlineColor, string name)
+    {
+        if (radiusWorld <= 0.001f)
+        {
+            return;
+        }
+
+        EnsureVisualRoots();
+
+        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
+        overlay.transform.SetParent(highlightRoot, false);
+
+        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+        meshFilter.sharedMesh = BuildCircleFillMesh(center, radiusWorld, overlayY + (highlightLayerOrder * 0.002f));
+        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+        meshRenderer.sharedMaterial.color = fillColor;
+        meshRenderer.sortingOrder = highlightLayerOrder * 10;
+
+        CreateCircleOutline(
+            overlay.transform,
+            center,
+            radiusWorld,
+            outlineColor,
+            overlayY + 0.001f + (highlightLayerOrder * 0.002f),
+            (highlightLayerOrder * 10) + 1);
+
+        highlightLayerOrder++;
+    }
+
     private void ApplyHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
     {
         if (cells == null || cells.Count == 0)
@@ -717,6 +822,39 @@ public class BattleGrid : MonoBehaviour
         Mesh mesh = new Mesh
         {
             name = "BattleGridOverlay"
+        };
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    private Mesh BuildCircleFillMesh(Vector3 center, float radiusWorld, float y)
+    {
+        const int SegmentCount = 72;
+        List<Vector3> vertices = new List<Vector3>(SegmentCount + 1);
+        List<int> triangles = new List<int>(SegmentCount * 3);
+
+        vertices.Add(new Vector3(center.x, y, center.z));
+        for (int i = 0; i <= SegmentCount; i++)
+        {
+            float angle = (Mathf.PI * 2f * i) / SegmentCount;
+            float x = center.x + Mathf.Cos(angle) * radiusWorld;
+            float z = center.z + Mathf.Sin(angle) * radiusWorld;
+            vertices.Add(new Vector3(x, y, z));
+        }
+
+        for (int i = 1; i <= SegmentCount; i++)
+        {
+            triangles.Add(0);
+            triangles.Add(i);
+            triangles.Add(i + 1);
+        }
+
+        Mesh mesh = new Mesh
+        {
+            name = "BattleGridCircleOverlay"
         };
         mesh.SetVertices(vertices);
         mesh.SetTriangles(triangles, 0);
@@ -864,6 +1002,34 @@ public class BattleGrid : MonoBehaviour
     private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
     {
         CreateOutlineLoopRenderer(parent, loop, lineColor, y, sortingOrder);
+    }
+
+    private void CreateCircleOutline(Transform parent, Vector3 center, float radiusWorld, Color lineColor, float y, int sortingOrder)
+    {
+        const int SegmentCount = 72;
+        GameObject lineObject = new GameObject("CircleOutline");
+        lineObject.transform.SetParent(parent, false);
+
+        LineRenderer line = lineObject.AddComponent<LineRenderer>();
+        line.sharedMaterial = new Material(lineMaterialTemplate);
+        line.sharedMaterial.color = lineColor;
+        line.loop = true;
+        line.useWorldSpace = false;
+        line.textureMode = LineTextureMode.Stretch;
+        line.numCornerVertices = 12;
+        line.numCapVertices = 12;
+        line.widthMultiplier = cellSize * 0.12f;
+        line.alignment = LineAlignment.View;
+        line.sortingOrder = sortingOrder;
+        line.positionCount = SegmentCount;
+
+        for (int i = 0; i < SegmentCount; i++)
+        {
+            float angle = (Mathf.PI * 2f * i) / SegmentCount;
+            float x = center.x + Mathf.Cos(angle) * radiusWorld;
+            float z = center.z + Mathf.Sin(angle) * radiusWorld;
+            line.SetPosition(i, new Vector3(x, y, z));
+        }
     }
 
     private LineRenderer CreateOutlineLoopRenderer(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
@@ -1014,24 +1180,12 @@ public class BattleGrid : MonoBehaviour
 
     public bool IsCellWithinRange(BattleUnit unit, Vector2Int cell, int range)
     {
-        if (unit == null || !IsInside(cell))
-        {
-            return false;
-        }
-
-        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(unit, range);
-        return reachableCells.Contains(cell);
+        return IsCellWithinCircularRange(unit, cell, range);
     }
 
     public bool IsUnitWithinRange(BattleUnit source, BattleUnit target, int range)
     {
-        if (source == null || target == null)
-        {
-            return false;
-        }
-
-        HashSet<Vector2Int> reachableCells = CollectCellsWithinRange(source, range);
-        return HasAnyFootprintCellInRange(target, reachableCells);
+        return IsUnitWithinCircularRange(source, target, range);
     }
 
     private void AddFootprintCells(HashSet<Vector2Int> cells, Vector2Int centerCell, int footprintSize)

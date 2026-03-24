@@ -867,7 +867,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
             else
             {
-                grid.HighlightRange(activeUnit, skillRange);
+                grid.HighlightCircularRange(activeUnit, skillRange);
             }
 
             grid.HighlightOccupiedUnitsWithinRange(
@@ -2447,6 +2447,18 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (UsesContinuousCircularArea(activeSkill))
+        {
+            float circlePulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+            Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
+            previewColor.a = Mathf.Lerp(
+                skillHoverValid ? 0.18f : 0.16f,
+                previewColor.a,
+                circlePulse);
+            grid.HighlightCircleAt(skillHoverCell, GetContinuousAreaRadiusWorld(activeSkill), previewColor);
+            return;
+        }
+
         HashSet<Vector2Int> previewCells = CollectVisibleAreaEffectCells(activeUnit, skillHoverCell, activeSkill);
         if (previewCells == null || previewCells.Count == 0)
         {
@@ -2513,6 +2525,11 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
+        if (UsesContinuousCircularArea(activeSkill))
+        {
+            return grid != null && grid.IsInside(centerCell);
+        }
+
         HashSet<Vector2Int> visibleCells = CollectVisibleAreaEffectCells(activeUnit, centerCell, activeSkill);
         return visibleCells != null && visibleCells.Count > 0;
     }
@@ -2556,6 +2573,36 @@ public class BattleTurnSystem : MonoBehaviour
         return skill != null &&
             skill.skillType == BattleSkillDatabase.SkillType.Area &&
             skill.areaCastType == BattleSkillDatabase.AreaCastType.CircularAxis;
+    }
+
+    private static bool UsesContinuousCircularArea(BattleSkillDatabase.SkillEntry skill)
+    {
+        return skill != null &&
+            skill.skillType == BattleSkillDatabase.SkillType.Area &&
+            !IsCircularAxisAreaSkill(skill);
+    }
+
+    private float GetContinuousAreaRadiusWorld(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (grid == null || skill == null)
+        {
+            return 0f;
+        }
+
+        return grid.GetAreaRadiusWorld(GetSkillPreviewFootprintSize(skill));
+    }
+
+    private bool IsUnitInsideContinuousArea(BattleUnit target, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (grid == null || target == null || skill == null || !grid.IsInside(centerCell))
+        {
+            return false;
+        }
+
+        Vector3 areaCenter = grid.GetWorldPosition(centerCell);
+        Vector3 targetCenter = grid.GetWorldPosition(target.currentCell);
+        float maxDistance = GetContinuousAreaRadiusWorld(skill) + grid.GetUnitRadiusWorld(target);
+        return Vector3.Distance(areaCenter, targetCenter) <= maxDistance + 0.001f;
     }
 
     private Vector2 ResolveAreaDirection(BattleUnit caster, Vector2Int targetCell)
@@ -3070,7 +3117,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -3084,9 +3130,20 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaCells(unit, affectedCells))
+            if (UsesContinuousCircularArea(skill))
             {
-                continue;
+                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
+                if (!IsUnitInsideAreaCells(unit, affectedCells))
+                {
+                    continue;
+                }
             }
 
             if (!RollSkillHit(caster, unit))
@@ -3129,7 +3186,6 @@ public class BattleTurnSystem : MonoBehaviour
             return FormatAreaSkillMessage(caster, targetCell, skill);
         }
 
-        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         List<string> hitTargets = new List<string>();
         List<string> missedTargets = new List<string>();
         for (int i = 0; i < units.Count; i++)
@@ -3145,9 +3201,20 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaCells(unit, affectedCells))
+            if (UsesContinuousCircularArea(skill))
             {
-                continue;
+                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
+                if (!IsUnitInsideAreaCells(unit, affectedCells))
+                {
+                    continue;
+                }
             }
 
             string unitName = ResolveBattleInfoUnitName(unit, richText: true);
@@ -3279,12 +3346,12 @@ public class BattleTurnSystem : MonoBehaviour
         {
             return target != null &&
                 IsValidSkillTarget(caster, target, skill) &&
-                grid.IsUnitWithinRange(caster, target, GetDisplayedSkillRange(caster, skill));
+                grid.IsUnitWithinCircularRange(caster, target, GetDisplayedSkillRange(caster, skill));
         }
 
         if (skill.skillType == BattleSkillDatabase.SkillType.Area)
         {
-            return grid.IsCellWithinRange(caster, targetCell, GetDisplayedSkillRange(caster, skill));
+            return grid.IsCellWithinCircularRange(caster, targetCell, GetDisplayedSkillRange(caster, skill));
         }
 
         return false;
@@ -3359,12 +3426,10 @@ public class BattleTurnSystem : MonoBehaviour
             return result;
         }
 
-        if (!grid.IsCellWithinRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
+        if (!grid.IsCellWithinCircularRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
         {
             return result;
         }
-
-        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -3378,9 +3443,20 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaCells(unit, affectedCells))
+            if (UsesContinuousCircularArea(skill))
             {
-                continue;
+                if (!IsUnitInsideContinuousArea(unit, hoveredCell, skill))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
+                if (!IsUnitInsideAreaCells(unit, affectedCells))
+                {
+                    continue;
+                }
             }
 
             result.Add(unit);
@@ -3425,7 +3501,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (skill.skillType == BattleSkillDatabase.SkillType.Target)
         {
-            return grid.IsUnitWithinRange(caster, target, GetDisplayedSkillRange(caster, skill));
+            return grid.IsUnitWithinCircularRange(caster, target, GetDisplayedSkillRange(caster, skill));
         }
 
         if (skill.skillType != BattleSkillDatabase.SkillType.Area)
@@ -3433,9 +3509,14 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        if (!grid.IsCellWithinRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
+        if (!grid.IsCellWithinCircularRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
         {
             return false;
+        }
+
+        if (UsesContinuousCircularArea(skill))
+        {
+            return IsUnitInsideContinuousArea(target, hoveredCell, skill);
         }
 
         HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
@@ -4213,7 +4294,10 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (skill.skillType == BattleSkillDatabase.SkillType.Area)
         {
-            return grid.ManhattanDistance(castCell, target.currentCell) <= skillRange;
+            Vector3 castPosition = grid.GetWorldPosition(castCell);
+            Vector3 targetPosition = grid.GetWorldPosition(target.currentCell);
+            float maxDistance = grid.GetCastRadiusWorld(caster, skillRange) + grid.GetUnitRadiusWorld(target);
+            return Vector3.Distance(castPosition, targetPosition) <= maxDistance + 0.001f;
         }
 
         return false;
@@ -4643,7 +4727,6 @@ public class BattleTurnSystem : MonoBehaviour
             return names;
         }
 
-        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -4657,9 +4740,20 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaCells(unit, affectedCells))
+            if (UsesContinuousCircularArea(skill))
             {
-                continue;
+                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
+                if (!IsUnitInsideAreaCells(unit, affectedCells))
+                {
+                    continue;
+                }
             }
 
             names.Add(ResolveBattleInfoUnitName(unit, richText: true));
