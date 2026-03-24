@@ -26,6 +26,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private ItemDatabase.EquipmentSlotType filterEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
     private ItemDatabase.WeaponCategory filterWeaponCategory = ItemDatabase.WeaponCategory.None;
     private Vector2 scroll;
+    private readonly Dictionary<string, bool> entryFoldoutStates = new Dictionary<string, bool>();
 
     [MenuItem("Tools/物品/物品数据库")]
     private static void Open()
@@ -174,8 +175,26 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
     private void DrawEntryEditor(ItemDatabase.ItemEntry entry, int index)
     {
+        string foldoutKey = GetEntryFoldoutKey(entry != null ? entry.itemId : string.Empty, index);
+        bool isExpanded = GetFoldoutState(foldoutKey);
         using (new EditorGUILayout.VerticalScope("box"))
         {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                string headerLabel = BuildItemHeaderLabel(entry != null ? entry.itemId : string.Empty, index);
+                bool nextExpanded = EditorGUILayout.Foldout(isExpanded, headerLabel, true);
+                if (nextExpanded != isExpanded)
+                {
+                    SetFoldoutState(foldoutKey, nextExpanded);
+                    isExpanded = nextExpanded;
+                }
+            }
+
+            if (!isExpanded)
+            {
+                return;
+            }
+
             string originalId = entry.itemId;
             string originalDisplayName = entry.displayName;
             ItemDatabase.ItemCategory originalCategory = entry.category;
@@ -272,6 +291,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
                 if (GUILayout.Button("删除物品定义"))
                 {
+                    entryFoldoutStates.Remove(foldoutKey);
                     database.Entries.RemoveAt(index);
                     SaveDatabase();
                     GUIUtility.ExitGUI();
@@ -344,6 +364,32 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         SaveDatabase();
         Selection.activeObject = database;
+    }
+
+    private bool GetFoldoutState(string key)
+    {
+        if (entryFoldoutStates.TryGetValue(key, out bool expanded))
+        {
+            return expanded;
+        }
+
+        entryFoldoutStates[key] = false;
+        return false;
+    }
+
+    private void SetFoldoutState(string key, bool expanded)
+    {
+        entryFoldoutStates[key] = expanded;
+    }
+
+    private static string GetEntryFoldoutKey(string itemId, int index)
+    {
+        return string.IsNullOrWhiteSpace(itemId) ? $"item_{index}" : $"item_{itemId}";
+    }
+
+    private static string BuildItemHeaderLabel(string itemId, int index)
+    {
+        return string.IsNullOrWhiteSpace(itemId) ? $"未命名物品 {index + 1}" : itemId;
     }
 
     private string ValidateEntry(ItemDatabase.ItemEntry entry, int selfIndex)

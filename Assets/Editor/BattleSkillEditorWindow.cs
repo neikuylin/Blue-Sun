@@ -37,6 +37,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
     private Vector2 scroll;
     private SerializedObject databaseObject;
+    private readonly Dictionary<string, bool> entryFoldoutStates = new Dictionary<string, bool>();
 
     [MenuItem("Tools/\u6280\u80fd/\u6280\u80fd\u7f16\u8f91\u5668")]
     private static void Open()
@@ -98,18 +99,35 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             SerializedProperty group = entry.FindPropertyRelative("group");
             SerializedProperty skillType = entry.FindPropertyRelative("skillType");
             SerializedProperty useMoveDistanceAsRange = entry.FindPropertyRelative("useMoveDistanceAsRange");
+            SerializedProperty skillIdProperty = entry.FindPropertyRelative("skillId");
+            string foldoutKey = GetEntryFoldoutKey(skillIdProperty != null ? skillIdProperty.stringValue : string.Empty, i);
+            bool isExpanded = GetFoldoutState(foldoutKey);
 
             using (new EditorGUILayout.VerticalScope("box"))
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("skillId"), new GUIContent("\u6280\u80fdID"));
+                    string headerLabel = BuildSkillHeaderLabel(skillIdProperty != null ? skillIdProperty.stringValue : string.Empty, i);
+                    bool nextExpanded = EditorGUILayout.Foldout(isExpanded, headerLabel, true);
+                    if (nextExpanded != isExpanded)
+                    {
+                        SetFoldoutState(foldoutKey, nextExpanded);
+                        isExpanded = nextExpanded;
+                    }
                     if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
                     {
+                        entryFoldoutStates.Remove(foldoutKey);
                         entries.DeleteArrayElementAtIndex(i);
                         break;
                     }
                 }
+
+                if (!isExpanded)
+                {
+                    continue;
+                }
+
+                EditorGUILayout.PropertyField(skillIdProperty, new GUIContent("\u6280\u80fdID"));
 
                 group.enumValueIndex = EditorGUILayout.Popup("\u5206\u7ec4", group.enumValueIndex, SkillGroupLabels);
                 skillType.enumValueIndex = EditorGUILayout.Popup("\u6280\u80fd\u7c7b\u578b", skillType.enumValueIndex, SkillTypeLabels);
@@ -193,6 +211,32 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("range").intValue = 1;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
+    }
+
+    private bool GetFoldoutState(string key)
+    {
+        if (entryFoldoutStates.TryGetValue(key, out bool expanded))
+        {
+            return expanded;
+        }
+
+        entryFoldoutStates[key] = false;
+        return false;
+    }
+
+    private void SetFoldoutState(string key, bool expanded)
+    {
+        entryFoldoutStates[key] = expanded;
+    }
+
+    private static string GetEntryFoldoutKey(string skillId, int index)
+    {
+        return string.IsNullOrWhiteSpace(skillId) ? $"skill_{index}" : $"skill_{skillId}";
+    }
+
+    private static string BuildSkillHeaderLabel(string skillId, int index)
+    {
+        return string.IsNullOrWhiteSpace(skillId) ? $"未命名技能 {index + 1}" : skillId;
     }
 
     private static void DrawRequiredWeaponCategories(SerializedProperty requiredCategoriesProperty)
