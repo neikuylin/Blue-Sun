@@ -8,6 +8,12 @@ using UnityEngine.UI;
 
 public class BattleTurnSystem : MonoBehaviour
 {
+    private enum BattleFlowMode
+    {
+        Combat,
+        Exploration
+    }
+
     private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
@@ -118,6 +124,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
     private string currentCombatArtAimStateName = string.Empty;
     private BattleAudioUtility.PlaybackHandle currentCombatArtAimAudioHandle;
+    private BattleFlowMode currentMode = BattleFlowMode.Combat;
 
     private sealed class EnemySkillChoice
     {
@@ -161,6 +168,11 @@ public class BattleTurnSystem : MonoBehaviour
         get { return IsSkillModeActive() && skillHoverValid && skillHoverActionPointCost > 0; }
     }
 
+    public bool IsExplorationMode
+    {
+        get { return currentMode == BattleFlowMode.Exploration; }
+    }
+
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;
@@ -191,6 +203,7 @@ public class BattleTurnSystem : MonoBehaviour
         absoluteRoundIndex = -1;
         activeSkillId = string.Empty;
         activeSkill = null;
+        currentMode = BattleFlowMode.Combat;
         timelineLeadUnit = null;
         lastTimelineSlots.Clear();
 
@@ -204,6 +217,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         StartNewRound();
         BeginCurrentTurn();
+        EvaluateExplorationMode();
     }
 
     public void SetSkillCostHintText(TMP_Text hintText)
@@ -242,6 +256,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void Update()
     {
+        if (IsExplorationMode)
+        {
+            UpdateExplorationMode();
+            return;
+        }
+
         if (activeUnit == null || !activeUnit.IsAlive)
         {
             return;
@@ -279,6 +299,24 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         RefreshTargetPanelUi();
+    }
+
+    private void UpdateExplorationMode()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive)
+        {
+            activeUnit = FindExplorationPlayerUnit();
+            RefreshHighlights();
+            RefreshSelectionOutlines();
+            RefreshActiveUnitUi();
+        }
+
+        if (activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving)
+        {
+            return;
+        }
+
+        HandleExplorationInput();
     }
 
     private void HandlePlayerInput()
@@ -334,6 +372,37 @@ public class BattleTurnSystem : MonoBehaviour
             SetLockedTargetUnit(target);
         }
 
+    }
+
+    private void HandleExplorationInput()
+    {
+        if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || grid == null || battleCamera == null)
+        {
+            return;
+        }
+
+        Plane clickPlane = grid.GetInteractionPlane();
+        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
+        float enter;
+        if (!clickPlane.Raycast(ray, out enter))
+        {
+            return;
+        }
+
+        Vector3 hitPoint = ray.GetPoint(enter);
+        Vector2Int clickedCell = grid.WorldToCell(hitPoint);
+        if (!grid.IsInside(clickedCell))
+        {
+            return;
+        }
+
+        BattleUnit target = grid.GetUnitAt(clickedCell);
+        if (target != null && target != activeUnit)
+        {
+            return;
+        }
+
+        TryMoveFreely(activeUnit, clickedCell);
     }
 
     private IEnumerator RunEnemyTurn()
@@ -432,12 +501,158 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshHighlights();
     }
 
+    private void TryMoveFreely(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null || grid == null || unit.IsMoving || destination == unit.currentCell)
+        {
+            return;
+        }
+
+        List<Vector2Int> path = grid.FindPath(unit, destination);
+        if (path == null || path.Count <= 1)
+        {
+            return;
+        }
+
+        float moveDuration = grid.MoveUnit(unit, destination);
+        string idleStateName = ResolveIdleStateName();
+        unit.PlayTimedAnimation(
+            unit.GetMoveAnimationStateName(idleStateName),
+            moveDuration,
+            unit.GetIdleAnimationStateName(idleStateName));
+        RefreshHighlights();
+    }
+
     private void EndTurn()
     {
         waitingForEnemyAction = false;
         ClearLockedTargetUnit();
         ClearActiveSkillMode();
         AdvanceTurn();
+    }
+
+    private void EvaluateExplorationMode()
+    {
+        if (IsExplorationMode || HasLivingEnemies())
+        {
+            return;
+        }
+
+        EnterExplorationMode();
+    }
+
+    private void EnterExplorationMode()
+    {
+        currentMode = BattleFlowMode.Exploration;
+        waitingForEnemyAction = false;
+        currentRoundOrder.Clear();
+        upcomingRoundOrders.Clear();
+        currentRoundIndex = -1;
+        absoluteRoundIndex = -1;
+        ClearActiveSkillMode();
+        ClearLockedTargetUnit();
+        ClearHoveredSkillTarget();
+        hoveredTargetUnit = null;
+        activeUnit = FindExplorationPlayerUnit();
+        if (activeUnit != null)
+        {
+            FocusCameraOnActiveUnit();
+        }
+
+        SetCombatUiVisible(false);
+        RefreshSelectionOutlines();
+        RefreshHighlights();
+        RefreshActiveUnitUi();
+        RefreshTimeline();
+        lastTargetUiSignature = "<exploration>";
+        ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
+    }
+
+    private bool HasLivingEnemies()
+    {
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit != null && unit.IsAlive && unit.team == BattleTeam.Enemy)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private BattleUnit FindExplorationPlayerUnit()
+    {
+        if (activeUnit != null && activeUnit.IsAlive && activeUnit.team == BattleTeam.Player && activeUnit.isPlayerControlled)
+        {
+            return activeUnit;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit != null && unit.IsAlive && unit.team == BattleTeam.Player && unit.isPlayerControlled)
+            {
+                return unit;
+            }
+        }
+
+        return null;
+    }
+
+    private void SetCombatUiVisible(bool visible)
+    {
+        if (timelineAnchor != null)
+        {
+            timelineAnchor.gameObject.SetActive(visible);
+        }
+
+        if (endTurnButton != null)
+        {
+            endTurnButton.gameObject.SetActive(visible);
+        }
+
+        if (moveSkillButton != null)
+        {
+            moveSkillButton.gameObject.SetActive(visible);
+        }
+
+        if (sceneBindings != null && sceneBindings.actionPointPanel != null)
+        {
+            sceneBindings.actionPointPanel.gameObject.SetActive(visible);
+        }
+
+        if (sceneBindings != null)
+        {
+            for (int i = 0; i < sceneBindings.skillPageButtons.Count; i++)
+            {
+                Button button = sceneBindings.skillPageButtons[i];
+                if (button != null)
+                {
+                    button.gameObject.SetActive(visible);
+                }
+            }
+
+            for (int i = 0; i < sceneBindings.skillPageIcons.Count; i++)
+            {
+                Image image = sceneBindings.skillPageIcons[i];
+                if (image != null)
+                {
+                    image.gameObject.SetActive(visible);
+                }
+            }
+
+            if (sceneBindings.spellCurrentPageText != null)
+            {
+                sceneBindings.spellCurrentPageText.gameObject.SetActive(visible);
+            }
+
+            if (sceneBindings.spellTotalPageText != null)
+            {
+                sceneBindings.spellTotalPageText.gameObject.SetActive(visible);
+            }
+        }
     }
 
     private void AdvanceTurn()
@@ -490,6 +705,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void BeginCurrentTurn()
     {
+        EvaluateExplorationMode();
+        if (IsExplorationMode)
+        {
+            return;
+        }
+
         ClearSelectionOutlines();
         StopCombatArtAimAnimation(force: true);
         hasLastCombatArtAimHoverCell = false;
@@ -579,6 +800,12 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (IsExplorationMode)
+        {
+            grid.HighlightFootprint(activeUnit, activePlayerFootprintColor);
+            return;
+        }
+
         if (!IsSkillModeActive())
         {
             Color activeFootprintColor = activeUnit.team == BattleTeam.Enemy
@@ -620,6 +847,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void RefreshTargetPanelUi()
     {
+        if (IsExplorationMode)
+        {
+            lastTargetUiSignature = "<exploration>";
+            ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
+            return;
+        }
+
         CacheTargetPanelReferences();
 
         BattleUnit directHoveredUnit = ResolveHoveredPanelUnit();
@@ -770,6 +1004,16 @@ public class BattleTurnSystem : MonoBehaviour
     private void RefreshSelectionOutlines()
     {
         ClearSelectionOutlines();
+
+        if (IsExplorationMode)
+        {
+            if (activeUnit != null && activeUnit.IsAlive)
+            {
+                activeUnit.SetLockOutline(activePlayerOutlineColor, ActiveUnitOutlineWidth, true);
+            }
+
+            return;
+        }
 
         if (activeUnit != null && activeUnit.IsAlive)
         {
@@ -974,6 +1218,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         currentRoundIndex = Mathf.Clamp(currentRoundIndex, 0, currentRoundOrder.Count - 1);
+        EvaluateExplorationMode();
     }
 
     private static List<BattleUnit> CollectLivingUnits(List<BattleUnit> source)
@@ -1136,6 +1381,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void RefreshTimeline()
     {
+        if (IsExplorationMode)
+        {
+            ClearTimelineInstances();
+            timelineLeadUnit = null;
+            return;
+        }
+
         if (timelineAnchor == null)
         {
             timelineAnchor = ResolveTimelineAnchor();
@@ -1749,6 +2001,14 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         CleanupDeadUnits();
+        if (IsExplorationMode)
+        {
+            RefreshHighlights();
+            RefreshActiveUnitUi();
+            RefreshTimeline();
+            return;
+        }
+
         EnsureUpcomingRounds(Mathf.Max(0, previewRoundCount - 1));
         RefreshHighlights();
         RefreshActiveUnitUi();
