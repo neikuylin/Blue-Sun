@@ -2322,6 +2322,47 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
     }
 
+    public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
+        {
+            return ItemDatabase.WeaponCategory.None;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        if (equipment == null || equipment.Count == 0)
+        {
+            return ItemDatabase.WeaponCategory.None;
+        }
+
+        ItemDatabase.ItemEntry weaponEntry = null;
+        int bestPriority = int.MaxValue;
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
+            if (!IsAttackPowerWeaponEntry(entry))
+            {
+                continue;
+            }
+
+            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
+                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
+            if (weaponEntry == null || priority < bestPriority)
+            {
+                weaponEntry = entry;
+                bestPriority = priority;
+            }
+        }
+
+        return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
+    }
+
     private List<string> BuildGrantedSkillList(string characterId)
     {
         List<string> result = new List<string>();

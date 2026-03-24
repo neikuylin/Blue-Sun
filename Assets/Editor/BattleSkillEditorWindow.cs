@@ -8,6 +8,11 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 {
     private const string AssetFolder = "Assets/Resources";
     private const string AssetPath = AssetFolder + "/BattleSkillDatabase.asset";
+    private static readonly ItemDatabase.WeaponCategory[] RequiredWeaponCategories =
+    {
+        ItemDatabase.WeaponCategory.OneHanded,
+        ItemDatabase.WeaponCategory.TwoHanded
+    };
 
     private static readonly string[] SkillGroupLabels =
     {
@@ -137,6 +142,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51b7\u5374\u65f6\u95f4\uff08\u56de\u5408\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("\u9b54\u6cd5\u6d88\u8017\uff08MP\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("\u884c\u52a8\u529b\u6d88\u8017\uff08AP\uff09"));
+                DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
 
                 if ((BattleSkillDatabase.SkillType)skillType.enumValueIndex == BattleSkillDatabase.SkillType.Area)
                 {
@@ -186,6 +192,84 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = false;
         entry.FindPropertyRelative("range").intValue = 1;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
+        entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
+    }
+
+    private static void DrawRequiredWeaponCategories(SerializedProperty requiredCategoriesProperty)
+    {
+        if (requiredCategoriesProperty == null)
+        {
+            return;
+        }
+
+        EditorGUILayout.LabelField("必须武器");
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            for (int i = 0; i < RequiredWeaponCategories.Length; i++)
+            {
+                ItemDatabase.WeaponCategory category = RequiredWeaponCategories[i];
+                bool enabled = ContainsWeaponCategory(requiredCategoriesProperty, category);
+                bool toggled = EditorGUILayout.ToggleLeft(GetWeaponCategoryLabel(category), enabled, GUILayout.Width(100f));
+                if (toggled == enabled)
+                {
+                    continue;
+                }
+
+                SetWeaponCategoryEnabled(requiredCategoriesProperty, category, toggled);
+            }
+        }
+    }
+
+    private static bool ContainsWeaponCategory(SerializedProperty property, ItemDatabase.WeaponCategory category)
+    {
+        for (int i = 0; i < property.arraySize; i++)
+        {
+            SerializedProperty element = property.GetArrayElementAtIndex(i);
+            if (element != null && element.enumValueIndex == (int)category)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void SetWeaponCategoryEnabled(SerializedProperty property, ItemDatabase.WeaponCategory category, bool enabled)
+    {
+        if (enabled)
+        {
+            if (ContainsWeaponCategory(property, category))
+            {
+                return;
+            }
+
+            int index = property.arraySize;
+            property.InsertArrayElementAtIndex(index);
+            property.GetArrayElementAtIndex(index).enumValueIndex = (int)category;
+            return;
+        }
+
+        for (int i = property.arraySize - 1; i >= 0; i--)
+        {
+            SerializedProperty element = property.GetArrayElementAtIndex(i);
+            if (element != null && element.enumValueIndex == (int)category)
+            {
+                property.DeleteArrayElementAtIndex(i);
+            }
+        }
+    }
+
+    private static string GetWeaponCategoryLabel(ItemDatabase.WeaponCategory category)
+    {
+        switch (category)
+        {
+            case ItemDatabase.WeaponCategory.OneHanded:
+                return "单手武器";
+            case ItemDatabase.WeaponCategory.TwoHanded:
+                return "双手武器";
+            default:
+                return category.ToString();
+        }
     }
 
     private static BattleSkillDatabase EnsureDatabase()

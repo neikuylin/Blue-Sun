@@ -53,6 +53,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public bool useMoveDistanceAsRange = true;
         public int range;
         public Vector2Int effectSize = new Vector2Int(3, 3);
+        public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
 
         public int ResolveActionPointCost()
         {
@@ -67,6 +68,24 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int ResolveRange(int moveDistance)
         {
             return useMoveDistanceAsRange ? Mathf.Max(0, moveDistance) : Mathf.Max(0, range);
+        }
+
+        public bool RequiresWeaponCategory(ItemDatabase.WeaponCategory weaponCategory)
+        {
+            if (requiredWeaponCategories == null || requiredWeaponCategories.Count == 0)
+            {
+                return true;
+            }
+
+            for (int i = 0; i < requiredWeaponCategories.Count; i++)
+            {
+                if (requiredWeaponCategories[i] == weaponCategory)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 
