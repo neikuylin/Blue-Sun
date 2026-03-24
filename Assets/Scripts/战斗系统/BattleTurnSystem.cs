@@ -115,6 +115,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
+    private readonly List<BattleUnit> hoveredSkillTargets = new List<BattleUnit>();
     private BattleUnit hoveredTargetUnit;
     private BattleUnit lockedTargetUnit;
     private bool isResolvingSkillExecution;
@@ -2452,16 +2453,22 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
+
         if (skillHoverValid)
         {
+            Color previewColor = skillPreviewValidColor;
+            previewColor.a = Mathf.Lerp(0.18f, skillPreviewValidColor.a, pulse);
             grid.HighlightFootprintAt(
                 skillHoverCell,
                 previewFootprintSize,
-                skillPreviewValidColor);
+                previewColor);
             return;
         }
 
-        grid.HighlightPartialFootprint(previewFootprintSize, skillHoverCell, skillPreviewInvalidColor);
+        Color invalidColor = skillPreviewInvalidColor;
+        invalidColor.a = Mathf.Lerp(0.16f, skillPreviewInvalidColor.a, pulse);
+        grid.HighlightPartialFootprint(previewFootprintSize, skillHoverCell, invalidColor);
     }
 
     private void ApplyHoveredTargetPreview()
@@ -3121,19 +3128,89 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         BattleUnit target = grid.GetUnitAt(hoveredCell);
-        if (!IsHoveredSkillTargetValid(activeUnit, target, activeSkill, hoveredCell))
+        List<BattleUnit> validTargets = CollectHoveredSkillTargets(activeUnit, hoveredCell, target, activeSkill);
+        if (validTargets.Count == 0)
         {
             ClearHoveredSkillTarget();
             return;
         }
 
-        if (hoveredSkillTarget != null && hoveredSkillTarget != target)
+        ApplyHoveredSkillTargets(validTargets, target);
+    }
+
+    private List<BattleUnit> CollectHoveredSkillTargets(
+        BattleUnit caster,
+        Vector2Int hoveredCell,
+        BattleUnit directTarget,
+        BattleSkillDatabase.SkillEntry skill)
+    {
+        List<BattleUnit> result = new List<BattleUnit>();
+        if (caster == null || skill == null)
         {
-            hoveredSkillTarget.ClearTint();
-            grid.ClearHoveredFootprint();
+            return result;
         }
 
-        hoveredSkillTarget = target;
+        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            if (IsHoveredSkillTargetValid(caster, directTarget, skill, hoveredCell))
+            {
+                result.Add(directTarget);
+            }
+
+            return result;
+        }
+
+        if (skill.skillType != BattleSkillDatabase.SkillType.Area)
+        {
+            return result;
+        }
+
+        if (!grid.IsCellWithinRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
+        {
+            return result;
+        }
+
+        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive)
+            {
+                continue;
+            }
+
+            if (!IsValidSkillTarget(caster, unit, skill))
+            {
+                continue;
+            }
+
+            if (!IsUnitInsideAreaFootprint(unit, hoveredCell, footprintSize))
+            {
+                continue;
+            }
+
+            result.Add(unit);
+        }
+
+        return result;
+    }
+
+    private void ApplyHoveredSkillTargets(List<BattleUnit> nextTargets, BattleUnit directTarget)
+    {
+        for (int i = 0; i < hoveredSkillTargets.Count; i++)
+        {
+            BattleUnit previous = hoveredSkillTargets[i];
+            if (previous != null && !nextTargets.Contains(previous))
+            {
+                previous.ClearTint();
+            }
+        }
+
+        hoveredSkillTargets.Clear();
+        hoveredSkillTargets.AddRange(nextTargets);
+        hoveredSkillTarget = directTarget != null && nextTargets.Contains(directTarget)
+            ? directTarget
+            : nextTargets[0];
     }
 
     private bool IsHoveredSkillTargetValid(
@@ -3202,16 +3279,25 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void UpdateHoveredTargetFlash()
     {
-        if (hoveredSkillTarget == null || !hoveredSkillTarget.IsAlive)
+        if (hoveredSkillTargets.Count == 0)
         {
             grid.ClearHoveredFootprint();
             return;
         }
 
         float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
-        Color targetFlashColor = ResolveHoveredTargetFlashColor(hoveredSkillTarget);
         ApplyHoveredTargetPreview();
-        hoveredSkillTarget.ApplyTint(targetFlashColor, Mathf.Lerp(0.2f, 0.75f, pulse));
+        for (int i = 0; i < hoveredSkillTargets.Count; i++)
+        {
+            BattleUnit target = hoveredSkillTargets[i];
+            if (target == null || !target.IsAlive)
+            {
+                continue;
+            }
+
+            Color targetFlashColor = ResolveHoveredTargetFlashColor(target);
+            target.ApplyTint(targetFlashColor, Mathf.Lerp(0.2f, 0.75f, pulse));
+        }
     }
 
     private Color ResolveHoveredTargetFlashColor(BattleUnit target)
@@ -3228,11 +3314,16 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ClearHoveredSkillTarget()
     {
-        if (hoveredSkillTarget != null)
+        for (int i = 0; i < hoveredSkillTargets.Count; i++)
         {
-            hoveredSkillTarget.ClearTint();
+            BattleUnit target = hoveredSkillTargets[i];
+            if (target != null)
+            {
+                target.ClearTint();
+            }
         }
 
+        hoveredSkillTargets.Clear();
         grid.ClearHoveredFootprint();
         hoveredSkillTarget = null;
     }
