@@ -55,6 +55,55 @@ public static class BattleUnitOutlineBuilder
         }
     }
 
+    public static void ApplyOverlay(
+        GameObject root,
+        string outlineObjectPrefix,
+        Color outlineColor,
+        float outlineWidth,
+        bool visibleByDefault = false)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(outlineObjectPrefix))
+        {
+            return;
+        }
+
+        Material outlineMaterial = CreateMaterial(outlineColor, outlineWidth, outlineObjectPrefix + "Material");
+        if (outlineMaterial == null)
+        {
+            return;
+        }
+
+        MeshRenderer[] meshRenderers = root.GetComponentsInChildren<MeshRenderer>(true);
+        for (int i = 0; i < meshRenderers.Length; i++)
+        {
+            MeshRenderer renderer = meshRenderers[i];
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null)
+            {
+                continue;
+            }
+
+            MeshFilter filter = renderer.GetComponent<MeshFilter>();
+            if (filter == null || filter.sharedMesh == null)
+            {
+                continue;
+            }
+
+            CreateMeshOverlay(renderer.transform, filter.sharedMesh, outlineMaterial, outlineObjectPrefix, visibleByDefault);
+        }
+
+        SkinnedMeshRenderer[] skinnedRenderers = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        for (int i = 0; i < skinnedRenderers.Length; i++)
+        {
+            SkinnedMeshRenderer renderer = skinnedRenderers[i];
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null || renderer.sharedMesh == null)
+            {
+                continue;
+            }
+
+            CreateSkinnedOverlay(renderer, outlineMaterial, outlineObjectPrefix, visibleByDefault);
+        }
+    }
+
     private static Material GetOrCreateMaskMaterial()
     {
         Shader shader = Shader.Find(OutlineMaskShaderName);
@@ -95,6 +144,24 @@ public static class BattleUnitOutlineBuilder
         sharedOutlineMaterial.SetColor("_OutlineColor", outlineColor);
         sharedOutlineMaterial.SetFloat("_OutlineWidth", Mathf.Max(0f, outlineWidth));
         return sharedOutlineMaterial;
+    }
+
+    private static Material CreateMaterial(Color outlineColor, float outlineWidth, string materialName)
+    {
+        Shader shader = Shader.Find(OutlineShaderName);
+        if (shader == null)
+        {
+            Debug.LogWarning($"BattleUnitOutlineBuilder: shader '{OutlineShaderName}' not found.");
+            return null;
+        }
+
+        Material material = new Material(shader)
+        {
+            name = materialName
+        };
+        material.SetColor("_OutlineColor", outlineColor);
+        material.SetFloat("_OutlineWidth", Mathf.Max(0f, outlineWidth));
+        return material;
     }
 
     private static void CreateMeshOutline(Transform sourceTransform, Mesh sourceMesh, Material outlineMaskMaterial, Material outlineMaterial)
@@ -222,5 +289,98 @@ public static class BattleUnitOutlineBuilder
         }
 
         return false;
+    }
+
+    private static bool HasOutlineChildWithPrefix(Transform sourceTransform, string outlineObjectPrefix)
+    {
+        if (sourceTransform == null || string.IsNullOrWhiteSpace(outlineObjectPrefix))
+        {
+            return true;
+        }
+
+        for (int i = 0; i < sourceTransform.childCount; i++)
+        {
+            Transform child = sourceTransform.GetChild(i);
+            if (child == null || child.GetComponent<BattleUnitOutlineMarker>() == null)
+            {
+                continue;
+            }
+
+            if (child.name.StartsWith(outlineObjectPrefix, System.StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void CreateMeshOverlay(
+        Transform sourceTransform,
+        Mesh sourceMesh,
+        Material outlineMaterial,
+        string outlineObjectPrefix,
+        bool visibleByDefault)
+    {
+        if (sourceTransform == null ||
+            sourceMesh == null ||
+            outlineMaterial == null ||
+            HasOutlineChildWithPrefix(sourceTransform, outlineObjectPrefix))
+        {
+            return;
+        }
+
+        GameObject outlineObject = new GameObject(outlineObjectPrefix + sourceTransform.name);
+        outlineObject.transform.SetParent(sourceTransform, false);
+        outlineObject.transform.localPosition = Vector3.zero;
+        outlineObject.transform.localRotation = Quaternion.identity;
+        outlineObject.transform.localScale = Vector3.one;
+        outlineObject.AddComponent<BattleUnitOutlineMarker>();
+
+        MeshFilter filter = outlineObject.AddComponent<MeshFilter>();
+        filter.sharedMesh = sourceMesh;
+
+        MeshRenderer renderer = outlineObject.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = outlineMaterial;
+        renderer.enabled = visibleByDefault;
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+        renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+    }
+
+    private static void CreateSkinnedOverlay(
+        SkinnedMeshRenderer sourceRenderer,
+        Material outlineMaterial,
+        string outlineObjectPrefix,
+        bool visibleByDefault)
+    {
+        if (sourceRenderer == null ||
+            outlineMaterial == null ||
+            HasOutlineChildWithPrefix(sourceRenderer.transform, outlineObjectPrefix))
+        {
+            return;
+        }
+
+        GameObject outlineObject = new GameObject(outlineObjectPrefix + sourceRenderer.name);
+        outlineObject.transform.SetParent(sourceRenderer.transform, false);
+        outlineObject.transform.localPosition = Vector3.zero;
+        outlineObject.transform.localRotation = Quaternion.identity;
+        outlineObject.transform.localScale = Vector3.one;
+        outlineObject.AddComponent<BattleUnitOutlineMarker>();
+
+        SkinnedMeshRenderer outlineRenderer = outlineObject.AddComponent<SkinnedMeshRenderer>();
+        outlineRenderer.sharedMesh = sourceRenderer.sharedMesh;
+        outlineRenderer.rootBone = sourceRenderer.rootBone;
+        outlineRenderer.bones = sourceRenderer.bones;
+        outlineRenderer.localBounds = sourceRenderer.localBounds;
+        outlineRenderer.updateWhenOffscreen = true;
+        outlineRenderer.quality = sourceRenderer.quality;
+        outlineRenderer.sharedMaterial = outlineMaterial;
+        outlineRenderer.enabled = visibleByDefault;
+        outlineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        outlineRenderer.receiveShadows = false;
+        outlineRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        outlineRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
     }
 }

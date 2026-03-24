@@ -10,6 +10,8 @@ public enum BattleTeam
 
 public class BattleUnit : MonoBehaviour
 {
+    private const string LockOutlinePrefix = "__LockOutline_";
+
     [Header("Identity")]
     public string characterId = string.Empty;
     public string unitName = "Unit";
@@ -56,6 +58,8 @@ public class BattleUnit : MonoBehaviour
     private Coroutine timedAnimationRoutine;
     private Renderer[] cachedRenderers;
     private Color[] originalRendererColors;
+    private Renderer[] lockOutlineRenderers;
+    private Material[] lockOutlineMaterials;
     private bool animationPositionCompensationEnabled;
     private Transform animationCompensationTarget;
     private Vector3 animationCompensationLocalPosition;
@@ -433,6 +437,53 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
+    public void SetLockOutline(Color outlineColor, float outlineWidth, bool visible)
+    {
+        EnsureLockOutlineObjects();
+        if (lockOutlineRenderers == null || lockOutlineMaterials == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < lockOutlineMaterials.Length; i++)
+        {
+            Material material = lockOutlineMaterials[i];
+            if (material == null)
+            {
+                continue;
+            }
+
+            material.SetColor("_OutlineColor", outlineColor);
+            material.SetFloat("_OutlineWidth", Mathf.Max(0f, outlineWidth));
+        }
+
+        for (int i = 0; i < lockOutlineRenderers.Length; i++)
+        {
+            Renderer renderer = lockOutlineRenderers[i];
+            if (renderer != null)
+            {
+                renderer.enabled = visible;
+            }
+        }
+    }
+
+    public void ClearLockOutline()
+    {
+        if (lockOutlineRenderers == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < lockOutlineRenderers.Length; i++)
+        {
+            Renderer renderer = lockOutlineRenderers[i];
+            if (renderer != null)
+            {
+                renderer.enabled = false;
+            }
+        }
+    }
+
     public int FootprintRadius
     {
         get { return Mathf.Max(0, footprintSize / 2); }
@@ -661,6 +712,46 @@ public class BattleUnit : MonoBehaviour
             else
             {
                 originalRendererColors[i] = Color.white;
+            }
+        }
+    }
+
+    private void EnsureLockOutlineObjects()
+    {
+        if (lockOutlineRenderers != null && lockOutlineMaterials != null && lockOutlineRenderers.Length == lockOutlineMaterials.Length && lockOutlineRenderers.Length > 0)
+        {
+            return;
+        }
+
+        BattleUnitOutlineBuilder.ApplyOverlay(gameObject, LockOutlinePrefix, Color.white, 0.04f, visibleByDefault: false);
+
+        List<Renderer> renderers = new List<Renderer>();
+        Renderer[] allRenderers = GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < allRenderers.Length; i++)
+        {
+            Renderer renderer = allRenderers[i];
+            if (renderer == null || renderer.gameObject == gameObject)
+            {
+                continue;
+            }
+
+            if (!renderer.name.StartsWith(LockOutlinePrefix, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            renderers.Add(renderer);
+        }
+
+        lockOutlineRenderers = renderers.ToArray();
+        lockOutlineMaterials = new Material[lockOutlineRenderers.Length];
+        for (int i = 0; i < lockOutlineRenderers.Length; i++)
+        {
+            Renderer renderer = lockOutlineRenderers[i];
+            if (renderer != null)
+            {
+                lockOutlineMaterials[i] = renderer.material;
+                renderer.enabled = false;
             }
         }
     }

@@ -52,6 +52,9 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color targetNameEnemyColor = new Color(0.95f, 0.28f, 0.20f, 1f);
     private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
+    private readonly Color activeUnitOutlineColor = Color.white;
+    private readonly Color lockedEnemyOutlineColor = new Color(1.00f, 0.22f, 0.22f, 1f);
+    private readonly Color lockedAllyOutlineColor = new Color(0.20f, 0.95f, 0.42f, 1f);
     private readonly Color skillCostNormalColor = Color.white;
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
     private const string PlayerInfoColorHex = "#33CC66";
@@ -61,6 +64,8 @@ public class BattleTurnSystem : MonoBehaviour
     private const float HitFeelDurationSeconds = 0.3f;
     private const float HitFeelTimeScale = 0.1f;
     private const float DefaultFixedDeltaTime = 0.02f;
+    private const float LockedTargetOutlineWidth = 0.065f;
+    private const float ActiveUnitOutlineWidth = 0.075f;
 
     private BattleGrid grid;
     private Camera battleCamera;
@@ -477,6 +482,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void BeginCurrentTurn()
     {
+        ClearSelectionOutlines();
         StopCombatArtAimAnimation(force: true);
         hasLastCombatArtAimHoverCell = false;
         combatArtAimAnimationActiveUntilTime = 0f;
@@ -491,6 +497,7 @@ public class BattleTurnSystem : MonoBehaviour
                 activeUnit.BeginTurn();
                 FocusCameraOnActiveUnit();
                 ClearActiveSkillMode();
+                RefreshSelectionOutlines();
                 RefreshHighlights();
                 RefreshActiveUnitUi();
                 RefreshTimeline();
@@ -512,6 +519,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         activeUnit = null;
+        RefreshSelectionOutlines();
         StopCameraFollow();
         RefreshActiveUnitUi();
         RefreshTimeline();
@@ -707,6 +715,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (lockedTargetUnit != null && !lockedTargetUnit.IsAlive)
         {
             lockedTargetUnit = null;
+            RefreshSelectionOutlines();
         }
 
         return null;
@@ -720,6 +729,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         lockedTargetUnit = unit != null && unit.IsAlive ? unit : null;
+        RefreshSelectionOutlines();
         lastTargetUiSignature = "<unset>";
         RefreshHighlights();
     }
@@ -732,8 +742,42 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         lockedTargetUnit = null;
+        RefreshSelectionOutlines();
         lastTargetUiSignature = "<unset>";
         RefreshHighlights();
+    }
+
+    private void RefreshSelectionOutlines()
+    {
+        ClearSelectionOutlines();
+
+        if (activeUnit != null && activeUnit.IsAlive)
+        {
+            activeUnit.SetLockOutline(activeUnitOutlineColor, ActiveUnitOutlineWidth, true);
+        }
+
+        if (lockedTargetUnit == null || !lockedTargetUnit.IsAlive || lockedTargetUnit == activeUnit)
+        {
+            return;
+        }
+
+        Color outlineColor = lockedTargetUnit.team == BattleTeam.Enemy
+            ? lockedEnemyOutlineColor
+            : lockedAllyOutlineColor;
+        lockedTargetUnit.SetLockOutline(outlineColor, LockedTargetOutlineWidth, true);
+    }
+
+    private void ClearSelectionOutlines()
+    {
+        if (activeUnit != null)
+        {
+            activeUnit.ClearLockOutline();
+        }
+
+        if (lockedTargetUnit != null && lockedTargetUnit != activeUnit)
+        {
+            lockedTargetUnit.ClearLockOutline();
+        }
     }
 
     private TMP_Text FindTargetHealthTextFallback()
@@ -1627,6 +1671,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (lockedTargetUnit == unit)
         {
+            lockedTargetUnit.ClearLockOutline();
             lockedTargetUnit = null;
             lastTargetUiSignature = "<unset>";
         }
