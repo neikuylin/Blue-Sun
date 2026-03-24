@@ -133,6 +133,7 @@ public class BattleTurnSystem : MonoBehaviour
     private string activeExplorationActionId = ExplorationMoveSkillId;
     private AudioSource modeMusicSource;
     private Coroutine explorationMoveAudioStopRoutine;
+    private bool pendingExplorationModeEnter;
 
     private sealed class EnemySkillChoice
     {
@@ -213,6 +214,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkill = null;
         currentMode = BattleFlowMode.Combat;
         activeExplorationActionId = ExplorationMoveSkillId;
+        pendingExplorationModeEnter = false;
         timelineLeadUnit = null;
         lastTimelineSlots.Clear();
 
@@ -560,6 +562,13 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (isResolvingSkillExecution || skillExecutionRoutine != null)
+        {
+            pendingExplorationModeEnter = true;
+            return;
+        }
+
+        pendingExplorationModeEnter = false;
         EnterExplorationMode();
     }
 
@@ -2721,6 +2730,7 @@ public class BattleTurnSystem : MonoBehaviour
         Debug.Log("Target skill selected: " + caster.unitName + " -> " + target.unitName + " using " + skill.skillId);
         isResolvingSkillExecution = false;
         skillExecutionRoutine = null;
+        TryEnterPendingExplorationMode();
     }
 
     private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
@@ -2749,6 +2759,23 @@ public class BattleTurnSystem : MonoBehaviour
         Debug.Log("Area skill selected: " + caster.unitName + " -> " + targetCell + " using " + skill.skillId);
         isResolvingSkillExecution = false;
         skillExecutionRoutine = null;
+        TryEnterPendingExplorationMode();
+    }
+
+    private void TryEnterPendingExplorationMode()
+    {
+        if (!pendingExplorationModeEnter || IsExplorationMode || HasLivingEnemies())
+        {
+            return;
+        }
+
+        if (isResolvingSkillExecution || skillExecutionRoutine != null)
+        {
+            return;
+        }
+
+        pendingExplorationModeEnter = false;
+        EnterExplorationMode();
     }
 
     private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
