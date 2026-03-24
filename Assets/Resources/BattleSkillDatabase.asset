@@ -84,10 +84,10 @@ MonoBehaviour:
     manaCost: 0
     cooldownTurns: 3
     useMoveDistanceAsRange: 0
-    range: 6
+    range: 1
     areaCastType: 1
-    circularAxisAreaType: 0
+    circularAxisAreaType: 1
     axisWidth: 3
-    axisAngle: 180
+    axisAngle: 360
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000
