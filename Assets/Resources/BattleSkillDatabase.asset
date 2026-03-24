@@ -82,9 +82,9 @@ MonoBehaviour:
     manaCost: 0
     cooldownTurns: 3
     useMoveDistanceAsRange: 0
-    range: 2
+    range: 6
     areaCastType: 1
-    axisNearWidth: 5
-    axisFarWidth: 9
+    axisNearWidth: 3
+    axisFarWidth: 6
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000

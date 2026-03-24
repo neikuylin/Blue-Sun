@@ -2594,18 +2594,16 @@ public class BattleTurnSystem : MonoBehaviour
         int length = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
         int nearWidth = Mathf.Max(1, skill.axisNearWidth);
         int farWidth = Mathf.Max(1, skill.axisFarWidth);
+        float footprintStartRadius = caster.FootprintRadius + 1f;
         Vector2 forward = ResolveAreaDirection(caster, targetCell);
         Vector2 right = new Vector2(-forward.y, forward.x);
         Vector2 casterCenter = new Vector2(caster.currentCell.x, caster.currentCell.y);
 
-        float forwardMin = -0.5f;
-        float forwardMax = length + 0.5f;
         float maxHalfWidth = Mathf.Max(nearWidth, farWidth) * 0.5f + 0.5f;
-
-        int minX = Mathf.FloorToInt(casterCenter.x - maxHalfWidth - 1f);
-        int maxX = Mathf.CeilToInt(casterCenter.x + forward.x * length + maxHalfWidth + 1f);
-        int minY = Mathf.FloorToInt(casterCenter.y - maxHalfWidth - 1f);
-        int maxY = Mathf.CeilToInt(casterCenter.y + forward.y * length + maxHalfWidth + 1f);
+        int minX = Mathf.FloorToInt(casterCenter.x - length - maxHalfWidth - 1f);
+        int maxX = Mathf.CeilToInt(casterCenter.x + length + maxHalfWidth + 1f);
+        int minY = Mathf.FloorToInt(casterCenter.y - length - maxHalfWidth - 1f);
+        int maxY = Mathf.CeilToInt(casterCenter.y + length + maxHalfWidth + 1f);
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -2618,17 +2616,33 @@ public class BattleTurnSystem : MonoBehaviour
                 }
 
                 Vector2 cellOffset = new Vector2(x - casterCenter.x, y - casterCenter.y);
-                float forwardDistance = Vector2.Dot(cellOffset, forward);
-                if (forwardDistance < forwardMin || forwardDistance > forwardMax)
+                float radialDistance = cellOffset.magnitude;
+                if (radialDistance < footprintStartRadius || radialDistance > length + 0.5f)
                 {
                     continue;
                 }
 
-                float t = length <= 0 ? 0f : Mathf.Clamp01(forwardDistance / Mathf.Max(1f, length));
+                float normalizedDistance = radialDistance - footprintStartRadius;
+                float normalizedLength = Mathf.Max(0.0001f, length - footprintStartRadius);
+                float t = length <= 0 ? 0f : Mathf.Clamp01(normalizedDistance / normalizedLength);
                 float widthAtDistance = Mathf.Lerp(nearWidth, farWidth, t);
-                float halfWidth = widthAtDistance * 0.5f;
-                float lateralDistance = Mathf.Abs(Vector2.Dot(cellOffset, right));
-                if (lateralDistance > halfWidth)
+
+                if (radialDistance <= 0.0001f)
+                {
+                    result.Add(cell);
+                    continue;
+                }
+
+                Vector2 radialDirection = cellOffset / radialDistance;
+                float forwardDot = Vector2.Dot(radialDirection, forward);
+                if (forwardDot <= 0f)
+                {
+                    continue;
+                }
+
+                float lateralRatio = Mathf.Abs(Vector2.Dot(radialDirection, right));
+                float allowedLateralRatio = Mathf.Clamp01(widthAtDistance / (2f * radialDistance));
+                if (lateralRatio > allowedLateralRatio)
                 {
                     continue;
                 }
