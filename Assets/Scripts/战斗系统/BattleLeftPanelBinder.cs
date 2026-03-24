@@ -15,6 +15,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private const string PreviewImageName = "__ModelPreviewImage";
     private const int PreviewLayer = 31;
     private const int PreviewTextureSize = 1024;
+    private const float PreviewOutlineWidth = 0.035f;
 
     private sealed class SkillSlotWidget
     {
@@ -498,7 +499,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         previewModelInstance = Instantiate(source, previewRuntimeRoot.transform, false);
         previewModelInstance.name = characterId + "_EquipmentPreview";
         previewModelInstance.transform.localPosition = Vector3.zero;
-        previewModelInstance.transform.localRotation = Quaternion.identity;
+        previewModelInstance.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
         previewModelInstance.transform.localScale = Vector3.one;
         previewCharacterId = characterId;
 
@@ -536,12 +537,17 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         if (previewUnit != null)
         {
             string idleStateName = previewUnit.GetIdleAnimationStateName();
-            previewUnit.enabled = false;
-
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
                 previewUnit.PlayAnimationState(idleStateName);
             }
+
+            previewUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
+            previewUnit.enabled = false;
+        }
+        else
+        {
+            BattleUnitOutlineBuilder.Apply(previewObject, Color.white, PreviewOutlineWidth);
         }
 
         BattleUnit[] nestedUnits = previewObject.GetComponentsInChildren<BattleUnit>(true);
@@ -550,15 +556,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             if (nestedUnits[i] != null)
             {
                 nestedUnits[i].enabled = false;
-            }
-        }
-
-        BattleUnitOutlineMarker[] markers = previewObject.GetComponentsInChildren<BattleUnitOutlineMarker>(true);
-        for (int i = 0; i < markers.Length; i++)
-        {
-            if (markers[i] != null)
-            {
-                markers[i].gameObject.SetActive(false);
             }
         }
 
