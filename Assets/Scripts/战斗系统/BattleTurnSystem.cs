@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -296,6 +297,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         if (!Input.GetMouseButtonDown(0))
+        {
+            return;
+        }
+
+        if (IsPointerBlockedByUi())
         {
             return;
         }
@@ -683,6 +689,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (hoveredSkillTarget != null && hoveredSkillTarget.IsAlive)
         {
             return hoveredSkillTarget;
+        }
+
+        if (IsPointerBlockedByUi())
+        {
+            return null;
         }
 
         if (grid == null || battleCamera == null)
@@ -1978,6 +1989,22 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (IsPointerBlockedByUi())
+        {
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells || skillHoverValid || skillHoverActionPointCost > 0)
+            {
+                hasSkillHoverPreview = false;
+                skillHoverValid = false;
+                skillHoverHasAnyVisibleCells = false;
+                skillHoverActionPointCost = 0;
+                RefreshHighlights();
+            }
+
+            HideSkillCostHint();
+            ClearHoveredSkillTarget();
+            return;
+        }
+
         bool shouldShowAreaPreview = ShouldShowSkillAreaPreview(activeSkill);
         if (!shouldShowAreaPreview)
         {
@@ -2704,6 +2731,12 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (IsPointerBlockedByUi())
+        {
+            ClearHoveredSkillTarget();
+            return;
+        }
+
         Plane clickPlane = grid.GetInteractionPlane();
         Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
         float enter;
@@ -2836,6 +2869,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         grid.ClearHoveredFootprint();
         hoveredSkillTarget = null;
+    }
+
+    private static bool IsPointerBlockedByUi()
+    {
+        EventSystem eventSystem = EventSystem.current;
+        return eventSystem != null && eventSystem.IsPointerOverGameObject();
     }
 
     private int GetMoveMaxRange(BattleUnit unit, BattleSkillDatabase.SkillEntry moveSkill)
