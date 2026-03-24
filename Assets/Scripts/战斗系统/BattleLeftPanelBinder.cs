@@ -16,6 +16,8 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private const int PreviewLayer = 31;
     private const int PreviewTextureSize = 1024;
     private const float PreviewOutlineWidth = 0.035f;
+    private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
+    private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
 
     private sealed class SkillSlotWidget
     {
@@ -271,6 +273,9 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             target.sprite = icon;
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
+            target.color = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId)
+                ? EnabledSkillColor
+                : DisabledSkillColor;
         }
     }
 

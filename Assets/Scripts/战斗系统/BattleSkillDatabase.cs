@@ -74,7 +74,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         {
             if (requiredWeaponCategories == null || requiredWeaponCategories.Count == 0)
             {
-                return true;
+                return false;
             }
 
             for (int i = 0; i < requiredWeaponCategories.Count; i++)

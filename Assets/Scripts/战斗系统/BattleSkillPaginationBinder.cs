@@ -13,8 +13,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private const float SkillTooltipDelaySeconds = 0.5f;
     private const string DefaultCharacterId = "\u73a9\u5bb6";
     private const string SkillPatternName = "\u6280\u80fd\u56fe\u6848";
-    private static readonly Color DisabledSkillColor = new Color32(100, 100, 100, 255);
-    private static readonly Color EnabledSkillColor = Color.white;
     private const string SkillSlotContainerPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
     private const string PreviousPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u524d\u7ffb\u9875";
     private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
@@ -308,7 +306,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             string skillId = startIndex + i < allSkills.Count ? allSkills[startIndex + i] : string.Empty;
             widget.skillId = skillId;
             Sprite icon = ResolveSkillIcon(skillId);
-            bool isUsable = IsSkillUsable(currentCharacterId, skillId);
+            bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
             currentSkillSnapshots.Add(BuildSkillSnapshot(i, currentCharacterId, skillId));
 
             if (widget.icon != null)
@@ -316,7 +314,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 widget.icon.sprite = icon;
                 widget.icon.enabled = icon != null;
                 widget.icon.raycastTarget = false;
-                widget.icon.color = isUsable ? EnabledSkillColor : DisabledSkillColor;
+                widget.icon.color = isUsable ? SkillUsabilityUtility.EnabledSkillColor : SkillUsabilityUtility.DisabledSkillColor;
             }
 
             if (widget.iconObject != null)
@@ -330,7 +328,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 Image buttonImage = widget.button.targetGraphic as Image;
                 if (buttonImage != null)
                 {
-                    buttonImage.color = isUsable ? EnabledSkillColor : DisabledSkillColor;
+                    buttonImage.color = isUsable ? SkillUsabilityUtility.EnabledSkillColor : SkillUsabilityUtility.DisabledSkillColor;
                 }
             }
         }
@@ -384,7 +382,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             return;
         }
 
-        if (!IsSkillUsable(currentCharacterId, skillId))
+        if (!SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId))
         {
             return;
         }
@@ -551,39 +549,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             damage = isCombatArt ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
             isEmpty = string.IsNullOrWhiteSpace(skillId) || !isCombatArt
         };
-    }
-
-    private bool IsSkillUsable(string ownerCharacterId, string skillId)
-    {
-        if (string.IsNullOrWhiteSpace(skillId))
-        {
-            return false;
-        }
-
-        if (string.Equals(skillId, BattleTurnSystem.ExplorationIdleSkillId, StringComparison.Ordinal) ||
-            string.Equals(skillId, BattleTurnSystem.ExplorationMoveSkillId, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        if (skillDatabase == null)
-        {
-            skillDatabase = BattleSkillDatabase.LoadDefault();
-        }
-
-        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
-        if (entry == null)
-        {
-            return false;
-        }
-
-        if (entry.requiredWeaponCategories == null || entry.requiredWeaponCategories.Count == 0)
-        {
-            return true;
-        }
-
-        ItemDatabase.WeaponCategory equippedCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(ownerCharacterId);
-        return entry.RequiresWeaponCategory(equippedCategory);
     }
 
     private static string ResolveSkillSourceDisplay(string ownerCharacterId, string skillId)

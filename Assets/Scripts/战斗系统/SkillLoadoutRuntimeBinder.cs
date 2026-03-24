@@ -18,6 +18,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
+    private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
+    private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
 
     private sealed class SkillSlotWidget
     {
@@ -261,6 +263,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
             target.raycastTarget = false;
+            target.color = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId)
+                ? EnabledSkillColor
+                : DisabledSkillColor;
         }
     }
 
