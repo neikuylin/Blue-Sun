@@ -34,7 +34,8 @@ MonoBehaviour:
     useMoveDistanceAsRange: 1
     range: 0
     areaCastType: 0
-    useCastRangeAsEffectRange: 0
+    axisNearWidth: 3
+    axisFarWidth: 3
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 
   - skillId: "\u666E\u901A\u653B\u51FB"
@@ -58,7 +59,8 @@ MonoBehaviour:
     useMoveDistanceAsRange: 0
     range: 1
     areaCastType: 0
-    useCastRangeAsEffectRange: 0
+    axisNearWidth: 3
+    axisFarWidth: 3
     effectSize: {x: 1, y: 1}
     requiredWeaponCategories: 0100000002000000
   - skillId: "\u56DE\u65CB\u65A9"
@@ -80,8 +82,9 @@ MonoBehaviour:
     manaCost: 0
     cooldownTurns: 3
     useMoveDistanceAsRange: 0
-    range: 3
-    areaCastType: 0
-    useCastRangeAsEffectRange: 1
+    range: 2
+    areaCastType: 1
+    axisNearWidth: 5
+    axisFarWidth: 9
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000

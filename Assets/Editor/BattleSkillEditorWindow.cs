@@ -171,20 +171,26 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 if ((BattleSkillDatabase.SkillType)skillType.enumValueIndex == BattleSkillDatabase.SkillType.Area)
                 {
                     SerializedProperty areaCastType = entry.FindPropertyRelative("areaCastType");
+                    SerializedProperty axisNearWidth = entry.FindPropertyRelative("axisNearWidth");
+                    SerializedProperty axisFarWidth = entry.FindPropertyRelative("axisFarWidth");
                     SerializedProperty effectSize = entry.FindPropertyRelative("effectSize");
                     areaCastType.enumValueIndex = EditorGUILayout.Popup("施法类型", areaCastType.enumValueIndex, AreaCastTypeLabels);
-                    if ((BattleSkillDatabase.AreaCastType)areaCastType.enumValueIndex != BattleSkillDatabase.AreaCastType.ImpactPoint)
+                    if ((BattleSkillDatabase.AreaCastType)areaCastType.enumValueIndex == BattleSkillDatabase.AreaCastType.CircularAxis)
                     {
-                        EditorGUILayout.HelpBox("圆轴暂未接入独立判定，当前仍按普通范围技能处理。", MessageType.Info);
+                        axisNearWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("近端宽", Mathf.Max(1, axisNearWidth.intValue)));
+                        axisFarWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("远端宽", Mathf.Max(1, axisFarWidth.intValue)));
+                        EditorGUILayout.LabelField("长度", "等于射程");
                     }
+                    else
+                    {
+                        Vector2Int size = effectSize.vector2IntValue;
+                        int width = EditorGUILayout.IntField("\u4f5c\u7528\u8303\u56f4\u5bbd", Mathf.Max(1, size.x));
+                        int height = EditorGUILayout.IntField("\u4f5c\u7528\u8303\u56f4\u9ad8", Mathf.Max(1, size.y));
+                        effectSize.vector2IntValue = new Vector2Int(width, height);
 
-                    Vector2Int size = effectSize.vector2IntValue;
-                    int width = EditorGUILayout.IntField("\u4f5c\u7528\u8303\u56f4\u5bbd", Mathf.Max(1, size.x));
-                    int height = EditorGUILayout.IntField("\u4f5c\u7528\u8303\u56f4\u9ad8", Mathf.Max(1, size.y));
-                    effectSize.vector2IntValue = new Vector2Int(width, height);
-
-                    Vector2Int updatedSize = effectSize.vector2IntValue;
-                    EditorGUILayout.LabelField("\u4f5c\u7528\u8303\u56f4", $"{Mathf.Max(1, updatedSize.x)}x{Mathf.Max(1, updatedSize.y)}");
+                        Vector2Int updatedSize = effectSize.vector2IntValue;
+                        EditorGUILayout.LabelField("\u4f5c\u7528\u8303\u56f4", $"{Mathf.Max(1, updatedSize.x)}x{Mathf.Max(1, updatedSize.y)}");
+                    }
                 }
             }
         }
@@ -225,6 +231,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("useMoveDistanceAsRange").boolValue = false;
         entry.FindPropertyRelative("range").intValue = 1;
         entry.FindPropertyRelative("areaCastType").enumValueIndex = (int)BattleSkillDatabase.AreaCastType.ImpactPoint;
+        entry.FindPropertyRelative("axisNearWidth").intValue = 3;
+        entry.FindPropertyRelative("axisFarWidth").intValue = 3;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
     }

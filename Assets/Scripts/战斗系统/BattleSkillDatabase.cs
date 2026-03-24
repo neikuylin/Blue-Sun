@@ -59,6 +59,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public bool useMoveDistanceAsRange = true;
         public int range;
         public AreaCastType areaCastType = AreaCastType.ImpactPoint;
+        public int axisNearWidth = 3;
+        public int axisFarWidth = 3;
         public Vector2Int effectSize = new Vector2Int(3, 3);
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
 

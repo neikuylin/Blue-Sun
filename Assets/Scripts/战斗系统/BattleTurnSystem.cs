@@ -2529,6 +2529,11 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
+        if (IsCircularAxisAreaSkill(skill))
+        {
+            return true;
+        }
+
         int width = Mathf.Max(1, skill.effectSize.x);
         int height = Mathf.Max(1, skill.effectSize.y);
         return width > 1 || height > 1;
@@ -2546,12 +2551,106 @@ public class BattleTurnSystem : MonoBehaviour
         return Mathf.Max(width, height);
     }
 
+    private static bool IsCircularAxisAreaSkill(BattleSkillDatabase.SkillEntry skill)
+    {
+        return skill != null &&
+            skill.skillType == BattleSkillDatabase.SkillType.Area &&
+            skill.areaCastType == BattleSkillDatabase.AreaCastType.CircularAxis;
+    }
+
+    private Vector2 ResolveAreaDirection(BattleUnit caster, Vector2Int targetCell)
+    {
+        if (caster == null)
+        {
+            return Vector2.right;
+        }
+
+        Vector2 direction = new Vector2(
+            targetCell.x - caster.currentCell.x,
+            targetCell.y - caster.currentCell.y);
+        if (direction.sqrMagnitude > 0.0001f)
+        {
+            return direction.normalized;
+        }
+
+        Vector3 forward3 = caster.transform.forward;
+        Vector2 forward = new Vector2(forward3.x, forward3.z);
+        if (forward.sqrMagnitude > 0.0001f)
+        {
+            return forward.normalized;
+        }
+
+        return Vector2.right;
+    }
+
+    private HashSet<Vector2Int> CollectCircularAxisEffectCells(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        HashSet<Vector2Int> result = new HashSet<Vector2Int>();
+        if (grid == null || caster == null || skill == null)
+        {
+            return result;
+        }
+
+        int length = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
+        int nearWidth = Mathf.Max(1, skill.axisNearWidth);
+        int farWidth = Mathf.Max(1, skill.axisFarWidth);
+        Vector2 forward = ResolveAreaDirection(caster, targetCell);
+        Vector2 right = new Vector2(-forward.y, forward.x);
+        Vector2 casterCenter = new Vector2(caster.currentCell.x, caster.currentCell.y);
+
+        float forwardMin = -0.5f;
+        float forwardMax = length + 0.5f;
+        float maxHalfWidth = Mathf.Max(nearWidth, farWidth) * 0.5f + 0.5f;
+
+        int minX = Mathf.FloorToInt(casterCenter.x - maxHalfWidth - 1f);
+        int maxX = Mathf.CeilToInt(casterCenter.x + forward.x * length + maxHalfWidth + 1f);
+        int minY = Mathf.FloorToInt(casterCenter.y - maxHalfWidth - 1f);
+        int maxY = Mathf.CeilToInt(casterCenter.y + forward.y * length + maxHalfWidth + 1f);
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!grid.IsInside(cell))
+                {
+                    continue;
+                }
+
+                Vector2 cellOffset = new Vector2(x - casterCenter.x, y - casterCenter.y);
+                float forwardDistance = Vector2.Dot(cellOffset, forward);
+                if (forwardDistance < forwardMin || forwardDistance > forwardMax)
+                {
+                    continue;
+                }
+
+                float t = length <= 0 ? 0f : Mathf.Clamp01(forwardDistance / Mathf.Max(1f, length));
+                float widthAtDistance = Mathf.Lerp(nearWidth, farWidth, t);
+                float halfWidth = widthAtDistance * 0.5f;
+                float lateralDistance = Mathf.Abs(Vector2.Dot(cellOffset, right));
+                if (lateralDistance > halfWidth)
+                {
+                    continue;
+                }
+
+                result.Add(cell);
+            }
+        }
+
+        return result;
+    }
+
     private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
     {
         HashSet<Vector2Int> result = new HashSet<Vector2Int>();
         if (grid == null || skill == null || !grid.IsInside(centerCell))
         {
             return result;
+        }
+
+        if (IsCircularAxisAreaSkill(skill))
+        {
+            return CollectCircularAxisEffectCells(caster, centerCell, skill);
         }
 
         int footprintSize = GetSkillPreviewFootprintSize(skill);
