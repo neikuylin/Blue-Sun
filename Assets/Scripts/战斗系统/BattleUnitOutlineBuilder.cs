@@ -7,6 +7,7 @@ public static class BattleUnitOutlineBuilder
     private const string OutlineShaderName = "Battle/UnitOutline";
     private const string OutlineMaskObjectPrefix = "__OutlineMask_";
     private const string OutlineObjectPrefix = "__Outline_";
+    private static readonly string[] ExcludedNameKeywords = { "quad", "shadow", "阴影", "投影", "影子" };
     private static Material sharedOutlineMaskMaterial;
 
     public static void Apply(GameObject root, Color outlineColor, float outlineWidth)
@@ -27,7 +28,7 @@ public static class BattleUnitOutlineBuilder
         for (int i = 0; i < meshRenderers.Length; i++)
         {
             MeshRenderer renderer = meshRenderers[i];
-            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null)
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null || ShouldExcludeRenderer(renderer))
             {
                 continue;
             }
@@ -45,7 +46,7 @@ public static class BattleUnitOutlineBuilder
         for (int i = 0; i < skinnedRenderers.Length; i++)
         {
             SkinnedMeshRenderer renderer = skinnedRenderers[i];
-            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null || renderer.sharedMesh == null)
+            if (renderer == null || renderer.GetComponent<BattleUnitOutlineMarker>() != null || renderer.sharedMesh == null || ShouldExcludeRenderer(renderer))
             {
                 continue;
             }
@@ -213,6 +214,68 @@ public static class BattleUnitOutlineBuilder
                 {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ShouldExcludeRenderer(Renderer renderer)
+    {
+        if (renderer == null)
+        {
+            return true;
+        }
+
+        string objectName = renderer.name;
+        if (ContainsExcludedKeyword(objectName))
+        {
+            return true;
+        }
+
+        Transform current = renderer.transform;
+        while (current != null)
+        {
+            if (ContainsExcludedKeyword(current.name))
+            {
+                return true;
+            }
+
+            current = current.parent;
+        }
+
+        if (renderer is MeshRenderer meshRenderer)
+        {
+            MeshFilter meshFilter = meshRenderer.GetComponent<MeshFilter>();
+            if (meshFilter != null && meshFilter.sharedMesh != null && ContainsExcludedKeyword(meshFilter.sharedMesh.name))
+            {
+                return true;
+            }
+        }
+        else if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh != null)
+        {
+            if (ContainsExcludedKeyword(skinnedMeshRenderer.sharedMesh.name))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsExcludedKeyword(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        string lowered = value.ToLowerInvariant();
+        for (int i = 0; i < ExcludedNameKeywords.Length; i++)
+        {
+            if (lowered.Contains(ExcludedNameKeywords[i]))
+            {
+                return true;
             }
         }
 
