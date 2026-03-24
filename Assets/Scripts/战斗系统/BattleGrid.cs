@@ -457,6 +457,38 @@ public class BattleGrid : MonoBehaviour
         CreateOverlay(CollectFootprintCells(centerCell, footprintSize), color, "FootprintAt");
     }
 
+    public void HighlightCells(HashSet<Vector2Int> cells, Color color)
+    {
+        CreateOverlay(cells, color, "Cells");
+    }
+
+    public void HighlightPartialCells(HashSet<Vector2Int> cells, BattleUnit ignoredUnit, Color color)
+    {
+        if (cells == null || cells.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<Vector2Int> visibleCells = new HashSet<Vector2Int>();
+        foreach (Vector2Int cell in cells)
+        {
+            if (!IsInside(cell))
+            {
+                continue;
+            }
+
+            BattleUnit occupant = GetUnitAt(cell);
+            if (occupant != null && occupant != ignoredUnit)
+            {
+                continue;
+            }
+
+            visibleCells.Add(cell);
+        }
+
+        CreateOverlay(visibleCells, color, "PartialCells");
+    }
+
     public void HighlightPartialFootprint(int footprintSize, Vector2Int centerCell, Color color)
     {
         int radius = Mathf.Max(0, footprintSize / 2);

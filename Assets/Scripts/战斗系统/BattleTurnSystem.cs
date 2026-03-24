@@ -2447,8 +2447,8 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        int previewFootprintSize = GetSkillPreviewFootprintSize(activeSkill);
-        if (previewFootprintSize <= 1)
+        HashSet<Vector2Int> previewCells = CollectVisibleAreaEffectCells(activeUnit, skillHoverCell, activeSkill);
+        if (previewCells == null || previewCells.Count == 0)
         {
             return;
         }
@@ -2459,16 +2459,13 @@ public class BattleTurnSystem : MonoBehaviour
         {
             Color previewColor = skillPreviewValidColor;
             previewColor.a = Mathf.Lerp(0.18f, skillPreviewValidColor.a, pulse);
-            grid.HighlightFootprintAt(
-                skillHoverCell,
-                previewFootprintSize,
-                previewColor);
+            grid.HighlightCells(previewCells, previewColor);
             return;
         }
 
         Color invalidColor = skillPreviewInvalidColor;
         invalidColor.a = Mathf.Lerp(0.16f, skillPreviewInvalidColor.a, pulse);
-        grid.HighlightPartialFootprint(previewFootprintSize, skillHoverCell, invalidColor);
+        grid.HighlightPartialCells(previewCells, activeUnit, invalidColor);
     }
 
     private void ApplyHoveredTargetPreview()
@@ -2516,34 +2513,8 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        int footprintSize = GetSkillPreviewFootprintSize(activeSkill);
-        if (footprintSize <= 1)
-        {
-            return false;
-        }
-
-        int radius = Mathf.Max(0, footprintSize / 2);
-        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
-        {
-            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (!grid.IsInside(cell))
-                {
-                    continue;
-                }
-
-                BattleUnit occupant = grid.GetUnitAt(cell);
-                if (occupant != null && occupant != activeUnit)
-                {
-                    continue;
-                }
-
-                return true;
-            }
-        }
-
-        return false;
+        HashSet<Vector2Int> visibleCells = CollectVisibleAreaEffectCells(activeUnit, centerCell, activeSkill);
+        return visibleCells != null && visibleCells.Count > 0;
     }
 
     private static bool ShouldShowSkillAreaPreview(BattleSkillDatabase.SkillEntry skill)
@@ -2556,6 +2527,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (skill.skillType != BattleSkillDatabase.SkillType.Area)
         {
             return false;
+        }
+
+        if (skill.useCastRangeAsEffectRange)
+        {
+            return true;
         }
 
         int width = Mathf.Max(1, skill.effectSize.x);
@@ -2573,6 +2549,95 @@ public class BattleTurnSystem : MonoBehaviour
         int width = Mathf.Max(1, skill.effectSize.x);
         int height = Mathf.Max(1, skill.effectSize.y);
         return Mathf.Max(width, height);
+    }
+
+    private static bool UsesCastRangeAsEffectRange(BattleSkillDatabase.SkillEntry skill)
+    {
+        return skill != null &&
+            skill.skillType == BattleSkillDatabase.SkillType.Area &&
+            skill.areaCastType == BattleSkillDatabase.AreaCastType.ImpactPoint &&
+            skill.useCastRangeAsEffectRange;
+    }
+
+    private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        HashSet<Vector2Int> result = new HashSet<Vector2Int>();
+        if (grid == null || skill == null || !grid.IsInside(centerCell))
+        {
+            return result;
+        }
+
+        if (UsesCastRangeAsEffectRange(skill))
+        {
+            int radius = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
+            int radiusSquared = radius * radius;
+            for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+            {
+                for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+                {
+                    Vector2Int cell = new Vector2Int(x, y);
+                    if (!grid.IsInside(cell))
+                    {
+                        continue;
+                    }
+
+                    int dx = cell.x - centerCell.x;
+                    int dy = cell.y - centerCell.y;
+                    if (dx * dx + dy * dy > radiusSquared)
+                    {
+                        continue;
+                    }
+
+                    result.Add(cell);
+                }
+            }
+
+            return result;
+        }
+
+        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        if (footprintSize <= 0)
+        {
+            return result;
+        }
+
+        int footprintRadius = Mathf.Max(0, footprintSize / 2);
+        for (int y = centerCell.y - footprintRadius; y <= centerCell.y + footprintRadius; y++)
+        {
+            for (int x = centerCell.x - footprintRadius; x <= centerCell.x + footprintRadius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (grid.IsInside(cell))
+                {
+                    result.Add(cell);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private HashSet<Vector2Int> CollectVisibleAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        HashSet<Vector2Int> cells = CollectAreaEffectCells(caster, centerCell, skill);
+        if (cells.Count == 0)
+        {
+            return cells;
+        }
+
+        HashSet<Vector2Int> visibleCells = new HashSet<Vector2Int>();
+        foreach (Vector2Int cell in cells)
+        {
+            BattleUnit occupant = grid.GetUnitAt(cell);
+            if (occupant != null && occupant != caster)
+            {
+                continue;
+            }
+
+            visibleCells.Add(cell);
+        }
+
+        return visibleCells;
     }
 
     private bool IsSkillModeActive()
@@ -2900,7 +2965,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -2914,7 +2979,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            if (!IsUnitInsideAreaCells(unit, affectedCells))
             {
                 continue;
             }
@@ -2959,7 +3024,7 @@ public class BattleTurnSystem : MonoBehaviour
             return FormatAreaSkillMessage(caster, targetCell, skill);
         }
 
-        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         List<string> hitTargets = new List<string>();
         List<string> missedTargets = new List<string>();
         for (int i = 0; i < units.Count; i++)
@@ -2975,7 +3040,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            if (!IsUnitInsideAreaCells(unit, affectedCells))
             {
                 continue;
             }
@@ -3194,7 +3259,7 @@ public class BattleTurnSystem : MonoBehaviour
             return result;
         }
 
-        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -3208,7 +3273,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaFootprint(unit, hoveredCell, footprintSize))
+            if (!IsUnitInsideAreaCells(unit, affectedCells))
             {
                 continue;
             }
@@ -3268,33 +3333,26 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        return IsUnitInsideAreaFootprint(target, hoveredCell, GetSkillPreviewFootprintSize(skill));
+        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
+        return IsUnitInsideAreaCells(target, affectedCells);
     }
 
-    private bool IsUnitInsideAreaFootprint(BattleUnit target, Vector2Int areaCenterCell, int footprintSize)
+    private static bool IsUnitInsideAreaCells(BattleUnit target, HashSet<Vector2Int> areaCells)
     {
-        if (target == null || footprintSize <= 0)
+        if (target == null || areaCells == null || areaCells.Count == 0)
         {
             return false;
         }
 
-        int areaRadius = Mathf.Max(0, footprintSize / 2);
         int unitRadius = target.FootprintRadius;
         for (int y = target.currentCell.y - unitRadius; y <= target.currentCell.y + unitRadius; y++)
         {
             for (int x = target.currentCell.x - unitRadius; x <= target.currentCell.x + unitRadius; x++)
             {
-                if (x < areaCenterCell.x - areaRadius || x > areaCenterCell.x + areaRadius)
+                if (areaCells.Contains(new Vector2Int(x, y)))
                 {
-                    continue;
+                    return true;
                 }
-
-                if (y < areaCenterCell.y - areaRadius || y > areaCenterCell.y + areaRadius)
-                {
-                    continue;
-                }
-
-                return true;
             }
         }
 
@@ -4480,7 +4538,7 @@ public class BattleTurnSystem : MonoBehaviour
             return names;
         }
 
-        int footprintSize = GetSkillPreviewFootprintSize(skill);
+        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -4494,7 +4552,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!IsUnitInsideAreaFootprint(unit, targetCell, footprintSize))
+            if (!IsUnitInsideAreaCells(unit, affectedCells))
             {
                 continue;
             }
