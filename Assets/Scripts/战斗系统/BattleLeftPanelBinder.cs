@@ -97,6 +97,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private void Update()
     {
+        if (!IsEquipmentPanelVisible())
+        {
+            currentCharacterId = string.Empty;
+            ClearPreviewTargetUnit();
+        }
+
         UpdatePreviewCameraFollow();
 
         string targetCharacterId = ResolveCharacterId();
@@ -116,6 +122,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         if (previewTargetUnit == null || previewCamera == null || string.IsNullOrWhiteSpace(previewCharacterId))
         {
+            return;
+        }
+
+        if (!IsEquipmentPanelVisible())
+        {
+            ClearPreviewTargetUnit();
             return;
         }
 
@@ -686,8 +698,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private string ResolveCharacterId()
     {
+        if (!IsEquipmentPanelVisible())
+        {
+            return string.Empty;
+        }
+
         string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        string source = "equipment";
 
         BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
         if (battleTurnSystem != null)
@@ -698,9 +714,22 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         if (string.IsNullOrWhiteSpace(characterId))
         {
             characterId = CharacterSelectionState.ActiveCharacterId;
-            source = "active-selection";
         }
         return characterId;
+    }
+
+    private bool IsEquipmentPanelVisible()
+    {
+        RectTransform panel = battleBindings != null && battleBindings.equipmentContainer != null
+            ? battleBindings.equipmentContainer
+            : ResolveEquipmentPanelRoot();
+        return panel != null && panel.gameObject.activeInHierarchy;
+    }
+
+    private RectTransform ResolveEquipmentPanelRoot()
+    {
+        Transform target = SceneHierarchyPathUtility.FindInActiveScene("Canvas/弹窗/左边栏位");
+        return target as RectTransform;
     }
 
     private Image ResolveLeftPanelPortrait()
