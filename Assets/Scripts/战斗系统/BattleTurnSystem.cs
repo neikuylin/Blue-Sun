@@ -127,9 +127,11 @@ public class BattleTurnSystem : MonoBehaviour
     private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
     private string currentCombatArtAimStateName = string.Empty;
     private BattleAudioUtility.PlaybackHandle currentCombatArtAimAudioHandle;
+    private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
     private AudioSource modeMusicSource;
+    private Coroutine explorationMoveAudioStopRoutine;
 
     private sealed class EnemySkillChoice
     {
@@ -246,6 +248,7 @@ public class BattleTurnSystem : MonoBehaviour
         RestoreGlobalTimeScale();
         UnbindEndTurnButton();
         UnbindSkillButton();
+        StopTrackedAudio(currentExplorationMoveAudioHandle);
         StopModeMusic();
     }
 
@@ -529,7 +532,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         float moveDuration = grid.MoveUnit(unit, destination);
         string idleStateName = ResolveExplorationIdleStateName();
-        BattleAudioUtility.PlayOnce(ResolveExplorationMoveSound(), ResolveExplorationMoveSoundPrefab(), unit, battleCamera);
+        PlayExplorationMoveAudio(unit, moveDuration);
         unit.PlayTimedAnimation(
             unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
             moveDuration,
@@ -570,6 +573,7 @@ public class BattleTurnSystem : MonoBehaviour
         ClearHoveredSkillTarget();
         hoveredTargetUnit = null;
         activeUnit = FindExplorationPlayerUnit();
+        PlayExitBattleAnimations();
         if (activeUnit != null)
         {
             FocusCameraOnActiveUnit();
@@ -2275,6 +2279,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.Equals(actionId, ExplorationIdleSkillId, System.StringComparison.Ordinal))
         {
+            StopExplorationMoveAudio();
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
@@ -2288,7 +2293,7 @@ public class BattleTurnSystem : MonoBehaviour
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(moveStateName))
             {
-                BattleAudioUtility.PlayOnce(ResolveExplorationMoveSound(), ResolveExplorationMoveSoundPrefab(), activeUnit, battleCamera);
+                StopExplorationMoveAudio();
                 activeUnit.PlayTimedAnimation(moveStateName, 0.05f, idleStateName, ResolveExplorationMoveCompensateMotion());
             }
         }
@@ -4470,6 +4475,101 @@ public class BattleTurnSystem : MonoBehaviour
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null && settings.explorationMoveCompensateMotion;
+    }
+
+    private static string ResolveExitBattleStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.exitBattleStateName : string.Empty;
+    }
+
+    private static AudioClip ResolveExitBattleSound()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.exitBattleSound : null;
+    }
+
+    private static GameObject ResolveExitBattleSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.exitBattleSoundPrefab : null;
+    }
+
+    private static bool ResolveExitBattleCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.exitBattleCompensateMotion;
+    }
+
+    private void PlayExitBattleAnimations()
+    {
+        string stateName = ResolveExitBattleStateName();
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive || unit.team != BattleTeam.Player)
+            {
+                continue;
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            BattleAudioUtility.PlayOnce(ResolveExitBattleSound(), ResolveExitBattleSoundPrefab(), unit, battleCamera);
+            unit.PlayAnimationStateForCurrentClipDuration(
+                stateName,
+                ResolveExplorationIdleStateName(),
+                ResolveExitBattleCompensateMotion());
+        }
+    }
+
+    private void PlayExplorationMoveAudio(BattleUnit unit, float duration)
+    {
+        StopExplorationMoveAudio();
+        currentExplorationMoveAudioHandle = BattleAudioUtility.StartTracked(
+            ResolveExplorationMoveSound(),
+            ResolveExplorationMoveSoundPrefab(),
+            unit,
+            battleCamera);
+
+        if (currentExplorationMoveAudioHandle == null || !currentExplorationMoveAudioHandle.IsValid)
+        {
+            return;
+        }
+
+        if (explorationMoveAudioStopRoutine != null)
+        {
+            StopCoroutine(explorationMoveAudioStopRoutine);
+        }
+
+        explorationMoveAudioStopRoutine = StartCoroutine(StopExplorationMoveAudioAfterDelay(duration));
+    }
+
+    private IEnumerator StopExplorationMoveAudioAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0.01f, delay));
+        StopExplorationMoveAudio();
+        explorationMoveAudioStopRoutine = null;
+    }
+
+    private void StopExplorationMoveAudio()
+    {
+        if (explorationMoveAudioStopRoutine != null)
+        {
+            StopCoroutine(explorationMoveAudioStopRoutine);
+            explorationMoveAudioStopRoutine = null;
+        }
+
+        StopTrackedAudio(currentExplorationMoveAudioHandle);
+        currentExplorationMoveAudioHandle = null;
     }
 
     private static string ResolveCombatArtLeftAimStateName()

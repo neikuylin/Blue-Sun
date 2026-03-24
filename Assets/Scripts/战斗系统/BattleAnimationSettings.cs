@@ -13,6 +13,10 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public AudioClip enterBattleSound;
     public GameObject enterBattleSoundPrefab;
     public bool enterBattleCompensateMotion;
+    public string exitBattleStateName = string.Empty;
+    public AudioClip exitBattleSound;
+    public GameObject exitBattleSoundPrefab;
+    public bool exitBattleCompensateMotion;
     [FormerlySerializedAs("aimStateName")]
     [FormerlySerializedAs("combatArtAimStateName")]
     public string combatArtLeftAimStateName = string.Empty;

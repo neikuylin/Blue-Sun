@@ -45,7 +45,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         List<string> actionOptions = BuildActionOptions();
 
         EditorGUILayout.LabelField("技能动作栏", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("顶部配置全局待机、进战、战技左转身瞄准、战技右转身瞄准、受击、闪避动作和待机角度修正。下方每个技能只绑定自己的施放动作和角度修正。", MessageType.Info);
+        EditorGUILayout.HelpBox("顶部配置全局待机、进战、退战、战技左转身瞄准、战技右转身瞄准、受击、闪避、探索待机、探索移动动作和待机角度修正。下方每个技能只绑定自己的施放动作和角度修正。", MessageType.Info);
 
         settingsObject.Update();
         using (new EditorGUILayout.VerticalScope("box"))
@@ -58,6 +58,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             SerializedProperty enterBattleSoundProperty = settingsObject.FindProperty("enterBattleSound");
             SerializedProperty enterBattleSoundPrefabProperty = settingsObject.FindProperty("enterBattleSoundPrefab");
             SerializedProperty enterBattleCompensateMotionProperty = settingsObject.FindProperty("enterBattleCompensateMotion");
+            SerializedProperty exitBattleStateNameProperty = settingsObject.FindProperty("exitBattleStateName");
+            SerializedProperty exitBattleSoundProperty = settingsObject.FindProperty("exitBattleSound");
+            SerializedProperty exitBattleSoundPrefabProperty = settingsObject.FindProperty("exitBattleSoundPrefab");
+            SerializedProperty exitBattleCompensateMotionProperty = settingsObject.FindProperty("exitBattleCompensateMotion");
             SerializedProperty combatArtLeftAimStateNameProperty = settingsObject.FindProperty("combatArtLeftAimStateName");
             SerializedProperty combatArtLeftAimSoundProperty = settingsObject.FindProperty("combatArtLeftAimSound");
             SerializedProperty combatArtLeftAimSoundPrefabProperty = settingsObject.FindProperty("combatArtLeftAimSoundPrefab");
@@ -86,6 +90,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
             string currentEnterBattle = enterBattleStateNameProperty != null ? enterBattleStateNameProperty.stringValue : string.Empty;
+            string currentExitBattle = exitBattleStateNameProperty != null ? exitBattleStateNameProperty.stringValue : string.Empty;
             string currentCombatArtLeftAim = combatArtLeftAimStateNameProperty != null ? combatArtLeftAimStateNameProperty.stringValue : string.Empty;
             string currentCombatArtRightAim = combatArtRightAimStateNameProperty != null ? combatArtRightAimStateNameProperty.stringValue : string.Empty;
             string currentHitReaction = hitReactionStateNameProperty != null ? hitReactionStateNameProperty.stringValue : string.Empty;
@@ -95,6 +100,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
             int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
             int selectedEnterBattleIndex = FindOptionIndex(actionOptions, currentEnterBattle);
+            int selectedExitBattleIndex = FindOptionIndex(actionOptions, currentExitBattle);
             int selectedCombatArtLeftAimIndex = FindOptionIndex(actionOptions, currentCombatArtLeftAim);
             int selectedCombatArtRightAimIndex = FindOptionIndex(actionOptions, currentCombatArtRightAim);
             int selectedHitReactionIndex = FindOptionIndex(actionOptions, currentHitReaction);
@@ -132,6 +138,24 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (enterBattleCompensateMotionProperty != null)
             {
                 enterBattleCompensateMotionProperty.boolValue = EditorGUILayout.Toggle("进战位移补偿", enterBattleCompensateMotionProperty.boolValue);
+            }
+
+            int newExitBattleIndex = EditorGUILayout.Popup("退战动画", selectedExitBattleIndex, actionOptions.ToArray());
+            if (exitBattleStateNameProperty != null)
+            {
+                exitBattleStateNameProperty.stringValue = newExitBattleIndex <= 0 ? string.Empty : actionOptions[newExitBattleIndex];
+            }
+            if (exitBattleSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(exitBattleSoundProperty, new GUIContent("退战音效"));
+            }
+            if (exitBattleSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(exitBattleSoundPrefabProperty, new GUIContent("退战音效预制体"));
+            }
+            if (exitBattleCompensateMotionProperty != null)
+            {
+                exitBattleCompensateMotionProperty.boolValue = EditorGUILayout.Toggle("退战位移补偿", exitBattleCompensateMotionProperty.boolValue);
             }
 
             int newCombatArtLeftAimIndex = EditorGUILayout.Popup("战技左转身瞄准动画", selectedCombatArtLeftAimIndex, actionOptions.ToArray());
