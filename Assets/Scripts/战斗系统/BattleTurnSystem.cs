@@ -769,14 +769,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ClearSelectionOutlines()
     {
-        if (activeUnit != null)
+        for (int i = 0; i < units.Count; i++)
         {
-            activeUnit.ClearLockOutline();
-        }
-
-        if (lockedTargetUnit != null && lockedTargetUnit != activeUnit)
-        {
-            lockedTargetUnit.ClearLockOutline();
+            BattleUnit unit = units[i];
+            if (unit != null)
+            {
+                unit.ClearLockOutline();
+            }
         }
     }
 
