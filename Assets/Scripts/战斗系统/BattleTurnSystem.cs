@@ -2594,60 +2594,93 @@ public class BattleTurnSystem : MonoBehaviour
         int length = Mathf.Max(0, GetDisplayedSkillRange(caster, skill));
         int nearWidth = Mathf.Max(1, skill.axisNearWidth);
         int farWidth = Mathf.Max(1, skill.axisFarWidth);
-        float footprintStartRadius = caster.FootprintRadius + 1f;
+        int footprintRadiusCells = caster.FootprintRadius;
         Vector2 forward = ResolveAreaDirection(caster, targetCell);
         Vector2 right = new Vector2(-forward.y, forward.x);
         Vector2 casterCenter = new Vector2(caster.currentCell.x, caster.currentCell.y);
 
-        float maxHalfWidth = Mathf.Max(nearWidth, farWidth) * 0.5f + 0.5f;
-        int minX = Mathf.FloorToInt(casterCenter.x - length - maxHalfWidth - 1f);
-        int maxX = Mathf.CeilToInt(casterCenter.x + length + maxHalfWidth + 1f);
-        int minY = Mathf.FloorToInt(casterCenter.y - length - maxHalfWidth - 1f);
-        int maxY = Mathf.CeilToInt(casterCenter.y + length + maxHalfWidth + 1f);
-
-        for (int y = minY; y <= maxY; y++)
+        for (int outwardStep = 1; outwardStep <= length; outwardStep++)
         {
-            for (int x = minX; x <= maxX; x++)
+            int ringDistance = footprintRadiusCells + outwardStep;
+            float t = length <= 1 ? 0f : (outwardStep - 1f) / Mathf.Max(1f, length - 1f);
+            int desiredWidth = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(nearWidth, farWidth, t)));
+            List<Vector2Int> ringCells = new List<Vector2Int>();
+
+            int minX = caster.currentCell.x - ringDistance;
+            int maxX = caster.currentCell.x + ringDistance;
+            int minY = caster.currentCell.y - ringDistance;
+            int maxY = caster.currentCell.y + ringDistance;
+
+            for (int y = minY; y <= maxY; y++)
             {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (!grid.IsInside(cell))
+                for (int x = minX; x <= maxX; x++)
                 {
-                    continue;
+                    Vector2Int cell = new Vector2Int(x, y);
+                    if (!grid.IsInside(cell))
+                    {
+                        continue;
+                    }
+
+                    int chebyshevDistance = Mathf.Max(
+                        Mathf.Abs(x - caster.currentCell.x),
+                        Mathf.Abs(y - caster.currentCell.y));
+                    if (chebyshevDistance != ringDistance)
+                    {
+                        continue;
+                    }
+
+                    Vector2 cellOffset = new Vector2(x - casterCenter.x, y - casterCenter.y);
+                    float radialDistance = cellOffset.magnitude;
+                    if (radialDistance <= 0.0001f)
+                    {
+                        continue;
+                    }
+
+                    Vector2 radialDirection = cellOffset / radialDistance;
+                    float forwardDot = Vector2.Dot(radialDirection, forward);
+                    if (forwardDot < 0f)
+                    {
+                        continue;
+                    }
+
+                    ringCells.Add(cell);
+                }
+            }
+
+            ringCells.Sort((left, rightCell) =>
+            {
+                Vector2 leftOffset = new Vector2(left.x - casterCenter.x, left.y - casterCenter.y).normalized;
+                Vector2 rightOffset = new Vector2(rightCell.x - casterCenter.x, rightCell.y - casterCenter.y).normalized;
+
+                float leftForward = Vector2.Dot(leftOffset, forward);
+                float rightForward = Vector2.Dot(rightOffset, forward);
+                int forwardCompare = rightForward.CompareTo(leftForward);
+                if (forwardCompare != 0)
+                {
+                    return forwardCompare;
                 }
 
-                Vector2 cellOffset = new Vector2(x - casterCenter.x, y - casterCenter.y);
-                float radialDistance = cellOffset.magnitude;
-                if (radialDistance < footprintStartRadius || radialDistance > length + 0.5f)
+                float leftLateral = Mathf.Abs(Vector2.Dot(leftOffset, right));
+                float rightLateral = Mathf.Abs(Vector2.Dot(rightOffset, right));
+                int lateralCompare = leftLateral.CompareTo(rightLateral);
+                if (lateralCompare != 0)
                 {
-                    continue;
+                    return lateralCompare;
                 }
 
-                float normalizedDistance = radialDistance - footprintStartRadius;
-                float normalizedLength = Mathf.Max(0.0001f, length - footprintStartRadius);
-                float t = length <= 0 ? 0f : Mathf.Clamp01(normalizedDistance / normalizedLength);
-                float widthAtDistance = Mathf.Lerp(nearWidth, farWidth, t);
-
-                if (radialDistance <= 0.0001f)
+                int yCompare = rightCell.y.CompareTo(left.y);
+                if (yCompare != 0)
                 {
-                    result.Add(cell);
-                    continue;
+                    return yCompare;
                 }
 
-                Vector2 radialDirection = cellOffset / radialDistance;
-                float forwardDot = Vector2.Dot(radialDirection, forward);
-                if (forwardDot <= 0f)
-                {
-                    continue;
-                }
+                return left.x.CompareTo(rightCell.x);
+            });
 
-                float lateralRatio = Mathf.Abs(Vector2.Dot(radialDirection, right));
-                float allowedLateralRatio = Mathf.Clamp01(widthAtDistance / (2f * radialDistance));
-                if (lateralRatio > allowedLateralRatio)
-                {
-                    continue;
-                }
-
-                result.Add(cell);
+            int takeCount = Mathf.Min(desiredWidth, ringCells.Count);
+            for (int i = 0; i < takeCount; i++)
+            {
+                result.Add(ringCells[i]);
             }
         }
 

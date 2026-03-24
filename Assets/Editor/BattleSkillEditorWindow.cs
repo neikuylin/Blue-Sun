@@ -180,6 +180,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                         axisNearWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("近端宽", Mathf.Max(1, axisNearWidth.intValue)));
                         axisFarWidth.intValue = Mathf.Max(1, EditorGUILayout.IntField("远端宽", Mathf.Max(1, axisFarWidth.intValue)));
                         EditorGUILayout.LabelField("长度", "等于射程");
+                        EditorGUILayout.HelpBox("3x3角色参考：近端宽先从 5 开始试，7 会更接近把自己包住；远端宽可在此基础上继续放大。", MessageType.Info);
                     }
                     else
                     {

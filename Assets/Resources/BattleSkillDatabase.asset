@@ -84,7 +84,7 @@ MonoBehaviour:
     useMoveDistanceAsRange: 0
     range: 6
     areaCastType: 1
-    axisNearWidth: 3
-    axisFarWidth: 6
+    axisNearWidth: 2
+    axisFarWidth: 3
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000
