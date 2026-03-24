@@ -10,7 +10,11 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 {
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string LeftPanelPortraitPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u89d2\u8272\u80cc\u666f\u6846\u7acb\u7ed8";
+    private const string LeftPanelPreviewPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u6444\u50cf\u5934\u6355\u6349";
     private const string LeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
+    private const string PreviewImageName = "__ModelPreviewImage";
+    private const int PreviewLayer = 31;
+    private const int PreviewTextureSize = 1024;
 
     private sealed class SkillSlotWidget
     {
@@ -50,11 +54,18 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private BattleSceneBindings battleBindings;
     private Image leftPanelPortraitImage;
     private RectTransform leftPanelPortraitAnchor;
+    private RectTransform leftPanelPreviewAnchor;
     private RectTransform leftPanelSkillContainer;
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private GameObject activePortraitPrefabInstance;
     private string activePortraitPrefabCharacterId = string.Empty;
+    private RawImage previewImage;
+    private Camera previewCamera;
+    private RenderTexture previewTexture;
+    private GameObject previewRuntimeRoot;
+    private GameObject previewModelInstance;
+    private string previewCharacterId = string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -108,6 +119,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         battleBindings = BattleSceneBindings.FindInActiveScene();
         leftPanelPortraitImage = ResolveLeftPanelPortrait();
         leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
+        leftPanelPreviewAnchor = ResolveLeftPanelPreviewAnchor();
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
@@ -149,6 +161,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void RefreshLeftPanel()
     {
         RefreshPortrait();
+        RefreshModelPreview();
         RefreshSkillSlots();
     }
 
@@ -348,6 +361,357 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         activePortraitPrefabCharacterId = string.Empty;
     }
 
+    private void RefreshModelPreview()
+    {
+        if (leftPanelPreviewAnchor == null)
+        {
+            leftPanelPreviewAnchor = ResolveLeftPanelPreviewAnchor();
+        }
+
+        if (leftPanelPreviewAnchor == null)
+        {
+            DestroyPreviewModelInstance();
+            return;
+        }
+
+        EnsurePreviewRuntime();
+
+        bool shouldShow = !string.IsNullOrWhiteSpace(currentCharacterId);
+        if (previewImage != null)
+        {
+            previewImage.gameObject.SetActive(shouldShow);
+        }
+
+        if (!shouldShow)
+        {
+            DestroyPreviewModelInstance();
+            return;
+        }
+
+        if (previewModelInstance != null &&
+            string.Equals(previewCharacterId, currentCharacterId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        RebuildPreviewModel(currentCharacterId);
+    }
+
+    private void EnsurePreviewRuntime()
+    {
+        if (previewRuntimeRoot == null)
+        {
+            previewRuntimeRoot = new GameObject("BattleLeftPanelPreviewRuntime");
+            previewRuntimeRoot.transform.SetParent(transform, false);
+            previewRuntimeRoot.transform.position = new Vector3(10000f, 10000f, 10000f);
+            previewRuntimeRoot.hideFlags = HideFlags.HideAndDontSave;
+        }
+
+        if (previewCamera == null)
+        {
+            GameObject cameraObject = new GameObject("BattleLeftPanelPreviewCamera");
+            cameraObject.transform.SetParent(previewRuntimeRoot.transform, false);
+            previewCamera = cameraObject.AddComponent<Camera>();
+            previewCamera.clearFlags = CameraClearFlags.SolidColor;
+            previewCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            previewCamera.orthographic = true;
+            previewCamera.nearClipPlane = 0.01f;
+            previewCamera.farClipPlane = 50f;
+            previewCamera.enabled = true;
+            previewCamera.cullingMask = 1 << PreviewLayer;
+        }
+
+        EnsurePreviewTexture();
+        EnsurePreviewImage();
+    }
+
+    private void EnsurePreviewTexture()
+    {
+        if (previewTexture == null)
+        {
+            previewTexture = new RenderTexture(PreviewTextureSize, PreviewTextureSize, 24, RenderTextureFormat.ARGB32)
+            {
+                name = "BattleLeftPanelPreviewTexture",
+                antiAliasing = 2
+            };
+            previewTexture.Create();
+        }
+
+        if (previewCamera != null && previewCamera.targetTexture != previewTexture)
+        {
+            previewCamera.targetTexture = previewTexture;
+        }
+    }
+
+    private void EnsurePreviewImage()
+    {
+        if (leftPanelPreviewAnchor == null)
+        {
+            return;
+        }
+
+        if (previewImage == null)
+        {
+            Transform existing = SceneHierarchyPathUtility.FindDirectChildByName(leftPanelPreviewAnchor, PreviewImageName);
+            if (existing == null)
+            {
+                GameObject imageObject = new GameObject(PreviewImageName, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+                existing = imageObject.transform;
+                existing.SetParent(leftPanelPreviewAnchor, false);
+            }
+
+            previewImage = existing.GetComponent<RawImage>();
+        }
+
+        if (previewImage == null)
+        {
+            return;
+        }
+
+        RectTransform rect = previewImage.rectTransform;
+        rect.SetParent(leftPanelPreviewAnchor, false);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.localScale = Vector3.one;
+        previewImage.texture = previewTexture;
+        previewImage.color = Color.white;
+        previewImage.raycastTarget = false;
+    }
+
+    private void RebuildPreviewModel(string characterId)
+    {
+        DestroyPreviewModelInstance();
+
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return;
+        }
+
+        GameObject source = ResolvePreviewSource(characterId);
+        if (source == null)
+        {
+            return;
+        }
+
+        previewModelInstance = Instantiate(source, previewRuntimeRoot.transform, false);
+        previewModelInstance.name = characterId + "_EquipmentPreview";
+        previewModelInstance.transform.localPosition = Vector3.zero;
+        previewModelInstance.transform.localRotation = Quaternion.identity;
+        previewModelInstance.transform.localScale = Vector3.one;
+        previewCharacterId = characterId;
+
+        PreparePreviewClone(previewModelInstance);
+        PositionPreviewCamera(previewModelInstance);
+    }
+
+    private GameObject ResolvePreviewSource(string characterId)
+    {
+        BattleUnit liveUnit = FindBattleUnitByCharacterId(characterId);
+        if (liveUnit != null)
+        {
+            return liveUnit.gameObject;
+        }
+
+        if (characterBindingDatabase == null)
+        {
+            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
+        }
+
+        BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase != null
+            ? characterBindingDatabase.FindBinding(characterId)
+            : null;
+        return binding != null ? binding.modelPrefab : null;
+    }
+
+    private void PreparePreviewClone(GameObject previewObject)
+    {
+        if (previewObject == null)
+        {
+            return;
+        }
+
+        BattleUnit previewUnit = previewObject.GetComponent<BattleUnit>();
+        if (previewUnit != null)
+        {
+            string idleStateName = previewUnit.GetIdleAnimationStateName();
+            previewUnit.enabled = false;
+
+            if (!string.IsNullOrWhiteSpace(idleStateName))
+            {
+                previewUnit.PlayAnimationState(idleStateName);
+            }
+        }
+
+        BattleUnit[] nestedUnits = previewObject.GetComponentsInChildren<BattleUnit>(true);
+        for (int i = 0; i < nestedUnits.Length; i++)
+        {
+            if (nestedUnits[i] != null)
+            {
+                nestedUnits[i].enabled = false;
+            }
+        }
+
+        BattleUnitOutlineMarker[] markers = previewObject.GetComponentsInChildren<BattleUnitOutlineMarker>(true);
+        for (int i = 0; i < markers.Length; i++)
+        {
+            if (markers[i] != null)
+            {
+                markers[i].gameObject.SetActive(false);
+            }
+        }
+
+        Collider[] colliders = previewObject.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].enabled = false;
+            }
+        }
+
+        Canvas[] canvases = previewObject.GetComponentsInChildren<Canvas>(true);
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            if (canvases[i] != null)
+            {
+                canvases[i].enabled = false;
+            }
+        }
+
+        SetLayerRecursively(previewObject.transform, PreviewLayer);
+    }
+
+    private void PositionPreviewCamera(GameObject previewObject)
+    {
+        if (previewObject == null || previewCamera == null)
+        {
+            return;
+        }
+
+        Bounds bounds;
+        if (!TryGetPreviewBounds(previewObject, out bounds))
+        {
+            bounds = new Bounds(previewObject.transform.position, Vector3.one);
+        }
+
+        Vector3 center = bounds.center;
+        float height = Mathf.Max(1f, bounds.size.y);
+        float horizontalExtent = Mathf.Max(bounds.extents.x, bounds.extents.z);
+        float radius = Mathf.Max(0.35f, bounds.extents.magnitude);
+        float distance = Mathf.Max(3f, radius * 3.2f);
+        Vector3 direction = new Vector3(0f, 1f, 1f).normalized;
+
+        previewCamera.transform.position = center + direction * distance;
+        previewCamera.transform.rotation = Quaternion.LookRotation(center - previewCamera.transform.position, Vector3.up);
+        previewCamera.orthographicSize = Mathf.Max(height * 0.6f, horizontalExtent * 1.6f) * 1.1f;
+        previewCamera.nearClipPlane = 0.01f;
+        previewCamera.farClipPlane = Mathf.Max(25f, distance + height * 6f);
+    }
+
+    private static bool TryGetPreviewBounds(GameObject previewObject, out Bounds bounds)
+    {
+        Renderer[] renderers = previewObject != null ? previewObject.GetComponentsInChildren<Renderer>(true) : null;
+        bool hasBounds = false;
+        bounds = default;
+
+        if (renderers == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null || !renderer.enabled)
+            {
+                continue;
+            }
+
+            if (renderer.GetComponent<BattleUnitOutlineMarker>() != null)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return hasBounds;
+    }
+
+    private BattleUnit FindBattleUnitByCharacterId(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return unit;
+        }
+
+        return null;
+    }
+
+    private void DestroyPreviewModelInstance()
+    {
+        if (previewModelInstance != null)
+        {
+            Destroy(previewModelInstance);
+            previewModelInstance = null;
+        }
+
+        previewCharacterId = string.Empty;
+    }
+
+    private void ReleasePreviewTexture()
+    {
+        if (previewTexture == null)
+        {
+            return;
+        }
+
+        if (previewCamera != null && previewCamera.targetTexture == previewTexture)
+        {
+            previewCamera.targetTexture = null;
+        }
+
+        previewTexture.Release();
+        Destroy(previewTexture);
+        previewTexture = null;
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        root.gameObject.layer = layer;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            SetLayerRecursively(root.GetChild(i), layer);
+        }
+    }
+
     private string ResolveCharacterId()
     {
         string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
@@ -403,6 +767,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         }
 
         return null;
+    }
+
+    private RectTransform ResolveLeftPanelPreviewAnchor()
+    {
+        Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPreviewPath);
+        return target as RectTransform;
     }
 
     private RectTransform ResolveLeftPanelSkillContainer()
@@ -464,5 +834,19 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void OnDestroy()
     {
         DestroyActivePortraitPrefabInstance();
+        DestroyPreviewModelInstance();
+        ReleasePreviewTexture();
+
+        if (previewImage != null)
+        {
+            Destroy(previewImage.gameObject);
+            previewImage = null;
+        }
+
+        if (previewRuntimeRoot != null)
+        {
+            Destroy(previewRuntimeRoot);
+            previewRuntimeRoot = null;
+        }
     }
 }
