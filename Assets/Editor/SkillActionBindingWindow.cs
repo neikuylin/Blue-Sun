@@ -74,6 +74,14 @@ public sealed class SkillActionBindingWindow : EditorWindow
             SerializedProperty dodgeSoundProperty = settingsObject.FindProperty("dodgeSound");
             SerializedProperty dodgeSoundPrefabProperty = settingsObject.FindProperty("dodgeSoundPrefab");
             SerializedProperty dodgeCompensateMotionProperty = settingsObject.FindProperty("dodgeCompensateMotion");
+            SerializedProperty explorationIdleStateNameProperty = settingsObject.FindProperty("explorationIdleStateName");
+            SerializedProperty explorationIdleSoundProperty = settingsObject.FindProperty("explorationIdleSound");
+            SerializedProperty explorationIdleSoundPrefabProperty = settingsObject.FindProperty("explorationIdleSoundPrefab");
+            SerializedProperty explorationIdleCompensateMotionProperty = settingsObject.FindProperty("explorationIdleCompensateMotion");
+            SerializedProperty explorationMoveStateNameProperty = settingsObject.FindProperty("explorationMoveStateName");
+            SerializedProperty explorationMoveSoundProperty = settingsObject.FindProperty("explorationMoveSound");
+            SerializedProperty explorationMoveSoundPrefabProperty = settingsObject.FindProperty("explorationMoveSoundPrefab");
+            SerializedProperty explorationMoveCompensateMotionProperty = settingsObject.FindProperty("explorationMoveCompensateMotion");
             SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
 
             string currentIdle = idleStateNameProperty != null ? idleStateNameProperty.stringValue : string.Empty;
@@ -82,6 +90,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
             string currentCombatArtRightAim = combatArtRightAimStateNameProperty != null ? combatArtRightAimStateNameProperty.stringValue : string.Empty;
             string currentHitReaction = hitReactionStateNameProperty != null ? hitReactionStateNameProperty.stringValue : string.Empty;
             string currentDodge = dodgeStateNameProperty != null ? dodgeStateNameProperty.stringValue : string.Empty;
+            string currentExplorationIdle = explorationIdleStateNameProperty != null ? explorationIdleStateNameProperty.stringValue : string.Empty;
+            string currentExplorationMove = explorationMoveStateNameProperty != null ? explorationMoveStateNameProperty.stringValue : string.Empty;
 
             int selectedIdleIndex = FindOptionIndex(actionOptions, currentIdle);
             int selectedEnterBattleIndex = FindOptionIndex(actionOptions, currentEnterBattle);
@@ -89,6 +99,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
             int selectedCombatArtRightAimIndex = FindOptionIndex(actionOptions, currentCombatArtRightAim);
             int selectedHitReactionIndex = FindOptionIndex(actionOptions, currentHitReaction);
             int selectedDodgeIndex = FindOptionIndex(actionOptions, currentDodge);
+            int selectedExplorationIdleIndex = FindOptionIndex(actionOptions, currentExplorationIdle);
+            int selectedExplorationMoveIndex = FindOptionIndex(actionOptions, currentExplorationMove);
 
             int newIdleIndex = EditorGUILayout.Popup("待机动画", selectedIdleIndex, actionOptions.ToArray());
             if (idleStateNameProperty != null)
@@ -192,6 +204,42 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (dodgeCompensateMotionProperty != null)
             {
                 dodgeCompensateMotionProperty.boolValue = EditorGUILayout.Toggle("闪避位移补偿", dodgeCompensateMotionProperty.boolValue);
+            }
+
+            int newExplorationIdleIndex = EditorGUILayout.Popup("探索待机动画", selectedExplorationIdleIndex, actionOptions.ToArray());
+            if (explorationIdleStateNameProperty != null)
+            {
+                explorationIdleStateNameProperty.stringValue = newExplorationIdleIndex <= 0 ? string.Empty : actionOptions[newExplorationIdleIndex];
+            }
+            if (explorationIdleSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(explorationIdleSoundProperty, new GUIContent("探索待机音效"));
+            }
+            if (explorationIdleSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(explorationIdleSoundPrefabProperty, new GUIContent("探索待机音效预制体"));
+            }
+            if (explorationIdleCompensateMotionProperty != null)
+            {
+                explorationIdleCompensateMotionProperty.boolValue = EditorGUILayout.Toggle("探索待机位移补偿", explorationIdleCompensateMotionProperty.boolValue);
+            }
+
+            int newExplorationMoveIndex = EditorGUILayout.Popup("探索移动动画", selectedExplorationMoveIndex, actionOptions.ToArray());
+            if (explorationMoveStateNameProperty != null)
+            {
+                explorationMoveStateNameProperty.stringValue = newExplorationMoveIndex <= 0 ? string.Empty : actionOptions[newExplorationMoveIndex];
+            }
+            if (explorationMoveSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(explorationMoveSoundProperty, new GUIContent("探索移动音效"));
+            }
+            if (explorationMoveSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(explorationMoveSoundPrefabProperty, new GUIContent("探索移动音效预制体"));
+            }
+            if (explorationMoveCompensateMotionProperty != null)
+            {
+                explorationMoveCompensateMotionProperty.boolValue = EditorGUILayout.Toggle("探索移动位移补偿", explorationMoveCompensateMotionProperty.boolValue);
             }
 
             if (idleYawOffsetProperty != null)

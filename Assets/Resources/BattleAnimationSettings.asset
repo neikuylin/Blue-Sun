@@ -35,4 +35,12 @@ MonoBehaviour:
   dodgeSound: {fileID: 0}
   dodgeSoundPrefab: {fileID: 0}
   dodgeCompensateMotion: 0
+  explorationIdleStateName: "\u975E\u6218\u6597\u5F85\u673A"
+  explorationIdleSound: {fileID: 0}
+  explorationIdleSoundPrefab: {fileID: 0}
+  explorationIdleCompensateMotion: 0
+  explorationMoveStateName: "\u975E\u6218\u6597\u79FB\u52A8"
+  explorationMoveSound: {fileID: 0}
+  explorationMoveSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
+  explorationMoveCompensateMotion: 0
   idleYawOffset: 45

@@ -31,6 +31,14 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public AudioClip dodgeSound;
     public GameObject dodgeSoundPrefab;
     public bool dodgeCompensateMotion;
+    public string explorationIdleStateName = string.Empty;
+    public AudioClip explorationIdleSound;
+    public GameObject explorationIdleSoundPrefab;
+    public bool explorationIdleCompensateMotion;
+    public string explorationMoveStateName = string.Empty;
+    public AudioClip explorationMoveSound;
+    public GameObject explorationMoveSoundPrefab;
+    public bool explorationMoveCompensateMotion;
     public float idleYawOffset;
 
     public static BattleAnimationSettings LoadDefault()

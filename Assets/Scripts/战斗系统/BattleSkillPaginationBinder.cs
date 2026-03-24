@@ -447,6 +447,15 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private List<string> GetSkillsForCharacter(string characterId)
     {
+        if (turnSystem != null && turnSystem.IsExplorationMode)
+        {
+            return new List<string>
+            {
+                BattleTurnSystem.ExplorationIdleSkillId,
+                BattleTurnSystem.ExplorationMoveSkillId
+            };
+        }
+
         return CharacterSkillListUtility.BuildSkillIds(
             string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId);
     }
@@ -456,6 +465,12 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         if (string.IsNullOrWhiteSpace(skillId))
         {
             return null;
+        }
+
+        if (string.Equals(skillId, BattleTurnSystem.ExplorationMoveSkillId, StringComparison.Ordinal))
+        {
+            BattleSkillDatabase.SkillEntry moveEntry = skillDatabase != null ? skillDatabase.FindEntry(BattleSkillDatabase.MoveSkillId) : null;
+            return moveEntry != null ? moveEntry.icon : null;
         }
 
         if (skillDatabase == null)
@@ -469,6 +484,38 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private SkillInstanceSnapshot BuildSkillSnapshot(int index, string ownerCharacterId, string skillId)
     {
+        if (string.Equals(skillId, BattleTurnSystem.ExplorationIdleSkillId, StringComparison.Ordinal))
+        {
+            return new SkillInstanceSnapshot
+            {
+                index = index,
+                skillId = skillId,
+                displayName = skillId,
+                description = "切换到探索待机状态。",
+                ownerCharacterId = ownerCharacterId ?? string.Empty,
+                source = "探索全局动作",
+                damageMultiplier = 0f,
+                damage = 0,
+                isEmpty = false
+            };
+        }
+
+        if (string.Equals(skillId, BattleTurnSystem.ExplorationMoveSkillId, StringComparison.Ordinal))
+        {
+            return new SkillInstanceSnapshot
+            {
+                index = index,
+                skillId = skillId,
+                displayName = skillId,
+                description = "切换到探索移动状态。",
+                ownerCharacterId = ownerCharacterId ?? string.Empty,
+                source = "探索全局动作",
+                damageMultiplier = 0f,
+                damage = 0,
+                isEmpty = false
+            };
+        }
+
         BattleSkillDatabase.SkillEntry entry = !string.IsNullOrWhiteSpace(skillId) && skillDatabase != null
             ? skillDatabase.FindEntry(skillId)
             : null;
