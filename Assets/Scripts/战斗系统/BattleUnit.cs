@@ -62,6 +62,12 @@ public class BattleUnit : MonoBehaviour
     private Color[] originalRendererColors;
     private Renderer[] outlineRenderers;
     private Material[] outlineMaterials;
+    private bool hasLockOutlineState;
+    private Color lockOutlineColor = DefaultOutlineColor;
+    private float lockOutlineWidth = DefaultOutlineWidth;
+    private bool hasPreviewOutlineState;
+    private Color previewOutlineColor = DefaultOutlineColor;
+    private float previewOutlineWidth = DefaultOutlineWidth;
     private bool animationPositionCompensationEnabled;
     private Transform animationCompensationTarget;
     private Vector3 animationCompensationLocalPosition;
@@ -441,66 +447,38 @@ public class BattleUnit : MonoBehaviour
 
     public void SetLockOutline(Color outlineColor, float outlineWidth, bool visible)
     {
-        EnsureOutlineMaterials();
-        if (outlineRenderers == null || outlineMaterials == null)
-        {
-            return;
-        }
-
-        Color resolvedColor = visible ? outlineColor : DefaultOutlineColor;
-        float resolvedWidth = visible ? Mathf.Max(0f, outlineWidth) : DefaultOutlineWidth;
-
-        for (int i = 0; i < outlineMaterials.Length; i++)
-        {
-            Material material = outlineMaterials[i];
-            if (material == null)
-            {
-                continue;
-            }
-
-            material.SetColor("_OutlineColor", resolvedColor);
-            material.SetFloat("_OutlineWidth", resolvedWidth);
-        }
+        hasLockOutlineState = visible;
+        lockOutlineColor = outlineColor;
+        lockOutlineWidth = Mathf.Max(0f, outlineWidth);
+        ApplyCombinedOutlineState();
     }
 
     public void ClearLockOutline()
     {
-        SetLockOutline(DefaultOutlineColor, DefaultOutlineWidth, false);
+        hasLockOutlineState = false;
+        ApplyCombinedOutlineState();
+    }
+
+    public void SetPreviewOutline(Color outlineColor, float outlineWidth, bool visible)
+    {
+        hasPreviewOutlineState = visible;
+        previewOutlineColor = outlineColor;
+        previewOutlineWidth = Mathf.Max(0f, outlineWidth);
+        ApplyCombinedOutlineState();
+    }
+
+    public void ClearPreviewOutline()
+    {
+        hasPreviewOutlineState = false;
+        ApplyCombinedOutlineState();
     }
 
     public void RefreshOutlineBindings()
     {
-        Color currentColor = DefaultOutlineColor;
-        float currentWidth = DefaultOutlineWidth;
-
-        if (outlineMaterials != null)
-        {
-            for (int i = 0; i < outlineMaterials.Length; i++)
-            {
-                Material material = outlineMaterials[i];
-                if (material == null)
-                {
-                    continue;
-                }
-
-                if (material.HasProperty("_OutlineColor"))
-                {
-                    currentColor = material.GetColor("_OutlineColor");
-                }
-
-                if (material.HasProperty("_OutlineWidth"))
-                {
-                    currentWidth = material.GetFloat("_OutlineWidth");
-                }
-
-                break;
-            }
-        }
-
         outlineRenderers = null;
         outlineMaterials = null;
         EnsureOutlineMaterials();
-        SetLockOutline(currentColor, currentWidth, true);
+        ApplyCombinedOutlineState();
     }
 
     public int FootprintRadius
@@ -771,6 +749,42 @@ public class BattleUnit : MonoBehaviour
                 outlineMaterials[i].SetColor("_OutlineColor", DefaultOutlineColor);
                 outlineMaterials[i].SetFloat("_OutlineWidth", DefaultOutlineWidth);
             }
+        }
+    }
+
+    private void ApplyCombinedOutlineState()
+    {
+        EnsureOutlineMaterials();
+        if (outlineRenderers == null || outlineMaterials == null)
+        {
+            return;
+        }
+
+        Color resolvedColor = DefaultOutlineColor;
+        float resolvedWidth = DefaultOutlineWidth;
+
+        if (hasLockOutlineState)
+        {
+            resolvedColor = lockOutlineColor;
+            resolvedWidth = lockOutlineWidth;
+        }
+
+        if (hasPreviewOutlineState)
+        {
+            resolvedColor = previewOutlineColor;
+            resolvedWidth = previewOutlineWidth;
+        }
+
+        for (int i = 0; i < outlineMaterials.Length; i++)
+        {
+            Material material = outlineMaterials[i];
+            if (material == null)
+            {
+                continue;
+            }
+
+            material.SetColor("_OutlineColor", resolvedColor);
+            material.SetFloat("_OutlineWidth", resolvedWidth);
         }
     }
 }

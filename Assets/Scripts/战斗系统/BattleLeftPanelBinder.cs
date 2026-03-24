@@ -138,7 +138,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         }
 
         StoreAndApplyPreviewLayer(previewTargetUnit.transform);
-        previewTargetUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
+        previewTargetUnit.SetPreviewOutline(Color.white, PreviewOutlineWidth, true);
         PositionPreviewCamera(previewTargetUnit.gameObject);
     }
 
@@ -544,7 +544,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return;
         }
 
-        targetUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
+        targetUnit.SetPreviewOutline(Color.white, PreviewOutlineWidth, true);
         StoreAndApplyPreviewLayer(targetUnit.transform);
     }
 
@@ -639,7 +639,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         if (previewTargetUnit != null)
         {
-            previewTargetUnit.ClearLockOutline();
+            previewTargetUnit.ClearPreviewOutline();
             RestorePreviewLayers();
             previewTargetUnit = null;
         }
