@@ -65,8 +65,9 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private Camera previewCamera;
     private RenderTexture previewTexture;
     private GameObject previewRuntimeRoot;
-    private GameObject previewModelInstance;
+    private BattleUnit previewTargetUnit;
     private string previewCharacterId = string.Empty;
+    private readonly Dictionary<Transform, int> previewOriginalLayers = new Dictionary<Transform, int>();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -91,6 +92,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         skillSlots.Clear();
+        ClearPreviewTargetUnit();
     }
 
     private void Update()
@@ -371,7 +373,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         if (leftPanelPreviewAnchor == null)
         {
-            DestroyPreviewModelInstance();
+            ClearPreviewTargetUnit();
             return;
         }
 
@@ -385,17 +387,18 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         if (!shouldShow)
         {
-            DestroyPreviewModelInstance();
+            ClearPreviewTargetUnit();
             return;
         }
 
-        if (previewModelInstance != null &&
+        if (previewTargetUnit != null &&
             string.Equals(previewCharacterId, currentCharacterId, StringComparison.Ordinal))
         {
+            PositionPreviewCamera(previewTargetUnit.gameObject);
             return;
         }
 
-        RebuildPreviewModel(currentCharacterId);
+        BindPreviewTarget(currentCharacterId);
     }
 
     private void EnsurePreviewRuntime()
@@ -481,103 +484,36 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         previewImage.raycastTarget = false;
     }
 
-    private void RebuildPreviewModel(string characterId)
+    private void BindPreviewTarget(string characterId)
     {
-        DestroyPreviewModelInstance();
+        ClearPreviewTargetUnit();
 
         if (string.IsNullOrWhiteSpace(characterId))
         {
             return;
         }
 
-        GameObject source = ResolvePreviewSource(characterId);
-        if (source == null)
+        BattleUnit targetUnit = FindBattleUnitByCharacterId(characterId);
+        if (targetUnit == null)
         {
             return;
         }
 
-        previewModelInstance = Instantiate(source, previewRuntimeRoot.transform, false);
-        previewModelInstance.name = characterId + "_EquipmentPreview";
-        previewModelInstance.transform.localPosition = Vector3.zero;
-        previewModelInstance.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
-        previewModelInstance.transform.localScale = Vector3.one;
+        previewTargetUnit = targetUnit;
         previewCharacterId = characterId;
-
-        PreparePreviewClone(previewModelInstance);
-        PositionPreviewCamera(previewModelInstance);
+        ApplyPreviewState(previewTargetUnit);
+        PositionPreviewCamera(previewTargetUnit.gameObject);
     }
 
-    private GameObject ResolvePreviewSource(string characterId)
+    private void ApplyPreviewState(BattleUnit targetUnit)
     {
-        BattleUnit liveUnit = FindBattleUnitByCharacterId(characterId);
-        if (liveUnit != null)
-        {
-            return liveUnit.gameObject;
-        }
-
-        if (characterBindingDatabase == null)
-        {
-            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
-        }
-
-        BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase != null
-            ? characterBindingDatabase.FindBinding(characterId)
-            : null;
-        return binding != null ? binding.modelPrefab : null;
-    }
-
-    private void PreparePreviewClone(GameObject previewObject)
-    {
-        if (previewObject == null)
+        if (targetUnit == null)
         {
             return;
         }
 
-        BattleUnit previewUnit = previewObject.GetComponent<BattleUnit>();
-        if (previewUnit != null)
-        {
-            string idleStateName = previewUnit.GetIdleAnimationStateName();
-            if (!string.IsNullOrWhiteSpace(idleStateName))
-            {
-                previewUnit.PlayAnimationState(idleStateName);
-            }
-
-            previewUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
-            previewUnit.enabled = false;
-        }
-        else
-        {
-            BattleUnitOutlineBuilder.Apply(previewObject, Color.white, PreviewOutlineWidth);
-        }
-
-        BattleUnit[] nestedUnits = previewObject.GetComponentsInChildren<BattleUnit>(true);
-        for (int i = 0; i < nestedUnits.Length; i++)
-        {
-            if (nestedUnits[i] != null)
-            {
-                nestedUnits[i].enabled = false;
-            }
-        }
-
-        Collider[] colliders = previewObject.GetComponentsInChildren<Collider>(true);
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            if (colliders[i] != null)
-            {
-                colliders[i].enabled = false;
-            }
-        }
-
-        Canvas[] canvases = previewObject.GetComponentsInChildren<Canvas>(true);
-        for (int i = 0; i < canvases.Length; i++)
-        {
-            if (canvases[i] != null)
-            {
-                canvases[i].enabled = false;
-            }
-        }
-
-        SetLayerRecursively(previewObject.transform, PreviewLayer);
+        targetUnit.SetLockOutline(Color.white, PreviewOutlineWidth, true);
+        StoreAndApplyPreviewLayer(targetUnit.transform);
     }
 
     private void PositionPreviewCamera(GameObject previewObject)
@@ -598,7 +534,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         float horizontalExtent = Mathf.Max(bounds.extents.x, bounds.extents.z);
         float radius = Mathf.Max(0.35f, bounds.extents.magnitude);
         float distance = Mathf.Max(3f, radius * 3.2f);
-        Vector3 direction = new Vector3(0f, 1f, 1f).normalized;
+        Vector3 direction = new Vector3(1f, 1f, 1f).normalized;
 
         previewCamera.transform.position = center + direction * distance;
         previewCamera.transform.rotation = Quaternion.LookRotation(center - previewCamera.transform.position, Vector3.up);
@@ -667,12 +603,13 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         return null;
     }
 
-    private void DestroyPreviewModelInstance()
+    private void ClearPreviewTargetUnit()
     {
-        if (previewModelInstance != null)
+        if (previewTargetUnit != null)
         {
-            Destroy(previewModelInstance);
-            previewModelInstance = null;
+            previewTargetUnit.ClearLockOutline();
+            RestorePreviewLayers();
+            previewTargetUnit = null;
         }
 
         previewCharacterId = string.Empty;
@@ -695,18 +632,36 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         previewTexture = null;
     }
 
-    private static void SetLayerRecursively(Transform root, int layer)
+    private void StoreAndApplyPreviewLayer(Transform root)
     {
         if (root == null)
         {
             return;
         }
 
-        root.gameObject.layer = layer;
+        if (!previewOriginalLayers.ContainsKey(root))
+        {
+            previewOriginalLayers[root] = root.gameObject.layer;
+        }
+
+        root.gameObject.layer = PreviewLayer;
         for (int i = 0; i < root.childCount; i++)
         {
-            SetLayerRecursively(root.GetChild(i), layer);
+            StoreAndApplyPreviewLayer(root.GetChild(i));
         }
+    }
+
+    private void RestorePreviewLayers()
+    {
+        foreach (KeyValuePair<Transform, int> pair in previewOriginalLayers)
+        {
+            if (pair.Key != null)
+            {
+                pair.Key.gameObject.layer = pair.Value;
+            }
+        }
+
+        previewOriginalLayers.Clear();
     }
 
     private string ResolveCharacterId()
@@ -831,7 +786,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void OnDestroy()
     {
         DestroyActivePortraitPrefabInstance();
-        DestroyPreviewModelInstance();
+        ClearPreviewTargetUnit();
         ReleasePreviewTexture();
 
         if (previewImage != null)
