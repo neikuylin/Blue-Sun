@@ -52,7 +52,7 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color targetNameEnemyColor = new Color(0.95f, 0.28f, 0.20f, 1f);
     private readonly Color hoveredEnemyFlashColor = new Color(1.00f, 0.20f, 0.20f, 0.72f);
     private readonly Color hoveredAllyFlashColor = new Color(0.20f, 0.85f, 0.42f, 0.72f);
-    private readonly Color activeUnitOutlineColor = Color.white;
+    private readonly Color activePlayerOutlineColor = Color.white;
     private readonly Color lockedEnemyOutlineColor = new Color(1.00f, 0.22f, 0.22f, 1f);
     private readonly Color lockedAllyOutlineColor = new Color(0.20f, 0.95f, 0.42f, 1f);
     private readonly Color skillCostNormalColor = Color.white;
@@ -761,7 +761,10 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (activeUnit != null && activeUnit.IsAlive)
         {
-            activeUnit.SetLockOutline(activeUnitOutlineColor, ActiveUnitOutlineWidth, true);
+            Color activeOutlineColor = activeUnit.team == BattleTeam.Enemy
+                ? lockedEnemyOutlineColor
+                : activePlayerOutlineColor;
+            activeUnit.SetLockOutline(activeOutlineColor, ActiveUnitOutlineWidth, true);
         }
 
         if (hoveredTargetUnit != null &&
