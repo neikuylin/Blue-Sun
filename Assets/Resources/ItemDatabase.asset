@@ -19,7 +19,7 @@ MonoBehaviour:
     quality: 0
     equipmentSlot: 3
     weaponCategory: 1
-    fixedDamage: 5
+    fixedDamage: 3
     description: "\u968F\u5904\u53EF\u89C1\u7684\u6B66\u5668\u3002"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -29,4 +29,19 @@ MonoBehaviour:
     - attributeType: 2
       multiplier: 0.5
     prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
+    weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
+  - itemId: "itm_\u9614\u5251"
+    displayName: "\u9614\u5251"
+    category: 0
+    quality: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    fixedDamage: 3
+    description: "\u5BBD\u5203"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1
+    prefab: {fileID: 1777123002362706890, guid: 5196b9707f48fdf48a8490e12dbe77ff, type: 3}
     weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
