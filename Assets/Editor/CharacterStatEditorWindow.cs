@@ -91,16 +91,52 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("intelligence"), new GUIContent("智力"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPoints"), new GUIContent("行动力"));
                 SerializedProperty hitRateProperty = entry.FindPropertyRelative("hitRate");
+                SerializedProperty physicalResistanceProperty = entry.FindPropertyRelative("physicalResistance");
+                SerializedProperty fireResistanceProperty = entry.FindPropertyRelative("fireResistance");
+                SerializedProperty corruptionResistanceProperty = entry.FindPropertyRelative("corruptionResistance");
+                SerializedProperty coldResistanceProperty = entry.FindPropertyRelative("coldResistance");
+                SerializedProperty criticalChanceProperty = entry.FindPropertyRelative("criticalChance");
+                SerializedProperty criticalDamageProperty = entry.FindPropertyRelative("criticalDamage");
                 if (hitRateProperty != null)
                 {
                     int displayedHitRate = CharacterStatDatabase.ResolveHitRateValue(hitRateProperty.intValue);
                     int editedHitRate = EditorGUILayout.IntField("命中", displayedHitRate);
                     hitRateProperty.intValue = Mathf.Max(0, editedHitRate);
                 }
+                if (physicalResistanceProperty != null)
+                {
+                    physicalResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("物理抗性", CharacterStatDatabase.ResolveResistanceValue(physicalResistanceProperty.intValue)));
+                }
+                if (fireResistanceProperty != null)
+                {
+                    fireResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("火焰抗性", CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty.intValue)));
+                }
+                if (corruptionResistanceProperty != null)
+                {
+                    corruptionResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("腐败抗性", CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty.intValue)));
+                }
+                if (coldResistanceProperty != null)
+                {
+                    coldResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("寒冷抗性", CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty.intValue)));
+                }
+                if (criticalChanceProperty != null)
+                {
+                    criticalChanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("暴击率", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty.intValue)));
+                }
+                if (criticalDamageProperty != null)
+                {
+                    criticalDamageProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("暴击伤害", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamageProperty.intValue)));
+                }
                 int strength = entry.FindPropertyRelative("strength").intValue;
                 int agility = entry.FindPropertyRelative("agility").intValue;
                 int intelligence = entry.FindPropertyRelative("intelligence").intValue;
                 int resolvedHitRate = CharacterStatDatabase.ResolveHitRateValue(hitRateProperty != null ? hitRateProperty.intValue : 100);
+                int resolvedPhysicalResistance = CharacterStatDatabase.ResolveResistanceValue(physicalResistanceProperty != null ? physicalResistanceProperty.intValue : 0);
+                int resolvedFireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty != null ? fireResistanceProperty.intValue : 0);
+                int resolvedCorruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty != null ? corruptionResistanceProperty.intValue : 0);
+                int resolvedColdResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty != null ? coldResistanceProperty.intValue : 0);
+                int resolvedCriticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty != null ? criticalChanceProperty.intValue : 20);
+                int resolvedCriticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamageProperty != null ? criticalDamageProperty.intValue : 150);
                 int resolvedMaxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(strength);
                 int resolvedMaxMana = CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence);
                 int resolvedMoveDistance = CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility);
@@ -111,6 +147,12 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.IntField("MP", resolvedMaxMana);
                 EditorGUILayout.LabelField("移动距离", resolvedMoveDistance.ToString());
                 EditorGUILayout.LabelField("闪避", resolvedDodgeRate + "%");
+                EditorGUILayout.LabelField("物理抗性", resolvedPhysicalResistance + "%");
+                EditorGUILayout.LabelField("火焰抗性", resolvedFireResistance + "%");
+                EditorGUILayout.LabelField("腐败抗性", resolvedCorruptionResistance + "%");
+                EditorGUILayout.LabelField("寒冷抗性", resolvedColdResistance + "%");
+                EditorGUILayout.LabelField("暴击率", resolvedCriticalChance + "%");
+                EditorGUILayout.LabelField("暴击伤害", resolvedCriticalDamage + "%");
                 EditorGUI.EndDisabledGroup();
                 bool changed = EditorGUI.EndChangeCheck();
 
@@ -179,6 +221,12 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             unit.SetAgility(entry.FindPropertyRelative("agility").intValue);
             unit.intelligence = entry.FindPropertyRelative("intelligence").intValue;
             SerializedProperty hitRateProperty = entry.FindPropertyRelative("hitRate");
+            SerializedProperty physicalResistanceProperty = entry.FindPropertyRelative("physicalResistance");
+            SerializedProperty fireResistanceProperty = entry.FindPropertyRelative("fireResistance");
+            SerializedProperty corruptionResistanceProperty = entry.FindPropertyRelative("corruptionResistance");
+            SerializedProperty coldResistanceProperty = entry.FindPropertyRelative("coldResistance");
+            SerializedProperty criticalChanceProperty = entry.FindPropertyRelative("criticalChance");
+            SerializedProperty criticalDamageProperty = entry.FindPropertyRelative("criticalDamage");
             if (hitRateProperty != null)
             {
                 SerializedObject unitObject = new SerializedObject(unit);
@@ -190,6 +238,12 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                     unitObject.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
+            ApplyUnitStatProperty(unit, "physicalResistance", CharacterStatDatabase.ResolveResistanceValue(physicalResistanceProperty != null ? physicalResistanceProperty.intValue : 0));
+            ApplyUnitStatProperty(unit, "fireResistance", CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty != null ? fireResistanceProperty.intValue : 0));
+            ApplyUnitStatProperty(unit, "corruptionResistance", CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty != null ? corruptionResistanceProperty.intValue : 0));
+            ApplyUnitStatProperty(unit, "coldResistance", CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty != null ? coldResistanceProperty.intValue : 0));
+            ApplyUnitStatProperty(unit, "criticalChance", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty != null ? criticalChanceProperty.intValue : 20));
+            ApplyUnitStatProperty(unit, "criticalDamage", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamageProperty != null ? criticalDamageProperty.intValue : 150));
             unit.maxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(unit.strength);
             unit.maxMana = CharacterStatDatabase.ResolveMaxManaFromIntelligence(unit.intelligence);
             unit.currentHealth = Mathf.Min(unit.currentHealth, unit.maxHealth);
@@ -202,6 +256,25 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             unit.currentActionPoints = Mathf.Min(unit.currentActionPoints, unit.maxActionPoints);
             EditorUtility.SetDirty(unit);
         }
+    }
+
+    private static void ApplyUnitStatProperty(BattleUnit unit, string propertyName, int value)
+    {
+        if (unit == null || string.IsNullOrWhiteSpace(propertyName))
+        {
+            return;
+        }
+
+        SerializedObject unitObject = new SerializedObject(unit);
+        unitObject.Update();
+        SerializedProperty property = unitObject.FindProperty(propertyName);
+        if (property == null)
+        {
+            return;
+        }
+
+        property.intValue = value;
+        unitObject.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static BattleUnit[] FindBattleUnits(string characterId)
@@ -271,7 +344,9 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             {
                 characterId = knownIds[i],
                 actionPoints = 4,
-                hitRate = 100
+                hitRate = 100,
+                criticalChance = 20,
+                criticalDamage = 150
             });
             changed = true;
         }
@@ -323,6 +398,36 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         if (hitRateProperty != null)
         {
             hitRateProperty.intValue = 100;
+        }
+        SerializedProperty physicalResistanceProperty = entry.FindPropertyRelative("physicalResistance");
+        if (physicalResistanceProperty != null)
+        {
+            physicalResistanceProperty.intValue = 0;
+        }
+        SerializedProperty fireResistanceProperty = entry.FindPropertyRelative("fireResistance");
+        if (fireResistanceProperty != null)
+        {
+            fireResistanceProperty.intValue = 0;
+        }
+        SerializedProperty corruptionResistanceProperty = entry.FindPropertyRelative("corruptionResistance");
+        if (corruptionResistanceProperty != null)
+        {
+            corruptionResistanceProperty.intValue = 0;
+        }
+        SerializedProperty coldResistanceProperty = entry.FindPropertyRelative("coldResistance");
+        if (coldResistanceProperty != null)
+        {
+            coldResistanceProperty.intValue = 0;
+        }
+        SerializedProperty criticalChanceProperty = entry.FindPropertyRelative("criticalChance");
+        if (criticalChanceProperty != null)
+        {
+            criticalChanceProperty.intValue = 20;
+        }
+        SerializedProperty criticalDamageProperty = entry.FindPropertyRelative("criticalDamage");
+        if (criticalDamageProperty != null)
+        {
+            criticalDamageProperty.intValue = 150;
         }
     }
 

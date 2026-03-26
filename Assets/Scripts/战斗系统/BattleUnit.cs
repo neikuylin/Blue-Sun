@@ -33,6 +33,12 @@ public class BattleUnit : MonoBehaviour
     public int intelligence;
     public int maxActionPoints = 4;
     [SerializeField] private int hitRate = 100;
+    [SerializeField] private int physicalResistance;
+    [SerializeField] private int fireResistance;
+    [SerializeField] private int corruptionResistance;
+    [SerializeField] private int coldResistance;
+    [SerializeField] private int criticalChance = 20;
+    [SerializeField] private int criticalDamage = 150;
 
     [Header("Presentation")]
     public float yawOffset = 0f;
@@ -92,6 +98,13 @@ public class BattleUnit : MonoBehaviour
     {
         get { return CharacterStatDatabase.ResolveHitRateValue(hitRate); }
     }
+
+    public int PhysicalResistance => CharacterStatDatabase.ResolveResistanceValue(physicalResistance);
+    public int FireResistance => CharacterStatDatabase.ResolveResistanceValue(fireResistance);
+    public int CorruptionResistance => CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
+    public int ColdResistance => CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+    public int CriticalChance => CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
+    public int CriticalDamage => CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
 
     public bool IsMoving { get; private set; }
 
@@ -184,6 +197,12 @@ public class BattleUnit : MonoBehaviour
         intelligence = statEntry.intelligence;
         maxActionPoints = statEntry.ResolveActionPoints();
         hitRate = statEntry.ResolveHitRate();
+        physicalResistance = statEntry.ResolvePhysicalResistance();
+        fireResistance = statEntry.ResolveFireResistance();
+        corruptionResistance = statEntry.ResolveCorruptionResistance();
+        coldResistance = statEntry.ResolveColdResistance();
+        criticalChance = statEntry.ResolveCriticalChance();
+        criticalDamage = statEntry.ResolveCriticalDamage();
         moveDistance = statEntry.ResolveMoveDistance();
         moveRange = moveDistance;
         currentHealth = Mathf.Min(currentHealth, maxHealth);

@@ -184,12 +184,24 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
         int hitRate = EditorGUILayout.IntField("\u547D\u4E2D", statEntry.ResolveHitRate());
+        int physicalResistance = EditorGUILayout.IntField("\u7269\u7406\u6297\u6027", statEntry.ResolvePhysicalResistance());
+        int fireResistance = EditorGUILayout.IntField("\u706B\u7130\u6297\u6027", statEntry.ResolveFireResistance());
+        int corruptionResistance = EditorGUILayout.IntField("\u8150\u8D25\u6297\u6027", statEntry.ResolveCorruptionResistance());
+        int coldResistance = EditorGUILayout.IntField("\u5BD2\u51B7\u6297\u6027", statEntry.ResolveColdResistance());
+        int criticalChance = EditorGUILayout.IntField("\u66B4\u51FB\u7387", statEntry.ResolveCriticalChance());
+        int criticalDamage = EditorGUILayout.IntField("\u66B4\u51FB\u4F24\u5BB3", statEntry.ResolveCriticalDamage());
         EditorGUI.BeginDisabledGroup(true);
         EditorGUILayout.LabelField("\u6700\u7EC8\u547D\u4E2D", CharacterStatDatabase.ResolveHitRateValue(hitRate) + "%");
         EditorGUILayout.IntField("HP", CharacterStatDatabase.ResolveMaxHealthFromStrength(strength));
         EditorGUILayout.IntField("MP", CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence));
         EditorGUILayout.LabelField("\u79FB\u52A8\u8DDD\u79BB", CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility).ToString());
         EditorGUILayout.LabelField("\u95EA\u907F", CharacterStatDatabase.ResolveDodgeRateFromAgility(agility) + "%");
+        EditorGUILayout.LabelField("\u7269\u7406\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(physicalResistance) + "%");
+        EditorGUILayout.LabelField("\u706B\u7130\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(fireResistance) + "%");
+        EditorGUILayout.LabelField("\u8150\u8D25\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(corruptionResistance) + "%");
+        EditorGUILayout.LabelField("\u5BD2\u51B7\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(coldResistance) + "%");
+        EditorGUILayout.LabelField("\u66B4\u51FB\u7387", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance) + "%");
+        EditorGUILayout.LabelField("\u66B4\u51FB\u4F24\u5BB3", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage) + "%");
         EditorGUI.EndDisabledGroup();
         bool statChanged = EditorGUI.EndChangeCheck();
 
@@ -203,6 +215,12 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         statEntry.intelligence = intelligence;
         statEntry.actionPoints = actionPoints;
         statEntry.hitRate = CharacterStatDatabase.ResolveHitRateValue(hitRate);
+        statEntry.physicalResistance = CharacterStatDatabase.ResolveResistanceValue(physicalResistance);
+        statEntry.fireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistance);
+        statEntry.corruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
+        statEntry.coldResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+        statEntry.criticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
+        statEntry.criticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
         EditorUtility.SetDirty(statDatabase);
         AssetDatabase.SaveAssets();
     }

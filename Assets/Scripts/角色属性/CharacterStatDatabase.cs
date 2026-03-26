@@ -16,6 +16,12 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int intelligence;
         public int actionPoints = 4;
         public int hitRate = 100;
+        public int physicalResistance;
+        public int fireResistance;
+        public int corruptionResistance;
+        public int coldResistance;
+        public int criticalChance = 20;
+        public int criticalDamage = 150;
 
         public int ResolveActionPoints()
         {
@@ -45,6 +51,36 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int ResolveDodgeRate()
         {
             return ResolveDodgeRateFromAgility(agility);
+        }
+
+        public int ResolvePhysicalResistance()
+        {
+            return ResolveResistanceValue(physicalResistance);
+        }
+
+        public int ResolveFireResistance()
+        {
+            return ResolveResistanceValue(fireResistance);
+        }
+
+        public int ResolveCorruptionResistance()
+        {
+            return ResolveResistanceValue(corruptionResistance);
+        }
+
+        public int ResolveColdResistance()
+        {
+            return ResolveResistanceValue(coldResistance);
+        }
+
+        public int ResolveCriticalChance()
+        {
+            return ResolveCriticalChanceValue(criticalChance);
+        }
+
+        public int ResolveCriticalDamage()
+        {
+            return ResolveCriticalDamageValue(criticalDamage);
         }
     }
 
@@ -99,6 +135,21 @@ public sealed class CharacterStatDatabase : ScriptableObject
     public static int ResolveDodgeRateFromAgility(int agility)
     {
         return 10 + Mathf.Max(0, agility);
+    }
+
+    public static int ResolveResistanceValue(int resistance)
+    {
+        return Mathf.Max(0, resistance);
+    }
+
+    public static int ResolveCriticalChanceValue(int criticalChance)
+    {
+        return Mathf.Max(0, criticalChance);
+    }
+
+    public static int ResolveCriticalDamageValue(int criticalDamage)
+    {
+        return criticalDamage > 0 ? criticalDamage : 150;
     }
 
     public static CharacterStatDatabase LoadDefault()

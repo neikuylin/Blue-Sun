@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -221,10 +221,22 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         int agility = EditorGUILayout.IntField("敏捷", statEntry.agility);
         int intelligence = EditorGUILayout.IntField("智力", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("行动力", statEntry.actionPoints);
+        int physicalResistance = EditorGUILayout.IntField("物理抗性", statEntry.ResolvePhysicalResistance());
+        int fireResistance = EditorGUILayout.IntField("火焰抗性", statEntry.ResolveFireResistance());
+        int corruptionResistance = EditorGUILayout.IntField("腐败抗性", statEntry.ResolveCorruptionResistance());
+        int coldResistance = EditorGUILayout.IntField("寒冷抗性", statEntry.ResolveColdResistance());
+        int criticalChance = EditorGUILayout.IntField("暴击率", statEntry.ResolveCriticalChance());
+        int criticalDamage = EditorGUILayout.IntField("暴击伤害", statEntry.ResolveCriticalDamage());
         EditorGUI.BeginDisabledGroup(true);
         EditorGUILayout.IntField("HP", CharacterStatDatabase.ResolveMaxHealthFromStrength(strength));
         EditorGUILayout.IntField("MP", CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence));
         EditorGUILayout.LabelField("移动距离", CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility).ToString());
+        EditorGUILayout.LabelField("物理抗性", CharacterStatDatabase.ResolveResistanceValue(physicalResistance) + "%");
+        EditorGUILayout.LabelField("火焰抗性", CharacterStatDatabase.ResolveResistanceValue(fireResistance) + "%");
+        EditorGUILayout.LabelField("腐败抗性", CharacterStatDatabase.ResolveResistanceValue(corruptionResistance) + "%");
+        EditorGUILayout.LabelField("寒冷抗性", CharacterStatDatabase.ResolveResistanceValue(coldResistance) + "%");
+        EditorGUILayout.LabelField("暴击率", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance) + "%");
+        EditorGUILayout.LabelField("暴击伤害", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage) + "%");
         EditorGUI.EndDisabledGroup();
 
         if (!EditorGUI.EndChangeCheck())
@@ -236,6 +248,12 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         statEntry.agility = agility;
         statEntry.intelligence = intelligence;
         statEntry.actionPoints = actionPoints;
+        statEntry.physicalResistance = CharacterStatDatabase.ResolveResistanceValue(physicalResistance);
+        statEntry.fireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistance);
+        statEntry.corruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
+        statEntry.coldResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+        statEntry.criticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
+        statEntry.criticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
         SaveAsset(statDatabase);
     }
 
@@ -404,7 +422,9 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         CharacterStatDatabase.StatEntry created = new CharacterStatDatabase.StatEntry
         {
             characterId = enemyId,
-            actionPoints = 4
+            actionPoints = 4,
+            criticalChance = 20,
+            criticalDamage = 150
         };
         statDatabase.Entries.Add(created);
         SaveAsset(statDatabase);
