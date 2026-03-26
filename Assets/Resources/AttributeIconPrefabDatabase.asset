@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - attributeId: "\u7269\u7406"
-    prefab: {fileID: 0}
+    prefab: {fileID: 2816448860473694957, guid: 28824003dbfb87b4b830d5918ed3533d, type: 3}
   - attributeId: "\u706B\u7130"
-    prefab: {fileID: 0}
+    prefab: {fileID: 8114083619322276424, guid: 475e936c59ecdca4d81b56e5d10fe8de, type: 3}
   - attributeId: "\u8150\u8D25"
-    prefab: {fileID: 0}
+    prefab: {fileID: 2216394086646156324, guid: d5307824ce61ce344a85e537039e43ce, type: 3}
   - attributeId: "\u5BD2\u51B7"
-    prefab: {fileID: 0}
+    prefab: {fileID: 146780781491295783, guid: 08f91a770c147364fa65c8ef092edffc, type: 3}
