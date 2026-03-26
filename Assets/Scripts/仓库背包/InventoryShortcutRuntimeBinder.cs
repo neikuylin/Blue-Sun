@@ -3538,8 +3538,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         GameObject instance = UnityEngine.Object.Instantiate(source.gameObject, anchor, false);
         instance.name = source.gameObject.name;
 
+        RectTransform sourceRect = source as RectTransform;
         RectTransform instanceRect = instance.transform as RectTransform;
-        if (instanceRect != null)
+        if (instanceRect != null && sourceRect != null)
+        {
+            instanceRect.anchorMin = sourceRect.anchorMin;
+            instanceRect.anchorMax = sourceRect.anchorMax;
+            instanceRect.pivot = sourceRect.pivot;
+            instanceRect.anchoredPosition = sourceRect.anchoredPosition;
+            instanceRect.sizeDelta = sourceRect.sizeDelta;
+            instanceRect.localRotation = sourceRect.localRotation;
+            instanceRect.localScale = sourceRect.localScale;
+            instanceRect.offsetMin = sourceRect.offsetMin;
+            instanceRect.offsetMax = sourceRect.offsetMax;
+        }
+        else if (instanceRect != null)
         {
             instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
             instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
