@@ -142,3 +142,32 @@ MonoBehaviour:
       value: 0
     prefab: {fileID: 6639484880991417966, guid: d5b76f0164df84f42ae43866e206d1e1, type: 3}
     weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u6D4B\u8BD5\u7528\u6B66\u5668"
+    displayName: "\u65B0\u7269\u54C1"
+    category: 0
+    quality: 3
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 25
+      fire: 25
+      corruption: 25
+      cold: 25
+    fixedDamage: 10
+    criticalChanceBonus: 20
+    criticalDamageBonus: 100
+    description: 
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1
+    - attributeType: 2
+      multiplier: 1
+    - attributeType: 3
+      multiplier: 1
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
+    prefab: {fileID: 4147409947302016304, guid: d3f14c455cf48734f9c64d0b09d52e00, type: 3}
+    weaponModelPrefab: {fileID: 1369036632366570, guid: 7dd829962258ae04e9e99c240b2cbd6e, type: 3}

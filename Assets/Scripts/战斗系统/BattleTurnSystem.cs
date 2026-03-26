@@ -74,6 +74,11 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
     private const string PlayerInfoColorHex = "#33CC66";
     private const string EnemyInfoColorHex = "#E14B4B";
+    private const string NeutralInfoColorHex = "#A0A0A0";
+    private const string PhysicalInfoColorHex = "#FFFFFF";
+    private const string FireInfoColorHex = "#FF4D4D";
+    private const string CorruptionInfoColorHex = "#33CC66";
+    private const string ColdInfoColorHex = "#4DA6FF";
     private const int MinHitChancePercent = 0;
     private const int MaxHitChancePercent = 100;
     private const float HitFeelDurationSeconds = 0.3f;
@@ -3132,8 +3137,10 @@ public class BattleTurnSystem : MonoBehaviour
         target.ApplyDamage(damageResult.appliedDamage);
         ShowDamagePopup(target, damageResult);
         HandleUnitDefeat(target);
-        string criticalText = damageResult.isCritical ? "，触发了暴击" : string.Empty;
-        return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{FormatDamageValue(damageResult.totalDamage)}点伤害{criticalText}";
+        string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发了暴击，", PhysicalInfoColorHex)}" : string.Empty;
+        string damageText = FormatBattleInfoDamageText(damageResult);
+        string deathText = BuildUnitDefeatMessage(target);
+        return WrapBattleInfoColor($"{casterName}对{targetName}使用了{skillName}，{criticalText}对{targetName}造成{damageText}{deathText}", NeutralInfoColorHex);
     }
 
     private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
@@ -3281,15 +3288,18 @@ public class BattleTurnSystem : MonoBehaviour
             unit.ApplyDamage(damageResult.appliedDamage);
             ShowDamagePopup(unit, damageResult);
             HandleUnitDefeat(unit);
-            hitTargets.Add($"{unitName}({FormatDamageValue(damageResult.totalDamage)})");
+            string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发暴击，", PhysicalInfoColorHex)}" : string.Empty;
+            string damageText = FormatBattleInfoDamageText(damageResult);
+            string deathText = BuildUnitDefeatMessage(unit);
+            hitTargets.Add($"{unitName}{criticalText}受到{damageText}{deathText}");
         }
 
         if (hitTargets.Count > 0)
         {
-            string message = $"{casterName}使用了{skillName}，命中了{string.Join("、", hitTargets)}";
+            string message = WrapBattleInfoColor($"{casterName}使用了{skillName}，命中了{string.Join("、", hitTargets)}", NeutralInfoColorHex);
             if (missedTargets.Count > 0)
             {
-                message += $"，被{string.Join("、", missedTargets)}闪避了";
+                message += WrapBattleInfoColor($"，被{string.Join("、", missedTargets)}闪避了", NeutralInfoColorHex);
             }
 
             return message;
@@ -3547,6 +3557,77 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return value.ToString("0.#");
+    }
+
+    private static string FormatBattleInfoDamageText(CombatDamageResult damageResult)
+    {
+        if (damageResult == null || damageResult.components.Count == 0)
+        {
+            return $"{WrapBattleInfoColor("0", PhysicalInfoColorHex)}{WrapBattleInfoColor("点伤害", NeutralInfoColorHex)}";
+        }
+
+        List<string> parts = new List<string>();
+        for (int i = 0; i < damageResult.components.Count; i++)
+        {
+            DamageComponent component = damageResult.components[i];
+            if (component.amount <= 0f)
+            {
+                continue;
+            }
+
+            string attributeColorHex = GetDamageAttributeColorHex(component.attributeType);
+            string amountText = WrapBattleInfoColor(FormatDamageValue(component.amount), attributeColorHex);
+            string attributeText = WrapBattleInfoColor(GetDamageAttributeDisplayName(component.attributeType), attributeColorHex);
+            string suffixText = WrapBattleInfoColor("伤害", attributeColorHex);
+            parts.Add($"{amountText}{attributeText}{suffixText}");
+        }
+
+        if (parts.Count == 0)
+        {
+            return $"{WrapBattleInfoColor("0", PhysicalInfoColorHex)}{WrapBattleInfoColor("点伤害", NeutralInfoColorHex)}";
+        }
+
+        return string.Join(WrapBattleInfoColor("和", NeutralInfoColorHex), parts);
+    }
+
+    private static string GetDamageAttributeDisplayName(DamageAttributeType attributeType)
+    {
+        switch (attributeType)
+        {
+            case DamageAttributeType.Fire:
+                return "火焰";
+            case DamageAttributeType.Corruption:
+                return "腐蚀";
+            case DamageAttributeType.Cold:
+                return "寒冷";
+            default:
+                return "物理";
+        }
+    }
+
+    private static string GetDamageAttributeColorHex(DamageAttributeType attributeType)
+    {
+        switch (attributeType)
+        {
+            case DamageAttributeType.Fire:
+                return FireInfoColorHex;
+            case DamageAttributeType.Corruption:
+                return CorruptionInfoColorHex;
+            case DamageAttributeType.Cold:
+                return ColdInfoColorHex;
+            default:
+                return PhysicalInfoColorHex;
+        }
+    }
+
+    private static string BuildUnitDefeatMessage(BattleUnit unit)
+    {
+        if (unit == null || unit.IsAlive)
+        {
+            return string.Empty;
+        }
+
+        return WrapBattleInfoColor($"，{ResolveBattleInfoUnitName(unit, richText: true)}死亡", NeutralInfoColorHex);
     }
 
     private bool RollSkillHit(BattleUnit caster, BattleUnit target)

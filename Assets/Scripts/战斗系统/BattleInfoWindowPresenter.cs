@@ -16,6 +16,8 @@ public sealed class BattleInfoWindowPresenter : MonoBehaviour
     [Header("详细信息")]
     [SerializeField] private TMP_Text detailInfoText;
 
+    private static readonly Color DefaultInfoTextColor = new Color32(160, 160, 160, 255);
+
     private readonly List<string> detailMessages = new List<string>();
 
     public void ShowMessage(string message)
@@ -25,6 +27,7 @@ public sealed class BattleInfoWindowPresenter : MonoBehaviour
         TMP_Text briefTarget = briefInfoText != null ? briefInfoText : ResolveBriefInfoText();
         if (briefTarget != null)
         {
+            briefTarget.color = DefaultInfoTextColor;
             briefTarget.text = resolvedMessage;
         }
 
@@ -106,6 +109,7 @@ public sealed class BattleInfoWindowPresenter : MonoBehaviour
         target.enableWordWrapping = true;
         target.overflowMode = TextOverflowModes.Overflow;
         target.raycastTarget = false;
+        target.color = DefaultInfoTextColor;
         target.text = BuildVisibleDetailText(target);
     }
 
