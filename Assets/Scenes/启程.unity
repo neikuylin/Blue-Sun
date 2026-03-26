@@ -10226,8 +10226,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -278.58008, y: -192.99998}
-  m_SizeDelta: {x: 261.88, y: 50}
+  m_AnchoredPosition: {x: -222.26013, y: -192.99998}
+  m_SizeDelta: {x: 374.52, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &403870023
 MonoBehaviour:
@@ -13406,8 +13406,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 95.93994, y: -142.59998}
-  m_SizeDelta: {x: 261.88, y: 50}
+  m_AnchoredPosition: {x: 152.26001, y: -141.79999}
+  m_SizeDelta: {x: 374.52, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &828433437
 MonoBehaviour:
@@ -15025,6 +15025,10 @@ MonoBehaviour:
   fireResistanceText: {fileID: 0}
   corruptionResistanceText: {fileID: 0}
   coldResistanceText: {fileID: 0}
+  physicalResistancePenetrationText: {fileID: 0}
+  fireResistancePenetrationText: {fileID: 0}
+  corruptionResistancePenetrationText: {fileID: 0}
+  coldResistancePenetrationText: {fileID: 0}
   criticalChanceText: {fileID: 0}
   criticalDamageText: {fileID: 0}
   statDatabase: {fileID: 11400000, guid: 97f44efef7a913841a495016424ead43, type: 2}
@@ -15179,8 +15183,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -278.58, y: -141.8}
-  m_SizeDelta: {x: 261.88, y: 50}
+  m_AnchoredPosition: {x: -222.26004, y: -141.8}
+  m_SizeDelta: {x: 374.52, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1110246587
 MonoBehaviour:
@@ -18531,8 +18535,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 95.93994, y: -193.69998}
-  m_SizeDelta: {x: 261.88, y: 50}
+  m_AnchoredPosition: {x: 152.25989, y: -193.69998}
+  m_SizeDelta: {x: 374.52, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1483409939
 MonoBehaviour:
