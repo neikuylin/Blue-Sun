@@ -12,6 +12,12 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private const string StrengthPath = "\u6587\u672c\u533a\u57df/\u529b\u91cf";
     private const string AgilityPath = "\u6587\u672c\u533a\u57df/\u654f\u6377";
     private const string IntelligencePath = "\u6587\u672c\u533a\u57df/\u667a\u529b";
+    private const string PhysicalResistancePath = "\u6587\u672c\u533a\u57df/\u7269\u7406\u6297\u6027";
+    private const string FireResistancePath = "\u6587\u672c\u533a\u57df/\u706b\u7130\u6297\u6027";
+    private const string CorruptionResistancePath = "\u6587\u672c\u533a\u57df/\u8150\u8d25\u6297\u6027";
+    private const string ColdResistancePath = "\u6587\u672c\u533a\u57df/\u5bd2\u51b7\u6297\u6027";
+    private const string CriticalChancePath = "\u6587\u672c\u533a\u57df/\u66b4\u51fb\u7387";
+    private const string CriticalDamagePath = "\u6587\u672c\u533a\u57df/\u66b4\u51fb\u4f24\u5bb3";
 
     [SerializeField] private Component characterNameText;
     [SerializeField] private Component healthText;
@@ -20,6 +26,12 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     [SerializeField] private Component strengthText;
     [SerializeField] private Component agilityText;
     [SerializeField] private Component intelligenceText;
+    [SerializeField] private Component physicalResistanceText;
+    [SerializeField] private Component fireResistanceText;
+    [SerializeField] private Component corruptionResistanceText;
+    [SerializeField] private Component coldResistanceText;
+    [SerializeField] private Component criticalChanceText;
+    [SerializeField] private Component criticalDamageText;
 
     [SerializeField] private CharacterStatDatabase statDatabase;
     [SerializeField] private BattleCharacterBindingDatabase characterBindingDatabase;
@@ -57,6 +69,12 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         strengthText = FindTextByPath(StrengthPath);
         agilityText = FindTextByPath(AgilityPath);
         intelligenceText = FindTextByPath(IntelligencePath);
+        physicalResistanceText = FindTextByPath(PhysicalResistancePath);
+        fireResistanceText = FindTextByPath(FireResistancePath);
+        corruptionResistanceText = FindTextByPath(CorruptionResistancePath);
+        coldResistanceText = FindTextByPath(ColdResistancePath);
+        criticalChanceText = FindTextByPath(CriticalChancePath);
+        criticalDamageText = FindTextByPath(CriticalDamagePath);
         EnsureDatabases();
     }
 
@@ -95,6 +113,36 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         if (intelligenceText == null)
         {
             intelligenceText = FindTextByPath(IntelligencePath);
+        }
+
+        if (physicalResistanceText == null)
+        {
+            physicalResistanceText = FindTextByPath(PhysicalResistancePath);
+        }
+
+        if (fireResistanceText == null)
+        {
+            fireResistanceText = FindTextByPath(FireResistancePath);
+        }
+
+        if (corruptionResistanceText == null)
+        {
+            corruptionResistanceText = FindTextByPath(CorruptionResistancePath);
+        }
+
+        if (coldResistanceText == null)
+        {
+            coldResistanceText = FindTextByPath(ColdResistancePath);
+        }
+
+        if (criticalChanceText == null)
+        {
+            criticalChanceText = FindTextByPath(CriticalChancePath);
+        }
+
+        if (criticalDamageText == null)
+        {
+            criticalDamageText = FindTextByPath(CriticalDamagePath);
         }
 
         EnsureDatabases();
@@ -236,6 +284,18 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
             "|",
             statEntry != null ? statEntry.intelligence : -1,
             "|",
+            statEntry != null ? statEntry.ResolvePhysicalResistance() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveFireResistance() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveCorruptionResistance() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveColdResistance() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveCriticalChance() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveCriticalDamage() : -1,
+            "|",
             Mathf.RoundToInt(attackPower * 100f));
     }
 
@@ -260,6 +320,12 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         SetText(strengthText, statEntry != null ? "\u529b\u91cf:" + statEntry.strength : "\u529b\u91cf:");
         SetText(agilityText, statEntry != null ? "\u654f\u6377:" + statEntry.agility : "\u654f\u6377:");
         SetText(intelligenceText, statEntry != null ? "\u667a\u529b:" + statEntry.intelligence : "\u667a\u529b:");
+        SetText(physicalResistanceText, statEntry != null ? "\u7269\u7406\u6297\u6027:" + statEntry.ResolvePhysicalResistance() + "%" : "\u7269\u7406\u6297\u6027:");
+        SetText(fireResistanceText, statEntry != null ? "\u706b\u7130\u6297\u6027:" + statEntry.ResolveFireResistance() + "%" : "\u706b\u7130\u6297\u6027:");
+        SetText(corruptionResistanceText, statEntry != null ? "\u8150\u8d25\u6297\u6027:" + statEntry.ResolveCorruptionResistance() + "%" : "\u8150\u8d25\u6297\u6027:");
+        SetText(coldResistanceText, statEntry != null ? "\u5bd2\u51b7\u6297\u6027:" + statEntry.ResolveColdResistance() + "%" : "\u5bd2\u51b7\u6297\u6027:");
+        SetText(criticalChanceText, statEntry != null ? "\u66b4\u51fb\u7387:" + statEntry.ResolveCriticalChance() + "%" : "\u66b4\u51fb\u7387:");
+        SetText(criticalDamageText, statEntry != null ? "\u66b4\u51fb\u4f24\u5bb3:" + statEntry.ResolveCriticalDamage() + "%" : "\u66b4\u51fb\u4f24\u5bb3:");
     }
 
     private string ResolveDisplayName(string characterId)

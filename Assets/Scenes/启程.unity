@@ -8181,7 +8181,7 @@ GameObject:
   - component: {fileID: 23171135}
   - component: {fileID: 23171134}
   m_Layer: 5
-  m_Name: "\u66B4\u51FB\u4F24\u5BB3"
+  m_Name: "\u66B4\u51FB\u7387"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8203,7 +8203,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -278.58008, y: -41.4}
+  m_AnchoredPosition: {x: -278.58, y: -91.4}
   m_SizeDelta: {x: 261.88, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &23171134
@@ -14753,6 +14753,12 @@ MonoBehaviour:
   strengthText: {fileID: 1365145140}
   agilityText: {fileID: 66360865}
   intelligenceText: {fileID: 433303075}
+  physicalResistanceText: {fileID: 0}
+  fireResistanceText: {fileID: 0}
+  corruptionResistanceText: {fileID: 0}
+  coldResistanceText: {fileID: 0}
+  criticalChanceText: {fileID: 0}
+  criticalDamageText: {fileID: 0}
   statDatabase: {fileID: 11400000, guid: 97f44efef7a913841a495016424ead43, type: 2}
   characterBindingDatabase: {fileID: 11400000, guid: fc50bbc876d246042aa22504a050cc9d, type: 2}
 --- !u!224 &1059229970 stripped
