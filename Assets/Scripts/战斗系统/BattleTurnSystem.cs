@@ -58,6 +58,10 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color activePlayerFootprintColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
     private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 0.32f);
     private readonly Color targetHealthBarColor = new Color(0.90f, 0.18f, 0.22f, 1f);
+    private readonly Color physicalDamageColor = Color.white;
+    private readonly Color fireDamageColor = new Color(1.00f, 0.55f, 0.12f, 1f);
+    private readonly Color corruptionDamageColor = new Color(0.25f, 0.90f, 0.35f, 1f);
+    private readonly Color coldDamageColor = new Color(0.25f, 0.65f, 1.00f, 1f);
     private readonly Color targetNameSelfColor = Color.white;
     private readonly Color targetNameAllyColor = new Color(0.20f, 0.85f, 0.42f, 1f);
     private readonly Color targetNameEnemyColor = new Color(0.95f, 0.28f, 0.20f, 1f);
@@ -144,11 +148,33 @@ public class BattleTurnSystem : MonoBehaviour
         public BattleSkillDatabase.SkillEntry skill;
     }
 
+    private enum DamageAttributeType
+    {
+        Physical,
+        Fire,
+        Corruption,
+        Cold
+    }
+
     private struct EnemySkillAction
     {
         public EnemySkillChoice choice;
         public BattleUnit targetUnit;
         public Vector2Int targetCell;
+    }
+
+    private struct DamageComponent
+    {
+        public DamageAttributeType attributeType;
+        public float amount;
+    }
+
+    private sealed class CombatDamageResult
+    {
+        public readonly List<DamageComponent> components = new List<DamageComponent>();
+        public bool isCritical;
+        public float totalDamage;
+        public int appliedDamage;
     }
 
     private struct RectSnapshot
@@ -3048,12 +3074,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        int damage = CalculateCombatArtDamage(caster, skill);
-        if (damage <= 0)
-        {
-            return;
-        }
-
         if (!RollSkillHit(caster, target))
         {
             PlayDodgeReaction(target);
@@ -3061,9 +3081,15 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        CombatDamageResult damageResult = CalculateCombatArtDamage(caster, target, skill);
+        if (damageResult == null || damageResult.appliedDamage <= 0)
+        {
+            return;
+        }
+
         PlayHitReaction(target);
-        target.ApplyDamage(damage);
-        BattleDamageNumberPopup.Show(target, damage, battleCamera);
+        target.ApplyDamage(damageResult.appliedDamage);
+        ShowDamagePopup(target, damageResult);
         HandleUnitDefeat(target);
     }
 
@@ -3089,12 +3115,6 @@ public class BattleTurnSystem : MonoBehaviour
             return $"{casterName}对{targetName}使用了{skillName}";
         }
 
-        int damage = CalculateCombatArtDamage(caster, skill);
-        if (damage <= 0)
-        {
-            return $"{casterName}对{targetName}使用了{skillName}";
-        }
-
         if (!RollSkillHit(caster, target))
         {
             PlayDodgeReaction(target);
@@ -3102,11 +3122,18 @@ public class BattleTurnSystem : MonoBehaviour
             return $"{casterName}对{targetName}使用了{skillName}，被{targetName}闪避了";
         }
 
+        CombatDamageResult damageResult = CalculateCombatArtDamage(caster, target, skill);
+        if (damageResult == null || damageResult.appliedDamage <= 0)
+        {
+            return $"{casterName}对{targetName}使用了{skillName}";
+        }
+
         PlayHitReaction(target);
-        target.ApplyDamage(damage);
-        BattleDamageNumberPopup.Show(target, damage, battleCamera);
+        target.ApplyDamage(damageResult.appliedDamage);
+        ShowDamagePopup(target, damageResult);
         HandleUnitDefeat(target);
-            return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{damage}点伤害";
+        string criticalText = damageResult.isCritical ? "，触发了暴击" : string.Empty;
+        return $"{casterName}对{targetName}使用了{skillName}，对{targetName}造成了{FormatDamageValue(damageResult.totalDamage)}点伤害{criticalText}";
     }
 
     private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
@@ -3117,12 +3144,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
-        {
-            return;
-        }
-
-        int damage = CalculateCombatArtDamage(caster, skill);
-        if (damage <= 0)
         {
             return;
         }
@@ -3170,9 +3191,15 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
+            CombatDamageResult damageResult = CalculateCombatArtDamage(caster, unit, skill);
+            if (damageResult == null || damageResult.appliedDamage <= 0)
+            {
+                continue;
+            }
+
             PlayHitReaction(unit);
-            unit.ApplyDamage(damage);
-            BattleDamageNumberPopup.Show(unit, damage, battleCamera);
+            unit.ApplyDamage(damageResult.appliedDamage);
+            ShowDamagePopup(unit, damageResult);
             HandleUnitDefeat(unit);
         }
     }
@@ -3193,12 +3220,6 @@ public class BattleTurnSystem : MonoBehaviour
         string casterName = ResolveBattleInfoUnitName(caster, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
         if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
-        {
-            return FormatAreaSkillMessage(caster, targetCell, skill);
-        }
-
-        int damage = CalculateCombatArtDamage(caster, skill);
-        if (damage <= 0)
         {
             return FormatAreaSkillMessage(caster, targetCell, skill);
         }
@@ -3250,17 +3271,22 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
+            CombatDamageResult damageResult = CalculateCombatArtDamage(caster, unit, skill);
+            if (damageResult == null || damageResult.appliedDamage <= 0)
+            {
+                continue;
+            }
+
             PlayHitReaction(unit);
-            unit.ApplyDamage(damage);
-            BattleDamageNumberPopup.Show(unit, damage, battleCamera);
+            unit.ApplyDamage(damageResult.appliedDamage);
+            ShowDamagePopup(unit, damageResult);
             HandleUnitDefeat(unit);
-            hitTargets.Add(unitName);
+            hitTargets.Add($"{unitName}({FormatDamageValue(damageResult.totalDamage)})");
         }
 
         if (hitTargets.Count > 0)
         {
-            string message =
-                $"{casterName}对{string.Join("、", hitTargets)}使用了{skillName}，对{string.Join("、", hitTargets)}造成了{damage}点伤害";
+            string message = $"{casterName}使用了{skillName}，命中了{string.Join("、", hitTargets)}";
             if (missedTargets.Count > 0)
             {
                 message += $"，被{string.Join("、", missedTargets)}闪避了";
@@ -3277,20 +3303,217 @@ public class BattleTurnSystem : MonoBehaviour
         return $"{casterName}在{targetCell}使用了{skillName}";
     }
 
-    private int CalculateCombatArtDamage(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
+    private CombatDamageResult CalculateCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || skill == null)
+        if (caster == null || target == null || skill == null)
         {
-            return 0;
+            return null;
         }
 
         float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId);
         if (attackPower <= 0f)
         {
+            return null;
+        }
+
+        float damage = attackPower * Mathf.Max(0f, skill.damageMultiplier);
+        if (damage <= 0f)
+        {
+            return null;
+        }
+
+        CombatDamageResult result = new CombatDamageResult();
+        result.isCritical = RollCriticalHit(caster);
+        if (result.isCritical)
+        {
+            damage *= Mathf.Max(0f, caster.CriticalDamage) / 100f;
+        }
+
+        BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), target);
+        for (int i = 0; i < result.components.Count; i++)
+        {
+            result.totalDamage += result.components[i].amount;
+        }
+
+        result.appliedDamage = Mathf.Max(0, Mathf.RoundToInt(result.totalDamage));
+        return result;
+    }
+
+    private bool RollCriticalHit(BattleUnit caster)
+    {
+        if (caster == null)
+        {
+            return false;
+        }
+
+        int criticalChance = Mathf.Max(0, caster.CriticalChance);
+        if (criticalChance >= MaxHitChancePercent)
+        {
+            return true;
+        }
+
+        if (criticalChance <= MinHitChancePercent)
+        {
+            return false;
+        }
+
+        return Random.Range(0, MaxHitChancePercent) < criticalChance;
+    }
+
+    private void BuildDamageComponents(
+        List<DamageComponent> components,
+        float totalDamage,
+        ItemDatabase.WeaponDamageDistribution distribution,
+        BattleUnit target)
+    {
+        components.Clear();
+        if (totalDamage <= 0f)
+        {
+            return;
+        }
+
+        ItemDatabase.WeaponDamageDistribution resolvedDistribution = distribution ?? ItemDatabase.CreateDefaultWeaponDamageDistribution();
+        int distributionTotal = Mathf.Max(0, resolvedDistribution.Total);
+        if (distributionTotal <= 0)
+        {
+            resolvedDistribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            distributionTotal = resolvedDistribution.Total;
+        }
+
+        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, resolvedDistribution.physical, distributionTotal, target);
+        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, resolvedDistribution.fire, distributionTotal, target);
+        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, resolvedDistribution.corruption, distributionTotal, target);
+        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, resolvedDistribution.cold, distributionTotal, target);
+    }
+
+    private void AddDamageComponent(
+        List<DamageComponent> components,
+        DamageAttributeType attributeType,
+        float totalDamage,
+        int distributionValue,
+        int distributionTotal,
+        BattleUnit target)
+    {
+        if (components == null || totalDamage <= 0f || distributionValue <= 0 || distributionTotal <= 0)
+        {
+            return;
+        }
+
+        float baseAmount = totalDamage * distributionValue / distributionTotal;
+        float mitigatedAmount = ApplyResistance(baseAmount, target, attributeType);
+        if (mitigatedAmount <= 0f)
+        {
+            return;
+        }
+
+        components.Add(new DamageComponent
+        {
+            attributeType = attributeType,
+            amount = mitigatedAmount
+        });
+    }
+
+    private static float ApplyResistance(float damage, BattleUnit target, DamageAttributeType attributeType)
+    {
+        if (damage <= 0f)
+        {
+            return 0f;
+        }
+
+        int resistance = ResolveResistance(target, attributeType);
+        float multiplier = 1f - (Mathf.Clamp(resistance, 0, 100) / 100f);
+        return Mathf.Max(0f, damage * multiplier);
+    }
+
+    private static int ResolveResistance(BattleUnit target, DamageAttributeType attributeType)
+    {
+        if (target == null)
+        {
             return 0;
         }
 
-        return Mathf.Max(0, Mathf.RoundToInt(attackPower * Mathf.Max(0f, skill.damageMultiplier)));
+        switch (attributeType)
+        {
+            case DamageAttributeType.Fire:
+                return target.FireResistance;
+            case DamageAttributeType.Corruption:
+                return target.CorruptionResistance;
+            case DamageAttributeType.Cold:
+                return target.ColdResistance;
+            default:
+                return target.PhysicalResistance;
+        }
+    }
+
+    private void ShowDamagePopup(BattleUnit target, CombatDamageResult damageResult)
+    {
+        if (target == null || damageResult == null)
+        {
+            return;
+        }
+
+        List<BattleDamageNumberPopup.DamageSegment> segments = BuildDamageSegments(damageResult);
+        if (segments.Count > 0)
+        {
+            BattleDamageNumberPopup.ShowSegments(target, segments, battleCamera);
+            return;
+        }
+
+        if (damageResult.appliedDamage > 0)
+        {
+            BattleDamageNumberPopup.Show(target, damageResult.appliedDamage, battleCamera);
+        }
+    }
+
+    private List<BattleDamageNumberPopup.DamageSegment> BuildDamageSegments(CombatDamageResult damageResult)
+    {
+        List<BattleDamageNumberPopup.DamageSegment> segments = new List<BattleDamageNumberPopup.DamageSegment>();
+        if (damageResult == null)
+        {
+            return segments;
+        }
+
+        for (int i = 0; i < damageResult.components.Count; i++)
+        {
+            DamageComponent component = damageResult.components[i];
+            if (component.amount <= 0f)
+            {
+                continue;
+            }
+
+            segments.Add(new BattleDamageNumberPopup.DamageSegment
+            {
+                text = FormatDamageValue(component.amount),
+                color = ResolveDamageColor(component.attributeType)
+            });
+        }
+
+        return segments;
+    }
+
+    private Color ResolveDamageColor(DamageAttributeType attributeType)
+    {
+        switch (attributeType)
+        {
+            case DamageAttributeType.Fire:
+                return fireDamageColor;
+            case DamageAttributeType.Corruption:
+                return corruptionDamageColor;
+            case DamageAttributeType.Cold:
+                return coldDamageColor;
+            default:
+                return physicalDamageColor;
+        }
+    }
+
+    private static string FormatDamageValue(float value)
+    {
+        if (Mathf.Approximately(value, Mathf.Round(value)))
+        {
+            return Mathf.RoundToInt(value).ToString();
+        }
+
+        return value.ToString("0.#");
     }
 
     private bool RollSkillHit(BattleUnit caster, BattleUnit target)

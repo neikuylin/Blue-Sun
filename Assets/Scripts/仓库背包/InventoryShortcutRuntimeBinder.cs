@@ -2322,17 +2322,35 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
     }
 
+    public static ItemDatabase.WeaponDamageDistribution GetCharacterWeaponDamageDistribution(string characterId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        if (weaponEntry == null)
+        {
+            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+        }
+
+        ItemDatabase.EnsureValidWeaponDamageDistribution(weaponEntry);
+        return CloneWeaponDamageDistribution(weaponEntry.weaponDamageDistribution);
+    }
+
     public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
+    }
+
+    private static ItemDatabase.ItemEntry GetCharacterWeaponEntry(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return ItemDatabase.WeaponCategory.None;
+            return null;
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
         if (equipment == null || equipment.Count == 0)
         {
-            return ItemDatabase.WeaponCategory.None;
+            return null;
         }
 
         ItemDatabase.ItemEntry weaponEntry = null;
@@ -2360,7 +2378,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             }
         }
 
-        return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
+        return weaponEntry;
+    }
+
+    private static ItemDatabase.WeaponDamageDistribution CloneWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution distribution)
+    {
+        if (distribution == null)
+        {
+            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+        }
+
+        return new ItemDatabase.WeaponDamageDistribution
+        {
+            physical = distribution.physical,
+            fire = distribution.fire,
+            corruption = distribution.corruption,
+            cold = distribution.cold
+        };
     }
 
     private List<string> BuildGrantedSkillList(string characterId)

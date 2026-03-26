@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,6 +7,12 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleDamageNumberPopup : MonoBehaviour
 {
+    public struct DamageSegment
+    {
+        public string text;
+        public Color color;
+    }
+
     private static BattleDamageNumberPopup instance;
 
     [Header("Motion")]
@@ -58,6 +65,22 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
         instance.ShowInternal(target, amount.ToString(), instance.damageColor, worldCamera);
     }
 
+    public static void ShowSegments(BattleUnit target, IList<DamageSegment> segments, Camera worldCamera = null)
+    {
+        if (instance == null || target == null || segments == null || segments.Count == 0)
+        {
+            return;
+        }
+
+        string content = BuildSegmentContent(segments);
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, content, Color.white, worldCamera);
+    }
+
     public static void ShowMiss(BattleUnit target, Camera worldCamera = null)
     {
         if (instance == null || target == null)
@@ -94,6 +117,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
 
         text.text = content;
         text.color = popupColor;
+        text.richText = true;
 
         CanvasGroup canvasGroup = popup.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
@@ -197,5 +221,31 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             screenPoint,
             uiCamera,
             out anchoredPosition);
+    }
+
+    private static string BuildSegmentContent(IList<DamageSegment> segments)
+    {
+        System.Text.StringBuilder builder = new System.Text.StringBuilder();
+        for (int i = 0; i < segments.Count; i++)
+        {
+            DamageSegment segment = segments[i];
+            if (string.IsNullOrWhiteSpace(segment.text))
+            {
+                continue;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append("<color=#FFFFFF>+</color>");
+            }
+
+            builder.Append("<color=#");
+            builder.Append(ColorUtility.ToHtmlStringRGB(segment.color));
+            builder.Append(">");
+            builder.Append(segment.text);
+            builder.Append("</color>");
+        }
+
+        return builder.ToString();
     }
 }
