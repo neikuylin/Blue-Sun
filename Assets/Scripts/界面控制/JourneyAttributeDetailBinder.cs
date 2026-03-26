@@ -16,6 +16,10 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private const string FireResistancePath = "\u6587\u672c\u533a\u57df/\u706b\u7130\u6297\u6027";
     private const string CorruptionResistancePath = "\u6587\u672c\u533a\u57df/\u8150\u8d25\u6297\u6027";
     private const string ColdResistancePath = "\u6587\u672c\u533a\u57df/\u5bd2\u51b7\u6297\u6027";
+    private const string PhysicalResistancePenetrationPath = "\u6587\u672c\u533a\u57df/\u7269\u7406\u6297\u6027\u7A7F\u900F";
+    private const string FireResistancePenetrationPath = "\u6587\u672c\u533a\u57df/\u706b\u7130\u6297\u6027\u7A7F\u900F";
+    private const string CorruptionResistancePenetrationPath = "\u6587\u672c\u533a\u57df/\u8150\u8d25\u6297\u6027\u7A7F\u900F";
+    private const string ColdResistancePenetrationPath = "\u6587\u672c\u533a\u57df/\u5bd2\u51b7\u6297\u6027\u7A7F\u900F";
     private const string CriticalChancePath = "\u6587\u672c\u533a\u57df/\u66b4\u51fb\u7387";
     private const string CriticalDamagePath = "\u6587\u672c\u533a\u57df/\u66b4\u51fb\u4f24\u5bb3";
 
@@ -30,6 +34,10 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     [SerializeField] private Component fireResistanceText;
     [SerializeField] private Component corruptionResistanceText;
     [SerializeField] private Component coldResistanceText;
+    [SerializeField] private Component physicalResistancePenetrationText;
+    [SerializeField] private Component fireResistancePenetrationText;
+    [SerializeField] private Component corruptionResistancePenetrationText;
+    [SerializeField] private Component coldResistancePenetrationText;
     [SerializeField] private Component criticalChanceText;
     [SerializeField] private Component criticalDamageText;
 
@@ -73,6 +81,10 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         fireResistanceText = FindTextByPath(FireResistancePath);
         corruptionResistanceText = FindTextByPath(CorruptionResistancePath);
         coldResistanceText = FindTextByPath(ColdResistancePath);
+        physicalResistancePenetrationText = FindTextByPath(PhysicalResistancePenetrationPath);
+        fireResistancePenetrationText = FindTextByPath(FireResistancePenetrationPath);
+        corruptionResistancePenetrationText = FindTextByPath(CorruptionResistancePenetrationPath);
+        coldResistancePenetrationText = FindTextByPath(ColdResistancePenetrationPath);
         criticalChanceText = FindTextByPath(CriticalChancePath);
         criticalDamageText = FindTextByPath(CriticalDamagePath);
         EnsureDatabases();
@@ -133,6 +145,26 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         if (coldResistanceText == null)
         {
             coldResistanceText = FindTextByPath(ColdResistancePath);
+        }
+
+        if (physicalResistancePenetrationText == null)
+        {
+            physicalResistancePenetrationText = FindTextByPath(PhysicalResistancePenetrationPath);
+        }
+
+        if (fireResistancePenetrationText == null)
+        {
+            fireResistancePenetrationText = FindTextByPath(FireResistancePenetrationPath);
+        }
+
+        if (corruptionResistancePenetrationText == null)
+        {
+            corruptionResistancePenetrationText = FindTextByPath(CorruptionResistancePenetrationPath);
+        }
+
+        if (coldResistancePenetrationText == null)
+        {
+            coldResistancePenetrationText = FindTextByPath(ColdResistancePenetrationPath);
         }
 
         if (criticalChanceText == null)
@@ -304,6 +336,14 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
             "|",
             statEntry != null ? statEntry.ResolveColdResistance() : -1,
             "|",
+            statEntry != null ? statEntry.ResolvePhysicalResistancePenetration() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveFireResistancePenetration() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveCorruptionResistancePenetration() : -1,
+            "|",
+            statEntry != null ? statEntry.ResolveColdResistancePenetration() : -1,
+            "|",
             criticalChance,
             "|",
             criticalDamage,
@@ -342,6 +382,10 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         SetText(fireResistanceText, statEntry != null ? "\u706b\u7130\u6297\u6027:" + statEntry.ResolveFireResistance() + "%" : "\u706b\u7130\u6297\u6027:");
         SetText(corruptionResistanceText, statEntry != null ? "\u8150\u8d25\u6297\u6027:" + statEntry.ResolveCorruptionResistance() + "%" : "\u8150\u8d25\u6297\u6027:");
         SetText(coldResistanceText, statEntry != null ? "\u5bd2\u51b7\u6297\u6027:" + statEntry.ResolveColdResistance() + "%" : "\u5bd2\u51b7\u6297\u6027:");
+        SetText(physicalResistancePenetrationText, statEntry != null ? "\u7269\u7406\u6297\u6027\u7A7F\u900F:" + statEntry.ResolvePhysicalResistancePenetration() + "%" : "\u7269\u7406\u6297\u6027\u7A7F\u900F:");
+        SetText(fireResistancePenetrationText, statEntry != null ? "\u706b\u7130\u6297\u6027\u7A7F\u900F:" + statEntry.ResolveFireResistancePenetration() + "%" : "\u706b\u7130\u6297\u6027\u7A7F\u900F:");
+        SetText(corruptionResistancePenetrationText, statEntry != null ? "\u8150\u8d25\u6297\u6027\u7A7F\u900F:" + statEntry.ResolveCorruptionResistancePenetration() + "%" : "\u8150\u8d25\u6297\u6027\u7A7F\u900F:");
+        SetText(coldResistancePenetrationText, statEntry != null ? "\u5bd2\u51b7\u6297\u6027\u7A7F\u900F:" + statEntry.ResolveColdResistancePenetration() + "%" : "\u5bd2\u51b7\u6297\u6027\u7A7F\u900F:");
         SetText(criticalChanceText, statEntry != null ? "\u66b4\u51fb\u7387:" + criticalChance + "%" : "\u66b4\u51fb\u7387:");
         SetText(criticalDamageText, statEntry != null ? "\u66b4\u51fb\u4f24\u5bb3:" + criticalDamage + "%" : "\u66b4\u51fb\u4f24\u5bb3:");
     }
