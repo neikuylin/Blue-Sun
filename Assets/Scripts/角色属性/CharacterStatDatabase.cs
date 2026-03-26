@@ -20,6 +20,10 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int fireResistance;
         public int corruptionResistance;
         public int coldResistance;
+        public int physicalResistancePenetration;
+        public int fireResistancePenetration;
+        public int corruptionResistancePenetration;
+        public int coldResistancePenetration;
         public int criticalChance = 20;
         public int criticalDamage = 150;
 
@@ -71,6 +75,26 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int ResolveColdResistance()
         {
             return ResolveResistanceValue(coldResistance);
+        }
+
+        public int ResolvePhysicalResistancePenetration()
+        {
+            return ResolveResistancePenetrationValue(physicalResistancePenetration);
+        }
+
+        public int ResolveFireResistancePenetration()
+        {
+            return ResolveResistancePenetrationValue(fireResistancePenetration);
+        }
+
+        public int ResolveCorruptionResistancePenetration()
+        {
+            return ResolveResistancePenetrationValue(corruptionResistancePenetration);
+        }
+
+        public int ResolveColdResistancePenetration()
+        {
+            return ResolveResistancePenetrationValue(coldResistancePenetration);
         }
 
         public int ResolveCriticalChance()
@@ -140,6 +164,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
     public static int ResolveResistanceValue(int resistance)
     {
         return Mathf.Max(0, resistance);
+    }
+
+    public static int ResolveResistancePenetrationValue(int penetration)
+    {
+        return Mathf.Max(0, penetration);
     }
 
     public static int ResolveCriticalChanceValue(int criticalChance)

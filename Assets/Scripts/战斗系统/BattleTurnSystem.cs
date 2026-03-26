@@ -3331,7 +3331,7 @@ public class BattleTurnSystem : MonoBehaviour
             damage *= Mathf.Max(0f, totalCriticalDamage) / 100f;
         }
 
-        BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), target);
+        BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), caster, target);
         for (int i = 0; i < result.components.Count; i++)
         {
             result.totalDamage += result.components[i].amount;
@@ -3361,6 +3361,7 @@ public class BattleTurnSystem : MonoBehaviour
         List<DamageComponent> components,
         float totalDamage,
         ItemDatabase.WeaponDamageDistribution distribution,
+        BattleUnit caster,
         BattleUnit target)
     {
         components.Clear();
@@ -3377,10 +3378,10 @@ public class BattleTurnSystem : MonoBehaviour
             distributionTotal = resolvedDistribution.Total;
         }
 
-        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, resolvedDistribution.physical, distributionTotal, target);
-        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, resolvedDistribution.fire, distributionTotal, target);
-        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, resolvedDistribution.corruption, distributionTotal, target);
-        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, resolvedDistribution.cold, distributionTotal, target);
+        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, resolvedDistribution.physical, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, resolvedDistribution.fire, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, resolvedDistribution.corruption, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, resolvedDistribution.cold, distributionTotal, caster, target);
     }
 
     private void AddDamageComponent(
@@ -3389,6 +3390,7 @@ public class BattleTurnSystem : MonoBehaviour
         float totalDamage,
         int distributionValue,
         int distributionTotal,
+        BattleUnit caster,
         BattleUnit target)
     {
         if (components == null || totalDamage <= 0f || distributionValue <= 0 || distributionTotal <= 0)
@@ -3397,7 +3399,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float baseAmount = totalDamage * distributionValue / distributionTotal;
-        float mitigatedAmount = ApplyResistance(baseAmount, target, attributeType);
+        float mitigatedAmount = ApplyResistance(baseAmount, caster, target, attributeType);
         if (mitigatedAmount <= 0f)
         {
             return;
@@ -3410,7 +3412,7 @@ public class BattleTurnSystem : MonoBehaviour
         });
     }
 
-    private static float ApplyResistance(float damage, BattleUnit target, DamageAttributeType attributeType)
+    private static float ApplyResistance(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)
     {
         if (damage <= 0f)
         {
@@ -3418,8 +3420,42 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         int resistance = ResolveResistance(target, attributeType);
-        float multiplier = 1f - (Mathf.Clamp(resistance, 0, 100) / 100f);
+        int penetration = ResolveResistancePenetration(caster, attributeType);
+        int finalResistance = Mathf.Max(0, resistance - penetration);
+        float multiplier = 1f - (Mathf.Clamp(finalResistance, 0, 100) / 100f);
         return Mathf.Max(0f, damage * multiplier);
+    }
+
+    private static int ResolveResistancePenetration(BattleUnit caster, DamageAttributeType attributeType)
+    {
+        if (caster == null)
+        {
+            return 0;
+        }
+
+        int basePenetration;
+        ItemDatabase.ResistanceModifierType resistanceType;
+        switch (attributeType)
+        {
+            case DamageAttributeType.Fire:
+                basePenetration = caster.FireResistancePenetration;
+                resistanceType = ItemDatabase.ResistanceModifierType.Fire;
+                break;
+            case DamageAttributeType.Corruption:
+                basePenetration = caster.CorruptionResistancePenetration;
+                resistanceType = ItemDatabase.ResistanceModifierType.Corruption;
+                break;
+            case DamageAttributeType.Cold:
+                basePenetration = caster.ColdResistancePenetration;
+                resistanceType = ItemDatabase.ResistanceModifierType.Cold;
+                break;
+            default:
+                basePenetration = caster.PhysicalResistancePenetration;
+                resistanceType = ItemDatabase.ResistanceModifierType.Physical;
+                break;
+        }
+
+        return basePenetration + InventoryShortcutRuntimeBinder.GetCharacterWeaponResistancePenetration(caster.characterId, resistanceType);
     }
 
     private static int ResolveResistance(BattleUnit target, DamageAttributeType attributeType)

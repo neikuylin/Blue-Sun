@@ -10,6 +10,8 @@ public sealed class CharacterStatEditorWindow : EditorWindow
 
     private Vector2 scroll;
     private SerializedObject databaseObject;
+    private static bool resistanceFoldout = true;
+    private static bool resistancePenetrationFoldout = true;
 
     [MenuItem("Tools/角色属性/属性编辑器")]
     private static void Open()
@@ -95,6 +97,10 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 SerializedProperty fireResistanceProperty = entry.FindPropertyRelative("fireResistance");
                 SerializedProperty corruptionResistanceProperty = entry.FindPropertyRelative("corruptionResistance");
                 SerializedProperty coldResistanceProperty = entry.FindPropertyRelative("coldResistance");
+                SerializedProperty physicalResistancePenetrationProperty = entry.FindPropertyRelative("physicalResistancePenetration");
+                SerializedProperty fireResistancePenetrationProperty = entry.FindPropertyRelative("fireResistancePenetration");
+                SerializedProperty corruptionResistancePenetrationProperty = entry.FindPropertyRelative("corruptionResistancePenetration");
+                SerializedProperty coldResistancePenetrationProperty = entry.FindPropertyRelative("coldResistancePenetration");
                 SerializedProperty criticalChanceProperty = entry.FindPropertyRelative("criticalChance");
                 SerializedProperty criticalDamageProperty = entry.FindPropertyRelative("criticalDamage");
                 if (hitRateProperty != null)
@@ -103,22 +109,48 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                     int editedHitRate = EditorGUILayout.IntField("命中", displayedHitRate);
                     hitRateProperty.intValue = Mathf.Max(0, editedHitRate);
                 }
-                if (physicalResistanceProperty != null)
+                resistanceFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistanceFoldout, "抗性");
+                if (resistanceFoldout)
                 {
-                    physicalResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("物理抗性", CharacterStatDatabase.ResolveResistanceValue(physicalResistanceProperty.intValue)));
+                    if (physicalResistanceProperty != null)
+                    {
+                        physicalResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("物理抗性", CharacterStatDatabase.ResolveResistanceValue(physicalResistanceProperty.intValue)));
+                    }
+                    if (fireResistanceProperty != null)
+                    {
+                        fireResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("火焰抗性", CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty.intValue)));
+                    }
+                    if (corruptionResistanceProperty != null)
+                    {
+                        corruptionResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("腐败抗性", CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty.intValue)));
+                    }
+                    if (coldResistanceProperty != null)
+                    {
+                        coldResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("寒冷抗性", CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty.intValue)));
+                    }
                 }
-                if (fireResistanceProperty != null)
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                resistancePenetrationFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistancePenetrationFoldout, "抗性穿透");
+                if (resistancePenetrationFoldout)
                 {
-                    fireResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("火焰抗性", CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty.intValue)));
+                    if (physicalResistancePenetrationProperty != null)
+                    {
+                        physicalResistancePenetrationProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("物理抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetrationProperty.intValue)));
+                    }
+                    if (fireResistancePenetrationProperty != null)
+                    {
+                        fireResistancePenetrationProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("火焰抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetrationProperty.intValue)));
+                    }
+                    if (corruptionResistancePenetrationProperty != null)
+                    {
+                        corruptionResistancePenetrationProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("腐败抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetrationProperty.intValue)));
+                    }
+                    if (coldResistancePenetrationProperty != null)
+                    {
+                        coldResistancePenetrationProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("寒冷抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetrationProperty.intValue)));
+                    }
                 }
-                if (corruptionResistanceProperty != null)
-                {
-                    corruptionResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("腐败抗性", CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty.intValue)));
-                }
-                if (coldResistanceProperty != null)
-                {
-                    coldResistanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("寒冷抗性", CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty.intValue)));
-                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
                 if (criticalChanceProperty != null)
                 {
                     criticalChanceProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("暴击率", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty.intValue)));
@@ -135,6 +167,10 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 int resolvedFireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty != null ? fireResistanceProperty.intValue : 0);
                 int resolvedCorruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty != null ? corruptionResistanceProperty.intValue : 0);
                 int resolvedColdResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty != null ? coldResistanceProperty.intValue : 0);
+                int resolvedPhysicalResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetrationProperty != null ? physicalResistancePenetrationProperty.intValue : 0);
+                int resolvedFireResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetrationProperty != null ? fireResistancePenetrationProperty.intValue : 0);
+                int resolvedCorruptionResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetrationProperty != null ? corruptionResistancePenetrationProperty.intValue : 0);
+                int resolvedColdResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetrationProperty != null ? coldResistancePenetrationProperty.intValue : 0);
                 int resolvedCriticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty != null ? criticalChanceProperty.intValue : 20);
                 int resolvedCriticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamageProperty != null ? criticalDamageProperty.intValue : 150);
                 int resolvedMaxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(strength);
@@ -151,6 +187,10 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 EditorGUILayout.LabelField("火焰抗性", resolvedFireResistance + "%");
                 EditorGUILayout.LabelField("腐败抗性", resolvedCorruptionResistance + "%");
                 EditorGUILayout.LabelField("寒冷抗性", resolvedColdResistance + "%");
+                EditorGUILayout.LabelField("物理抗性穿透", resolvedPhysicalResistancePenetration + "%");
+                EditorGUILayout.LabelField("火焰抗性穿透", resolvedFireResistancePenetration + "%");
+                EditorGUILayout.LabelField("腐败抗性穿透", resolvedCorruptionResistancePenetration + "%");
+                EditorGUILayout.LabelField("寒冷抗性穿透", resolvedColdResistancePenetration + "%");
                 EditorGUILayout.LabelField("暴击率", resolvedCriticalChance + "%");
                 EditorGUILayout.LabelField("暴击伤害", resolvedCriticalDamage + "%");
                 EditorGUI.EndDisabledGroup();
@@ -242,6 +282,10 @@ public sealed class CharacterStatEditorWindow : EditorWindow
             ApplyUnitStatProperty(unit, "fireResistance", CharacterStatDatabase.ResolveResistanceValue(fireResistanceProperty != null ? fireResistanceProperty.intValue : 0));
             ApplyUnitStatProperty(unit, "corruptionResistance", CharacterStatDatabase.ResolveResistanceValue(corruptionResistanceProperty != null ? corruptionResistanceProperty.intValue : 0));
             ApplyUnitStatProperty(unit, "coldResistance", CharacterStatDatabase.ResolveResistanceValue(coldResistanceProperty != null ? coldResistanceProperty.intValue : 0));
+            ApplyUnitStatProperty(unit, "physicalResistancePenetration", CharacterStatDatabase.ResolveResistancePenetrationValue(entry.FindPropertyRelative("physicalResistancePenetration") != null ? entry.FindPropertyRelative("physicalResistancePenetration").intValue : 0));
+            ApplyUnitStatProperty(unit, "fireResistancePenetration", CharacterStatDatabase.ResolveResistancePenetrationValue(entry.FindPropertyRelative("fireResistancePenetration") != null ? entry.FindPropertyRelative("fireResistancePenetration").intValue : 0));
+            ApplyUnitStatProperty(unit, "corruptionResistancePenetration", CharacterStatDatabase.ResolveResistancePenetrationValue(entry.FindPropertyRelative("corruptionResistancePenetration") != null ? entry.FindPropertyRelative("corruptionResistancePenetration").intValue : 0));
+            ApplyUnitStatProperty(unit, "coldResistancePenetration", CharacterStatDatabase.ResolveResistancePenetrationValue(entry.FindPropertyRelative("coldResistancePenetration") != null ? entry.FindPropertyRelative("coldResistancePenetration").intValue : 0));
             ApplyUnitStatProperty(unit, "criticalChance", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChanceProperty != null ? criticalChanceProperty.intValue : 20));
             ApplyUnitStatProperty(unit, "criticalDamage", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamageProperty != null ? criticalDamageProperty.intValue : 150));
             unit.maxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(unit.strength);
@@ -345,6 +389,10 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 characterId = knownIds[i],
                 actionPoints = 4,
                 hitRate = 100,
+                physicalResistancePenetration = 0,
+                fireResistancePenetration = 0,
+                corruptionResistancePenetration = 0,
+                coldResistancePenetration = 0,
                 criticalChance = 20,
                 criticalDamage = 150
             });
@@ -418,6 +466,26 @@ public sealed class CharacterStatEditorWindow : EditorWindow
         if (coldResistanceProperty != null)
         {
             coldResistanceProperty.intValue = 0;
+        }
+        SerializedProperty physicalResistancePenetrationProperty = entry.FindPropertyRelative("physicalResistancePenetration");
+        if (physicalResistancePenetrationProperty != null)
+        {
+            physicalResistancePenetrationProperty.intValue = 0;
+        }
+        SerializedProperty fireResistancePenetrationProperty = entry.FindPropertyRelative("fireResistancePenetration");
+        if (fireResistancePenetrationProperty != null)
+        {
+            fireResistancePenetrationProperty.intValue = 0;
+        }
+        SerializedProperty corruptionResistancePenetrationProperty = entry.FindPropertyRelative("corruptionResistancePenetration");
+        if (corruptionResistancePenetrationProperty != null)
+        {
+            corruptionResistancePenetrationProperty.intValue = 0;
+        }
+        SerializedProperty coldResistancePenetration2Property = entry.FindPropertyRelative("coldResistancePenetration");
+        if (coldResistancePenetration2Property != null)
+        {
+            coldResistancePenetration2Property.intValue = 0;
         }
         SerializedProperty criticalChanceProperty = entry.FindPropertyRelative("criticalChance");
         if (criticalChanceProperty != null)

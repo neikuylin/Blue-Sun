@@ -44,6 +44,15 @@ public sealed class ItemDatabase : ScriptableObject
         Intelligence
     }
 
+    public enum ResistanceModifierType
+    {
+        None,
+        Physical,
+        Fire,
+        Corruption,
+        Cold
+    }
+
     public enum ItemQuality
     {
         Common,
@@ -57,6 +66,13 @@ public sealed class ItemDatabase : ScriptableObject
     {
         public WeaponAttributeType attributeType = WeaponAttributeType.Strength;
         public float multiplier = 1f;
+    }
+
+    [Serializable]
+    public sealed class WeaponResistancePenetrationEntry
+    {
+        public ResistanceModifierType resistanceType = ResistanceModifierType.Physical;
+        public int value;
     }
 
     [Serializable]
@@ -86,6 +102,7 @@ public sealed class ItemDatabase : ScriptableObject
         public string description = string.Empty;
         public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
+        public List<WeaponResistancePenetrationEntry> weaponResistancePenetrations = new List<WeaponResistancePenetrationEntry>();
         public GameObject prefab;
         public GameObject weaponModelPrefab;
     }
@@ -242,6 +259,24 @@ public sealed class ItemDatabase : ScriptableObject
         if (entry.weaponAttributeMultipliers.Count == 0)
         {
             entry.weaponAttributeMultipliers.Add(new WeaponAttributeMultiplierEntry());
+        }
+    }
+
+    public static void EnsureValidWeaponResistancePenetrationList(ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.weaponResistancePenetrations == null)
+        {
+            entry.weaponResistancePenetrations = new List<WeaponResistancePenetrationEntry>();
+        }
+
+        if (entry.weaponResistancePenetrations.Count == 0)
+        {
+            entry.weaponResistancePenetrations.Add(new WeaponResistancePenetrationEntry());
         }
     }
 

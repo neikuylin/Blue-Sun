@@ -21,6 +21,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
         new List<ItemDatabase.WeaponAttributeMultiplierEntry> { new ItemDatabase.WeaponAttributeMultiplierEntry() };
+    private readonly List<ItemDatabase.WeaponResistancePenetrationEntry> createWeaponResistancePenetrations =
+        new List<ItemDatabase.WeaponResistancePenetrationEntry> { new ItemDatabase.WeaponResistancePenetrationEntry() };
     private string newItemId = "itm_eq_mainhand_001";
     private string newDisplayName = "新物品";
     private GameObject newItemPrefab;
@@ -93,6 +95,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ref createCriticalDamageBonus,
                 createGrantedSkillIds,
                 createWeaponAttributeMultipliers,
+                createWeaponResistancePenetrations,
                 skillDatabase);
         }
         else
@@ -105,6 +108,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             createCriticalDamageBonus = 0;
             ResetGrantedSkillList(createGrantedSkillIds);
             ResetWeaponAttributeList(createWeaponAttributeMultipliers);
+            ResetWeaponResistancePenetrationList(createWeaponResistancePenetrations);
         }
 
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
@@ -218,6 +222,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             string originalDescription = entry.description;
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
+            List<ItemDatabase.WeaponResistancePenetrationEntry> originalWeaponResistancePenetrations = CloneWeaponResistancePenetrationList(entry.weaponResistancePenetrations);
             GameObject originalPrefab = entry.prefab;
             GameObject originalWeaponModelPrefab = entry.weaponModelPrefab;
 
@@ -237,6 +242,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             if (entry.category == ItemDatabase.ItemCategory.Equipment)
             {
                 ItemDatabase.EnsureValidWeaponDamageDistribution(entry);
+                ItemDatabase.EnsureValidWeaponResistancePenetrationList(entry);
                 entry.equipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
                     "装备部位",
                     (int)entry.equipmentSlot,
@@ -252,6 +258,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     ref entry.criticalDamageBonus,
                     entry.grantedSkillIds,
                     entry.weaponAttributeMultipliers,
+                    entry.weaponResistancePenetrations,
                     skillDatabase);
             }
             else
@@ -264,6 +271,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 entry.criticalDamageBonus = 0;
                 ResetGrantedSkillList(entry.grantedSkillIds);
                 ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
+                ResetWeaponResistancePenetrationList(entry.weaponResistancePenetrations);
             }
 
             entry.weaponCategory = ItemDatabase.NormalizeWeaponCategory(entry.equipmentSlot, entry.weaponCategory);
@@ -307,6 +315,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.criticalDamageBonus = originalCriticalDamageBonus;
                     entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
+                    entry.weaponResistancePenetrations = CloneWeaponResistancePenetrationList(originalWeaponResistancePenetrations);
                     entry.prefab = originalPrefab;
                     entry.weaponModelPrefab = originalWeaponModelPrefab;
                     GUIUtility.ExitGUI();
@@ -387,6 +396,9 @@ public sealed class ItemDatabaseWindow : EditorWindow
             weaponAttributeMultipliers = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? CloneWeaponAttributeList(createWeaponAttributeMultipliers)
                 : new List<ItemDatabase.WeaponAttributeMultiplierEntry>(),
+            weaponResistancePenetrations = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? CloneWeaponResistancePenetrationList(createWeaponResistancePenetrations)
+                : new List<ItemDatabase.WeaponResistancePenetrationEntry>(),
             prefab = newItemPrefab,
             weaponModelPrefab = createCategory == ItemDatabase.ItemCategory.Equipment &&
                 ItemDatabase.SupportsWeaponModelPrefab(createEquipmentSlot)
@@ -503,6 +515,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         ref int criticalDamageBonus,
         List<string> grantedSkillIds,
         List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers,
+        List<ItemDatabase.WeaponResistancePenetrationEntry> resistancePenetrations,
         BattleSkillDatabase skillDatabase)
     {
         if (!ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory))
@@ -513,6 +526,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             criticalDamageBonus = 0;
             ResetGrantedSkillList(grantedSkillIds);
             ResetWeaponAttributeList(multipliers);
+            ResetWeaponResistancePenetrationList(resistancePenetrations);
             return;
         }
 
@@ -526,6 +540,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         criticalDamageBonus = Mathf.Max(0, EditorGUILayout.IntField("暴击伤害加成", criticalDamageBonus));
         DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
         DrawWeaponAttributeFields(multipliers);
+        DrawWeaponResistancePenetrationFields(resistancePenetrations);
     }
 
     private static void DrawWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution distribution)
@@ -668,6 +683,49 @@ public sealed class ItemDatabaseWindow : EditorWindow
         }
     }
 
+    private static void DrawWeaponResistancePenetrationFields(List<ItemDatabase.WeaponResistancePenetrationEntry> resistancePenetrations)
+    {
+        ItemDatabase.EnsureValidWeaponResistancePenetrationList(new ItemDatabase.ItemEntry
+        {
+            weaponResistancePenetrations = resistancePenetrations
+        });
+
+        EditorGUILayout.LabelField("抗性穿透词条");
+        for (int i = 0; i < resistancePenetrations.Count; i++)
+        {
+            ItemDatabase.WeaponResistancePenetrationEntry entry = resistancePenetrations[i];
+            if (entry == null)
+            {
+                entry = new ItemDatabase.WeaponResistancePenetrationEntry();
+                resistancePenetrations[i] = entry;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                entry.resistanceType = (ItemDatabase.ResistanceModifierType)EditorGUILayout.Popup(
+                    (int)entry.resistanceType,
+                    ItemEditorLabels.ResistanceModifierTypeLabels,
+                    GUILayout.MaxWidth(140f));
+                EditorGUILayout.LabelField("=", GUILayout.Width(12f));
+                entry.value = Mathf.Max(0, EditorGUILayout.IntField(entry.value));
+
+                using (new EditorGUI.DisabledScope(resistancePenetrations.Count <= 1))
+                {
+                    if (GUILayout.Button("-", GUILayout.Width(24f)))
+                    {
+                        resistancePenetrations.RemoveAt(i);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+            }
+        }
+
+        if (GUILayout.Button("增加抗性穿透词条"))
+        {
+            resistancePenetrations.Add(new ItemDatabase.WeaponResistancePenetrationEntry());
+        }
+    }
+
     private static List<string> CloneGrantedSkillList(List<string> source)
     {
         List<string> clone = new List<string>();
@@ -712,12 +770,42 @@ public sealed class ItemDatabaseWindow : EditorWindow
         return clone;
     }
 
+    private static List<ItemDatabase.WeaponResistancePenetrationEntry> CloneWeaponResistancePenetrationList(
+        List<ItemDatabase.WeaponResistancePenetrationEntry> source)
+    {
+        List<ItemDatabase.WeaponResistancePenetrationEntry> clone = new List<ItemDatabase.WeaponResistancePenetrationEntry>();
+        if (source != null)
+        {
+            for (int i = 0; i < source.Count; i++)
+            {
+                ItemDatabase.WeaponResistancePenetrationEntry entry = source[i];
+                clone.Add(new ItemDatabase.WeaponResistancePenetrationEntry
+                {
+                    resistanceType = entry != null ? entry.resistanceType : ItemDatabase.ResistanceModifierType.Physical,
+                    value = entry != null ? Mathf.Max(0, entry.value) : 0
+                });
+            }
+        }
+
+        if (clone.Count == 0)
+        {
+            clone.Add(new ItemDatabase.WeaponResistancePenetrationEntry());
+        }
+
+        return clone;
+    }
+
     private void EnsureCreateLists()
     {
         EnsureGrantedSkillList(createGrantedSkillIds);
         if (createWeaponAttributeMultipliers.Count == 0)
         {
             createWeaponAttributeMultipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+        }
+
+        if (createWeaponResistancePenetrations.Count == 0)
+        {
+            createWeaponResistancePenetrations.Add(new ItemDatabase.WeaponResistancePenetrationEntry());
         }
     }
 
@@ -754,6 +842,17 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         multipliers.Clear();
         multipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+    }
+
+    private static void ResetWeaponResistancePenetrationList(List<ItemDatabase.WeaponResistancePenetrationEntry> resistancePenetrations)
+    {
+        if (resistancePenetrations == null)
+        {
+            return;
+        }
+
+        resistancePenetrations.Clear();
+        resistancePenetrations.Add(new ItemDatabase.WeaponResistancePenetrationEntry());
     }
 
     private static ItemDatabase.WeaponDamageDistribution CloneWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution source)

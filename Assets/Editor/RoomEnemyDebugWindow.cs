@@ -11,6 +11,8 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
 
     private Vector2 scroll;
     private string newEnemyId = "NewEnemy";
+    private static bool resistanceFoldout = true;
+    private static bool resistancePenetrationFoldout = true;
 
     [MenuItem("Tools/\u6218\u6597/\u623F\u95F4\u654C\u4EBA\u8C03\u8BD5\u5668")]
     private static void Open()
@@ -184,10 +186,32 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         int intelligence = EditorGUILayout.IntField("\u667A\u529B", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("\u884C\u52A8\u529B", statEntry.actionPoints);
         int hitRate = EditorGUILayout.IntField("\u547D\u4E2D", statEntry.ResolveHitRate());
-        int physicalResistance = EditorGUILayout.IntField("\u7269\u7406\u6297\u6027", statEntry.ResolvePhysicalResistance());
-        int fireResistance = EditorGUILayout.IntField("\u706B\u7130\u6297\u6027", statEntry.ResolveFireResistance());
-        int corruptionResistance = EditorGUILayout.IntField("\u8150\u8D25\u6297\u6027", statEntry.ResolveCorruptionResistance());
-        int coldResistance = EditorGUILayout.IntField("\u5BD2\u51B7\u6297\u6027", statEntry.ResolveColdResistance());
+        resistanceFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistanceFoldout, "\u6297\u6027");
+        int physicalResistance = statEntry.ResolvePhysicalResistance();
+        int fireResistance = statEntry.ResolveFireResistance();
+        int corruptionResistance = statEntry.ResolveCorruptionResistance();
+        int coldResistance = statEntry.ResolveColdResistance();
+        if (resistanceFoldout)
+        {
+            physicalResistance = EditorGUILayout.IntField("\u7269\u7406\u6297\u6027", physicalResistance);
+            fireResistance = EditorGUILayout.IntField("\u706B\u7130\u6297\u6027", fireResistance);
+            corruptionResistance = EditorGUILayout.IntField("\u8150\u8D25\u6297\u6027", corruptionResistance);
+            coldResistance = EditorGUILayout.IntField("\u5BD2\u51B7\u6297\u6027", coldResistance);
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
+        resistancePenetrationFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistancePenetrationFoldout, "\u6297\u6027\u7A7F\u900F");
+        int physicalResistancePenetration = statEntry.ResolvePhysicalResistancePenetration();
+        int fireResistancePenetration = statEntry.ResolveFireResistancePenetration();
+        int corruptionResistancePenetration = statEntry.ResolveCorruptionResistancePenetration();
+        int coldResistancePenetration = statEntry.ResolveColdResistancePenetration();
+        if (resistancePenetrationFoldout)
+        {
+            physicalResistancePenetration = EditorGUILayout.IntField("\u7269\u7406\u6297\u6027\u7A7F\u900F", physicalResistancePenetration);
+            fireResistancePenetration = EditorGUILayout.IntField("\u706B\u7130\u6297\u6027\u7A7F\u900F", fireResistancePenetration);
+            corruptionResistancePenetration = EditorGUILayout.IntField("\u8150\u8D25\u6297\u6027\u7A7F\u900F", corruptionResistancePenetration);
+            coldResistancePenetration = EditorGUILayout.IntField("\u5BD2\u51B7\u6297\u6027\u7A7F\u900F", coldResistancePenetration);
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
         int criticalChance = EditorGUILayout.IntField("\u66B4\u51FB\u7387", statEntry.ResolveCriticalChance());
         int criticalDamage = EditorGUILayout.IntField("\u66B4\u51FB\u4F24\u5BB3", statEntry.ResolveCriticalDamage());
         EditorGUI.BeginDisabledGroup(true);
@@ -200,6 +224,10 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         EditorGUILayout.LabelField("\u706B\u7130\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(fireResistance) + "%");
         EditorGUILayout.LabelField("\u8150\u8D25\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(corruptionResistance) + "%");
         EditorGUILayout.LabelField("\u5BD2\u51B7\u6297\u6027", CharacterStatDatabase.ResolveResistanceValue(coldResistance) + "%");
+        EditorGUILayout.LabelField("\u7269\u7406\u6297\u6027\u7A7F\u900F", CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration) + "%");
+        EditorGUILayout.LabelField("\u706B\u7130\u6297\u6027\u7A7F\u900F", CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration) + "%");
+        EditorGUILayout.LabelField("\u8150\u8D25\u6297\u6027\u7A7F\u900F", CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration) + "%");
+        EditorGUILayout.LabelField("\u5BD2\u51B7\u6297\u6027\u7A7F\u900F", CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration) + "%");
         EditorGUILayout.LabelField("\u66B4\u51FB\u7387", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance) + "%");
         EditorGUILayout.LabelField("\u66B4\u51FB\u4F24\u5BB3", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage) + "%");
         EditorGUI.EndDisabledGroup();
@@ -219,6 +247,10 @@ public sealed class RoomEnemyDebugWindow : EditorWindow
         statEntry.fireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistance);
         statEntry.corruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
         statEntry.coldResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+        statEntry.physicalResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration);
+        statEntry.fireResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration);
+        statEntry.corruptionResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration);
+        statEntry.coldResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration);
         statEntry.criticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
         statEntry.criticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
         EditorUtility.SetDirty(statDatabase);

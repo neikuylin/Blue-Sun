@@ -37,6 +37,10 @@ public class BattleUnit : MonoBehaviour
     [SerializeField] private int fireResistance;
     [SerializeField] private int corruptionResistance;
     [SerializeField] private int coldResistance;
+    [SerializeField] private int physicalResistancePenetration;
+    [SerializeField] private int fireResistancePenetration;
+    [SerializeField] private int corruptionResistancePenetration;
+    [SerializeField] private int coldResistancePenetration;
     [SerializeField] private int criticalChance = 20;
     [SerializeField] private int criticalDamage = 150;
 
@@ -103,6 +107,10 @@ public class BattleUnit : MonoBehaviour
     public int FireResistance => CharacterStatDatabase.ResolveResistanceValue(fireResistance);
     public int CorruptionResistance => CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
     public int ColdResistance => CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+    public int PhysicalResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration);
+    public int FireResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration);
+    public int CorruptionResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration);
+    public int ColdResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration);
     public int CriticalChance => CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
     public int CriticalDamage => CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
 
@@ -201,6 +209,10 @@ public class BattleUnit : MonoBehaviour
         fireResistance = statEntry.ResolveFireResistance();
         corruptionResistance = statEntry.ResolveCorruptionResistance();
         coldResistance = statEntry.ResolveColdResistance();
+        physicalResistancePenetration = statEntry.ResolvePhysicalResistancePenetration();
+        fireResistancePenetration = statEntry.ResolveFireResistancePenetration();
+        corruptionResistancePenetration = statEntry.ResolveCorruptionResistancePenetration();
+        coldResistancePenetration = statEntry.ResolveColdResistancePenetration();
         criticalChance = statEntry.ResolveCriticalChance();
         criticalDamage = statEntry.ResolveCriticalDamage();
         moveDistance = statEntry.ResolveMoveDistance();

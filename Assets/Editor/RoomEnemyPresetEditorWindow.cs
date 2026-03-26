@@ -13,6 +13,8 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
     private Vector2 scroll;
     private string newPresetId = DefaultPresetId;
+    private static bool resistanceFoldout = true;
+    private static bool resistancePenetrationFoldout = true;
 
     [MenuItem("Tools/战斗/房间敌人编辑器")]
     private static void Open()
@@ -221,10 +223,32 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         int agility = EditorGUILayout.IntField("敏捷", statEntry.agility);
         int intelligence = EditorGUILayout.IntField("智力", statEntry.intelligence);
         int actionPoints = EditorGUILayout.IntField("行动力", statEntry.actionPoints);
-        int physicalResistance = EditorGUILayout.IntField("物理抗性", statEntry.ResolvePhysicalResistance());
-        int fireResistance = EditorGUILayout.IntField("火焰抗性", statEntry.ResolveFireResistance());
-        int corruptionResistance = EditorGUILayout.IntField("腐败抗性", statEntry.ResolveCorruptionResistance());
-        int coldResistance = EditorGUILayout.IntField("寒冷抗性", statEntry.ResolveColdResistance());
+        resistanceFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistanceFoldout, "抗性");
+        int physicalResistance = statEntry.ResolvePhysicalResistance();
+        int fireResistance = statEntry.ResolveFireResistance();
+        int corruptionResistance = statEntry.ResolveCorruptionResistance();
+        int coldResistance = statEntry.ResolveColdResistance();
+        if (resistanceFoldout)
+        {
+            physicalResistance = EditorGUILayout.IntField("物理抗性", physicalResistance);
+            fireResistance = EditorGUILayout.IntField("火焰抗性", fireResistance);
+            corruptionResistance = EditorGUILayout.IntField("腐败抗性", corruptionResistance);
+            coldResistance = EditorGUILayout.IntField("寒冷抗性", coldResistance);
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
+        resistancePenetrationFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(resistancePenetrationFoldout, "抗性穿透");
+        int physicalResistancePenetration = statEntry.ResolvePhysicalResistancePenetration();
+        int fireResistancePenetration = statEntry.ResolveFireResistancePenetration();
+        int corruptionResistancePenetration = statEntry.ResolveCorruptionResistancePenetration();
+        int coldResistancePenetration = statEntry.ResolveColdResistancePenetration();
+        if (resistancePenetrationFoldout)
+        {
+            physicalResistancePenetration = EditorGUILayout.IntField("物理抗性穿透", physicalResistancePenetration);
+            fireResistancePenetration = EditorGUILayout.IntField("火焰抗性穿透", fireResistancePenetration);
+            corruptionResistancePenetration = EditorGUILayout.IntField("腐败抗性穿透", corruptionResistancePenetration);
+            coldResistancePenetration = EditorGUILayout.IntField("寒冷抗性穿透", coldResistancePenetration);
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
         int criticalChance = EditorGUILayout.IntField("暴击率", statEntry.ResolveCriticalChance());
         int criticalDamage = EditorGUILayout.IntField("暴击伤害", statEntry.ResolveCriticalDamage());
         EditorGUI.BeginDisabledGroup(true);
@@ -235,6 +259,10 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         EditorGUILayout.LabelField("火焰抗性", CharacterStatDatabase.ResolveResistanceValue(fireResistance) + "%");
         EditorGUILayout.LabelField("腐败抗性", CharacterStatDatabase.ResolveResistanceValue(corruptionResistance) + "%");
         EditorGUILayout.LabelField("寒冷抗性", CharacterStatDatabase.ResolveResistanceValue(coldResistance) + "%");
+        EditorGUILayout.LabelField("物理抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration) + "%");
+        EditorGUILayout.LabelField("火焰抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration) + "%");
+        EditorGUILayout.LabelField("腐败抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration) + "%");
+        EditorGUILayout.LabelField("寒冷抗性穿透", CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration) + "%");
         EditorGUILayout.LabelField("暴击率", CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance) + "%");
         EditorGUILayout.LabelField("暴击伤害", CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage) + "%");
         EditorGUI.EndDisabledGroup();
@@ -252,6 +280,10 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         statEntry.fireResistance = CharacterStatDatabase.ResolveResistanceValue(fireResistance);
         statEntry.corruptionResistance = CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
         statEntry.coldResistance = CharacterStatDatabase.ResolveResistanceValue(coldResistance);
+        statEntry.physicalResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration);
+        statEntry.fireResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration);
+        statEntry.corruptionResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration);
+        statEntry.coldResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration);
         statEntry.criticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
         statEntry.criticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
         SaveAsset(statDatabase);
@@ -423,6 +455,10 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         {
             characterId = enemyId,
             actionPoints = 4,
+            physicalResistancePenetration = 0,
+            fireResistancePenetration = 0,
+            corruptionResistancePenetration = 0,
+            coldResistancePenetration = 0,
             criticalChance = 20,
             criticalDamage = 150
         };

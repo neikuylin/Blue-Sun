@@ -35,6 +35,9 @@ MonoBehaviour:
       multiplier: 0.5
     - attributeType: 2
       multiplier: 0.5
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
     prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
     weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
   - itemId: "itm_\u9614\u5251"
@@ -57,6 +60,9 @@ MonoBehaviour:
     weaponAttributeMultipliers:
     - attributeType: 1
       multiplier: 1
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
     prefab: {fileID: 1777123002362706890, guid: 5196b9707f48fdf48a8490e12dbe77ff, type: 3}
     weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
   - itemId: "itm_\u9489\u9524"
@@ -79,6 +85,9 @@ MonoBehaviour:
     weaponAttributeMultipliers:
     - attributeType: 1
       multiplier: 0.8
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 5
     prefab: {fileID: 4147409947302016304, guid: d3f14c455cf48734f9c64d0b09d52e00, type: 3}
     weaponModelPrefab: {fileID: 0}
   - itemId: "itm_\u5315\u9996"
@@ -101,6 +110,9 @@ MonoBehaviour:
     weaponAttributeMultipliers:
     - attributeType: 2
       multiplier: 1
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
     prefab: {fileID: 5279092756118558177, guid: 172459e5bb3966b4084cf473682e279f, type: 3}
     weaponModelPrefab: {fileID: 0}
   - itemId: "itm_\u796D\u7940\u5C0F\u5200"
@@ -125,5 +137,8 @@ MonoBehaviour:
       multiplier: 0.4
     - attributeType: 3
       multiplier: 0.4
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
     prefab: {fileID: 6639484880991417966, guid: d5b76f0164df84f42ae43866e206d1e1, type: 3}
     weaponModelPrefab: {fileID: 0}

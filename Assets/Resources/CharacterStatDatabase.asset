@@ -23,6 +23,10 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u7D22\u62C9\u5A1C"
@@ -35,6 +39,10 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u5E93\u9C81\u65AF"
@@ -47,6 +55,10 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u745F\u838E"
@@ -59,6 +71,10 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u7231\u4E3D\u4E1D"
@@ -71,6 +87,10 @@ MonoBehaviour:
     fireResistance: 80
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u5047\u4EBA"
@@ -83,6 +103,10 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
@@ -95,5 +119,9 @@ MonoBehaviour:
     fireResistance: 0
     corruptionResistance: 0
     coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
     criticalChance: 20
     criticalDamage: 150

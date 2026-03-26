@@ -2346,6 +2346,29 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalDamageBonus) : 0;
     }
 
+    public static int GetCharacterWeaponResistancePenetration(string characterId, ItemDatabase.ResistanceModifierType resistanceType)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        if (weaponEntry == null || weaponEntry.weaponResistancePenetrations == null)
+        {
+            return 0;
+        }
+
+        int total = 0;
+        for (int i = 0; i < weaponEntry.weaponResistancePenetrations.Count; i++)
+        {
+            ItemDatabase.WeaponResistancePenetrationEntry entry = weaponEntry.weaponResistancePenetrations[i];
+            if (entry == null || entry.resistanceType != resistanceType)
+            {
+                continue;
+            }
+
+            total += Mathf.Max(0, entry.value);
+        }
+
+        return total;
+    }
+
     public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
     {
         ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);

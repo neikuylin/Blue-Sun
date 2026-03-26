@@ -51,6 +51,15 @@
         "智力"
     };
 
+    public static readonly string[] ResistanceModifierTypeLabels =
+    {
+        "无",
+        "物理抗性穿透",
+        "火焰抗性穿透",
+        "腐败抗性穿透",
+        "寒冷抗性穿透"
+    };
+
     public static string[] GetWeaponCategoryLabels(ItemDatabase.EquipmentSlotType equipmentSlot)
     {
         return equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand
