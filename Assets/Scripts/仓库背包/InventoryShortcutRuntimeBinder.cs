@@ -2334,6 +2334,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return CloneWeaponDamageDistribution(weaponEntry.weaponDamageDistribution);
     }
 
+    public static int GetCharacterWeaponCriticalChanceBonus(string characterId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalChanceBonus) : 0;
+    }
+
+    public static int GetCharacterWeaponCriticalDamageBonus(string characterId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalDamageBonus) : 0;
+    }
+
     public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
     {
         ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);

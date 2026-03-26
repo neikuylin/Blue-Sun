@@ -3323,10 +3323,12 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         CombatDamageResult result = new CombatDamageResult();
-        result.isCritical = RollCriticalHit(caster);
+        int totalCriticalChance = caster.CriticalChance + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(caster.characterId);
+        int totalCriticalDamage = caster.CriticalDamage + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(caster.characterId);
+        result.isCritical = RollCriticalHit(totalCriticalChance);
         if (result.isCritical)
         {
-            damage *= Mathf.Max(0f, caster.CriticalDamage) / 100f;
+            damage *= Mathf.Max(0f, totalCriticalDamage) / 100f;
         }
 
         BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), target);
@@ -3339,14 +3341,9 @@ public class BattleTurnSystem : MonoBehaviour
         return result;
     }
 
-    private bool RollCriticalHit(BattleUnit caster)
+    private bool RollCriticalHit(int criticalChance)
     {
-        if (caster == null)
-        {
-            return false;
-        }
-
-        int criticalChance = Mathf.Max(0, caster.CriticalChance);
+        criticalChance = Mathf.Max(0, criticalChance);
         if (criticalChance >= MaxHitChancePercent)
         {
             return true;

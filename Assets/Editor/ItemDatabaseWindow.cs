@@ -15,6 +15,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private readonly ItemDatabase.WeaponDamageDistribution createWeaponDamageDistribution =
         ItemDatabase.CreateDefaultWeaponDamageDistribution();
     private float createFixedDamage;
+    private int createCriticalChanceBonus;
+    private int createCriticalDamageBonus;
     private string newDescription = string.Empty;
     private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
@@ -87,6 +89,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 createWeaponCategory,
                 createWeaponDamageDistribution,
                 ref createFixedDamage,
+                ref createCriticalChanceBonus,
+                ref createCriticalDamageBonus,
                 createGrantedSkillIds,
                 createWeaponAttributeMultipliers,
                 skillDatabase);
@@ -97,6 +101,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             createWeaponCategory = ItemDatabase.WeaponCategory.None;
             ResetWeaponDamageDistribution(createWeaponDamageDistribution);
             createFixedDamage = 0f;
+            createCriticalChanceBonus = 0;
+            createCriticalDamageBonus = 0;
             ResetGrantedSkillList(createGrantedSkillIds);
             ResetWeaponAttributeList(createWeaponAttributeMultipliers);
         }
@@ -207,6 +213,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ItemDatabase.WeaponCategory originalWeaponCategory = entry.weaponCategory;
             ItemDatabase.WeaponDamageDistribution originalWeaponDamageDistribution = CloneWeaponDamageDistribution(entry.weaponDamageDistribution);
             float originalFixedDamage = entry.fixedDamage;
+            int originalCriticalChanceBonus = entry.criticalChanceBonus;
+            int originalCriticalDamageBonus = entry.criticalDamageBonus;
             string originalDescription = entry.description;
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
@@ -240,6 +248,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.weaponCategory,
                     entry.weaponDamageDistribution,
                     ref entry.fixedDamage,
+                    ref entry.criticalChanceBonus,
+                    ref entry.criticalDamageBonus,
                     entry.grantedSkillIds,
                     entry.weaponAttributeMultipliers,
                     skillDatabase);
@@ -250,6 +260,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 entry.weaponCategory = ItemDatabase.WeaponCategory.None;
                 ResetWeaponDamageDistribution(entry.weaponDamageDistribution);
                 entry.fixedDamage = 0f;
+                entry.criticalChanceBonus = 0;
+                entry.criticalDamageBonus = 0;
                 ResetGrantedSkillList(entry.grantedSkillIds);
                 ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
             }
@@ -291,6 +303,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.weaponCategory = originalWeaponCategory;
                     entry.weaponDamageDistribution = CloneWeaponDamageDistribution(originalWeaponDamageDistribution);
                     entry.fixedDamage = originalFixedDamage;
+                    entry.criticalChanceBonus = originalCriticalChanceBonus;
+                    entry.criticalDamageBonus = originalCriticalDamageBonus;
                     entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
                     entry.prefab = originalPrefab;
@@ -361,6 +375,12 @@ public sealed class ItemDatabaseWindow : EditorWindow
             fixedDamage = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? createFixedDamage
                 : 0f,
+            criticalChanceBonus = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? Mathf.Max(0, createCriticalChanceBonus)
+                : 0,
+            criticalDamageBonus = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+                ? Mathf.Max(0, createCriticalDamageBonus)
+                : 0,
             grantedSkillIds = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? CloneGrantedSkillList(createGrantedSkillIds)
                 : new List<string>(),
@@ -479,6 +499,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
         ItemDatabase.WeaponCategory weaponCategory,
         ItemDatabase.WeaponDamageDistribution weaponDamageDistribution,
         ref float fixedDamage,
+        ref int criticalChanceBonus,
+        ref int criticalDamageBonus,
         List<string> grantedSkillIds,
         List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers,
         BattleSkillDatabase skillDatabase)
@@ -487,6 +509,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             ResetWeaponDamageDistribution(weaponDamageDistribution);
             fixedDamage = 0f;
+            criticalChanceBonus = 0;
+            criticalDamageBonus = 0;
             ResetGrantedSkillList(grantedSkillIds);
             ResetWeaponAttributeList(multipliers);
             return;
@@ -498,6 +522,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
         }
 
         fixedDamage = EditorGUILayout.FloatField("固定伤害", fixedDamage);
+        criticalChanceBonus = Mathf.Max(0, EditorGUILayout.IntField("暴击率加成", criticalChanceBonus));
+        criticalDamageBonus = Mathf.Max(0, EditorGUILayout.IntField("暴击伤害加成", criticalDamageBonus));
         DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
         DrawWeaponAttributeFields(multipliers);
     }

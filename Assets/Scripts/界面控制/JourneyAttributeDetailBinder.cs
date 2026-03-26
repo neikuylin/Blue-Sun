@@ -167,14 +167,20 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         BattleUnit battleUnit = ResolveDisplayedBattleUnit(characterId);
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
         float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
-        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower);
+        int criticalChance = statEntry != null
+            ? statEntry.ResolveCriticalChance() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(characterId)
+            : -1;
+        int criticalDamage = statEntry != null
+            ? statEntry.ResolveCriticalDamage() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(characterId)
+            : -1;
+        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower, criticalChance, criticalDamage);
         if (!force && string.Equals(lastSignature, signature, System.StringComparison.Ordinal))
         {
             return;
         }
 
         lastSignature = signature;
-        ApplyCharacter(characterId, battleUnit, statEntry, attackPower);
+        ApplyCharacter(characterId, battleUnit, statEntry, attackPower, criticalChance, criticalDamage);
     }
 
     private static string ResolveCurrentCharacterId()
@@ -263,7 +269,13 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         return null;
     }
 
-    private static string BuildSignature(string characterId, BattleUnit battleUnit, CharacterStatDatabase.StatEntry statEntry, float attackPower)
+    private static string BuildSignature(
+        string characterId,
+        BattleUnit battleUnit,
+        CharacterStatDatabase.StatEntry statEntry,
+        float attackPower,
+        int criticalChance,
+        int criticalDamage)
     {
         return string.Concat(
             characterId ?? string.Empty,
@@ -292,14 +304,20 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
             "|",
             statEntry != null ? statEntry.ResolveColdResistance() : -1,
             "|",
-            statEntry != null ? statEntry.ResolveCriticalChance() : -1,
+            criticalChance,
             "|",
-            statEntry != null ? statEntry.ResolveCriticalDamage() : -1,
+            criticalDamage,
             "|",
             Mathf.RoundToInt(attackPower * 100f));
     }
 
-    private void ApplyCharacter(string characterId, BattleUnit battleUnit, CharacterStatDatabase.StatEntry statEntry, float attackPower)
+    private void ApplyCharacter(
+        string characterId,
+        BattleUnit battleUnit,
+        CharacterStatDatabase.StatEntry statEntry,
+        float attackPower,
+        int criticalChance,
+        int criticalDamage)
     {
         bool hasBattleValues = battleUnit != null;
         string healthValue = statEntry != null
@@ -324,8 +342,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         SetText(fireResistanceText, statEntry != null ? "\u706b\u7130\u6297\u6027:" + statEntry.ResolveFireResistance() + "%" : "\u706b\u7130\u6297\u6027:");
         SetText(corruptionResistanceText, statEntry != null ? "\u8150\u8d25\u6297\u6027:" + statEntry.ResolveCorruptionResistance() + "%" : "\u8150\u8d25\u6297\u6027:");
         SetText(coldResistanceText, statEntry != null ? "\u5bd2\u51b7\u6297\u6027:" + statEntry.ResolveColdResistance() + "%" : "\u5bd2\u51b7\u6297\u6027:");
-        SetText(criticalChanceText, statEntry != null ? "\u66b4\u51fb\u7387:" + statEntry.ResolveCriticalChance() + "%" : "\u66b4\u51fb\u7387:");
-        SetText(criticalDamageText, statEntry != null ? "\u66b4\u51fb\u4f24\u5bb3:" + statEntry.ResolveCriticalDamage() + "%" : "\u66b4\u51fb\u4f24\u5bb3:");
+        SetText(criticalChanceText, statEntry != null ? "\u66b4\u51fb\u7387:" + criticalChance + "%" : "\u66b4\u51fb\u7387:");
+        SetText(criticalDamageText, statEntry != null ? "\u66b4\u51fb\u4f24\u5bb3:" + criticalDamage + "%" : "\u66b4\u51fb\u4f24\u5bb3:");
     }
 
     private string ResolveDisplayName(string characterId)

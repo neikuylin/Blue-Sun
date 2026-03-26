@@ -81,6 +81,8 @@ public sealed class ItemDatabase : ScriptableObject
         public WeaponCategory weaponCategory = WeaponCategory.None;
         public WeaponDamageDistribution weaponDamageDistribution = new WeaponDamageDistribution();
         public float fixedDamage;
+        public int criticalChanceBonus;
+        public int criticalDamageBonus;
         public string description = string.Empty;
         public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
