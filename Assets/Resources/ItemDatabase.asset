@@ -19,6 +19,11 @@ MonoBehaviour:
     quality: 0
     equipmentSlot: 3
     weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
     fixedDamage: 3
     description: "\u968F\u5904\u53EF\u89C1\u7684\u6B66\u5668\u3002"
     grantedSkillIds:
@@ -36,6 +41,11 @@ MonoBehaviour:
     quality: 0
     equipmentSlot: 3
     weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
     fixedDamage: 3
     description: "\u5BBD\u5203"
     grantedSkillIds:
@@ -45,3 +55,65 @@ MonoBehaviour:
       multiplier: 1
     prefab: {fileID: 1777123002362706890, guid: 5196b9707f48fdf48a8490e12dbe77ff, type: 3}
     weaponModelPrefab: {fileID: 7194361354705236364, guid: bf67fa99fbaaa6a42aabf091b52ef7a6, type: 3}
+  - itemId: "itm_\u9489\u9524"
+    displayName: "\u9489\u9524"
+    category: 0
+    quality: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 4
+    description: "\u7834\u7532\uFF01"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 0.8
+    prefab: {fileID: 4147409947302016304, guid: d3f14c455cf48734f9c64d0b09d52e00, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u5315\u9996"
+    displayName: "\u5315\u9996"
+    category: 0
+    quality: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 4
+    description: "\u4E07\u7528\u7684\u751F\u5B58\u5DE5\u5177\uFF0C\u5076\u5C14\u4E5F\u88AB\u62FF\u6765\u5F53\u6B66\u5668"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 2
+      multiplier: 1
+    prefab: {fileID: 5279092756118558177, guid: 172459e5bb3966b4084cf473682e279f, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u796D\u7940\u5C0F\u5200"
+    displayName: "\u796D\u7940\u5C0F\u5200"
+    category: 0
+    quality: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 80
+      fire: 0
+      corruption: 20
+      cold: 0
+    fixedDamage: 4
+    description: "\u5965\u624E\u514B\u4EBA\u7528\u6765\u4E3E\u884C\u8BC5\u5492\u4EEA\u5F0F\u7684\u5C0F\u5200\uFF0C\u4E0A\u9762\u6CBE\u6EE1\u4E86\u53D7\u5BB3\u8005\u7684\u9C9C\u8840"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 2
+      multiplier: 0.4
+    - attributeType: 3
+      multiplier: 0.4
+    prefab: {fileID: 6639484880991417966, guid: d5b76f0164df84f42ae43866e206d1e1, type: 3}
+    weaponModelPrefab: {fileID: 0}

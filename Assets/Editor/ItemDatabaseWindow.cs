@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,6 +12,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private ItemDatabase.ItemQuality createQuality = ItemDatabase.ItemQuality.Common;
     private ItemDatabase.EquipmentSlotType createEquipmentSlot = ItemDatabase.EquipmentSlotType.MainHand;
     private ItemDatabase.WeaponCategory createWeaponCategory = ItemDatabase.WeaponCategory.OneHanded;
+    private readonly ItemDatabase.WeaponDamageDistribution createWeaponDamageDistribution =
+        ItemDatabase.CreateDefaultWeaponDamageDistribution();
     private float createFixedDamage;
     private string newDescription = string.Empty;
     private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
@@ -83,6 +85,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             DrawWeaponFields(
                 createCategory,
                 createWeaponCategory,
+                createWeaponDamageDistribution,
                 ref createFixedDamage,
                 createGrantedSkillIds,
                 createWeaponAttributeMultipliers,
@@ -92,6 +95,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             createEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
             createWeaponCategory = ItemDatabase.WeaponCategory.None;
+            ResetWeaponDamageDistribution(createWeaponDamageDistribution);
             createFixedDamage = 0f;
             ResetGrantedSkillList(createGrantedSkillIds);
             ResetWeaponAttributeList(createWeaponAttributeMultipliers);
@@ -201,6 +205,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ItemDatabase.ItemQuality originalQuality = entry.quality;
             ItemDatabase.EquipmentSlotType originalEquipmentSlot = entry.equipmentSlot;
             ItemDatabase.WeaponCategory originalWeaponCategory = entry.weaponCategory;
+            ItemDatabase.WeaponDamageDistribution originalWeaponDamageDistribution = CloneWeaponDamageDistribution(entry.weaponDamageDistribution);
             float originalFixedDamage = entry.fixedDamage;
             string originalDescription = entry.description;
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
@@ -223,6 +228,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
             if (entry.category == ItemDatabase.ItemCategory.Equipment)
             {
+                ItemDatabase.EnsureValidWeaponDamageDistribution(entry);
                 entry.equipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
                     "装备部位",
                     (int)entry.equipmentSlot,
@@ -232,6 +238,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 DrawWeaponFields(
                     entry.category,
                     entry.weaponCategory,
+                    entry.weaponDamageDistribution,
                     ref entry.fixedDamage,
                     entry.grantedSkillIds,
                     entry.weaponAttributeMultipliers,
@@ -241,6 +248,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             {
                 entry.equipmentSlot = ItemDatabase.EquipmentSlotType.None;
                 entry.weaponCategory = ItemDatabase.WeaponCategory.None;
+                ResetWeaponDamageDistribution(entry.weaponDamageDistribution);
                 entry.fixedDamage = 0f;
                 ResetGrantedSkillList(entry.grantedSkillIds);
                 ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
@@ -281,6 +289,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.quality = originalQuality;
                     entry.equipmentSlot = originalEquipmentSlot;
                     entry.weaponCategory = originalWeaponCategory;
+                    entry.weaponDamageDistribution = CloneWeaponDamageDistribution(originalWeaponDamageDistribution);
                     entry.fixedDamage = originalFixedDamage;
                     entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
@@ -346,6 +355,9 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ? createEquipmentSlot
                 : ItemDatabase.EquipmentSlotType.None,
             weaponCategory = ItemDatabase.NormalizeWeaponCategory(createEquipmentSlot, createWeaponCategory),
+            weaponDamageDistribution = ItemDatabase.ShouldShowWeaponDamageDistribution(createCategory, createWeaponCategory)
+                ? CloneWeaponDamageDistribution(createWeaponDamageDistribution)
+                : ItemDatabase.CreateDefaultWeaponDamageDistribution(),
             fixedDamage = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? createFixedDamage
                 : 0f,
@@ -419,6 +431,15 @@ public sealed class ItemDatabaseWindow : EditorWindow
             return "预制体不能为空。";
         }
 
+        if (ItemDatabase.ShouldShowWeaponDamageDistribution(entry.category, entry.weaponCategory))
+        {
+            ItemDatabase.EnsureValidWeaponDamageDistribution(entry);
+            if (entry.weaponDamageDistribution.Total != 100)
+            {
+                return "武器伤害属性总和必须等于 100。";
+            }
+        }
+
         for (int i = 0; i < database.Entries.Count; i++)
         {
             if (i == selfIndex)
@@ -456,6 +477,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private static void DrawWeaponFields(
         ItemDatabase.ItemCategory category,
         ItemDatabase.WeaponCategory weaponCategory,
+        ItemDatabase.WeaponDamageDistribution weaponDamageDistribution,
         ref float fixedDamage,
         List<string> grantedSkillIds,
         List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers,
@@ -463,15 +485,41 @@ public sealed class ItemDatabaseWindow : EditorWindow
     {
         if (!ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory))
         {
+            ResetWeaponDamageDistribution(weaponDamageDistribution);
             fixedDamage = 0f;
             ResetGrantedSkillList(grantedSkillIds);
             ResetWeaponAttributeList(multipliers);
             return;
         }
 
+        if (ItemDatabase.ShouldShowWeaponDamageDistribution(category, weaponCategory))
+        {
+            DrawWeaponDamageDistribution(weaponDamageDistribution);
+        }
+
         fixedDamage = EditorGUILayout.FloatField("固定伤害", fixedDamage);
         DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
         DrawWeaponAttributeFields(multipliers);
+    }
+
+    private static void DrawWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution distribution)
+    {
+        if (distribution == null)
+        {
+            return;
+        }
+
+        distribution.physical = Mathf.Max(0, EditorGUILayout.IntField("物理伤害占比", distribution.physical));
+        distribution.fire = Mathf.Max(0, EditorGUILayout.IntField("火焰伤害占比", distribution.fire));
+        distribution.corruption = Mathf.Max(0, EditorGUILayout.IntField("腐败伤害占比", distribution.corruption));
+        distribution.cold = Mathf.Max(0, EditorGUILayout.IntField("寒冷伤害占比", distribution.cold));
+
+        int total = distribution.Total;
+        EditorGUILayout.LabelField("总和", total + "%");
+        if (total != 100)
+        {
+            EditorGUILayout.HelpBox("四项占比总和必须等于 100。", MessageType.Warning);
+        }
     }
 
     private static void DrawGrantedSkillFields(List<string> skillIds, BattleSkillDatabase skillDatabase)
@@ -680,6 +728,35 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         multipliers.Clear();
         multipliers.Add(new ItemDatabase.WeaponAttributeMultiplierEntry());
+    }
+
+    private static ItemDatabase.WeaponDamageDistribution CloneWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution source)
+    {
+        if (source == null)
+        {
+            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+        }
+
+        return new ItemDatabase.WeaponDamageDistribution
+        {
+            physical = Mathf.Max(0, source.physical),
+            fire = Mathf.Max(0, source.fire),
+            corruption = Mathf.Max(0, source.corruption),
+            cold = Mathf.Max(0, source.cold)
+        };
+    }
+
+    private static void ResetWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution distribution)
+    {
+        if (distribution == null)
+        {
+            return;
+        }
+
+        distribution.physical = 100;
+        distribution.fire = 0;
+        distribution.corruption = 0;
+        distribution.cold = 0;
     }
 
     private void SaveDatabase()

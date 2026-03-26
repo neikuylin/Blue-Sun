@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -60,6 +60,17 @@ public sealed class ItemDatabase : ScriptableObject
     }
 
     [Serializable]
+    public sealed class WeaponDamageDistribution
+    {
+        public int physical = 100;
+        public int fire;
+        public int corruption;
+        public int cold;
+
+        public int Total => physical + fire + corruption + cold;
+    }
+
+    [Serializable]
     public sealed class ItemEntry
     {
         public string itemId = string.Empty;
@@ -68,6 +79,7 @@ public sealed class ItemDatabase : ScriptableObject
         public ItemQuality quality = ItemQuality.Common;
         public EquipmentSlotType equipmentSlot = EquipmentSlotType.None;
         public WeaponCategory weaponCategory = WeaponCategory.None;
+        public WeaponDamageDistribution weaponDamageDistribution = new WeaponDamageDistribution();
         public float fixedDamage;
         public string description = string.Empty;
         public List<string> grantedSkillIds = new List<string>();
@@ -175,6 +187,42 @@ public sealed class ItemDatabase : ScriptableObject
 
         return weaponCategory == WeaponCategory.OneHanded ||
             weaponCategory == WeaponCategory.TwoHanded;
+    }
+
+    public static bool ShouldShowWeaponDamageDistribution(
+        ItemCategory category,
+        WeaponCategory weaponCategory)
+    {
+        return ShouldShowWeaponAttributeMultiplier(category, weaponCategory);
+    }
+
+    public static void EnsureValidWeaponDamageDistribution(ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.weaponDamageDistribution == null)
+        {
+            entry.weaponDamageDistribution = CreateDefaultWeaponDamageDistribution();
+        }
+
+        entry.weaponDamageDistribution.physical = Mathf.Max(0, entry.weaponDamageDistribution.physical);
+        entry.weaponDamageDistribution.fire = Mathf.Max(0, entry.weaponDamageDistribution.fire);
+        entry.weaponDamageDistribution.corruption = Mathf.Max(0, entry.weaponDamageDistribution.corruption);
+        entry.weaponDamageDistribution.cold = Mathf.Max(0, entry.weaponDamageDistribution.cold);
+    }
+
+    public static WeaponDamageDistribution CreateDefaultWeaponDamageDistribution()
+    {
+        return new WeaponDamageDistribution
+        {
+            physical = 100,
+            fire = 0,
+            corruption = 0,
+            cold = 0
+        };
     }
 
     public static void EnsureValidWeaponAttributeList(ItemEntry entry)

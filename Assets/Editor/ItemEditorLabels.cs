@@ -1,4 +1,4 @@
-public static class ItemEditorLabels
+﻿public static class ItemEditorLabels
 {
     public static readonly string[] CategoryLabels =
     {
