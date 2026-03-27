@@ -5164,7 +5164,7 @@ MonoBehaviour:
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8
   cameraPosition: {x: 10, y: 14, z: -4}
-  cameraEulerAngles: {x: 45, y: 45, z: 0}
+  cameraEulerAngles: {x: 48.6, y: 45, z: 0}
   timelineSpacing: 0
   activeTimelineExtraSpacing: 20
   activeTimelineScale: 1.2

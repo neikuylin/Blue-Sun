@@ -63,7 +63,7 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Camera")]
     public float cameraSize = 8f;
     public Vector3 cameraPosition = new Vector3(10f, 14f, -4f);
-    public Vector3 cameraEulerAngles = new Vector3(45f, 45f, 0f);
+    public Vector3 cameraEulerAngles = new Vector3(48.6f, 45f, 0f);
 
     [Header("Timeline")]
     public float timelineSpacing = 0f;
