@@ -145,6 +145,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
+    private static readonly Vector2 DefaultAttackPowerAttributeIconSize = new Vector2(20f, 20f);
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -215,6 +216,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipGrantedSkillsText;
     private RectTransform itemTooltipGrantedSkillsIconRoot;
     private readonly List<GameObject> itemTooltipGrantedSkillIcons = new List<GameObject>();
+    private readonly List<GameObject> itemTooltipAttackPowerIcons = new List<GameObject>();
+    [SerializeField] private Vector2 tooltipAttackPowerAttributeIconSize = new Vector2(20f, 20f);
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
@@ -309,7 +312,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
-        return BuildAttackPowerDisplayText(entry, characterId);
+        return BuildAttackPowerDisplayText(entry, characterId, out _);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -2919,6 +2922,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         pendingTooltipSlot = default;
         pendingTooltipShownAt = 0f;
         ClearTooltipGrantedSkillIcons();
+        ClearTooltipAttackPowerIcons();
         HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item);
         if (itemTooltipRoot != null)
         {
@@ -3009,9 +3013,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        string value = GetAttackPowerDisplayText(entry, slot);
-        attackPowerText.gameObject.SetActive(!string.IsNullOrEmpty(value));
+        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
+        string value = GetAttackPowerDisplayText(entry, slot, ownerCharacterId, out List<AttackPowerSegment> segments);
+        bool hasValue = !string.IsNullOrEmpty(value);
+        attackPowerText.gameObject.SetActive(hasValue);
         attackPowerText.text = value ?? string.Empty;
+        RebuildTooltipAttackPowerIcons(attackPowerText, segments);
     }
 
     private TMP_Text EnsureTooltipAttackPowerText()
@@ -3054,19 +3061,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return itemTooltipAttackPowerText;
     }
 
-    private string GetAttackPowerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot)
+    private string GetAttackPowerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot, string ownerCharacterId, out List<AttackPowerSegment> segments)
     {
+        segments = null;
         if (!IsAttackPowerWeaponEntry(entry) || slot.kind != SlotKind.Equipment)
         {
             return string.Empty;
         }
 
-        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
-        return BuildAttackPowerDisplayText(entry, ownerCharacterId);
+        return BuildAttackPowerDisplayText(entry, ownerCharacterId, out segments);
     }
 
-    private static string BuildAttackPowerDisplayText(ItemDatabase.ItemEntry entry, string ownerCharacterId)
+    private static string BuildAttackPowerDisplayText(ItemDatabase.ItemEntry entry, string ownerCharacterId, out List<AttackPowerSegment> segments)
     {
+        segments = null;
         if (!IsAttackPowerWeaponEntry(entry))
         {
             return string.Empty;
@@ -3084,9 +3092,87 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return "攻击力：无装备者";
         }
 
-        float attackPower = CalculateWeaponAttackPower(entry, statEntry);
+        segments = BuildAttackPowerSegments(entry, statEntry);
+        if (segments == null || segments.Count == 0)
+        {
+            float attackPower = CalculateWeaponAttackPower(entry, statEntry);
+            return $"攻击力：{attackPower:0.##}";
+        }
 
-        return $"攻击力：{attackPower:0.##}";
+        List<string> parts = new List<string>();
+        for (int i = 0; i < segments.Count; i++)
+        {
+            AttackPowerSegment segment = segments[i];
+            parts.Add($"<color={segment.colorHex}>{FormatTooltipAttackPowerValue(segment.amount)}</color>");
+        }
+
+        return $"攻击力：{string.Join("<color=#808080>+</color>", parts)}";
+    }
+
+    private sealed class AttackPowerSegment
+    {
+        public string attributeId = string.Empty;
+        public float amount;
+        public string colorHex = "#FFFFFF";
+    }
+
+    private static List<AttackPowerSegment> BuildAttackPowerSegments(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
+    {
+        List<AttackPowerSegment> segments = new List<AttackPowerSegment>();
+        if (!IsAttackPowerWeaponEntry(entry) || statEntry == null)
+        {
+            return segments;
+        }
+
+        float attackPower = CalculateWeaponAttackPower(entry, statEntry);
+        if (attackPower <= 0f)
+        {
+            return segments;
+        }
+
+        ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
+        if (distribution == null || distribution.Total <= 0)
+        {
+            distribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
+        }
+
+        int total = Mathf.Max(1, distribution.Total);
+        TryAddAttackPowerSegment(segments, "物理", distribution.physical, total, attackPower, "#FFFFFF");
+        TryAddAttackPowerSegment(segments, "火焰", distribution.fire, total, attackPower, "#FF8A00");
+        TryAddAttackPowerSegment(segments, "腐败", distribution.corruption, total, attackPower, "#33CC66");
+        TryAddAttackPowerSegment(segments, "寒冷", distribution.cold, total, attackPower, "#4DA6FF");
+        return segments;
+    }
+
+    private static void TryAddAttackPowerSegment(List<AttackPowerSegment> segments, string attributeId, int distributionValue, int distributionTotal, float attackPower, string colorHex)
+    {
+        if (segments == null || distributionValue <= 0 || distributionTotal <= 0 || attackPower <= 0f)
+        {
+            return;
+        }
+
+        float amount = attackPower * distributionValue / distributionTotal;
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        segments.Add(new AttackPowerSegment
+        {
+            attributeId = attributeId,
+            amount = amount,
+            colorHex = colorHex
+        });
+    }
+
+    private static string FormatTooltipAttackPowerValue(float value)
+    {
+        if (Mathf.Approximately(value, Mathf.Round(value)))
+        {
+            return Mathf.RoundToInt(value).ToString();
+        }
+
+        return value.ToString("0.#");
     }
 
     private static float CalculateWeaponAttackPower(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
@@ -3310,6 +3396,93 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         itemTooltipGrantedSkillIcons.Clear();
+    }
+
+    private void RebuildTooltipAttackPowerIcons(TMP_Text attackPowerText, List<AttackPowerSegment> segments)
+    {
+        ClearTooltipAttackPowerIcons();
+        if (attackPowerText == null || segments == null || segments.Count == 0)
+        {
+            return;
+        }
+
+        AttributeIconPrefabDatabase iconDatabase = AttributeIconPrefabDatabase.LoadDefault();
+        if (iconDatabase == null)
+        {
+            return;
+        }
+
+        string runningPlainText = "攻击力：";
+        attackPowerText.ForceMeshUpdate();
+
+        for (int i = 0; i < segments.Count; i++)
+        {
+            AttackPowerSegment segment = segments[i];
+            if (segment == null || string.IsNullOrWhiteSpace(segment.attributeId))
+            {
+                continue;
+            }
+
+            AttributeIconPrefabDatabase.Entry iconEntry = iconDatabase.FindEntry(segment.attributeId);
+            if (iconEntry == null || iconEntry.prefab == null)
+            {
+                runningPlainText += FormatTooltipAttackPowerValue(segment.amount);
+                if (i < segments.Count - 1)
+                {
+                    runningPlainText += "+";
+                }
+                continue;
+            }
+
+            runningPlainText += FormatTooltipAttackPowerValue(segment.amount);
+            float textWidth = attackPowerText.GetPreferredValues(runningPlainText).x;
+
+            GameObject iconObject = Instantiate(iconEntry.prefab, attackPowerText.rectTransform, false);
+            iconObject.name = $"攻击力图标_{segment.attributeId}_{i}";
+            DisableRaycasts(iconObject);
+
+            RectTransform rect = iconObject.transform as RectTransform;
+            if (rect != null)
+            {
+                rect.anchorMin = new Vector2(0f, 0.5f);
+                rect.anchorMax = new Vector2(0f, 0.5f);
+                rect.pivot = new Vector2(0f, 0.5f);
+                Vector2 iconSize = instance != null ? instance.tooltipAttackPowerAttributeIconSize : DefaultAttackPowerAttributeIconSize;
+                rect.sizeDelta = iconSize;
+                rect.anchoredPosition = new Vector2(textWidth + 4f, 0f);
+            }
+
+            itemTooltipAttackPowerIcons.Add(iconObject);
+
+            runningPlainText += " ";
+            if (i < segments.Count - 1)
+            {
+                runningPlainText += "+";
+            }
+        }
+    }
+
+    private void ClearTooltipAttackPowerIcons()
+    {
+        for (int i = 0; i < itemTooltipAttackPowerIcons.Count; i++)
+        {
+            GameObject go = itemTooltipAttackPowerIcons[i];
+            if (go == null)
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(go);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        itemTooltipAttackPowerIcons.Clear();
     }
 
     private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
