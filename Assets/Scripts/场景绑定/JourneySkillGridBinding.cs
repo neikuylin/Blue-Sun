@@ -8,7 +8,6 @@ public sealed class JourneySkillGridBinding : MonoBehaviour
 
     [Header("装备附带技能角标")]
     public Sprite grantedSkillCornerSprite;
-    public Vector2 grantedSkillCornerSize = new Vector2(18f, 18f);
     public Vector2 grantedSkillCornerAnchoredPosition = new Vector2(-6f, -6f);
 
     public RectTransform ResolveSkillSlotContainer()

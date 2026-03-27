@@ -507,14 +507,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Vector2 markerSize = journeySkillGridBinding != null
-            ? journeySkillGridBinding.grantedSkillCornerSize
-            : new Vector2(18f, 18f);
         Vector2 anchoredPosition = journeySkillGridBinding != null
             ? journeySkillGridBinding.grantedSkillCornerAnchoredPosition
             : new Vector2(-6f, -6f);
 
-        markerRect.sizeDelta = markerSize;
+        markerRect.sizeDelta = cornerSprite != null ? cornerSprite.rect.size : Vector2.zero;
         markerRect.anchoredPosition = anchoredPosition;
     }
 
