@@ -12,11 +12,18 @@ public static class CharacterSkillListUtility
         HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
 
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry =
+            statDatabase != null ? statDatabase.FindEntry(resolvedCharacterId) : null;
+        int memorySlotCount = statEntry != null
+            ? statEntry.ResolveSkillMemorySlots()
+            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
         if (entry != null && entry.skillIds != null)
         {
-            for (int i = 0; i < entry.skillIds.Count; i++)
+            int slotCount = System.Math.Min(memorySlotCount, entry.skillIds.Count);
+            for (int i = 0; i < slotCount; i++)
             {
                 TryAddSkill(result, seen, entry.skillIds[i]);
             }

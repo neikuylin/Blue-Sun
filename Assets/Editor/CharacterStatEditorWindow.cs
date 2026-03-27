@@ -176,12 +176,14 @@ public sealed class CharacterStatEditorWindow : EditorWindow
                 int resolvedMaxHealth = CharacterStatDatabase.ResolveMaxHealthFromStrength(strength);
                 int resolvedMaxMana = CharacterStatDatabase.ResolveMaxManaFromIntelligence(intelligence);
                 int resolvedMoveDistance = CharacterStatDatabase.ResolveMoveDistanceFromAgility(agility);
+                int resolvedSkillMemorySlots = CharacterStatDatabase.ResolveSkillMemorySlotCountFromIntelligence(intelligence);
                 int resolvedDodgeRate = CharacterStatDatabase.ResolveDodgeRateFromAgility(agility);
                 EditorGUI.BeginDisabledGroup(true);
                 EditorGUILayout.LabelField("最终命中", resolvedHitRate + "%");
                 EditorGUILayout.IntField("HP", resolvedMaxHealth);
                 EditorGUILayout.IntField("MP", resolvedMaxMana);
                 EditorGUILayout.LabelField("移动距离", resolvedMoveDistance.ToString());
+                EditorGUILayout.LabelField("技能记忆格", resolvedSkillMemorySlots.ToString());
                 EditorGUILayout.LabelField("闪避", resolvedDodgeRate + "%");
                 EditorGUILayout.LabelField("物理抗性", resolvedPhysicalResistance + "%");
                 EditorGUILayout.LabelField("火焰抗性", resolvedFireResistance + "%");

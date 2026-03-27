@@ -51,7 +51,7 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             characterId = resolvedCharacterId
         };
-        EnsureSlotDataSize(entry, 6);
+        EnsureSlotDataSize(entry, CharacterStatDatabase.StatEntry.BaseSkillMemorySlots);
         entries.Add(entry);
         return entry;
     }

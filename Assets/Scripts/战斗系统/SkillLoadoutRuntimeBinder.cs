@@ -246,11 +246,18 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         List<string> skillIds = BuildJourneySkillList(currentCharacterId);
+        int visibleSlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         for (int i = 0; i < journeySkillSlots.Count; i++)
         {
-            string skillId = i < skillIds.Count ? skillIds[i] : string.Empty;
-            Sprite icon = ResolveSkillIcon(skillId);
             SkillSlotWidget widget = journeySkillSlots[i];
+            bool shouldDisplay = i < visibleSlotCount;
+            if (widget.root != null && widget.root.gameObject.activeSelf != shouldDisplay)
+            {
+                widget.root.gameObject.SetActive(shouldDisplay);
+            }
+
+            string skillId = shouldDisplay && i < skillIds.Count ? skillIds[i] : string.Empty;
+            Sprite icon = shouldDisplay ? ResolveSkillIcon(skillId) : null;
             widget.skillId = skillId;
             EnsureHoverRelay(widget, i);
             Image target = widget.skillIcon;
@@ -392,6 +399,17 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+    }
+
+    private static int ResolveVisibleSkillMemorySlotCount(string characterId)
+    {
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry =
+            statDatabase != null ? statDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
+
+        return statEntry != null
+            ? statEntry.ResolveSkillMemorySlots()
+            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

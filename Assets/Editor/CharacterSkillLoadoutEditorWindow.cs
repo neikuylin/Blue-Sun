@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -14,6 +15,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
     private const string AssetFolder = "Assets/Resources";
     private const string AssetPath = AssetFolder + "/CharacterSkillLoadoutDatabase.asset";
+    private const string DefaultCharacterId = "玩家";
 
     private Vector2 scroll;
     private CharacterSkillLoadoutDatabase database;
@@ -37,27 +39,40 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         List<string> characterIds = CollectCharacterIds();
         if (characterIds.Count == 0)
         {
-            EditorGUILayout.HelpBox("没有可用角色ID。", MessageType.Warning);
+            EditorGUILayout.HelpBox("没有可用角色 ID。", MessageType.Warning);
             return;
         }
 
         selectedCharacterIndex = Mathf.Clamp(selectedCharacterIndex, 0, characterIds.Count - 1);
         selectedCharacterIndex = EditorGUILayout.Popup("角色", selectedCharacterIndex, characterIds.ToArray());
 
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(characterIds[selectedCharacterIndex]);
-        List<string> slotNames = CollectJourneySkillSlotNames();
-        int detectedSlotCount = Mathf.Max(1, slotNames.Count);
-        EnsureSize(entry.skillIds, detectedSlotCount);
+        string characterId = characterIds[selectedCharacterIndex];
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(characterId);
+        int memorySlotCount = ResolveSkillMemorySlotCount(characterId);
+        EnsureSize(entry.skillIds, memorySlotCount);
+        CharacterSkillLoadoutDatabase.EnsureSlotDataSize(entry, memorySlotCount);
 
-        EditorGUILayout.Space(4f);
-        if (slotNames.Count > 0)
+        List<string> slotNames = CollectJourneySkillSlotNames();
+        if (slotNames.Count == 0)
         {
-            EditorGUILayout.HelpBox($"已从启程场景读取到 {slotNames.Count} 个技能格子，Tools 会按这些格子逐个显示。", MessageType.Info);
+            EditorGUILayout.HelpBox("当前没有从启程场景读取到技能格。会按角色属性中的技能记忆格数量显示编辑项。", MessageType.Warning);
+        }
+        else if (slotNames.Count < memorySlotCount)
+        {
+            EditorGUILayout.HelpBox(
+                $"角色属性配置了 {memorySlotCount} 个技能记忆格，但启程场景当前只放了 {slotNames.Count} 个技能格。超出的格子需要在启程场景中补齐。",
+                MessageType.Warning);
         }
         else
         {
-            EditorGUILayout.HelpBox("当前没有从启程场景读到技能格子，先打开启程场景后再编辑。现在会先按已有数据兜底显示。", MessageType.Warning);
-            slotNames = BuildFallbackSlotNames(entry.skillIds.Count);
+            EditorGUILayout.HelpBox(
+                $"当前角色技能记忆格: {memorySlotCount}。启程场景技能格数量: {slotNames.Count}。",
+                MessageType.Info);
+        }
+
+        if (slotNames.Count < memorySlotCount)
+        {
+            slotNames.AddRange(BuildFallbackSlotNames(slotNames.Count, memorySlotCount - slotNames.Count));
         }
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -73,7 +88,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
     private void DrawSharedSlots(List<string> slots, List<string> slotNames)
     {
-        EditorGUILayout.LabelField("共用技能槽位", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("技能记忆格", EditorStyles.boldLabel);
 
         List<BattleSkillDatabase.SkillEntry> skills = skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
         List<string> options = new List<string> { "（空）" };
@@ -99,14 +114,16 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     continue;
                 }
 
-                if (string.Equals(slots[i], skill.skillId, System.StringComparison.Ordinal))
+                if (string.Equals(slots[i], skill.skillId, StringComparison.Ordinal))
                 {
                     selectedIndex = s + 1;
                     break;
                 }
             }
 
-            string label = i < slotNames.Count && !string.IsNullOrWhiteSpace(slotNames[i]) ? slotNames[i] : $"第 {i + 1} 格";
+            string label = i < slotNames.Count && !string.IsNullOrWhiteSpace(slotNames[i])
+                ? slotNames[i]
+                : $"第{i + 1}格";
             int newIndex = EditorGUILayout.Popup(label, selectedIndex, options.ToArray());
             slots[i] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
         }
@@ -164,7 +181,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
             return null;
         }
 
-        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], System.StringComparison.Ordinal))
+        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], StringComparison.Ordinal))
         {
             if (matchedDepth == JourneySkillContainerChain.Length - 1)
             {
@@ -193,12 +210,12 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         return null;
     }
 
-    private static List<string> BuildFallbackSlotNames(int count)
+    private static List<string> BuildFallbackSlotNames(int startIndex, int count)
     {
         List<string> result = new List<string>(count);
         for (int i = 0; i < count; i++)
         {
-            result.Add($"第 {i + 1} 格");
+            result.Add($"第{startIndex + i + 1}格");
         }
 
         return result;
@@ -239,7 +256,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
     private static List<string> CollectCharacterIds()
     {
-        List<string> result = new List<string>();
+        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         if (statDatabase != null)
         {
@@ -251,15 +268,26 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     continue;
                 }
 
-                result.Add(entry.characterId);
+                ids.Add(entry.characterId);
             }
         }
 
-        if (result.Count == 0)
+        if (ids.Count == 0)
         {
-            result.Add("玩家");
+            ids.Add(DefaultCharacterId);
         }
 
+        List<string> result = new List<string>(ids);
+        result.Sort(StringComparer.Ordinal);
         return result;
+    }
+
+    private static int ResolveSkillMemorySlotCount(string characterId)
+    {
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        return statEntry != null
+            ? statEntry.ResolveSkillMemorySlots()
+            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
     }
 }

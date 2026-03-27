@@ -10,6 +10,8 @@ public sealed class CharacterStatDatabase : ScriptableObject
     [Serializable]
     public sealed class StatEntry
     {
+        public const int BaseSkillMemorySlots = 0;
+
         public string characterId;
         public int strength;
         public int agility;
@@ -30,6 +32,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
         public int ResolveActionPoints()
         {
             return actionPoints > 0 ? actionPoints : 4;
+        }
+
+        public int ResolveSkillMemorySlots()
+        {
+            return ResolveSkillMemorySlotCountFromIntelligence(intelligence);
         }
 
         public int ResolveHitRate()
@@ -139,6 +146,11 @@ public sealed class CharacterStatDatabase : ScriptableObject
     public static int ResolveMoveDistanceFromAgility(int agility)
     {
         return Mathf.Max(0, 2 + (agility / 3));
+    }
+
+    public static int ResolveSkillMemorySlotCountFromIntelligence(int intelligence)
+    {
+        return Mathf.Max(0, Mathf.Max(0, intelligence) / 3);
     }
 
     public static int ResolveMaxHealthFromStrength(int strength)
