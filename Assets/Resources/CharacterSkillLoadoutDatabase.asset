@@ -15,39 +15,18 @@ MonoBehaviour:
   entries:
   - characterId: "\u73A9\u5BB6"
     skillIds:
+    - 
     - "\u56DE\u65CB\u65A9"
     - "\u56DE\u65CB\u65A9"
-    skillWeights: 0000000000000000
+    skillWeights: 000000000000000000000000
   - characterId: "\u7D22\u62C9\u5A1C"
-    skillIds:
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
+    skillIds: []
     skillWeights: 
   - characterId: "\u5E93\u9C81\u65AF"
     skillIds:
     - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    skillWeights: 
+    - "\u56DE\u65CB\u65A9"
+    skillWeights: 0000000000000000
   - characterId: "\u5047\u4EBA"
     skillIds: []
     skillWeights: 
@@ -56,16 +35,9 @@ MonoBehaviour:
     skillWeights: 
   - characterId: "\u7231\u4E3D\u4E1D"
     skillIds:
+    - 
+    - 
+    - 
     - "\u56DE\u65CB\u65A9"
-    - "\u56DE\u65CB\u65A9"
-    - "\u56DE\u65CB\u65A9"
     - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    skillWeights: 000000000000000000000000000000000000000000000000
+    skillWeights: 0000000000000000000000000000000000000000

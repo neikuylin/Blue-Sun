@@ -14,7 +14,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
     private BattleSkillDatabase skillDatabase;
     private int selectedCharacterIndex;
 
-    [MenuItem("Tools/\u6280\u80FD/\u6280\u80FD\u680F\u4F4D\u7F16\u8F91\u5668")]
+    [MenuItem("Tools/\u6280\u80FD/\u6280\u80FD\u4ED3\u5E93\u7F16\u8F91\u5668")]
     private static void Open()
     {
         CharacterSkillLoadoutEditorWindow window =
