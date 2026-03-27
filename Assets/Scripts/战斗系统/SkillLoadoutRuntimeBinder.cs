@@ -20,7 +20,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const string DefaultCharacterId = "\u73a9\u5bb6";
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
-    private static readonly Color GrantedSkillColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
     private sealed class SkillSlotWidget
     {
@@ -446,7 +445,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return DisabledSkillColor;
         }
 
-        return isGranted ? GrantedSkillColor : EnabledSkillColor;
+        return EnabledSkillColor;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

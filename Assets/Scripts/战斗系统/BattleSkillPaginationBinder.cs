@@ -80,7 +80,6 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int currentPageIndex;
     private int lastTotalPages = -1;
-    private static readonly Color GrantedSkillColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
     public void Initialize(BattleTurnSystem system)
     {
@@ -566,7 +565,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             return SkillUsabilityUtility.DisabledSkillColor;
         }
 
-        return isGranted ? GrantedSkillColor : SkillUsabilityUtility.EnabledSkillColor;
+        return SkillUsabilityUtility.EnabledSkillColor;
     }
 
     private static string ResolveSkillSourceDisplay(string ownerCharacterId, string skillId)
