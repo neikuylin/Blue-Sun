@@ -284,20 +284,21 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int warehouseCount = entry != null && entry.skillIds != null
             ? Mathf.Max(0, entry.skillIds.Count - memorySlotCount)
             : 0;
+        int visibleSlotCount = Mathf.Max(1, Mathf.Max(warehouseCount, warehouseContainer != null ? warehouseContainer.childCount : 0));
 
-        EnsureWarehouseSlotCapacity(warehouseCount);
+        EnsureWarehouseSlotCapacity(visibleSlotCount);
         CollectWarehouseSkillSlots();
 
         for (int i = 0; i < warehouseSkillSlots.Count; i++)
         {
             SkillSlotWidget widget = warehouseSkillSlots[i];
-            bool shouldDisplay = i < warehouseCount;
+            bool shouldDisplay = i < visibleSlotCount;
             if (widget.root != null && widget.root.gameObject.activeSelf != shouldDisplay)
             {
                 widget.root.gameObject.SetActive(shouldDisplay);
             }
 
-            string skillId = shouldDisplay && entry != null && entry.skillIds != null
+            string skillId = i < warehouseCount && entry != null && entry.skillIds != null
                 ? entry.skillIds[memorySlotCount + i]
                 : string.Empty;
             widget.skillId = skillId;
@@ -448,11 +449,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int sourceDataIndex = ResolveDataIndex(sourceWidget, memorySlotCount);
         int targetDataIndex = ResolveDataIndex(targetWidget, memorySlotCount);
-        if (sourceDataIndex < 0 || targetDataIndex < 0 ||
-            sourceDataIndex >= entry.skillIds.Count || targetDataIndex >= entry.skillIds.Count)
+        if (sourceDataIndex < 0 || targetDataIndex < 0 || sourceDataIndex >= entry.skillIds.Count)
         {
             return false;
         }
+
+        EnsureSkillDataCapacity(entry, Mathf.Max(sourceDataIndex, targetDataIndex) + 1);
 
         string tempSkillId = entry.skillIds[sourceDataIndex];
         entry.skillIds[sourceDataIndex] = entry.skillIds[targetDataIndex];
@@ -540,6 +542,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             template = warehouseContainer.GetChild(0) as RectTransform;
         }
 
+        if (template == null && requiredCount > 0)
+        {
+            template = CreateFallbackWarehouseSlot(warehouseContainer);
+        }
+
         if (template == null)
         {
             return;
@@ -550,6 +557,66 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             RectTransform clone = Instantiate(template, warehouseContainer, false);
             clone.name = template.name;
             clone.gameObject.SetActive(true);
+        }
+    }
+
+    private static RectTransform CreateFallbackWarehouseSlot(RectTransform parent)
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        GameObject rootObject = new GameObject("技能仓库格子", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        rootObject.transform.SetParent(parent, false);
+
+        RectTransform root = rootObject.GetComponent<RectTransform>();
+        root.sizeDelta = new Vector2(96f, 96f);
+
+        Image background = rootObject.GetComponent<Image>();
+        background.color = Color.white;
+        background.raycastTarget = true;
+
+        GameObject iconObject = new GameObject(OverlayIconName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.SetParent(root, false);
+        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
+        iconRect.sizeDelta = new Vector2(72f, 72f);
+
+        Image icon = iconObject.GetComponent<Image>();
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+        icon.enabled = false;
+        return root;
+    }
+
+    private static void EnsureSkillDataCapacity(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int requiredCount)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.skillIds == null)
+        {
+            entry.skillIds = new List<string>();
+        }
+
+        if (entry.skillWeights == null)
+        {
+            entry.skillWeights = new List<int>();
+        }
+
+        while (entry.skillIds.Count < requiredCount)
+        {
+            entry.skillIds.Add(string.Empty);
+        }
+
+        while (entry.skillWeights.Count < requiredCount)
+        {
+            entry.skillWeights.Add(0);
         }
     }
 
