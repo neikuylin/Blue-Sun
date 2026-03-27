@@ -304,31 +304,37 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         for (int i = 0; i < widgets.Count; i++)
         {
             SkillButtonWidget widget = widgets[i];
+            bool shouldDisplay = startIndex + i < allSkills.Count;
             CharacterSkillListUtility.DisplaySkillEntry displayEntry =
-                startIndex + i < allSkills.Count ? allSkills[startIndex + i] : default;
-            string skillId = startIndex + i < allSkills.Count ? displayEntry.SkillId : string.Empty;
-            bool isGranted = startIndex + i < allSkills.Count && displayEntry.IsGranted;
+                shouldDisplay ? allSkills[startIndex + i] : default;
+            string skillId = shouldDisplay ? displayEntry.SkillId : string.Empty;
+            bool isGranted = shouldDisplay && displayEntry.IsGranted;
             widget.skillId = skillId;
             Sprite icon = ResolveSkillIcon(skillId);
             bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
             currentSkillSnapshots.Add(BuildSkillSnapshot(i, currentCharacterId, skillId, isGranted));
 
+            if (widget.button != null && widget.button.gameObject.activeSelf != shouldDisplay)
+            {
+                widget.button.gameObject.SetActive(shouldDisplay);
+            }
+
             if (widget.icon != null)
             {
                 widget.icon.sprite = icon;
-                widget.icon.enabled = icon != null;
+                widget.icon.enabled = shouldDisplay && icon != null;
                 widget.icon.raycastTarget = false;
                 widget.icon.color = ResolveSkillDisplayColor(isGranted, isUsable);
             }
 
             if (widget.iconObject != null)
             {
-                widget.iconObject.SetActive(icon != null);
+                widget.iconObject.SetActive(shouldDisplay && icon != null);
             }
 
             if (widget.button != null)
             {
-                widget.button.interactable = !string.IsNullOrWhiteSpace(skillId) && isUsable;
+                widget.button.interactable = shouldDisplay && !string.IsNullOrWhiteSpace(skillId) && isUsable;
                 Image buttonImage = widget.button.targetGraphic as Image;
                 if (buttonImage != null)
                 {
