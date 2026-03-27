@@ -30,6 +30,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         public string source;
         public float damageMultiplier;
         public int damage;
+        public bool isGranted;
         public bool isEmpty;
     }
 
@@ -79,6 +80,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int currentPageIndex;
     private int lastTotalPages = -1;
+    private static readonly Color GrantedSkillColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
     public void Initialize(BattleTurnSystem system)
     {
@@ -272,7 +274,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
     private void Refresh(bool force)
     {
         string nextCharacterId = ResolveActiveCharacterId();
-        List<string> allSkills = GetSkillsForCharacter(nextCharacterId);
+        List<CharacterSkillListUtility.DisplaySkillEntry> allSkills = GetSkillsForCharacter(nextCharacterId);
         int totalPages = Mathf.Max(1, Mathf.CeilToInt(allSkills.Count / (float)SkillsPerPage));
         bool characterChanged = !string.Equals(currentCharacterId, nextCharacterId, StringComparison.Ordinal);
 
@@ -296,25 +298,28 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         ApplySkillsToWidgets(allSkills, totalPages);
     }
 
-    private void ApplySkillsToWidgets(List<string> allSkills, int totalPages)
+    private void ApplySkillsToWidgets(List<CharacterSkillListUtility.DisplaySkillEntry> allSkills, int totalPages)
     {
         int startIndex = currentPageIndex * SkillsPerPage;
         currentSkillSnapshots.Clear();
         for (int i = 0; i < widgets.Count; i++)
         {
             SkillButtonWidget widget = widgets[i];
-            string skillId = startIndex + i < allSkills.Count ? allSkills[startIndex + i] : string.Empty;
+            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
+                startIndex + i < allSkills.Count ? allSkills[startIndex + i] : default;
+            string skillId = startIndex + i < allSkills.Count ? displayEntry.SkillId : string.Empty;
+            bool isGranted = startIndex + i < allSkills.Count && displayEntry.IsGranted;
             widget.skillId = skillId;
             Sprite icon = ResolveSkillIcon(skillId);
             bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
-            currentSkillSnapshots.Add(BuildSkillSnapshot(i, currentCharacterId, skillId));
+            currentSkillSnapshots.Add(BuildSkillSnapshot(i, currentCharacterId, skillId, isGranted));
 
             if (widget.icon != null)
             {
                 widget.icon.sprite = icon;
                 widget.icon.enabled = icon != null;
                 widget.icon.raycastTarget = false;
-                widget.icon.color = isUsable ? SkillUsabilityUtility.EnabledSkillColor : SkillUsabilityUtility.DisabledSkillColor;
+                widget.icon.color = ResolveSkillDisplayColor(isGranted, isUsable);
             }
 
             if (widget.iconObject != null)
@@ -328,7 +333,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 Image buttonImage = widget.button.targetGraphic as Image;
                 if (buttonImage != null)
                 {
-                    buttonImage.color = isUsable ? SkillUsabilityUtility.EnabledSkillColor : SkillUsabilityUtility.DisabledSkillColor;
+                    buttonImage.color = ResolveSkillDisplayColor(isGranted, isUsable);
                 }
             }
         }
@@ -457,18 +462,18 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             : CharacterSelectionState.ActiveCharacterId;
     }
 
-    private List<string> GetSkillsForCharacter(string characterId)
+    private List<CharacterSkillListUtility.DisplaySkillEntry> GetSkillsForCharacter(string characterId)
     {
         if (turnSystem != null && turnSystem.IsExplorationMode)
         {
-            return new List<string>
+            return new List<CharacterSkillListUtility.DisplaySkillEntry>
             {
-                BattleTurnSystem.ExplorationIdleSkillId,
-                BattleTurnSystem.ExplorationMoveSkillId
+                new CharacterSkillListUtility.DisplaySkillEntry(BattleTurnSystem.ExplorationIdleSkillId, false),
+                new CharacterSkillListUtility.DisplaySkillEntry(BattleTurnSystem.ExplorationMoveSkillId, false)
             };
         }
 
-        return CharacterSkillListUtility.BuildSkillIds(
+        return CharacterSkillListUtility.BuildDisplaySkillEntries(
             string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId);
     }
 
@@ -494,7 +499,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         return entry != null ? entry.icon : null;
     }
 
-    private SkillInstanceSnapshot BuildSkillSnapshot(int index, string ownerCharacterId, string skillId)
+    private SkillInstanceSnapshot BuildSkillSnapshot(int index, string ownerCharacterId, string skillId, bool isGranted)
     {
         if (string.Equals(skillId, BattleTurnSystem.ExplorationIdleSkillId, StringComparison.Ordinal))
         {
@@ -508,6 +513,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 source = "探索全局动作",
                 damageMultiplier = 0f,
                 damage = 0,
+                isGranted = false,
                 isEmpty = false
             };
         }
@@ -524,6 +530,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
                 source = "探索全局动作",
                 damageMultiplier = 0f,
                 damage = 0,
+                isGranted = false,
                 isEmpty = false
             };
         }
@@ -547,8 +554,19 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             source = ResolveSkillSourceDisplay(ownerCharacterId, skillId),
             damageMultiplier = isCombatArt ? multiplier : 0f,
             damage = isCombatArt ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
+            isGranted = isGranted,
             isEmpty = string.IsNullOrWhiteSpace(skillId) || !isCombatArt
         };
+    }
+
+    private static Color ResolveSkillDisplayColor(bool isGranted, bool isUsable)
+    {
+        if (!isUsable)
+        {
+            return SkillUsabilityUtility.DisabledSkillColor;
+        }
+
+        return isGranted ? GrantedSkillColor : SkillUsabilityUtility.EnabledSkillColor;
     }
 
     private static string ResolveSkillSourceDisplay(string ownerCharacterId, string skillId)

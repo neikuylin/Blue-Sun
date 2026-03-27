@@ -20,12 +20,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const string DefaultCharacterId = "\u73a9\u5bb6";
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
+    private static readonly Color GrantedSkillColor = new Color(0.55f, 0.55f, 0.55f, 1f);
 
     private sealed class SkillSlotWidget
     {
         public RectTransform root;
         public Image skillIcon;
         public string skillId;
+        public bool isGranted;
         public SkillHoverRelay hoverRelay;
     }
 
@@ -150,10 +152,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private static RectTransform ResolveJourneySkillContainer()
     {
-        JourneySceneBindings bindings = JourneySceneBindings.FindInActiveScene();
-        if (bindings != null && bindings.skillSlotContainer != null)
+        RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
+        if (boundContainer != null)
         {
-            return bindings.skillSlotContainer;
+            return boundContainer;
         }
 
         return FindJourneySkillContainer();
@@ -245,8 +247,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        List<string> skillIds = BuildJourneySkillList(currentCharacterId);
-        int visibleSlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = BuildJourneySkillEntries(currentCharacterId);
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int grantedSkillCount = CountGrantedSkills(displayEntries);
+        int visibleSlotCount = grantedSkillCount + memorySlotCount;
         for (int i = 0; i < journeySkillSlots.Count; i++)
         {
             SkillSlotWidget widget = journeySkillSlots[i];
@@ -256,9 +260,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 widget.root.gameObject.SetActive(shouldDisplay);
             }
 
-            string skillId = shouldDisplay && i < skillIds.Count ? skillIds[i] : string.Empty;
+            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
+                shouldDisplay && i < displayEntries.Count
+                    ? displayEntries[i]
+                    : default;
+            string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
             Sprite icon = shouldDisplay ? ResolveSkillIcon(skillId) : null;
             widget.skillId = skillId;
+            widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
             EnsureHoverRelay(widget, i);
             Image target = widget.skillIcon;
             if (target == null)
@@ -270,15 +279,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
             target.raycastTarget = false;
-            target.color = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId)
-                ? EnabledSkillColor
-                : DisabledSkillColor;
+            bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
+            target.color = ResolveSkillDisplayColor(widget.isGranted, isUsable);
         }
     }
 
-    private List<string> BuildJourneySkillList(string characterId)
+    private List<CharacterSkillListUtility.DisplaySkillEntry> BuildJourneySkillEntries(string characterId)
     {
-        return CharacterSkillListUtility.BuildSkillIds(ResolveCharacterId(characterId));
+        return CharacterSkillListUtility.BuildDisplaySkillEntries(ResolveCharacterId(characterId));
     }
 
     private Sprite ResolveSkillIcon(string skillId)
@@ -410,6 +418,35 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return statEntry != null
             ? statEntry.ResolveSkillMemorySlots()
             : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
+    }
+
+    private static int CountGrantedSkills(List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries)
+    {
+        if (displayEntries == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < displayEntries.Count; i++)
+        {
+            if (displayEntries[i].IsGranted)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static Color ResolveSkillDisplayColor(bool isGranted, bool isUsable)
+    {
+        if (!isUsable)
+        {
+            return DisabledSkillColor;
+        }
+
+        return isGranted ? GrantedSkillColor : EnabledSkillColor;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)

@@ -152,6 +152,12 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
     private static Transform FindJourneySkillContainer()
     {
+        RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
+        if (boundContainer != null)
+        {
+            return boundContainer;
+        }
+
         for (int sceneIndex = 0; sceneIndex < SceneManager.sceneCount; sceneIndex++)
         {
             Scene scene = SceneManager.GetSceneAt(sceneIndex);

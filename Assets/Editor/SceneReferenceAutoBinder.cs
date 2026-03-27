@@ -118,8 +118,16 @@ public static class SceneReferenceAutoBinder
         bindings.backpackContainer = backpack;
         bindings.equipmentContainer = equipment;
         bindings.quickSlotAnchor = quick;
-        bindings.skillSlotContainer = skill;
         EditorUtility.SetDirty(bindings);
+
+        if (skill != null)
+        {
+            JourneySkillGridBinding skillBinding = GetOrCreateRootComponent<JourneySkillGridBinding>(scene, nameof(JourneySkillGridBinding));
+            Undo.RecordObject(skillBinding, "Auto Bind Journey Skill Grid");
+            skillBinding.skillSlotContainer = skill;
+            EditorUtility.SetDirty(skillBinding);
+        }
+
         return 1;
     }
 
