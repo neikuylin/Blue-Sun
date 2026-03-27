@@ -9,6 +9,10 @@ using UnityEngine.UI;
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
     private const float SkillTooltipDelaySeconds = 0.5f;
+    private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
+    private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
+    private const string DefaultCharacterId = "\u73a9\u5bb6";
+
     private static readonly string[] JourneySkillContainerChain =
     {
         "\u89d2\u8272\u9875\u9762",
@@ -16,11 +20,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         "\u6280\u80fd\u683c\u5b50\u533a\u57df"
     };
 
-    private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
-    private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
-    private const string DefaultCharacterId = "\u73a9\u5bb6";
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
+
+    private enum SlotSurface
+    {
+        Loadout,
+        Warehouse
+    }
 
     private sealed class SkillSlotWidget
     {
@@ -29,39 +36,78 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         public Image grantedCornerMarker;
         public string skillId;
         public bool isGranted;
-        public SkillHoverRelay hoverRelay;
+        public int slotIndex = -1;
+        public SlotSurface surface;
+        public SkillSlotRelay relay;
     }
 
-    private sealed class SkillHoverRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    private sealed class SkillSlotRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
     {
         private SkillLoadoutRuntimeBinder owner;
+        private SlotSurface surface;
         private int index;
 
-        public void Configure(SkillLoadoutRuntimeBinder binder, int slotIndex)
+        public void Configure(SkillLoadoutRuntimeBinder binder, SlotSurface slotSurface, int slotIndex)
         {
             owner = binder;
+            surface = slotSurface;
             index = slotIndex;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
-            owner?.HandleSkillPointerEnter(index);
+            owner?.HandleSkillPointerEnter(surface, index);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            owner?.HandleSkillPointerExit(index, eventData);
+            owner?.HandleSkillPointerExit(surface, index, eventData);
         }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            owner?.HandleBeginDrag(surface, index, eventData);
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            owner?.HandleDrag(eventData);
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            owner?.HandleEndDrag();
+        }
+
+        public void OnDrop(PointerEventData eventData)
+        {
+            owner?.HandleDrop(surface, index);
+        }
+    }
+
+    private struct DragRef
+    {
+        public SlotSurface surface;
+        public int index;
     }
 
     private static SkillLoadoutRuntimeBinder instance;
 
     private readonly List<SkillSlotWidget> journeySkillSlots = new List<SkillSlotWidget>();
+    private readonly List<SkillSlotWidget> warehouseSkillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
     private JourneySkillGridBinding journeySkillGridBinding;
+    private JourneySkillWarehouseBinding warehouseBinding;
+    private RectTransform warehouseContainer;
+    private Canvas dragCanvas;
+    private RectTransform dragIconRoot;
+    private Image dragIconImage;
+    private bool isDragging;
+    private DragRef dragSource;
+    private SkillSlotWidget dragSourceWidget;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -85,7 +131,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        HandleEndDrag();
         journeySkillSlots.Clear();
+        warehouseSkillSlots.Clear();
     }
 
     private void Update()
@@ -100,7 +148,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         currentCharacterId = targetCharacterId;
         lastEquipmentSkillRevision = equipmentSkillRevision;
-        RefreshJourneySkillSlots();
+        RefreshAll();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -112,25 +160,32 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
         journeySkillGridBinding = JourneySkillGridBinding.FindBindingInActiveScene();
+        warehouseBinding = JourneySkillWarehouseBinding.FindBindingInActiveScene();
         journeySkillContainer = ResolveJourneySkillContainer();
+        warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
+        CollectWarehouseSkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        RefreshAll();
+    }
+
+    private void RefreshAll()
+    {
         RefreshJourneySkillSlots();
+        RefreshWarehouseSkillSlots();
     }
 
     private void CollectJourneySkillSlots()
     {
         journeySkillSlots.Clear();
-
         RectTransform container = journeySkillContainer != null ? journeySkillContainer : ResolveJourneySkillContainer();
         if (container == null)
         {
             return;
         }
 
-        EnsureJourneyGridLayout(container);
-
+        EnsureGridLayout(container);
         for (int i = 0; i < container.childCount; i++)
         {
             RectTransform child = container.GetChild(i) as RectTransform;
@@ -149,13 +204,363 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             {
                 root = child,
                 skillIcon = overlay,
-                grantedCornerMarker = EnsureGrantedCornerMarker(child)
+                grantedCornerMarker = EnsureGrantedCornerMarker(child),
+                surface = SlotSurface.Loadout
             });
         }
     }
 
-    private static RectTransform ResolveJourneySkillContainer()
+    private void CollectWarehouseSkillSlots()
     {
+        warehouseSkillSlots.Clear();
+        warehouseContainer = warehouseContainer != null ? warehouseContainer : ResolveWarehouseContainer();
+        if (warehouseContainer == null)
+        {
+            return;
+        }
+
+        EnsureGridLayout(warehouseContainer);
+        for (int i = 0; i < warehouseContainer.childCount; i++)
+        {
+            RectTransform child = warehouseContainer.GetChild(i) as RectTransform;
+            if (child == null)
+            {
+                continue;
+            }
+
+            Image overlay = EnsureOverlayIcon(child);
+            if (overlay == null)
+            {
+                continue;
+            }
+
+            warehouseSkillSlots.Add(new SkillSlotWidget
+            {
+                root = child,
+                skillIcon = overlay,
+                surface = SlotSurface.Warehouse
+            });
+        }
+    }
+
+    private void RefreshJourneySkillSlots()
+    {
+        if (journeySkillSlots.Count == 0)
+        {
+            return;
+        }
+
+        List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int grantedSkillCount = CountGrantedSkills(displayEntries);
+        int visibleSlotCount = grantedSkillCount + memorySlotCount;
+
+        for (int i = 0; i < journeySkillSlots.Count; i++)
+        {
+            SkillSlotWidget widget = journeySkillSlots[i];
+            bool shouldDisplay = i < visibleSlotCount;
+            if (widget.root != null && widget.root.gameObject.activeSelf != shouldDisplay)
+            {
+                widget.root.gameObject.SetActive(shouldDisplay);
+            }
+
+            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
+                shouldDisplay && i < displayEntries.Count ? displayEntries[i] : default;
+            string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
+            widget.skillId = skillId;
+            widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
+            widget.slotIndex = widget.isGranted ? -1 : i - grantedSkillCount;
+
+            EnsureRelay(widget, SlotSurface.Loadout, i);
+            RefreshSlotVisual(widget, shouldDisplay, skillId, widget.isGranted);
+            RefreshGrantedCornerMarker(widget);
+        }
+    }
+
+    private void RefreshWarehouseSkillSlots()
+    {
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int warehouseCount = entry != null && entry.skillIds != null
+            ? Mathf.Max(0, entry.skillIds.Count - memorySlotCount)
+            : 0;
+
+        EnsureWarehouseSlotCapacity(warehouseCount);
+        CollectWarehouseSkillSlots();
+
+        for (int i = 0; i < warehouseSkillSlots.Count; i++)
+        {
+            SkillSlotWidget widget = warehouseSkillSlots[i];
+            bool shouldDisplay = i < warehouseCount;
+            if (widget.root != null && widget.root.gameObject.activeSelf != shouldDisplay)
+            {
+                widget.root.gameObject.SetActive(shouldDisplay);
+            }
+
+            string skillId = shouldDisplay && entry != null && entry.skillIds != null
+                ? entry.skillIds[memorySlotCount + i]
+                : string.Empty;
+            widget.skillId = skillId;
+            widget.isGranted = false;
+            widget.slotIndex = i;
+
+            EnsureRelay(widget, SlotSurface.Warehouse, i);
+            RefreshSlotVisual(widget, shouldDisplay, skillId, false);
+        }
+    }
+
+    private void RefreshSlotVisual(SkillSlotWidget widget, bool shouldDisplay, string skillId, bool isGranted)
+    {
+        if (widget == null || widget.skillIcon == null)
+        {
+            return;
+        }
+
+        Sprite icon = shouldDisplay ? ResolveSkillIcon(skillId) : null;
+        bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
+        widget.skillIcon.sprite = icon;
+        widget.skillIcon.enabled = shouldDisplay && icon != null;
+        widget.skillIcon.gameObject.SetActive(shouldDisplay && icon != null);
+        widget.skillIcon.raycastTarget = false;
+        widget.skillIcon.color = ResolveSkillDisplayColor(isGranted, isUsable);
+    }
+
+    private void HandleSkillPointerEnter(SlotSurface surface, int index)
+    {
+        SkillSlotWidget widget = ResolveWidget(surface, index);
+        if (widget == null || string.IsNullOrWhiteSpace(widget.skillId))
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
+        if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
+        float multiplier = Mathf.Max(0f, entry.damageMultiplier);
+        SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
+        {
+            skillId = widget.skillId,
+            displayName = widget.skillId,
+            description = entry.description ?? string.Empty,
+            ownerCharacterId = currentCharacterId ?? string.Empty,
+            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
+            icon = entry.icon,
+            isEmpty = false
+        };
+
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Skill,
+            widget.root,
+            SkillTooltipDelaySeconds,
+            () => SkillTooltipRuntime.Show(snapshot),
+            SkillTooltipRuntime.Hide);
+    }
+
+    private void HandleSkillPointerExit(SlotSurface surface, int index, PointerEventData eventData)
+    {
+        SkillSlotWidget widget = ResolveWidget(surface, index);
+        if (widget == null || widget.root == null)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, widget.root, eventData);
+    }
+
+    private void HandleBeginDrag(SlotSurface surface, int index, PointerEventData eventData)
+    {
+        if (isDragging)
+        {
+            return;
+        }
+
+        SkillSlotWidget widget = ResolveWidget(surface, index);
+        if (!CanDragWidget(widget))
+        {
+            return;
+        }
+
+        EnsureDragVisual(widget.root);
+        if (dragIconRoot == null || dragIconImage == null)
+        {
+            return;
+        }
+
+        dragIconRoot.sizeDelta = widget.root.rect.size;
+        dragIconImage.sprite = widget.skillIcon != null ? widget.skillIcon.sprite : ResolveSkillIcon(widget.skillId);
+        dragIconImage.color = new Color(1f, 1f, 1f, 0.9f);
+        dragIconImage.enabled = dragIconImage.sprite != null;
+        dragIconImage.SetNativeSize();
+        dragIconRoot.gameObject.SetActive(true);
+        UpdateDragVisualPosition(eventData);
+
+        dragSource = new DragRef { surface = surface, index = index };
+        dragSourceWidget = widget;
+        SetWidgetDraggingVisible(widget, false);
+        isDragging = true;
+    }
+
+    private void HandleDrag(PointerEventData eventData)
+    {
+        if (isDragging)
+        {
+            UpdateDragVisualPosition(eventData);
+        }
+    }
+
+    private void HandleDrop(SlotSurface surface, int index)
+    {
+        if (!isDragging)
+        {
+            return;
+        }
+
+        SkillSlotWidget sourceWidget = ResolveWidget(dragSource.surface, dragSource.index);
+        SkillSlotWidget targetWidget = ResolveWidget(surface, index);
+        if (sourceWidget == null || targetWidget == null)
+        {
+            return;
+        }
+
+        if (!TrySwapSkillSlots(sourceWidget, targetWidget))
+        {
+            return;
+        }
+
+        RefreshAll();
+    }
+
+    private bool TrySwapSkillSlots(SkillSlotWidget sourceWidget, SkillSlotWidget targetWidget)
+    {
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        if (entry == null || entry.skillIds == null)
+        {
+            return false;
+        }
+
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int sourceDataIndex = ResolveDataIndex(sourceWidget, memorySlotCount);
+        int targetDataIndex = ResolveDataIndex(targetWidget, memorySlotCount);
+        if (sourceDataIndex < 0 || targetDataIndex < 0 ||
+            sourceDataIndex >= entry.skillIds.Count || targetDataIndex >= entry.skillIds.Count)
+        {
+            return false;
+        }
+
+        string tempSkillId = entry.skillIds[sourceDataIndex];
+        entry.skillIds[sourceDataIndex] = entry.skillIds[targetDataIndex];
+        entry.skillIds[targetDataIndex] = tempSkillId;
+
+        if (sourceDataIndex < entry.skillWeights.Count && targetDataIndex < entry.skillWeights.Count)
+        {
+            int tempWeight = entry.skillWeights[sourceDataIndex];
+            entry.skillWeights[sourceDataIndex] = entry.skillWeights[targetDataIndex];
+            entry.skillWeights[targetDataIndex] = tempWeight;
+        }
+
+        return true;
+    }
+
+    private static int ResolveDataIndex(SkillSlotWidget widget, int memorySlotCount)
+    {
+        if (widget == null || widget.slotIndex < 0)
+        {
+            return -1;
+        }
+
+        return widget.surface == SlotSurface.Loadout
+            ? widget.slotIndex
+            : memorySlotCount + widget.slotIndex;
+    }
+
+    private void HandleEndDrag()
+    {
+        isDragging = false;
+        if (dragIconRoot != null)
+        {
+            dragIconRoot.gameObject.SetActive(false);
+        }
+
+        if (dragIconImage != null)
+        {
+            dragIconImage.sprite = null;
+            dragIconImage.enabled = false;
+        }
+
+        SetWidgetDraggingVisible(dragSourceWidget, true);
+        dragSourceWidget = null;
+    }
+
+    private bool CanDragWidget(SkillSlotWidget widget)
+    {
+        return widget != null &&
+               !string.IsNullOrWhiteSpace(widget.skillId) &&
+               !widget.isGranted &&
+               widget.slotIndex >= 0;
+    }
+
+    private SkillSlotWidget ResolveWidget(SlotSurface surface, int index)
+    {
+        List<SkillSlotWidget> list = surface == SlotSurface.Loadout ? journeySkillSlots : warehouseSkillSlots;
+        return index >= 0 && index < list.Count ? list[index] : null;
+    }
+
+    private CharacterSkillLoadoutDatabase.CharacterSkillEntry ResolveLoadoutEntry(string characterId)
+    {
+        CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
+        if (database == null)
+        {
+            return null;
+        }
+
+        string resolvedCharacterId = ResolveCharacterId(characterId);
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(resolvedCharacterId);
+        CharacterSkillLoadoutDatabase.EnsureSlotDataSize(entry, Mathf.Max(memorySlotCount, entry.skillIds != null ? entry.skillIds.Count : 0));
+        return entry;
+    }
+
+    private void EnsureWarehouseSlotCapacity(int requiredCount)
+    {
+        if (warehouseContainer == null)
+        {
+            return;
+        }
+
+        RectTransform template = warehouseBinding != null ? warehouseBinding.ResolveWarehouseSlotTemplate() : null;
+        if (template == null && warehouseContainer.childCount > 0)
+        {
+            template = warehouseContainer.GetChild(0) as RectTransform;
+        }
+
+        if (template == null)
+        {
+            return;
+        }
+
+        while (warehouseContainer.childCount < requiredCount)
+        {
+            RectTransform clone = Instantiate(template, warehouseContainer, false);
+            clone.name = template.name;
+            clone.gameObject.SetActive(true);
+        }
+    }
+
+    private RectTransform ResolveJourneySkillContainer()
+    {
+        RectTransform explicitContainer = warehouseBinding != null ? warehouseBinding.ResolveSkillSlotContainer() : null;
+        if (explicitContainer != null)
+        {
+            return explicitContainer;
+        }
+
         RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
         if (boundContainer != null)
         {
@@ -163,6 +568,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         return FindJourneySkillContainer();
+    }
+
+    private RectTransform ResolveWarehouseContainer()
+    {
+        return warehouseBinding != null ? warehouseBinding.ResolveWarehouseContainer() : null;
     }
 
     private static RectTransform FindJourneySkillContainer()
@@ -222,7 +632,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return null;
     }
 
-    private static void EnsureJourneyGridLayout(RectTransform container)
+    private static void EnsureGridLayout(RectTransform container)
     {
         if (container == null)
         {
@@ -237,150 +647,99 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             grid.startAxis = GridLayoutGroup.Axis.Horizontal;
             grid.childAlignment = TextAnchor.UpperLeft;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-
             int childCount = Mathf.Max(1, container.childCount);
-            int columnCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
-            grid.constraintCount = columnCount;
+            grid.constraintCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
         }
     }
 
-    private void RefreshJourneySkillSlots()
+    private void EnsureDragVisual(RectTransform fromRoot)
     {
-        if (journeySkillSlots.Count == 0)
+        if (dragIconRoot != null && dragIconImage != null)
         {
             return;
         }
 
-        List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = BuildJourneySkillEntries(currentCharacterId);
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
-        int grantedSkillCount = CountGrantedSkills(displayEntries);
-        int visibleSlotCount = grantedSkillCount + memorySlotCount;
-        for (int i = 0; i < journeySkillSlots.Count; i++)
-        {
-            SkillSlotWidget widget = journeySkillSlots[i];
-            bool shouldDisplay = i < visibleSlotCount;
-            if (widget.root != null && widget.root.gameObject.activeSelf != shouldDisplay)
-            {
-                widget.root.gameObject.SetActive(shouldDisplay);
-            }
-
-            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
-                shouldDisplay && i < displayEntries.Count
-                    ? displayEntries[i]
-                    : default;
-            string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
-            Sprite icon = shouldDisplay ? ResolveSkillIcon(skillId) : null;
-            widget.skillId = skillId;
-            widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
-            EnsureHoverRelay(widget, i);
-            Image target = widget.skillIcon;
-            if (target == null)
-            {
-                continue;
-            }
-
-            target.sprite = icon;
-            target.enabled = icon != null;
-            target.gameObject.SetActive(icon != null);
-            target.raycastTarget = false;
-            bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
-            target.color = ResolveSkillDisplayColor(widget.isGranted, isUsable);
-
-            RefreshGrantedCornerMarker(widget);
-        }
-    }
-
-    private List<CharacterSkillListUtility.DisplaySkillEntry> BuildJourneySkillEntries(string characterId)
-    {
-        return CharacterSkillListUtility.BuildDisplaySkillEntries(ResolveCharacterId(characterId));
-    }
-
-    private Sprite ResolveSkillIcon(string skillId)
-    {
-        if (string.IsNullOrWhiteSpace(skillId))
-        {
-            return null;
-        }
-
-        if (skillDatabase == null)
-        {
-            skillDatabase = BattleSkillDatabase.LoadDefault();
-        }
-
-        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
-        return entry != null ? entry.icon : null;
-    }
-
-    private void HandleSkillPointerEnter(int index)
-    {
-        if (index < 0 || index >= journeySkillSlots.Count)
+        dragCanvas = fromRoot != null ? fromRoot.GetComponentInParent<Canvas>() : null;
+        if (dragCanvas == null)
         {
             return;
         }
 
-        SkillSlotWidget widget = journeySkillSlots[index];
-        if (widget == null || string.IsNullOrWhiteSpace(widget.skillId))
-        {
-            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
-            return;
-        }
+        GameObject go = new GameObject("SkillDragIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
+        go.transform.SetParent(dragCanvas.transform, false);
 
-        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
-        if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
-        {
-            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
-            return;
-        }
+        dragIconRoot = go.GetComponent<RectTransform>();
+        dragIconRoot.anchorMin = new Vector2(0.5f, 0.5f);
+        dragIconRoot.anchorMax = new Vector2(0.5f, 0.5f);
+        dragIconRoot.pivot = new Vector2(0.5f, 0.5f);
 
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
-        float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
-        SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
-        {
-            skillId = widget.skillId,
-            displayName = widget.skillId,
-            description = entry != null ? entry.description ?? string.Empty : string.Empty,
-            ownerCharacterId = currentCharacterId ?? string.Empty,
-            damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
-            icon = entry != null ? entry.icon : null,
-            isEmpty = false
-        };
-        HoverTooltipController.BeginHover(
-            HoverTooltipController.HoverCategory.Skill,
-            widget.root,
-            SkillTooltipDelaySeconds,
-            () => SkillTooltipRuntime.Show(snapshot),
-            SkillTooltipRuntime.Hide);
+        dragIconImage = go.GetComponent<Image>();
+        dragIconImage.raycastTarget = false;
+        dragIconImage.preserveAspect = true;
+
+        CanvasGroup canvasGroup = go.GetComponent<CanvasGroup>();
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
+        go.SetActive(false);
     }
 
-    private void HandleSkillPointerExit(int index, PointerEventData eventData)
+    private void UpdateDragVisualPosition(PointerEventData eventData)
     {
-        SkillSlotWidget widget = index >= 0 && index < journeySkillSlots.Count ? journeySkillSlots[index] : null;
-        if (widget == null || widget.root == null)
+        if (dragCanvas == null || dragIconRoot == null || eventData == null)
         {
-            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
         }
 
-        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, widget.root, eventData);
+        Camera uiCamera = dragCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : dragCanvas.worldCamera;
+        RectTransform canvasRect = dragCanvas.transform as RectTransform;
+        if (canvasRect == null)
+        {
+            return;
+        }
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, eventData.position, uiCamera, out Vector2 localPos))
+        {
+            dragIconRoot.anchoredPosition = localPos;
+        }
     }
 
-    private static void EnsureHoverRelay(SkillSlotWidget widget, int index)
+    private static void SetWidgetDraggingVisible(SkillSlotWidget widget, bool visible)
+    {
+        if (widget == null)
+        {
+            return;
+        }
+
+        if (widget.skillIcon != null)
+        {
+            bool shouldShow = visible && widget.skillIcon.sprite != null;
+            widget.skillIcon.enabled = shouldShow;
+            widget.skillIcon.gameObject.SetActive(shouldShow);
+        }
+
+        if (widget.grantedCornerMarker != null)
+        {
+            widget.grantedCornerMarker.gameObject.SetActive(visible && widget.grantedCornerMarker.enabled);
+        }
+    }
+
+    private void EnsureRelay(SkillSlotWidget widget, SlotSurface surface, int index)
     {
         if (widget == null || widget.root == null || instance == null)
         {
             return;
         }
 
-        if (widget.hoverRelay == null)
+        if (widget.relay == null)
         {
-            widget.hoverRelay = widget.root.GetComponent<SkillHoverRelay>();
-            if (widget.hoverRelay == null)
+            widget.relay = widget.root.GetComponent<SkillSlotRelay>();
+            if (widget.relay == null)
             {
-                widget.hoverRelay = widget.root.gameObject.AddComponent<SkillHoverRelay>();
+                widget.relay = widget.root.gameObject.AddComponent<SkillSlotRelay>();
             }
         }
 
-        widget.hoverRelay.Configure(instance, index);
+        widget.relay.Configure(instance, surface, index);
     }
 
     private static Image EnsureOverlayIcon(RectTransform slotRoot)
@@ -436,7 +795,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         rect.anchorMax = new Vector2(1f, 1f);
         rect.pivot = new Vector2(1f, 1f);
         rect.localScale = Vector3.one;
-
         image.raycastTarget = false;
         existing.SetAsLastSibling();
         return image;
@@ -513,6 +871,22 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         markerRect.sizeDelta = cornerSprite != null ? cornerSprite.rect.size : Vector2.zero;
         markerRect.anchoredPosition = anchoredPosition;
+    }
+
+    private Sprite ResolveSkillIcon(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return null;
+        }
+
+        if (skillDatabase == null)
+        {
+            skillDatabase = BattleSkillDatabase.LoadDefault();
+        }
+
+        BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
+        return entry != null ? entry.icon : null;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)
