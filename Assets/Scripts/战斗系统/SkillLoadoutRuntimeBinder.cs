@@ -284,7 +284,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int warehouseCount = entry != null && entry.skillIds != null
             ? Mathf.Max(0, entry.skillIds.Count - memorySlotCount)
             : 0;
-        int visibleSlotCount = Mathf.Max(1, Mathf.Max(warehouseCount, warehouseContainer != null ? warehouseContainer.childCount : 0));
+        int visibleSlotCount = warehouseCount;
 
         EnsureWarehouseSlotCapacity(visibleSlotCount);
         CollectWarehouseSkillSlots();
@@ -540,11 +540,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         if (template == null && warehouseContainer.childCount > 0)
         {
             template = warehouseContainer.GetChild(0) as RectTransform;
-        }
-
-        if (template == null && requiredCount > 0)
-        {
-            template = CreateFallbackWarehouseSlot(warehouseContainer);
         }
 
         if (template == null)
