@@ -17,11 +17,11 @@ public sealed class AttributeIconPrefabDatabaseWindow : EditorWindow
     private AttributeIconPrefabDatabase database;
     private Vector2 scrollPosition;
 
-    [MenuItem("Tools/角色属性/属性图标绑定")]
+    [MenuItem("Tools/文本/TMP绑定编辑器")]
     private static void Open()
     {
         AttributeIconPrefabDatabaseWindow window = GetWindow<AttributeIconPrefabDatabaseWindow>();
-        window.titleContent = new GUIContent("属性图标绑定");
+        window.titleContent = new GUIContent("TMP绑定编辑器");
         window.minSize = new Vector2(460f, 420f);
         window.Show();
     }

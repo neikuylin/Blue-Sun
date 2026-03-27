@@ -29,3 +29,7 @@ MonoBehaviour:
     prefab: {fileID: 146780781491295783, guid: 08f91a770c147364fa65c8ef092edffc, type: 3}
     spriteAsset: {fileID: 11400000, guid: 8d61ecc7fc21d4b408c9f539bb4b0406, type: 2}
     spriteName: "\u5BD2\u51B7"
+  - attributeId: 
+    prefab: {fileID: 0}
+    spriteAsset: {fileID: 0}
+    spriteName: 
