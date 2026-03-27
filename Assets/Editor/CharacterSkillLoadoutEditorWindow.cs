@@ -2,30 +2,23 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 {
-    private static readonly string[] JourneySkillContainerChain =
-    {
-        "角色页面",
-        "技能栏位",
-        "技能格子区域"
-    };
-
     private const string AssetFolder = "Assets/Resources";
     private const string AssetPath = AssetFolder + "/CharacterSkillLoadoutDatabase.asset";
-    private const string DefaultCharacterId = "玩家";
+    private const string DefaultCharacterId = "\u73A9\u5BB6";
 
     private Vector2 scroll;
     private CharacterSkillLoadoutDatabase database;
     private BattleSkillDatabase skillDatabase;
     private int selectedCharacterIndex;
 
-    [MenuItem("Tools/技能/技能栏位编辑器")]
+    [MenuItem("Tools/\u6280\u80FD/\u6280\u80FD\u680F\u4F4D\u7F16\u8F91\u5668")]
     private static void Open()
     {
-        CharacterSkillLoadoutEditorWindow window = GetWindow<CharacterSkillLoadoutEditorWindow>("技能栏位编辑器");
+        CharacterSkillLoadoutEditorWindow window =
+            GetWindow<CharacterSkillLoadoutEditorWindow>("\u6280\u80FD\u4ED3\u5E93\u7F16\u8F91\u5668");
         window.minSize = new Vector2(720f, 520f);
         window.Show();
         window.Focus();
@@ -39,44 +32,26 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         List<string> characterIds = CollectCharacterIds();
         if (characterIds.Count == 0)
         {
-            EditorGUILayout.HelpBox("没有可用角色 ID。", MessageType.Warning);
+            EditorGUILayout.HelpBox("\u6CA1\u6709\u53EF\u7528\u89D2\u8272 ID\u3002", MessageType.Warning);
             return;
         }
 
         selectedCharacterIndex = Mathf.Clamp(selectedCharacterIndex, 0, characterIds.Count - 1);
-        selectedCharacterIndex = EditorGUILayout.Popup("角色", selectedCharacterIndex, characterIds.ToArray());
+        selectedCharacterIndex = EditorGUILayout.Popup("\u89D2\u8272", selectedCharacterIndex, characterIds.ToArray());
 
         string characterId = characterIds[selectedCharacterIndex];
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(characterId);
         int memorySlotCount = ResolveSkillMemorySlotCount(characterId);
-        EnsureSize(entry.skillIds, memorySlotCount);
-        CharacterSkillLoadoutDatabase.EnsureSlotDataSize(entry, memorySlotCount);
+        EnsureWarehouseDataSize(entry, memorySlotCount);
 
-        List<string> slotNames = CollectJourneySkillSlotNames();
-        if (slotNames.Count == 0)
-        {
-            EditorGUILayout.HelpBox("当前没有从启程场景读取到技能格。会按角色属性中的技能记忆格数量显示编辑项。", MessageType.Warning);
-        }
-        else if (slotNames.Count < memorySlotCount)
-        {
-            EditorGUILayout.HelpBox(
-                $"角色属性配置了 {memorySlotCount} 个技能记忆格，但启程场景当前只放了 {slotNames.Count} 个技能格。超出的格子需要在启程场景中补齐。",
-                MessageType.Warning);
-        }
-        else
-        {
-            EditorGUILayout.HelpBox(
-                $"当前角色技能记忆格: {memorySlotCount}。启程场景技能格数量: {slotNames.Count}。",
-                MessageType.Info);
-        }
-
-        if (slotNames.Count < memorySlotCount)
-        {
-            slotNames.AddRange(BuildFallbackSlotNames(slotNames.Count, memorySlotCount - slotNames.Count));
-        }
+        EditorGUILayout.HelpBox(
+            string.Format(
+                "\u8FD9\u4E2A\u7A97\u53E3\u73B0\u5728\u7F16\u8F91\u7684\u662F\u6280\u80FD\u4ED3\u5E93\u3002\u524D {0} \u4E2A `skillIds` \u4FDD\u7559\u7ED9\u8BB0\u5FC6\u683C\uFF0C\u540E\u9762\u624D\u662F\u4ED3\u5E93\u6280\u80FD\u3002",
+                memorySlotCount),
+            MessageType.Info);
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
-        DrawSharedSlots(entry.skillIds, slotNames);
+        DrawWarehouseSkills(entry, memorySlotCount);
         EditorGUILayout.EndScrollView();
 
         if (GUI.changed)
@@ -86,12 +61,86 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         }
     }
 
-    private void DrawSharedSlots(List<string> slots, List<string> slotNames)
+    private void DrawWarehouseSkills(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
     {
-        EditorGUILayout.LabelField("技能记忆格", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("\u6280\u80FD\u4ED3\u5E93", EditorStyles.boldLabel);
 
-        List<BattleSkillDatabase.SkillEntry> skills = skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
-        List<string> options = new List<string> { "（空）" };
+        List<BattleSkillDatabase.SkillEntry> skills =
+            skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
+        string[] options = BuildSkillOptions(skills);
+
+        int warehouseCount = Mathf.Max(0, entry.skillIds.Count - memorySlotCount);
+        for (int i = 0; i < warehouseCount; i++)
+        {
+            int skillIndex = memorySlotCount + i;
+            int selectedIndex = FindSkillOptionIndex(entry.skillIds[skillIndex], skills);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                int newIndex = EditorGUILayout.Popup(
+                    string.Format("\u4ED3\u5E93\u683C {0}", i + 1),
+                    selectedIndex,
+                    options);
+                entry.skillIds[skillIndex] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
+
+                GUI.enabled = warehouseCount > 1;
+                if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
+                {
+                    entry.skillIds.RemoveAt(skillIndex);
+                    if (skillIndex < entry.skillWeights.Count)
+                    {
+                        entry.skillWeights.RemoveAt(skillIndex);
+                    }
+                    GUI.enabled = true;
+                    GUIUtility.ExitGUI();
+                }
+
+                GUI.enabled = true;
+            }
+        }
+
+        EditorGUILayout.Space(8f);
+        if (GUILayout.Button("\u6DFB\u52A0\u4ED3\u5E93\u6280\u80FD", GUILayout.Height(28f)))
+        {
+            entry.skillIds.Add(string.Empty);
+            if (entry.skillWeights != null)
+            {
+                entry.skillWeights.Add(0);
+            }
+        }
+    }
+
+    private static void EnsureWarehouseDataSize(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.skillIds == null)
+        {
+            entry.skillIds = new List<string>();
+        }
+
+        if (entry.skillWeights == null)
+        {
+            entry.skillWeights = new List<int>();
+        }
+
+        while (entry.skillIds.Count < memorySlotCount)
+        {
+            entry.skillIds.Add(string.Empty);
+        }
+
+        while (entry.skillWeights.Count < entry.skillIds.Count)
+        {
+            entry.skillWeights.Add(0);
+        }
+    }
+
+    private static string[] BuildSkillOptions(List<BattleSkillDatabase.SkillEntry> skills)
+    {
+        List<string> options = new List<string> { "\uFF08\u7A7A\uFF09" };
         for (int i = 0; i < skills.Count; i++)
         {
             BattleSkillDatabase.SkillEntry skill = skills[i];
@@ -103,141 +152,26 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
             options.Add(skill.skillId);
         }
 
-        for (int i = 0; i < slots.Count; i++)
-        {
-            int selectedIndex = 0;
-            for (int s = 0; s < skills.Count; s++)
-            {
-                BattleSkillDatabase.SkillEntry skill = skills[s];
-                if (skill == null)
-                {
-                    continue;
-                }
-
-                if (string.Equals(slots[i], skill.skillId, StringComparison.Ordinal))
-                {
-                    selectedIndex = s + 1;
-                    break;
-                }
-            }
-
-            string label = i < slotNames.Count && !string.IsNullOrWhiteSpace(slotNames[i])
-                ? slotNames[i]
-                : $"第{i + 1}格";
-            int newIndex = EditorGUILayout.Popup(label, selectedIndex, options.ToArray());
-            slots[i] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
-        }
+        return options.ToArray();
     }
 
-    private static List<string> CollectJourneySkillSlotNames()
+    private static int FindSkillOptionIndex(string skillId, List<BattleSkillDatabase.SkillEntry> skills)
     {
-        List<string> result = new List<string>();
-        Transform container = FindJourneySkillContainer();
-        if (container == null)
+        if (string.IsNullOrWhiteSpace(skillId))
         {
-            return result;
+            return 0;
         }
 
-        for (int i = 0; i < container.childCount; i++)
+        for (int i = 0; i < skills.Count; i++)
         {
-            Transform child = container.GetChild(i);
-            if (child != null)
+            BattleSkillDatabase.SkillEntry skill = skills[i];
+            if (skill != null && string.Equals(skill.skillId, skillId, StringComparison.Ordinal))
             {
-                result.Add(child.name);
+                return i + 1;
             }
         }
 
-        return result;
-    }
-
-    private static Transform FindJourneySkillContainer()
-    {
-        RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
-        if (boundContainer != null)
-        {
-            return boundContainer;
-        }
-
-        for (int sceneIndex = 0; sceneIndex < SceneManager.sceneCount; sceneIndex++)
-        {
-            Scene scene = SceneManager.GetSceneAt(sceneIndex);
-            if (!scene.IsValid() || !scene.isLoaded)
-            {
-                continue;
-            }
-
-            GameObject[] roots = scene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length; i++)
-            {
-                Transform found = FindContainerRecursive(roots[i] != null ? roots[i].transform : null, 0);
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static Transform FindContainerRecursive(Transform current, int matchedDepth)
-    {
-        if (current == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], StringComparison.Ordinal))
-        {
-            if (matchedDepth == JourneySkillContainerChain.Length - 1)
-            {
-                return current;
-            }
-
-            for (int i = 0; i < current.childCount; i++)
-            {
-                Transform nested = FindContainerRecursive(current.GetChild(i), matchedDepth + 1);
-                if (nested != null)
-                {
-                    return nested;
-                }
-            }
-        }
-
-        for (int i = 0; i < current.childCount; i++)
-        {
-            Transform nested = FindContainerRecursive(current.GetChild(i), matchedDepth);
-            if (nested != null)
-            {
-                return nested;
-            }
-        }
-
-        return null;
-    }
-
-    private static List<string> BuildFallbackSlotNames(int startIndex, int count)
-    {
-        List<string> result = new List<string>(count);
-        for (int i = 0; i < count; i++)
-        {
-            result.Add($"第{startIndex + i + 1}格");
-        }
-
-        return result;
-    }
-
-    private static void EnsureSize(List<string> list, int size)
-    {
-        while (list.Count < size)
-        {
-            list.Add(string.Empty);
-        }
-
-        while (list.Count > size)
-        {
-            list.RemoveAt(list.Count - 1);
-        }
+        return 0;
     }
 
     private static CharacterSkillLoadoutDatabase EnsureDatabase()
