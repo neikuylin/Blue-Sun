@@ -17,6 +17,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     };
 
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
+    private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
@@ -25,6 +26,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         public RectTransform root;
         public Image skillIcon;
+        public Image grantedCornerMarker;
         public string skillId;
         public bool isGranted;
         public SkillHoverRelay hoverRelay;
@@ -59,6 +61,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
+    private JourneySkillGridBinding journeySkillGridBinding;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -108,6 +111,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
+        journeySkillGridBinding = JourneySkillGridBinding.FindBindingInActiveScene();
         journeySkillContainer = ResolveJourneySkillContainer();
         CollectJourneySkillSlots();
         currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
@@ -144,7 +148,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             journeySkillSlots.Add(new SkillSlotWidget
             {
                 root = child,
-                skillIcon = overlay
+                skillIcon = overlay,
+                grantedCornerMarker = EnsureGrantedCornerMarker(child)
             });
         }
     }
@@ -280,6 +285,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             target.raycastTarget = false;
             bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
             target.color = ResolveSkillDisplayColor(widget.isGranted, isUsable);
+
+            RefreshGrantedCornerMarker(widget);
         }
     }
 
@@ -403,6 +410,38 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return image;
     }
 
+    private Image EnsureGrantedCornerMarker(RectTransform slotRoot)
+    {
+        if (slotRoot == null)
+        {
+            return null;
+        }
+
+        Transform existing = FindChildByName(slotRoot, GrantedCornerMarkerName);
+        if (existing == null)
+        {
+            GameObject markerObject = new GameObject(GrantedCornerMarkerName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            existing = markerObject.transform;
+            existing.SetParent(slotRoot, false);
+        }
+
+        RectTransform rect = existing as RectTransform;
+        Image image = existing != null ? existing.GetComponent<Image>() : null;
+        if (rect == null || image == null)
+        {
+            return null;
+        }
+
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(1f, 1f);
+        rect.localScale = Vector3.one;
+
+        image.raycastTarget = false;
+        existing.SetAsLastSibling();
+        return image;
+    }
+
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
@@ -446,6 +485,37 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         return EnabledSkillColor;
+    }
+
+    private void RefreshGrantedCornerMarker(SkillSlotWidget widget)
+    {
+        if (widget == null || widget.grantedCornerMarker == null)
+        {
+            return;
+        }
+
+        Sprite cornerSprite = journeySkillGridBinding != null ? journeySkillGridBinding.grantedSkillCornerSprite : null;
+        bool shouldShow = widget.isGranted && cornerSprite != null && !string.IsNullOrWhiteSpace(widget.skillId);
+
+        widget.grantedCornerMarker.sprite = cornerSprite;
+        widget.grantedCornerMarker.enabled = shouldShow;
+        widget.grantedCornerMarker.gameObject.SetActive(shouldShow);
+
+        RectTransform markerRect = widget.grantedCornerMarker.rectTransform;
+        if (markerRect == null)
+        {
+            return;
+        }
+
+        Vector2 markerSize = journeySkillGridBinding != null
+            ? journeySkillGridBinding.grantedSkillCornerSize
+            : new Vector2(18f, 18f);
+        Vector2 anchoredPosition = journeySkillGridBinding != null
+            ? journeySkillGridBinding.grantedSkillCornerAnchoredPosition
+            : new Vector2(-6f, -6f);
+
+        markerRect.sizeDelta = markerSize;
+        markerRect.anchoredPosition = anchoredPosition;
     }
 
     private static Transform FindChildByName(Transform parent, string childName)
