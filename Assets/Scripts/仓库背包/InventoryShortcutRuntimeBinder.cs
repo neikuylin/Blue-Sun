@@ -145,7 +145,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
-    private static readonly Vector2 DefaultAttackPowerAttributeIconSize = new Vector2(20f, 20f);
+    private static readonly Vector2 DefaultAttackPowerAttributeIconSize = new Vector2(35f, 35f);
 
     private static readonly string[] EquipmentSlotNames =
     {
@@ -217,7 +217,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform itemTooltipGrantedSkillsIconRoot;
     private readonly List<GameObject> itemTooltipGrantedSkillIcons = new List<GameObject>();
     private readonly List<GameObject> itemTooltipAttackPowerIcons = new List<GameObject>();
-    [SerializeField] private Vector2 tooltipAttackPowerAttributeIconSize = new Vector2(20f, 20f);
+    [SerializeField] private Vector2 tooltipAttackPowerAttributeIconSize = new Vector2(35f, 35f);
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
