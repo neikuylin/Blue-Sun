@@ -200,6 +200,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
     private RectTransform itemTooltipDetailRoot;
+    private RectTransform itemTooltipLowerBackgroundRoot;
     private RectTransform itemTooltipTextContentRoot;
     private Image itemTooltipDetailBackgroundImage;
     private Image itemTooltipItemIconImage;
@@ -667,6 +668,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         UpdatePendingTooltip();
+        UpdateTooltipLowerBackgroundState();
     }
 
     private void UpdatePendingTooltip()
@@ -2795,6 +2797,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             FindDescendantByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
             FindDescendantByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
             itemTooltipRoot;
+        itemTooltipLowerBackgroundRoot =
+            FindChildByName(itemTooltipDetailRoot, "下背景") as RectTransform ??
+            FindDescendantByName(itemTooltipDetailRoot, "下背景") as RectTransform;
         Transform backgroundRoot = FindChildByName(itemTooltipDetailRoot, "背景") ?? FindDescendantByName(itemTooltipDetailRoot, "背景");
         itemTooltipDetailBackgroundImage = backgroundRoot != null ? backgroundRoot.GetComponent<Image>() : null;
         Transform iconRoot = FindChildByName(itemTooltipDetailRoot, "物品图标") ?? FindDescendantByName(itemTooltipDetailRoot, "物品图标");
@@ -2907,6 +2912,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         PositionTooltip(widget.root);
         itemTooltipRoot.gameObject.SetActive(true);
         itemTooltipRoot.SetAsLastSibling();
+        UpdateTooltipLowerBackgroundState();
     }
 
     private void HideItemTooltip()
@@ -2919,10 +2925,34 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         pendingTooltipShownAt = 0f;
         ClearTooltipGrantedSkillIcons();
         HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item);
+        SetTooltipLowerBackgroundVisible(false);
         if (itemTooltipRoot != null)
         {
             itemTooltipRoot.gameObject.SetActive(false);
         }
+    }
+
+    private void UpdateTooltipLowerBackgroundState()
+    {
+        bool shouldShow = itemTooltipRoot != null &&
+            itemTooltipRoot.gameObject.activeSelf &&
+            (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
+        SetTooltipLowerBackgroundVisible(shouldShow);
+    }
+
+    private void SetTooltipLowerBackgroundVisible(bool visible)
+    {
+        if (itemTooltipLowerBackgroundRoot == null)
+        {
+            return;
+        }
+
+        if (itemTooltipLowerBackgroundRoot.gameObject.activeSelf == visible)
+        {
+            return;
+        }
+
+        itemTooltipLowerBackgroundRoot.gameObject.SetActive(visible);
     }
 
     private void RefreshTooltipQualityBackground(ItemDatabase.ItemQuality quality)
