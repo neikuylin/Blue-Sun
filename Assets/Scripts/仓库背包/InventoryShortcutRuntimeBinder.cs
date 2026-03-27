@@ -203,6 +203,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform itemTooltipLowerBackgroundRoot;
     private RectTransform itemTooltipTextContentRoot;
     private RectTransform itemTooltipExpandHintRoot;
+    private TMP_Text itemTooltipLowerContentText;
     private Image itemTooltipDetailBackgroundImage;
     private Image itemTooltipItemIconImage;
     private TMP_Text itemTooltipItemNameText;
@@ -2810,6 +2811,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipExpandHintRoot = textContentRoot != null
             ? (FindChildByName(textContentRoot, "展开提示") ?? FindDescendantByName(textContentRoot, "展开提示")) as RectTransform
             : null;
+        itemTooltipLowerContentText = FindTooltipText(itemTooltipLowerBackgroundRoot, "下文本内容");
         itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
@@ -2910,6 +2912,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
         SetTooltipText(itemTooltipDescriptionText, entry.description ?? string.Empty);
         SetTooltipText(itemTooltipGrantedSkillsText, "附带技能：");
+        SetTooltipLowerContentText(entry);
         RebuildTooltipGrantedSkillIcons(entry);
         RefreshTooltipQualityBackground(entry.quality);
         itemTooltipRoot.localScale = ItemTooltipScale;
@@ -3067,6 +3070,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         attackPowerText.text = value ?? string.Empty;
     }
 
+    private void SetTooltipLowerContentText(ItemDatabase.ItemEntry entry)
+    {
+        if (itemTooltipLowerContentText == null)
+        {
+            return;
+        }
+
+        string value = BuildTooltipLowerContentText(entry);
+        bool hasValue = !string.IsNullOrWhiteSpace(value);
+        itemTooltipLowerContentText.gameObject.SetActive(hasValue);
+        itemTooltipLowerContentText.text = hasValue ? value : string.Empty;
+    }
+
     private TMP_Text EnsureTooltipAttackPowerText()
     {
         if (itemTooltipAttackPowerText != null)
@@ -3167,6 +3183,58 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return $"攻击力：{string.Join("<color=#808080>+</color>", parts)}";
+    }
+
+    private static string BuildTooltipLowerContentText(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null)
+        {
+            return string.Empty;
+        }
+
+        WeaponDetailLowerTextDatabase database = WeaponDetailLowerTextDatabase.LoadDefault();
+        List<string> lines = new List<string>();
+
+        if (entry.criticalChanceBonus > 0)
+        {
+            string line = FormatWeaponDetailLowerText(
+                database != null ? database.criticalChanceFormat : string.Empty,
+                entry.criticalChanceBonus.ToString());
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                lines.Add(line);
+            }
+        }
+
+        if (entry.criticalDamageBonus > 0)
+        {
+            string line = FormatWeaponDetailLowerText(
+                database != null ? database.criticalDamageFormat : string.Empty,
+                entry.criticalDamageBonus.ToString());
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                lines.Add(line);
+            }
+        }
+
+        return lines.Count > 0 ? string.Join("\n", lines) : string.Empty;
+    }
+
+    private static string FormatWeaponDetailLowerText(string format, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        if (string.IsNullOrEmpty(format))
+        {
+            return value;
+        }
+
+        return format.Contains("x")
+            ? format.Replace("x", value)
+            : format + value;
     }
 
     private sealed class AttackPowerSegment
