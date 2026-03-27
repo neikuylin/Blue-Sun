@@ -202,6 +202,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private RectTransform itemTooltipDetailRoot;
     private RectTransform itemTooltipLowerBackgroundRoot;
     private RectTransform itemTooltipTextContentRoot;
+    private RectTransform itemTooltipExpandHintRoot;
     private Image itemTooltipDetailBackgroundImage;
     private Image itemTooltipItemIconImage;
     private TMP_Text itemTooltipItemNameText;
@@ -2806,6 +2807,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipItemIconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
         Transform textContentRoot = FindChildByName(itemTooltipDetailRoot, "文本内容") ?? FindDescendantByName(itemTooltipDetailRoot, "文本内容");
         itemTooltipTextContentRoot = textContentRoot as RectTransform;
+        itemTooltipExpandHintRoot = textContentRoot != null
+            ? (FindChildByName(textContentRoot, "展开提示") ?? FindDescendantByName(textContentRoot, "展开提示")) as RectTransform
+            : null;
         itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
         itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
         itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
@@ -2944,15 +2948,33 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (itemTooltipLowerBackgroundRoot == null)
         {
+            SetTooltipExpandHintVisible(!visible);
             return;
         }
 
         if (itemTooltipLowerBackgroundRoot.gameObject.activeSelf == visible)
         {
+            SetTooltipExpandHintVisible(!visible);
             return;
         }
 
         itemTooltipLowerBackgroundRoot.gameObject.SetActive(visible);
+        SetTooltipExpandHintVisible(!visible);
+    }
+
+    private void SetTooltipExpandHintVisible(bool visible)
+    {
+        if (itemTooltipExpandHintRoot == null)
+        {
+            return;
+        }
+
+        if (itemTooltipExpandHintRoot.gameObject.activeSelf == visible)
+        {
+            return;
+        }
+
+        itemTooltipExpandHintRoot.gameObject.SetActive(visible);
     }
 
     private void RefreshTooltipQualityBackground(ItemDatabase.ItemQuality quality)
