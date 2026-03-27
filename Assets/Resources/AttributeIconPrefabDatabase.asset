@@ -15,9 +15,17 @@ MonoBehaviour:
   entries:
   - attributeId: "\u7269\u7406"
     prefab: {fileID: 2816448860473694957, guid: 28824003dbfb87b4b830d5918ed3533d, type: 3}
+    spriteAsset: {fileID: 11400000, guid: bee7bd08746457a4db419d6fd3742afe, type: 2}
+    spriteName: "\u7269\u7406"
   - attributeId: "\u706B\u7130"
     prefab: {fileID: 8114083619322276424, guid: 475e936c59ecdca4d81b56e5d10fe8de, type: 3}
+    spriteAsset: {fileID: 11400000, guid: 6d0d5f3b7ef56f34fb8b828be4823a97, type: 2}
+    spriteName: "\u706B\u7130"
   - attributeId: "\u8150\u8D25"
     prefab: {fileID: 2216394086646156324, guid: d5307824ce61ce344a85e537039e43ce, type: 3}
+    spriteAsset: {fileID: 11400000, guid: 5f1e87dbd7fef394bb6214cad61d9402, type: 2}
+    spriteName: "\u8150\u8D25"
   - attributeId: "\u5BD2\u51B7"
     prefab: {fileID: 146780781491295783, guid: 08f91a770c147364fa65c8ef092edffc, type: 3}
+    spriteAsset: {fileID: 11400000, guid: 8d61ecc7fc21d4b408c9f539bb4b0406, type: 2}
+    spriteName: "\u5BD2\u51B7"

@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "AttributeIconPrefabDatabase", menuName = "角色/属性图标预制体库")]
+[CreateAssetMenu(fileName = "AttributeIconPrefabDatabase", menuName = "角色/属性图标 TMP 库")]
 public sealed class AttributeIconPrefabDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "AttributeIconPrefabDatabase";
@@ -11,7 +12,9 @@ public sealed class AttributeIconPrefabDatabase : ScriptableObject
     public sealed class Entry
     {
         public string attributeId = string.Empty;
-        public GameObject prefab;
+        [HideInInspector] public GameObject prefab;
+        public TMP_SpriteAsset spriteAsset;
+        public string spriteName = string.Empty;
     }
 
     [SerializeField] private List<Entry> entries = new List<Entry>();

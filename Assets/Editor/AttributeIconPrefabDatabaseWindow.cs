@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 
@@ -36,14 +37,14 @@ public sealed class AttributeIconPrefabDatabaseWindow : EditorWindow
         database = database != null ? database : LoadOrCreateDatabase();
         if (database == null)
         {
-            EditorGUILayout.HelpBox("属性图标预制体库加载失败。", MessageType.Error);
+            EditorGUILayout.HelpBox("属性图标 TMP 库加载失败。", MessageType.Error);
             return;
         }
 
         EnsureDefaultEntries(database);
 
-        EditorGUILayout.LabelField("属性图标 Prefab 绑定", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("这里只做属性 ID 到 prefab 的绑定，不接任何运行时功能。", MessageType.Info);
+        EditorGUILayout.LabelField("属性图标 TMP 绑定", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("这里只做属性 ID 到 TMP Sprite Asset 的绑定，不接任何运行时功能。", MessageType.Info);
         EditorGUILayout.Space(6f);
 
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
@@ -57,7 +58,8 @@ public sealed class AttributeIconPrefabDatabaseWindow : EditorWindow
 
             EditorGUILayout.BeginVertical("box");
             entry.attributeId = EditorGUILayout.TextField("属性 ID", entry.attributeId);
-            entry.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", entry.prefab, typeof(GameObject), false);
+            entry.spriteAsset = (TMP_SpriteAsset)EditorGUILayout.ObjectField("TMP Sprite Asset", entry.spriteAsset, typeof(TMP_SpriteAsset), false);
+            entry.spriteName = EditorGUILayout.TextField("Sprite Name", entry.spriteName);
             EditorGUILayout.EndVertical();
         }
         EditorGUILayout.EndScrollView();
