@@ -9292,13 +9292,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1408843453}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.19996412, y: 0.3736123, z: -0.08282785, w: 0.90198}
-  m_LocalPosition: {x: -1615.29, y: -1131.8, z: 159.42}
+  m_LocalRotation: {x: 0.3801897, y: 0.34877893, z: -0.1574797, w: 0.8420268}
+  m_LocalPosition: {x: -1632.59, y: -1131.8, z: 142.07}
   m_LocalScale: {x: 0.59185666, y: 0.5852768, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 273944599}
-  m_LocalEulerAnglesHint: {x: 25, y: 45, z: 0}
+  m_LocalEulerAnglesHint: {x: 48.6, y: 45, z: 0}
 --- !u!212 &1408843455
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -12775,6 +12775,16 @@ MonoBehaviour:
   strengthText: {fileID: 899906240}
   agilityText: {fileID: 2076911701}
   intelligenceText: {fileID: 1426023684}
+  physicalResistanceText: {fileID: 0}
+  fireResistanceText: {fileID: 0}
+  corruptionResistanceText: {fileID: 0}
+  coldResistanceText: {fileID: 0}
+  physicalResistancePenetrationText: {fileID: 0}
+  fireResistancePenetrationText: {fileID: 0}
+  corruptionResistancePenetrationText: {fileID: 0}
+  coldResistancePenetrationText: {fileID: 0}
+  criticalChanceText: {fileID: 0}
+  criticalDamageText: {fileID: 0}
   statDatabase: {fileID: 11400000, guid: 97f44efef7a913841a495016424ead43, type: 2}
   characterBindingDatabase: {fileID: 11400000, guid: fc50bbc876d246042aa22504a050cc9d, type: 2}
 --- !u!224 &1821153714
