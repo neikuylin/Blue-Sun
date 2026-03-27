@@ -251,10 +251,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
         List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
         int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int grantedSkillCount = CountGrantedSkills(displayEntries);
         int visibleSlotCount = grantedSkillCount + memorySlotCount;
+        List<int> memorizedDataIndices = BuildDisplayedMemorizedDataIndices(entry, memorySlotCount);
 
         for (int i = 0; i < journeySkillSlots.Count; i++)
         {
@@ -270,7 +272,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
             widget.skillId = skillId;
             widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
-            widget.slotIndex = widget.isGranted ? -1 : i - grantedSkillCount;
+            int memorizedDisplayIndex = i - grantedSkillCount;
+            widget.slotIndex = widget.isGranted
+                ? -1
+                : memorizedDisplayIndex >= 0 && memorizedDisplayIndex < memorizedDataIndices.Count
+                    ? memorizedDataIndices[memorizedDisplayIndex]
+                    : memorizedDisplayIndex;
 
             EnsureRelay(widget, SlotSurface.Loadout, i);
             RefreshSlotVisual(widget, shouldDisplay, skillId, widget.isGranted);
@@ -481,6 +488,36 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return widget.surface == SlotSurface.Loadout
             ? widget.slotIndex
             : memorySlotCount + widget.slotIndex;
+    }
+
+    private static List<int> BuildDisplayedMemorizedDataIndices(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        int memorySlotCount)
+    {
+        List<int> result = new List<int>();
+        if (entry == null || entry.skillIds == null || memorySlotCount <= 0)
+        {
+            return result;
+        }
+
+        int count = Mathf.Min(memorySlotCount, entry.skillIds.Count);
+        for (int i = 0; i < count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.skillIds[i]))
+            {
+                result.Add(i);
+            }
+        }
+
+        for (int i = 0; i < count && result.Count < memorySlotCount; i++)
+        {
+            if (!result.Contains(i))
+            {
+                result.Add(i);
+            }
+        }
+
+        return result;
     }
 
     private void HandleEndDrag()
