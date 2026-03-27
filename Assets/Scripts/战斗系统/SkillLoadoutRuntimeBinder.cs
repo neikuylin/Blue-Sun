@@ -9,6 +9,7 @@ using UnityEngine.UI;
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
     private const float SkillTooltipDelaySeconds = 0.5f;
+    private const float DragIconSize = 100f;
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
@@ -394,11 +395,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        dragIconRoot.sizeDelta = widget.root.rect.size;
+        dragIconRoot.sizeDelta = new Vector2(DragIconSize, DragIconSize);
         dragIconImage.sprite = widget.skillIcon != null ? widget.skillIcon.sprite : ResolveSkillIcon(widget.skillId);
         dragIconImage.color = new Color(1f, 1f, 1f, 0.9f);
         dragIconImage.enabled = dragIconImage.sprite != null;
-        dragIconImage.SetNativeSize();
+        dragIconImage.rectTransform.sizeDelta = new Vector2(DragIconSize, DragIconSize);
         dragIconRoot.gameObject.SetActive(true);
         UpdateDragVisualPosition(eventData);
 
