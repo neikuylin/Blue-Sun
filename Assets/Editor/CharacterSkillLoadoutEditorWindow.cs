@@ -83,7 +83,6 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     options);
                 entry.skillIds[skillIndex] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
 
-                GUI.enabled = warehouseCount > 1;
                 if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
                 {
                     entry.skillIds.RemoveAt(skillIndex);
