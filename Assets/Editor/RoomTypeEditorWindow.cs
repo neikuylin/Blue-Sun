@@ -143,13 +143,18 @@ public sealed class RoomTypeEditorWindow : EditorWindow
             return;
         }
 
+        bool changed = false;
         RoomTypeDatabase.RoomTypeEntry encounterBattle = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
-        if (encounterBattle != null)
+        if (encounterBattle != null && !string.Equals(encounterBattle.displayName, RoomTypeDatabase.EncounterBattleTypeName, System.StringComparison.Ordinal))
         {
             encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+            changed = true;
         }
 
-        SaveAsset(database);
+        if (changed)
+        {
+            SaveAsset(database);
+        }
     }
 
     private static void EnsureResourceFolder()

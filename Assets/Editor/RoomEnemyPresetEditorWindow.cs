@@ -500,9 +500,15 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         if (database != null)
         {
             RoomTypeDatabase.RoomTypeEntry encounterBattle = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
-            if (encounterBattle != null)
+            bool changed = false;
+            if (encounterBattle != null && !string.Equals(encounterBattle.displayName, RoomTypeDatabase.EncounterBattleTypeName, System.StringComparison.Ordinal))
             {
                 encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+                changed = true;
+            }
+
+            if (changed)
+            {
                 SaveAsset(database);
             }
 
