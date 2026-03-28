@@ -631,7 +631,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
         else
         {
-            PlayExplorationIdleAnimation();
+            PlayExplorationIdleAnimations();
         }
 
         if (activeUnit != null)
@@ -5330,6 +5330,28 @@ public class BattleTurnSystem : MonoBehaviour
 
         StopExplorationMoveAudio();
         activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
+    }
+
+    private void PlayExplorationIdleAnimations()
+    {
+        string idleStateName = ResolveExplorationIdleStateName();
+        if (string.IsNullOrWhiteSpace(idleStateName))
+        {
+            return;
+        }
+
+        StopExplorationMoveAudio();
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !unit.IsAlive || unit.team != BattleTeam.Player)
+            {
+                continue;
+            }
+
+            unit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
+        }
     }
 
     private IEnumerator PlayEnterBattleAnimations()

@@ -18,9 +18,9 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 349, y: 425}
+      position: {x: 350, y: 424}
       roomTypeId: encounter_battle
-      encounterPresetId: "\u7A7A\u623F\u95F4"
+      encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
       - targetNodeId: "\u623F\u95F41"
         direction: 3
