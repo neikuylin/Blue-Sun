@@ -25,3 +25,5 @@ MonoBehaviour:
   - category: 3
     clip: {fileID: 8300000, guid: 24ffc85cdf108f14a9b1361bb355773b, type: 3}
     volume: 1
+  skillMoveClip: {fileID: 8300000, guid: a704fdfcf4c6f094696d2331c4921d77, type: 3}
+  skillMoveVolume: 1

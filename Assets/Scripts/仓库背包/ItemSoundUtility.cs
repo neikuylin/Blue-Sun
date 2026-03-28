@@ -39,6 +39,23 @@ public static class ItemSoundUtility
         audioSource.PlayOneShot(soundEntry.clip, Mathf.Clamp01(soundEntry.volume));
     }
 
+    public static void PlaySkillMove()
+    {
+        ItemSoundDatabase database = ItemSoundDatabase.LoadDefault();
+        if (database == null || database.SkillMoveClip == null)
+        {
+            return;
+        }
+
+        AudioSource audioSource = ResolveAudioSource();
+        if (audioSource == null)
+        {
+            return;
+        }
+
+        audioSource.PlayOneShot(database.SkillMoveClip, Mathf.Clamp01(database.SkillMoveVolume));
+    }
+
     private static AudioSource ResolveAudioSource()
     {
         if (fallbackAudioSource != null)

@@ -16,8 +16,12 @@ public sealed class ItemSoundDatabase : ScriptableObject
     }
 
     [SerializeField] private List<CategorySoundEntry> entries = new List<CategorySoundEntry>();
+    [SerializeField] private AudioClip skillMoveClip;
+    [SerializeField] [Range(0f, 1f)] private float skillMoveVolume = 1f;
 
     public List<CategorySoundEntry> Entries => entries;
+    public AudioClip SkillMoveClip => skillMoveClip;
+    public float SkillMoveVolume => skillMoveVolume;
 
     public CategorySoundEntry FindEntry(ItemDatabase.ItemCategory category)
     {

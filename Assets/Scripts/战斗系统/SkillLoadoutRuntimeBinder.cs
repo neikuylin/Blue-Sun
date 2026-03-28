@@ -449,6 +449,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         RefreshAll();
+        ItemSoundUtility.PlaySkillMove();
     }
 
     private void HandlePointerClick(SlotSurface surface, int index, PointerEventData eventData)
@@ -466,6 +467,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         eventData.Use();
         RefreshAll();
+        ItemSoundUtility.PlaySkillMove();
     }
 
     private bool TryHandleRightClickMove(SkillSlotWidget widget)

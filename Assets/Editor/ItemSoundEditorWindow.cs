@@ -45,6 +45,9 @@ public sealed class ItemSoundEditorWindow : EditorWindow
         {
             DrawEntry(entriesProperty.GetArrayElementAtIndex(i));
         }
+
+        EditorGUILayout.Space(6f);
+        DrawSkillMoveEntry(databaseObject);
         EditorGUILayout.EndScrollView();
 
         if (databaseObject.ApplyModifiedProperties())
@@ -70,6 +73,28 @@ public sealed class ItemSoundEditorWindow : EditorWindow
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(categoryProperty, new GUIContent("物品类别"));
             EditorGUI.EndDisabledGroup();
+            EditorGUILayout.PropertyField(clipProperty, new GUIContent("音效"));
+            EditorGUILayout.Slider(volumeProperty, 0f, 1f, new GUIContent("音量"));
+        }
+    }
+
+    private static void DrawSkillMoveEntry(SerializedObject databaseObject)
+    {
+        if (databaseObject == null)
+        {
+            return;
+        }
+
+        SerializedProperty clipProperty = databaseObject.FindProperty("skillMoveClip");
+        SerializedProperty volumeProperty = databaseObject.FindProperty("skillMoveVolume");
+        if (clipProperty == null || volumeProperty == null)
+        {
+            return;
+        }
+
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("技能位移音效", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(clipProperty, new GUIContent("音效"));
             EditorGUILayout.Slider(volumeProperty, 0f, 1f, new GUIContent("音量"));
         }
