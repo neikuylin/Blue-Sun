@@ -292,6 +292,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 {
                     node.connections.RemoveAt(i);
                     MarkDirty(database);
+                    GUIUtility.ExitGUI();
                 }
             }
         }
