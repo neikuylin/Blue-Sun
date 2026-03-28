@@ -39,8 +39,20 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             "维护遭遇战房间预设。这里编辑的是预设资产，不会实时修改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
             MessageType.Info);
 
+        SerializedObject databaseObject = presetDatabase != null ? new SerializedObject(presetDatabase) : null;
+        if (databaseObject != null)
+        {
+            databaseObject.Update();
+        }
+
         using (new EditorGUILayout.HorizontalScope())
         {
+            if (databaseObject != null && GUILayout.Button("保存预设"))
+            {
+                databaseObject.ApplyModifiedProperties();
+                SaveAsset(presetDatabase);
+            }
+
             if (GUILayout.Button("刷新"))
             {
                 Repaint();
@@ -71,8 +83,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         }
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
-        SerializedObject databaseObject = new SerializedObject(presetDatabase);
-        databaseObject.Update();
         SerializedProperty entries = databaseObject.FindProperty("entries");
 
         for (int i = 0; i < entries.arraySize; i++)
@@ -80,10 +90,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             DrawPresetEntry(entries.GetArrayElementAtIndex(i), presetDatabase, statDatabase, bootstrap);
         }
 
-        if (databaseObject.ApplyModifiedProperties())
-        {
-            SaveAsset(presetDatabase);
-        }
+        databaseObject.ApplyModifiedProperties();
 
         EditorGUILayout.EndScrollView();
     }
@@ -101,8 +108,8 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 RoomEnemyPresetDatabase.RoomEnemyPresetEntry entry = presetDatabase.GetOrCreateEntry(newPresetId.Trim());
                 entry.roomTypeId = EncounterBattleRoomTypeId;
                 RoomEnemyPresetDatabase.EnsureValidEnemyList(entry);
-                SaveAsset(presetDatabase);
                 newPresetId = string.Empty;
+                EditorUtility.SetDirty(presetDatabase);
             }
         }
     }
@@ -149,7 +156,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 {
                     Undo.RecordObject(presetDatabase, "删除房间敌人预设");
                     presetDatabase.RemoveEntry(presetId);
-                    SaveAsset(presetDatabase);
+                    EditorUtility.SetDirty(presetDatabase);
                     GUIUtility.ExitGUI();
                 }
             }
@@ -296,7 +303,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         statEntry.coldResistancePenetration = CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration);
         statEntry.criticalChance = CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
         statEntry.criticalDamage = CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
-        SaveAsset(statDatabase);
+        EditorUtility.SetDirty(statDatabase);
     }
 
     private static void AddEnemyToPreset(SerializedProperty enemiesProperty, CharacterStatDatabase statDatabase, string enemyId = "")
@@ -328,7 +335,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         Undo.RecordObject(presetDatabase, "从当前场景创建房间敌人预设");
         RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.GetOrCreateEntry(presetId);
         ReplacePresetEnemies(preset, bootstrap, statDatabase);
-        SaveAsset(presetDatabase);
+        EditorUtility.SetDirty(presetDatabase);
     }
 
     private static void CaptureSceneIntoPreset(
@@ -345,7 +352,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         Undo.RecordObject(presetDatabase, "抓取当前场景到房间敌人预设");
         RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.GetOrCreateEntry(presetId.Trim());
         ReplacePresetEnemies(preset, bootstrap, statDatabase);
-        SaveAsset(presetDatabase);
+        EditorUtility.SetDirty(presetDatabase);
     }
 
     private static void ReplacePresetEnemies(
@@ -474,7 +481,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             criticalDamage = 150
         };
         statDatabase.Entries.Add(created);
-        SaveAsset(statDatabase);
+        EditorUtility.SetDirty(statDatabase);
         return created;
     }
 

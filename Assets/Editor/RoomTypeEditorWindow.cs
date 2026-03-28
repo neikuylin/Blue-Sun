@@ -41,6 +41,17 @@ public sealed class RoomTypeEditorWindow : EditorWindow
         EditorGUILayout.HelpBox("这里只维护房间类型定义。先支持新增类型 ID 和类型名字，后续其他房间系统直接引用。", MessageType.Info);
         EditorGUILayout.Space(6f);
 
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("保存"))
+            {
+                databaseObject.ApplyModifiedProperties();
+                SaveAsset(database);
+            }
+        }
+
+        EditorGUILayout.Space(6f);
+
         DrawAddPanel(database);
         EditorGUILayout.Space(8f);
 
@@ -52,10 +63,7 @@ public sealed class RoomTypeEditorWindow : EditorWindow
         }
         EditorGUILayout.EndScrollView();
 
-        if (databaseObject.ApplyModifiedProperties())
-        {
-            SaveAsset(database);
-        }
+        databaseObject.ApplyModifiedProperties();
     }
 
     private void DrawAddPanel(RoomTypeDatabase database)
@@ -71,9 +79,9 @@ public sealed class RoomTypeEditorWindow : EditorWindow
                 Undo.RecordObject(database, "新增房间类型");
                 RoomTypeDatabase.RoomTypeEntry entry = database.GetOrCreateEntry(newRoomTypeId.Trim());
                 entry.displayName = newRoomTypeName.Trim();
-                SaveAsset(database);
                 newRoomTypeId = string.Empty;
                 newRoomTypeName = string.Empty;
+                EditorUtility.SetDirty(database);
             }
         }
     }
