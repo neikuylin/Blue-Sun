@@ -132,19 +132,19 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.PropertyField(presetIdProperty, new GUIContent("预设ID"));
-                using (new EditorGUI.DisabledScope(true))
+                string presetTitle = string.IsNullOrWhiteSpace(presetId) ? "未命名预设" : presetId;
+                presetProperty.isExpanded = EditorGUILayout.Foldout(presetProperty.isExpanded, presetTitle, true);
+
+                using (new EditorGUI.DisabledScope(!presetProperty.isExpanded))
                 {
-                    EditorGUILayout.TextField("房间类型", RoomTypeDatabase.EncounterBattleTypeName);
+                    if (GUILayout.Button("抓取当前场景", GUILayout.Width(100f)))
+                    {
+                        CaptureSceneIntoPreset(presetDatabase, presetIdProperty.stringValue, bootstrap, statDatabase);
+                        GUIUtility.ExitGUI();
+                    }
                 }
 
-                if (GUILayout.Button("抓取当前场景", GUILayout.Width(100f)))
-                {
-                    CaptureSceneIntoPreset(presetDatabase, presetIdProperty.stringValue, bootstrap, statDatabase);
-                    GUIUtility.ExitGUI();
-                }
-
-                using (new EditorGUI.DisabledScope(hasOverlap))
+                using (new EditorGUI.DisabledScope(!presetProperty.isExpanded || hasOverlap))
                 {
                     if (GUILayout.Button("应用到当前场景", GUILayout.Width(112f)))
                     {
@@ -152,13 +152,29 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                     }
                 }
 
-                if (GUILayout.Button("删除预设", GUILayout.Width(88f)))
+                using (new EditorGUI.DisabledScope(!presetProperty.isExpanded))
                 {
-                    Undo.RecordObject(presetDatabase, "删除房间敌人预设");
-                    presetDatabase.RemoveEntry(presetId);
-                    EditorUtility.SetDirty(presetDatabase);
-                    GUIUtility.ExitGUI();
+                    if (GUILayout.Button("删除预设", GUILayout.Width(88f)))
+                    {
+                        Undo.RecordObject(presetDatabase, "删除房间敌人预设");
+                        presetDatabase.RemoveEntry(presetId);
+                        EditorUtility.SetDirty(presetDatabase);
+                        GUIUtility.ExitGUI();
+                    }
                 }
+            }
+
+            if (!presetProperty.isExpanded)
+            {
+                int enemyCount = enemiesProperty != null ? enemiesProperty.arraySize : 0;
+                EditorGUILayout.LabelField($"房间类型：{RoomTypeDatabase.EncounterBattleTypeName}    敌人数量：{enemyCount}");
+                return;
+            }
+
+            EditorGUILayout.PropertyField(presetIdProperty, new GUIContent("预设ID"));
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.TextField("房间类型", RoomTypeDatabase.EncounterBattleTypeName);
             }
 
             if (hasOverlap)
@@ -195,6 +211,9 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
     {
         SerializedProperty entry = enemiesProperty.GetArrayElementAtIndex(index);
         SerializedProperty enemyIdProperty = entry.FindPropertyRelative("enemyId");
+        SerializedProperty spawnCellProperty = entry.FindPropertyRelative("spawnCell");
+        SerializedProperty teamProperty = entry.FindPropertyRelative("team");
+        SerializedProperty isPlayerControlledProperty = entry.FindPropertyRelative("isPlayerControlled");
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -203,7 +222,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 string title = string.IsNullOrWhiteSpace(enemyIdProperty.stringValue)
                     ? $"敌人 {index + 1}"
                     : enemyIdProperty.stringValue;
-                EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+                entry.isExpanded = EditorGUILayout.Foldout(entry.isExpanded, title, true);
 
                 if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
@@ -212,10 +231,18 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 }
             }
 
+            if (!entry.isExpanded)
+            {
+                string spawnCellSummary = spawnCellProperty != null ? $"({spawnCellProperty.vector2IntValue.x}, {spawnCellProperty.vector2IntValue.y})" : "(?, ?)";
+                string teamSummary = teamProperty != null ? teamProperty.enumDisplayNames[teamProperty.enumValueIndex] : string.Empty;
+                EditorGUILayout.LabelField($"出生格：{spawnCellSummary}    阵营：{teamSummary}");
+                return;
+            }
+
             EditorGUILayout.PropertyField(enemyIdProperty, new GUIContent("敌人ID"));
-            EditorGUILayout.PropertyField(entry.FindPropertyRelative("spawnCell"), new GUIContent("出生格"));
-            EditorGUILayout.PropertyField(entry.FindPropertyRelative("team"), new GUIContent("阵营"));
-            EditorGUILayout.PropertyField(entry.FindPropertyRelative("isPlayerControlled"), new GUIContent("玩家控制"));
+            EditorGUILayout.PropertyField(spawnCellProperty, new GUIContent("出生格"));
+            EditorGUILayout.PropertyField(teamProperty, new GUIContent("阵营"));
+            EditorGUILayout.PropertyField(isPlayerControlledProperty, new GUIContent("玩家控制"));
 
             string resolvedEnemyId = enemyIdProperty.stringValue.Trim();
             if (!string.IsNullOrWhiteSpace(resolvedEnemyId))
