@@ -218,9 +218,11 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     {
         EditorGUILayout.LabelField("模板信息", EditorStyles.boldLabel);
         string oldTemplateId = template.templateId;
-        template.templateId = EditorGUILayout.TextField("模板ID", template.templateId);
+        string editedTemplateId = EditorGUILayout.TextField("模板ID", template.templateId);
+        template.templateId = NormalizeIdentifier(editedTemplateId, oldTemplateId);
         template.displayName = EditorGUILayout.TextField("模板名字", template.displayName);
         EditorGUILayout.LabelField("节点数量", template.nodes.Count.ToString());
+        EditorGUILayout.HelpBox("模板ID仅用于内部定位，不建议输入空格。想写可读名字，请改“模板名字”。", MessageType.None);
 
         if (!string.Equals(oldTemplateId, template.templateId, StringComparison.Ordinal))
         {
@@ -244,8 +246,10 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         EditorGUILayout.LabelField("节点信息", EditorStyles.boldLabel);
 
         string oldNodeId = node.nodeId;
-        node.nodeId = EditorGUILayout.TextField("节点ID", node.nodeId);
+        string editedNodeId = EditorGUILayout.TextField("节点ID", node.nodeId);
+        node.nodeId = NormalizeIdentifier(editedNodeId, oldNodeId);
         node.displayName = EditorGUILayout.TextField("显示名字", node.displayName);
+        EditorGUILayout.HelpBox("节点ID仅用于内部定位，不建议输入空格。想写可读名字，请改“显示名字”。", MessageType.None);
 
         if (string.IsNullOrWhiteSpace(node.displayName))
         {
@@ -505,7 +509,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     {
         string templateId = string.IsNullOrWhiteSpace(newTemplateId)
             ? BuildNextTemplateId(database)
-            : newTemplateId.Trim();
+            : NormalizeIdentifier(newTemplateId, BuildNextTemplateId(database));
         MapTemplateDatabase.MapTemplateEntry entry = database.GetOrCreateEntry(templateId);
         if (entry == null)
         {
@@ -996,6 +1000,26 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         }
 
         return "node_" + index;
+    }
+
+    private static string NormalizeIdentifier(string rawValue, string fallbackValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return string.IsNullOrWhiteSpace(fallbackValue) ? string.Empty : fallbackValue.Trim();
+        }
+
+        string normalized = rawValue.Trim();
+        normalized = normalized.Replace(' ', '_');
+        normalized = normalized.Replace('\t', '_');
+        while (normalized.Contains("__"))
+        {
+            normalized = normalized.Replace("__", "_");
+        }
+
+        return string.IsNullOrWhiteSpace(normalized)
+            ? (string.IsNullOrWhiteSpace(fallbackValue) ? string.Empty : fallbackValue.Trim())
+            : normalized;
     }
 
     private static void MarkDirty(ScriptableObject asset)

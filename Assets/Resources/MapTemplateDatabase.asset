@@ -13,35 +13,35 @@ MonoBehaviour:
   m_Name: MapTemplateDatabase
   m_EditorClassIdentifier: 
   entries:
-  - templateId: map_template_1
-    displayName: map_template_1
+  - templateId: "\u5730\u72621"
+    displayName: "\u5730\u72621"
     nodes:
-    - nodeId: node_1
-      displayName: node_1
-      position: {x: 345, y: 429}
+    - nodeId: "\u5165\u53E3"
+      displayName: "\u5165\u53E3"
+      position: {x: 349, y: 425}
       roomTypeId: encounter_battle
       encounterPresetId: "\u7A7A\u623F\u95F4"
       connections:
-      - targetNodeId: node_2
+      - targetNodeId: "\u623F\u95F41"
         direction: 3
-      - targetNodeId: node_3
+      - targetNodeId: "\u623F\u95F42"
         direction: 0
       nextNodeIds: []
-    - nodeId: node_2
-      displayName: node_2
-      position: {x: 201, y: 313}
+    - nodeId: "\u623F\u95F41"
+      displayName: "\u623F\u95F4"
+      position: {x: 219, y: 310}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
-      - targetNodeId: node_1
+      - targetNodeId: "\u5165\u53E3"
         direction: 1
       nextNodeIds: []
-    - nodeId: node_3
-      displayName: node_3
-      position: {x: 483, y: 320}
+    - nodeId: "\u623F\u95F42"
+      displayName: "\u623F\u95F4"
+      position: {x: 487, y: 319}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
-      - targetNodeId: node_1
+      - targetNodeId: "\u5165\u53E3"
         direction: 2
       nextNodeIds: []
