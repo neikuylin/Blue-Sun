@@ -91,6 +91,12 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
 
+        if (equipmentPanelVisible && equipmentPanel != null && !equipmentPanel.gameObject.activeInHierarchy)
+        {
+            equipmentPanelVisible = false;
+            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        }
+
         RefreshPortraits(force: false);
         RefreshHealthTexts();
         SyncEquipmentPanelVisibility();
@@ -579,6 +585,11 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private void SetEquipmentPanelVisible(bool visible)
     {
         equipmentPanelVisible = visible;
+        if (!visible)
+        {
+            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        }
+
         SyncEquipmentPanelVisibility();
     }
 

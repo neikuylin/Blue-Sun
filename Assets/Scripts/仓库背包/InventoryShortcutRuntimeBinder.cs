@@ -251,7 +251,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         instance.manualEquipmentCharacterId = string.Empty;
-        instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
+        instance.SetCurrentEquipmentCharacter(string.Empty);
     }
 
     public static void ClearDisplayedEquipmentCharacterForBattle()
