@@ -24,3 +24,6 @@ MonoBehaviour:
       spawnCell: {x: 15, y: 16}
       team: 1
       isPlayerControlled: 0
+  - presetId: "\u7A7A\u623F\u95F4"
+    roomTypeId: encounter_battle
+    enemies: []
