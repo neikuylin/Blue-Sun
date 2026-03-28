@@ -276,20 +276,21 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("连出到", EditorStyles.boldLabel);
-        if (node.nextNodeIds.Count == 0)
+        if (node.connections.Count == 0)
         {
             EditorGUILayout.HelpBox("当前没有连出线。", MessageType.None);
         }
 
-        for (int i = node.nextNodeIds.Count - 1; i >= 0; i--)
+        for (int i = node.connections.Count - 1; i >= 0; i--)
         {
-            string targetNodeId = node.nextNodeIds[i];
+            MapTemplateDatabase.MapConnectionEntry connection = node.connections[i];
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(targetNodeId);
+                EditorGUILayout.LabelField(connection.targetNodeId);
+                connection.direction = (MapTemplateDatabase.ConnectionDirection)EditorGUILayout.EnumPopup(connection.direction, GUILayout.Width(72f));
                 if (GUILayout.Button("移除", GUILayout.Width(72f)))
                 {
-                    node.nextNodeIds.RemoveAt(i);
+                    node.connections.RemoveAt(i);
                     MarkDirty(database);
                 }
             }
@@ -364,9 +365,10 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
             MapTemplateDatabase.EnsureValidNode(source);
             Rect sourceRect = ResolveNodeRect(canvasRect, source.position);
-            for (int j = 0; j < source.nextNodeIds.Count; j++)
+            for (int j = 0; j < source.connections.Count; j++)
             {
-                MapTemplateDatabase.MapNodeEntry target = FindNode(template, source.nextNodeIds[j]);
+                MapTemplateDatabase.MapConnectionEntry connection = source.connections[j];
+                MapTemplateDatabase.MapNodeEntry target = FindNode(template, connection.targetNodeId);
                 if (target == null)
                 {
                     continue;
@@ -377,6 +379,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                     ? new Color(1f, 0.82f, 0.25f, 1f)
                     : new Color(0.9f, 0.9f, 0.9f, 0.9f);
                 Handles.DrawAAPolyLine(3f, sourceRect.center, targetRect.center);
+                DrawConnectionDirectionLabel(sourceRect.center, targetRect.center, connection.direction);
             }
         }
 
@@ -559,10 +562,19 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         }
 
         MapTemplateDatabase.EnsureValidNode(source);
-        if (!source.nextNodeIds.Contains(target.nodeId))
+        for (int i = 0; i < source.connections.Count; i++)
         {
-            source.nextNodeIds.Add(target.nodeId);
+            if (string.Equals(source.connections[i].targetNodeId, target.nodeId, StringComparison.Ordinal))
+            {
+                return;
+            }
         }
+
+        source.connections.Add(new MapTemplateDatabase.MapConnectionEntry
+        {
+            targetNodeId = target.nodeId,
+            direction = MapTemplateDatabase.ConnectionDirection.East
+        });
     }
 
     private static void RemoveNode(MapTemplateDatabase.MapTemplateEntry template, string nodeId)
@@ -586,7 +598,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             }
             else
             {
-                node.nextNodeIds.RemoveAll(id => string.Equals(id, nodeId, StringComparison.Ordinal));
+                node.connections.RemoveAll(connection => string.Equals(connection.targetNodeId, nodeId, StringComparison.Ordinal));
             }
         }
     }
@@ -606,11 +618,11 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 continue;
             }
 
-            for (int j = 0; j < node.nextNodeIds.Count; j++)
+            for (int j = 0; j < node.connections.Count; j++)
             {
-                if (string.Equals(node.nextNodeIds[j], oldNodeId, StringComparison.Ordinal))
+                if (string.Equals(node.connections[j].targetNodeId, oldNodeId, StringComparison.Ordinal))
                 {
-                    node.nextNodeIds[j] = newNodeId;
+                    node.connections[j].targetNodeId = newNodeId;
                 }
             }
         }
@@ -741,6 +753,30 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             new Vector3(rect.center.x, rect.yMax),
             new Vector3(rect.x, rect.center.y)
         };
+    }
+
+    private static void DrawConnectionDirectionLabel(Vector2 source, Vector2 target, MapTemplateDatabase.ConnectionDirection direction)
+    {
+        Vector2 mid = (source + target) * 0.5f;
+        Rect labelRect = new Rect(mid.x - 20f, mid.y - 10f, 40f, 20f);
+        GUI.Label(labelRect, ResolveDirectionName(direction), EditorStyles.miniLabel);
+    }
+
+    private static string ResolveDirectionName(MapTemplateDatabase.ConnectionDirection direction)
+    {
+        switch (direction)
+        {
+            case MapTemplateDatabase.ConnectionDirection.East:
+                return "东";
+            case MapTemplateDatabase.ConnectionDirection.South:
+                return "南";
+            case MapTemplateDatabase.ConnectionDirection.West:
+                return "西";
+            case MapTemplateDatabase.ConnectionDirection.North:
+                return "北";
+            default:
+                return string.Empty;
+        }
     }
 
     private static void BuildRoomTypeOptions(RoomTypeDatabase database, out string[] names, out string[] ids)

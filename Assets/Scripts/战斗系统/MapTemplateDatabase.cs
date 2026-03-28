@@ -7,6 +7,21 @@ public sealed class MapTemplateDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "MapTemplateDatabase";
 
+    public enum ConnectionDirection
+    {
+        East = 0,
+        South = 1,
+        West = 2,
+        North = 3
+    }
+
+    [Serializable]
+    public sealed class MapConnectionEntry
+    {
+        public string targetNodeId = string.Empty;
+        public ConnectionDirection direction = ConnectionDirection.East;
+    }
+
     [Serializable]
     public sealed class MapNodeEntry
     {
@@ -15,6 +30,7 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public Vector2 position = new Vector2(120f, 120f);
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public string encounterPresetId = string.Empty;
+        public List<MapConnectionEntry> connections = new List<MapConnectionEntry>();
         public List<string> nextNodeIds = new List<string>();
     }
 
@@ -136,6 +152,11 @@ public sealed class MapTemplateDatabase : ScriptableObject
             node.nextNodeIds = new List<string>();
         }
 
+        if (node.connections == null)
+        {
+            node.connections = new List<MapConnectionEntry>();
+        }
+
         if (string.IsNullOrWhiteSpace(node.roomTypeId))
         {
             node.roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
@@ -144,6 +165,24 @@ public sealed class MapTemplateDatabase : ScriptableObject
         if (string.IsNullOrWhiteSpace(node.displayName))
         {
             node.displayName = node.nodeId;
+        }
+
+        if (node.connections.Count == 0 && node.nextNodeIds.Count > 0)
+        {
+            for (int i = 0; i < node.nextNodeIds.Count; i++)
+            {
+                string targetNodeId = node.nextNodeIds[i];
+                if (string.IsNullOrWhiteSpace(targetNodeId))
+                {
+                    continue;
+                }
+
+                node.connections.Add(new MapConnectionEntry
+                {
+                    targetNodeId = targetNodeId,
+                    direction = ConnectionDirection.East
+                });
+            }
         }
     }
 
