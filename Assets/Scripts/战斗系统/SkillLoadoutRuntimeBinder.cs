@@ -472,7 +472,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private bool TryHandleRightClickMove(SkillSlotWidget widget)
     {
-        if (widget == null || string.IsNullOrWhiteSpace(widget.skillId) || widget.isGranted)
+        if (!CanReorderWidget(widget))
         {
             return false;
         }
@@ -676,6 +676,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private bool CanDragWidget(SkillSlotWidget widget)
     {
+        return CanReorderWidget(widget);
+    }
+
+    private static bool CanReorderWidget(SkillSlotWidget widget)
+    {
+        // 技能能不能在战斗中使用，和能不能在启程界面里整理位置是两回事。
         return widget != null &&
                !string.IsNullOrWhiteSpace(widget.skillId) &&
                !widget.isGranted &&
