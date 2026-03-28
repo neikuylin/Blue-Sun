@@ -152,7 +152,10 @@ public class BattleBootstrap : MonoBehaviour
         RefreshSkillPagination(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
-        StartCoroutine(PlayEnterBattleAnimations(units));
+        if (!turnSystem.IsExplorationMode)
+        {
+            StartCoroutine(PlayEnterBattleAnimations(units));
+        }
     }
 
     private void ResolveReferences()
