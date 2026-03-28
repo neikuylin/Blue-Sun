@@ -287,7 +287,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField(connection.targetNodeId);
-                connection.direction = (MapTemplateDatabase.ConnectionDirection)EditorGUILayout.EnumPopup(connection.direction, GUILayout.Width(72f));
+                connection.direction = DrawDirectionPopup(connection.direction);
                 if (GUILayout.Button("移除", GUILayout.Width(72f)))
                 {
                     node.connections.RemoveAt(i);
@@ -778,6 +778,31 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             default:
                 return string.Empty;
         }
+    }
+
+    private static MapTemplateDatabase.ConnectionDirection DrawDirectionPopup(MapTemplateDatabase.ConnectionDirection currentDirection)
+    {
+        string[] directionNames = { "东", "南", "西", "北" };
+        MapTemplateDatabase.ConnectionDirection[] directions =
+        {
+            MapTemplateDatabase.ConnectionDirection.East,
+            MapTemplateDatabase.ConnectionDirection.South,
+            MapTemplateDatabase.ConnectionDirection.West,
+            MapTemplateDatabase.ConnectionDirection.North
+        };
+
+        int currentIndex = 0;
+        for (int i = 0; i < directions.Length; i++)
+        {
+            if (directions[i] == currentDirection)
+            {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        int nextIndex = EditorGUILayout.Popup(currentIndex, directionNames, GUILayout.Width(72f));
+        return directions[Mathf.Clamp(nextIndex, 0, directions.Length - 1)];
     }
 
     private static void BuildRoomTypeOptions(RoomTypeDatabase database, out string[] names, out string[] ids)

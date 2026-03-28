@@ -18,31 +18,28 @@ MonoBehaviour:
     nodes:
     - nodeId: node_1
       displayName: node_1
-      position: {x: 330, y: 431}
-      roomTypeId: encounter_battle
-      encounterPresetId: "\u623F\u95F4\u9884\u8BBE"
-      connections: []
-      nextNodeIds: []
-    - nodeId: node_2
-      displayName: node_2
-      position: {x: 167, y: 287}
+      position: {x: 331, y: 432}
       roomTypeId: encounter_battle
       encounterPresetId: "\u623F\u95F4\u9884\u8BBE"
       connections:
-      - targetNodeId: node_1
+      - targetNodeId: node_2
         direction: 0
-      nextNodeIds:
-      - node_1
-    - nodeId: node_3
-      displayName: node_3
-      position: {x: 486, y: 284}
+      nextNodeIds: []
+    - nodeId: node_2
+      displayName: node_2
+      position: {x: 192, y: 324}
       roomTypeId: encounter_battle
       encounterPresetId: 
       connections:
       - targetNodeId: node_1
         direction: 0
-      - targetNodeId: node_2
+      - targetNodeId: node_3
         direction: 0
-      nextNodeIds:
-      - node_1
-      - node_2
+      nextNodeIds: []
+    - nodeId: node_3
+      displayName: node_3
+      position: {x: 458, y: 323}
+      roomTypeId: encounter_battle
+      encounterPresetId: 
+      connections: []
+      nextNodeIds: []
