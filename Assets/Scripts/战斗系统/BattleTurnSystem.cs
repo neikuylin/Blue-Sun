@@ -72,13 +72,13 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color lockedAllyOutlineColor = new Color(0.20f, 0.95f, 0.42f, 1f);
     private readonly Color skillCostNormalColor = Color.white;
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
-    private const string PlayerInfoColorHex = "#33CC66";
-    private const string EnemyInfoColorHex = "#E14B4B";
-    private const string NeutralInfoColorHex = "#A0A0A0";
-    private const string PhysicalInfoColorHex = "#FFFFFF";
-    private const string FireInfoColorHex = "#FF4D4D";
-    private const string CorruptionInfoColorHex = "#33CC66";
-    private const string ColdInfoColorHex = "#4DA6FF";
+    private const string PlayerInfoColorHex = BattleInfoTextUtility.PlayerInfoColorHex;
+    private const string EnemyInfoColorHex = BattleInfoTextUtility.EnemyInfoColorHex;
+    private const string NeutralInfoColorHex = BattleInfoTextUtility.NeutralInfoColorHex;
+    private const string PhysicalInfoColorHex = BattleInfoTextUtility.PhysicalInfoColorHex;
+    private const string FireInfoColorHex = BattleInfoTextUtility.FireInfoColorHex;
+    private const string CorruptionInfoColorHex = BattleInfoTextUtility.CorruptionInfoColorHex;
+    private const string ColdInfoColorHex = BattleInfoTextUtility.ColdInfoColorHex;
     private const int MinHitChancePercent = 0;
     private const int MaxHitChancePercent = 100;
     private const float HitFeelDurationSeconds = 0.3f;
@@ -5144,144 +5144,82 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static string ResolveBattleInfoUnitName(BattleUnit unit, bool richText = false)
     {
-        string baseName;
-        if (unit == null)
-        {
-            baseName = "未知目标";
-        }
-        else if (!string.IsNullOrWhiteSpace(unit.unitName))
-        {
-            baseName = unit.unitName;
-        }
-        else if (!string.IsNullOrWhiteSpace(unit.characterId))
-        {
-            baseName = unit.characterId;
-        }
-        else
-        {
-            baseName = unit.name;
-        }
-
-        if (!richText)
-        {
-            return baseName;
-        }
-
-        string colorHex = unit != null && unit.team == BattleTeam.Enemy ? EnemyInfoColorHex : PlayerInfoColorHex;
-        return WrapBattleInfoColor(baseName, colorHex);
+        return BattleInfoTextUtility.ResolveBattleInfoUnitName(unit, richText);
     }
 
     private static string ResolveBattleInfoSkillName(BattleSkillDatabase.SkillEntry skill)
     {
-        if (skill == null || string.IsNullOrWhiteSpace(skill.skillId))
-        {
-            return "技能";
-        }
-
-        return skill.skillId;
+        return BattleInfoTextUtility.ResolveBattleInfoSkillName(skill);
     }
 
     private static string WrapBattleInfoColor(string content, string colorHex)
     {
-        string safeContent = string.IsNullOrWhiteSpace(content) ? string.Empty : content;
-        if (string.IsNullOrWhiteSpace(safeContent) || string.IsNullOrWhiteSpace(colorHex))
-        {
-            return safeContent;
-        }
-
-        return $"<color={colorHex}>{safeContent}</color>";
+        return BattleInfoTextUtility.WrapBattleInfoColor(content, colorHex);
     }
 
     private static string ResolveIdleStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.idleStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveIdleStateName();
     }
 
     private static string ResolveExplorationIdleStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        if (settings == null)
-        {
-            return string.Empty;
-        }
-
-        return string.IsNullOrWhiteSpace(settings.explorationIdleStateName)
-            ? settings.idleStateName
-            : settings.explorationIdleStateName;
+        return BattleAnimationSettingsResolver.ResolveExplorationIdleStateName();
     }
 
     private static AudioClip ResolveExplorationIdleSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.explorationIdleSound : null;
+        return BattleAnimationSettingsResolver.ResolveExplorationIdleSound();
     }
 
     private static GameObject ResolveExplorationIdleSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.explorationIdleSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveExplorationIdleSoundPrefab();
     }
 
     private static bool ResolveExplorationIdleCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.explorationIdleCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveExplorationIdleCompensateMotion();
     }
 
     private static string ResolveExplorationMoveStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        if (settings == null)
-        {
-            return string.Empty;
-        }
-
-        return string.IsNullOrWhiteSpace(settings.explorationMoveStateName)
-            ? settings.idleStateName
-            : settings.explorationMoveStateName;
+        return BattleAnimationSettingsResolver.ResolveExplorationMoveStateName();
     }
 
     private static AudioClip ResolveExplorationMoveSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.explorationMoveSound : null;
+        return BattleAnimationSettingsResolver.ResolveExplorationMoveSound();
     }
 
     private static GameObject ResolveExplorationMoveSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.explorationMoveSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveExplorationMoveSoundPrefab();
     }
 
     private static bool ResolveExplorationMoveCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.explorationMoveCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveExplorationMoveCompensateMotion();
     }
 
     private static string ResolveExitBattleStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveExitBattleStateName();
     }
 
     private static AudioClip ResolveExitBattleSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleSound : null;
+        return BattleAnimationSettingsResolver.ResolveExitBattleSound();
     }
 
     private static GameObject ResolveExitBattleSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveExitBattleSoundPrefab();
     }
 
     private static bool ResolveExitBattleCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.exitBattleCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveExitBattleCompensateMotion();
     }
 
     private void PlayExitBattleAnimations()
@@ -5407,104 +5345,87 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static string ResolveCombatArtLeftAimStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimStateName();
     }
 
     private static bool ResolveCombatArtLeftAimCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.combatArtLeftAimCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimCompensateMotion();
     }
 
     private static AudioClip ResolveCombatArtLeftAimSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimSound : null;
+        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimSound();
     }
 
     private static GameObject ResolveCombatArtLeftAimSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimSoundPrefab();
     }
 
     private static string ResolveCombatArtRightAimStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimStateName();
     }
 
     private static bool ResolveCombatArtRightAimCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.combatArtRightAimCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimCompensateMotion();
     }
 
     private static AudioClip ResolveCombatArtRightAimSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimSound : null;
+        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimSound();
     }
 
     private static GameObject ResolveCombatArtRightAimSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimSoundPrefab();
     }
 
     private static float ResolveIdleYawOffset()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.idleYawOffset : 0f;
+        return BattleAnimationSettingsResolver.ResolveIdleYawOffset();
     }
 
     private static string ResolveHitReactionStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveHitReactionStateName();
     }
 
     private static bool ResolveHitReactionCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.hitReactionCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveHitReactionCompensateMotion();
     }
 
     private static AudioClip ResolveHitReactionSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionSound : null;
+        return BattleAnimationSettingsResolver.ResolveHitReactionSound();
     }
 
     private static GameObject ResolveHitReactionSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveHitReactionSoundPrefab();
     }
 
     private static string ResolveDodgeStateName()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeStateName : string.Empty;
+        return BattleAnimationSettingsResolver.ResolveDodgeStateName();
     }
 
     private static bool ResolveDodgeCompensateMotion()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.dodgeCompensateMotion;
+        return BattleAnimationSettingsResolver.ResolveDodgeCompensateMotion();
     }
 
     private static AudioClip ResolveDodgeSound()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeSound : null;
+        return BattleAnimationSettingsResolver.ResolveDodgeSound();
     }
 
     private static GameObject ResolveDodgeSoundPrefab()
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeSoundPrefab : null;
+        return BattleAnimationSettingsResolver.ResolveDodgeSoundPrefab();
     }
 
     private void RefreshModeMusic()
@@ -5663,68 +5584,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static void ResolveCombatArtAimAudioForState(string stateName, out AudioClip clip, out GameObject soundPrefab)
     {
-        clip = null;
-        soundPrefab = null;
-
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            return;
-        }
-
-        string leftStateName = ResolveCombatArtLeftAimStateName();
-        if (!string.IsNullOrWhiteSpace(leftStateName) &&
-            string.Equals(stateName, leftStateName, System.StringComparison.Ordinal))
-        {
-            clip = ResolveCombatArtLeftAimSound();
-            soundPrefab = ResolveCombatArtLeftAimSoundPrefab();
-            return;
-        }
-
-        string rightStateName = ResolveCombatArtRightAimStateName();
-        if (!string.IsNullOrWhiteSpace(rightStateName) &&
-            string.Equals(stateName, rightStateName, System.StringComparison.Ordinal))
-        {
-            clip = ResolveCombatArtRightAimSound();
-            soundPrefab = ResolveCombatArtRightAimSoundPrefab();
-        }
+        BattleAnimationSettingsResolver.ResolveCombatArtAimAudioForState(stateName, out clip, out soundPrefab);
     }
 
     private static bool ShouldCompensateGlobalMotionForState(string stateName)
     {
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            return false;
-        }
-
-        string leftStateName = ResolveCombatArtLeftAimStateName();
-        if (!string.IsNullOrWhiteSpace(leftStateName) &&
-            string.Equals(stateName, leftStateName, System.StringComparison.Ordinal))
-        {
-            return ResolveCombatArtLeftAimCompensateMotion();
-        }
-
-        string rightStateName = ResolveCombatArtRightAimStateName();
-        if (!string.IsNullOrWhiteSpace(rightStateName) &&
-            string.Equals(stateName, rightStateName, System.StringComparison.Ordinal))
-        {
-            return ResolveCombatArtRightAimCompensateMotion();
-        }
-
-        string hitStateName = ResolveHitReactionStateName();
-        if (!string.IsNullOrWhiteSpace(hitStateName) &&
-            string.Equals(stateName, hitStateName, System.StringComparison.Ordinal))
-        {
-            return ResolveHitReactionCompensateMotion();
-        }
-
-        string dodgeStateName = ResolveDodgeStateName();
-        if (!string.IsNullOrWhiteSpace(dodgeStateName) &&
-            string.Equals(stateName, dodgeStateName, System.StringComparison.Ordinal))
-        {
-            return ResolveDodgeCompensateMotion();
-        }
-
-        return false;
+        return BattleAnimationSettingsResolver.ShouldCompensateGlobalMotionForState(stateName);
     }
 
     private void StopCombatArtAimAudio()
