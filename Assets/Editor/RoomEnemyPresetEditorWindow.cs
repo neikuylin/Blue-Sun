@@ -8,18 +8,20 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
     private const string ResourceFolder = "Assets/Resources";
     private const string PresetAssetPath = ResourceFolder + "/RoomEnemyPresetDatabase.asset";
     private const string StatAssetPath = ResourceFolder + "/CharacterStatDatabase.asset";
+    private const string RoomTypeAssetPath = ResourceFolder + "/RoomTypeDatabase.asset";
     private const string DefaultPresetId = "房间预设";
     private const string DefaultEnemyId = "假人";
+    private const string EncounterBattleRoomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
 
     private Vector2 scroll;
     private string newPresetId = DefaultPresetId;
     private static bool resistanceFoldout = true;
     private static bool resistancePenetrationFoldout = true;
 
-    [MenuItem("Tools/战斗/房间敌人编辑器")]
+    [MenuItem("Tools/战斗/遭遇战编辑器")]
     private static void Open()
     {
-        RoomEnemyPresetEditorWindow window = GetWindow<RoomEnemyPresetEditorWindow>("房间敌人编辑器");
+        RoomEnemyPresetEditorWindow window = GetWindow<RoomEnemyPresetEditorWindow>("遭遇战编辑器");
         window.minSize = new Vector2(760f, 560f);
         window.Show();
         window.Focus();
@@ -29,11 +31,12 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
     {
         RoomEnemyPresetDatabase presetDatabase = EnsurePresetDatabase();
         CharacterStatDatabase statDatabase = EnsureStatDatabase();
+        EnsureRoomTypeDatabase();
         BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>(true);
 
-        EditorGUILayout.LabelField("房间敌人编辑器", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("遭遇战编辑器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "维护房间敌人预设。这里编辑的是预设资产，不会实时修改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
+            "维护遭遇战房间预设。这里编辑的是预设资产，不会实时修改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
             MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -96,6 +99,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             {
                 Undo.RecordObject(presetDatabase, "新增房间敌人预设");
                 RoomEnemyPresetDatabase.RoomEnemyPresetEntry entry = presetDatabase.GetOrCreateEntry(newPresetId.Trim());
+                entry.roomTypeId = EncounterBattleRoomTypeId;
                 RoomEnemyPresetDatabase.EnsureValidEnemyList(entry);
                 SaveAsset(presetDatabase);
                 newPresetId = string.Empty;
@@ -110,7 +114,9 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         BattleBootstrap bootstrap)
     {
         SerializedProperty presetIdProperty = presetProperty.FindPropertyRelative("presetId");
+        SerializedProperty roomTypeIdProperty = presetProperty.FindPropertyRelative("roomTypeId");
         SerializedProperty enemiesProperty = presetProperty.FindPropertyRelative("enemies");
+        roomTypeIdProperty.stringValue = EncounterBattleRoomTypeId;
         string presetId = presetIdProperty.stringValue;
         string overlapMessage = BuildOverlapMessage(enemiesProperty);
         bool hasOverlap = !string.IsNullOrEmpty(overlapMessage);
@@ -120,6 +126,10 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.PropertyField(presetIdProperty, new GUIContent("预设ID"));
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.TextField("房间类型", RoomTypeDatabase.EncounterBattleTypeName);
+                }
 
                 if (GUILayout.Button("抓取当前场景", GUILayout.Width(100f)))
                 {
@@ -349,6 +359,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         }
 
         RoomEnemyPresetDatabase.EnsureValidEnemyList(preset);
+        preset.roomTypeId = EncounterBattleRoomTypeId;
         preset.enemies.Clear();
 
         if (bootstrap == null || bootstrap.enemySpawns == null)
@@ -478,6 +489,35 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         EnsureResourceFolder();
         database = CreateInstance<RoomEnemyPresetDatabase>();
         AssetDatabase.CreateAsset(database, PresetAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static RoomTypeDatabase EnsureRoomTypeDatabase()
+    {
+        RoomTypeDatabase database = AssetDatabase.LoadAssetAtPath<RoomTypeDatabase>(RoomTypeAssetPath);
+        if (database != null)
+        {
+            RoomTypeDatabase.RoomTypeEntry encounterBattle = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
+            if (encounterBattle != null)
+            {
+                encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+                SaveAsset(database);
+            }
+
+            return database;
+        }
+
+        EnsureResourceFolder();
+        database = CreateInstance<RoomTypeDatabase>();
+        RoomTypeDatabase.RoomTypeEntry created = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
+        if (created != null)
+        {
+            created.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+        }
+
+        AssetDatabase.CreateAsset(database, RoomTypeAssetPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         return database;

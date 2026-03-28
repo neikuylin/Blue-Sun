@@ -11,6 +11,7 @@ public sealed class RoomEnemyPresetDatabase : ScriptableObject
     public sealed class RoomEnemyPresetEntry
     {
         public string presetId = string.Empty;
+        public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public List<BattleBootstrap.EnemySpawnEntry> enemies = new List<BattleBootstrap.EnemySpawnEntry>();
     }
 
@@ -58,7 +59,8 @@ public sealed class RoomEnemyPresetDatabase : ScriptableObject
 
         RoomEnemyPresetEntry created = new RoomEnemyPresetEntry
         {
-            presetId = presetId.Trim()
+            presetId = presetId.Trim(),
+            roomTypeId = RoomTypeDatabase.EncounterBattleTypeId
         };
         EnsureValidEnemyList(created);
         entries.Add(created);
