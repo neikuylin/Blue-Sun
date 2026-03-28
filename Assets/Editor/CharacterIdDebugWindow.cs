@@ -235,13 +235,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
-            added.FindPropertyRelative("idleStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("enterBattleStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("moveStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("hitReactionStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("dodgeStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("combatArtLeftAimStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("combatArtRightAimStateName").stringValue = string.Empty;
         }
 
         if (bindingDatabaseObject.ApplyModifiedProperties())
@@ -360,13 +353,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
             added.FindPropertyRelative("useAutoVisualAnchor").boolValue = true;
-            added.FindPropertyRelative("idleStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("enterBattleStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("moveStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("hitReactionStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("dodgeStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("combatArtLeftAimStateName").stringValue = string.Empty;
-            added.FindPropertyRelative("combatArtRightAimStateName").stringValue = string.Empty;
         }
     }
 

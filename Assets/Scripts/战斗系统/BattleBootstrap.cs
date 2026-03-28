@@ -21,7 +21,9 @@ public class BattleBootstrap : MonoBehaviour
     }
 
     private const string SceneName = "战斗副本";
-    private const string RoomEnemyPresetId = "房间预设";
+    private const string DefaultRoomEnemyPresetId = "房间预设";
+    private const string DefaultDungeonTemplateId = "地牢1";
+    private const string DefaultDungeonNodeId = "入口";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
 
@@ -346,17 +348,18 @@ public class BattleBootstrap : MonoBehaviour
     private List<EnemySpawnEntry> GetEnemySpawnEntries()
     {
         List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
+        string roomEnemyPresetId = ResolveBattleRoomEnemyPresetId();
         RoomEnemyPresetDatabase presetDatabase = RoomEnemyPresetDatabase.LoadDefault();
         if (presetDatabase == null)
         {
-            Debug.LogWarning($"BattleBootstrap: missing RoomEnemyPresetDatabase. Scene '{SceneName}' expected preset '{RoomEnemyPresetId}'.");
+            Debug.LogWarning($"BattleBootstrap: missing RoomEnemyPresetDatabase. Scene '{SceneName}' expected preset '{roomEnemyPresetId}'.");
             return entries;
         }
 
-        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.FindEntry(RoomEnemyPresetId);
+        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.FindEntry(roomEnemyPresetId);
         if (preset == null || preset.enemies == null)
         {
-            Debug.LogWarning($"BattleBootstrap: missing room enemy preset '{RoomEnemyPresetId}' for scene '{SceneName}'.");
+            Debug.LogWarning($"BattleBootstrap: missing room enemy preset '{roomEnemyPresetId}' for scene '{SceneName}'.");
             return entries;
         }
 
@@ -373,10 +376,48 @@ public class BattleBootstrap : MonoBehaviour
 
         if (entries.Count == 0)
         {
-            Debug.LogWarning($"BattleBootstrap: room enemy preset '{RoomEnemyPresetId}' contains no valid enemies.");
+            Debug.LogWarning($"BattleBootstrap: room enemy preset '{roomEnemyPresetId}' contains no valid enemies.");
         }
 
         return entries;
+    }
+
+    private static string ResolveBattleRoomEnemyPresetId()
+    {
+        MapTemplateDatabase mapTemplateDatabase = MapTemplateDatabase.LoadDefault();
+        if (mapTemplateDatabase == null)
+        {
+            return DefaultRoomEnemyPresetId;
+        }
+
+        MapTemplateDatabase.MapTemplateEntry template = mapTemplateDatabase.FindEntry(DefaultDungeonTemplateId);
+        if (template == null || template.nodes == null)
+        {
+            return DefaultRoomEnemyPresetId;
+        }
+
+        for (int i = 0; i < template.nodes.Count; i++)
+        {
+            MapTemplateDatabase.MapNodeEntry node = template.nodes[i];
+            if (node == null)
+            {
+                continue;
+            }
+
+            if (!string.Equals(node.nodeId, DefaultDungeonNodeId, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(node.encounterPresetId))
+            {
+                return node.encounterPresetId.Trim();
+            }
+
+            return DefaultRoomEnemyPresetId;
+        }
+
+        return DefaultRoomEnemyPresetId;
     }
 
     private void SetupBattleCamera(Camera mainCamera)

@@ -118,25 +118,13 @@ public class BattleUnit : MonoBehaviour
 
     public void ConfigureAnimationBindings(BattleCharacterBindingDatabase.BindingEntry binding)
     {
-        if (binding == null)
-        {
-            idleStateName = string.Empty;
-            enterBattleStateName = string.Empty;
-            moveStateName = string.Empty;
-            hitReactionStateName = string.Empty;
-            dodgeStateName = string.Empty;
-            combatArtLeftAimStateName = string.Empty;
-            combatArtRightAimStateName = string.Empty;
-            return;
-        }
-
-        idleStateName = binding.idleStateName ?? string.Empty;
-        enterBattleStateName = binding.enterBattleStateName ?? string.Empty;
-        moveStateName = binding.moveStateName ?? string.Empty;
-        hitReactionStateName = binding.hitReactionStateName ?? string.Empty;
-        dodgeStateName = binding.dodgeStateName ?? string.Empty;
-        combatArtLeftAimStateName = binding.combatArtLeftAimStateName ?? string.Empty;
-        combatArtRightAimStateName = binding.combatArtRightAimStateName ?? string.Empty;
+        idleStateName = string.Empty;
+        enterBattleStateName = string.Empty;
+        moveStateName = string.Empty;
+        hitReactionStateName = string.Empty;
+        dodgeStateName = string.Empty;
+        combatArtLeftAimStateName = string.Empty;
+        combatArtRightAimStateName = string.Empty;
     }
 
     public string GetIdleAnimationStateName(string fallback = "")

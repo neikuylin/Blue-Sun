@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Animations;
-using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "BattleCharacterBindings", menuName = "\u6218\u6597/\u89d2\u8272\u6a21\u578b\u7ed1\u5b9a\u5e93")]
 public sealed class BattleCharacterBindingDatabase : ScriptableObject
@@ -20,14 +18,6 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
         public RuntimeAnimatorController animatorController;
         public Vector3 modelScale = Vector3.one;
         public bool useAutoVisualAnchor = true;
-        [FormerlySerializedAs("idleAnimationStateName")]
-        public string idleStateName;
-        public string enterBattleStateName;
-        public string moveStateName;
-        public string hitReactionStateName;
-        public string dodgeStateName;
-        public string combatArtLeftAimStateName;
-        public string combatArtRightAimStateName;
     }
 
     [SerializeField] private List<BindingEntry> entries = new List<BindingEntry>();
