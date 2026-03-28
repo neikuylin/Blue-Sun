@@ -650,7 +650,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private BattleUnit FindExplorationPlayerUnit()
     {
-        if (activeUnit != null && activeUnit.IsAlive && activeUnit.team == BattleTeam.Player && activeUnit.isPlayerControlled)
+        if (activeUnit != null &&
+            activeUnit.IsAlive &&
+            activeUnit.team == BattleTeam.Player &&
+            activeUnit.isPlayerControlled &&
+            string.Equals(activeUnit.characterId, "玩家", System.StringComparison.Ordinal))
         {
             return activeUnit;
         }
@@ -658,7 +662,11 @@ public class BattleTurnSystem : MonoBehaviour
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
-            if (unit != null && unit.IsAlive && unit.team == BattleTeam.Player && unit.isPlayerControlled)
+            if (unit != null &&
+                unit.IsAlive &&
+                unit.team == BattleTeam.Player &&
+                unit.isPlayerControlled &&
+                string.Equals(unit.characterId, "玩家", System.StringComparison.Ordinal))
             {
                 return unit;
             }
