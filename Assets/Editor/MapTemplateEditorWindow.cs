@@ -815,7 +815,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 return -18f;
             case MapTemplateDatabase.ConnectionDirection.West:
             case MapTemplateDatabase.ConnectionDirection.South:
-                return 18f;
+                return 28f;
             default:
                 return 0f;
         }
