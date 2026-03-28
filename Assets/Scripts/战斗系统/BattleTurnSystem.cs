@@ -215,6 +215,27 @@ public class BattleTurnSystem : MonoBehaviour
         get { return currentMode == BattleFlowMode.Exploration; }
     }
 
+    public BattleUnit FindUnitByCharacterId(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || !string.Equals(unit.characterId, characterId, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return unit;
+        }
+
+        return null;
+    }
+
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;

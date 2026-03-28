@@ -243,6 +243,29 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return result;
         }
 
+        if (turnSystem.IsExplorationMode)
+        {
+            IReadOnlyList<CharacterSelectionState.SlotSelection> slotSelections = CharacterSelectionState.SlotSelections;
+            for (int i = 0; i < slotSelections.Count && result.Count < 4; i++)
+            {
+                CharacterSelectionState.SlotSelection selection = slotSelections[i];
+                if (string.IsNullOrWhiteSpace(selection.characterId))
+                {
+                    continue;
+                }
+
+                BattleUnit unit = turnSystem.FindUnitByCharacterId(selection.characterId);
+                if (unit == null || !unit.IsAlive || unit.team != BattleTeam.Player)
+                {
+                    continue;
+                }
+
+                result.Add(selection);
+            }
+
+            return result;
+        }
+
         IReadOnlyList<BattleUnit> timelineUnits = turnSystem.GetTimelineUnitsForUi();
         HashSet<string> seenIds = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < timelineUnits.Count && result.Count < 4; i++)
