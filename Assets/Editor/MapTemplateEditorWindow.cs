@@ -376,7 +376,12 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 }
 
                 Rect targetRect = ResolveNodeRect(canvasRect, target.position);
-                Vector2 offset = ResolveConnectionOffset(connection.direction, sourceRect.center, targetRect.center);
+                Vector2 offset = ResolveConnectionOffset(
+                    connection.direction,
+                    source.nodeId,
+                    target.nodeId,
+                    sourceRect.center,
+                    targetRect.center);
                 Vector2 drawSource = sourceRect.center + offset;
                 Vector2 drawTarget = targetRect.center + offset;
                 Handles.color = string.Equals(connectSourceNodeId, source.nodeId, StringComparison.Ordinal)
@@ -770,10 +775,12 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
     private static Vector2 ResolveConnectionOffset(
         MapTemplateDatabase.ConnectionDirection direction,
+        string sourceNodeId,
+        string targetNodeId,
         Vector2 source,
         Vector2 target)
     {
-        Vector2 segment = target - source;
+        Vector2 segment = ResolveCanonicalSegment(sourceNodeId, targetNodeId, source, target);
         if (segment.sqrMagnitude <= 0.001f)
         {
             return new Vector2(ResolveDirectionHorizontalOffset(direction), 0f);
@@ -783,6 +790,20 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         Vector2 normal = new Vector2(-segment.y, segment.x);
         float side = ResolveDirectionHorizontalOffset(direction) < 0f ? -1f : 1f;
         return normal * 12f * side;
+    }
+
+    private static Vector2 ResolveCanonicalSegment(
+        string sourceNodeId,
+        string targetNodeId,
+        Vector2 source,
+        Vector2 target)
+    {
+        if (string.CompareOrdinal(sourceNodeId, targetNodeId) <= 0)
+        {
+            return target - source;
+        }
+
+        return source - target;
     }
 
     private static float ResolveDirectionHorizontalOffset(MapTemplateDatabase.ConnectionDirection direction)
