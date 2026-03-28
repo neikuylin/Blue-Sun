@@ -12,4 +12,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78ac8001c78aaac47b509e0acaebe56d, type: 3}
   m_Name: MapTemplateDatabase
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - templateId: map_template_1
+    displayName: map_template_1
+    nodes:
+    - nodeId: node_1
+      displayName: node_1
+      position: {x: 320, y: 120}
+      roomTypeId: encounter_battle
+      encounterPresetId: "\u623F\u95F4\u9884\u8BBE"
+      nextNodeIds: []
+    - nodeId: node_2
+      displayName: node_2
+      position: {x: 411, y: 300}
+      roomTypeId: encounter_battle
+      encounterPresetId: "\u623F\u95F4\u9884\u8BBE"
+      nextNodeIds:
+      - node_1
+    - nodeId: node_3
+      displayName: node_3
+      position: {x: 464, y: 463}
+      roomTypeId: encounter_battle
+      encounterPresetId: 
+      nextNodeIds:
+      - node_1
+      - node_2

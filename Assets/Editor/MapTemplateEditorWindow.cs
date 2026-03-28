@@ -11,8 +11,8 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     private const string EncounterPresetAssetPath = ResourceFolder + "/RoomEnemyPresetDatabase.asset";
     private const float CanvasWidth = 2400f;
     private const float CanvasHeight = 1600f;
-    private const float NodeWidth = 148f;
-    private const float NodeHeight = 64f;
+    private const float NodeWidth = 160f;
+    private const float NodeHeight = 120f;
 
     private Vector2 templateScroll;
     private Vector2 canvasScroll;
@@ -86,11 +86,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 if (GUILayout.Button("新增节点", EditorStyles.toolbarButton, GUILayout.Width(84f)))
                 {
                     AddNodeToSelectedTemplate(database);
-                }
-
-                if (GUILayout.Button("45°自动布局", EditorStyles.toolbarButton, GUILayout.Width(108f)))
-                {
-                    AutoLayoutSelectedTemplate(database);
                 }
             }
 
@@ -251,7 +246,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         string oldNodeId = node.nodeId;
         node.nodeId = EditorGUILayout.TextField("节点ID", node.nodeId);
         node.displayName = EditorGUILayout.TextField("显示名字", node.displayName);
-        node.layerIndex = EditorGUILayout.IntField("层级", node.layerIndex);
 
         if (string.IsNullOrWhiteSpace(node.displayName))
         {
@@ -410,21 +404,22 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             bool isSelected = string.Equals(selectedNodeId, node.nodeId, StringComparison.Ordinal);
 
             Color fillColor = ResolveNodeColor(node);
-            EditorGUI.DrawRect(drawRect, fillColor);
+            DrawNodeFill(drawRect, fillColor);
             DrawNodeBorder(drawRect, isSelected, string.Equals(connectSourceNodeId, node.nodeId, StringComparison.Ordinal));
 
             string roomTypeName = ResolveRoomTypeName(roomTypeDatabase, node.roomTypeId);
             string encounterName = ResolveEncounterName(encounterDatabase, node.encounterPresetId);
+            Rect innerRect = new Rect(drawRect.x + 24f, drawRect.y + 28f, drawRect.width - 48f, drawRect.height - 56f);
             GUI.Label(
-                new Rect(drawRect.x + 8f, drawRect.y + 6f, drawRect.width - 16f, 18f),
+                new Rect(innerRect.x, innerRect.y, innerRect.width, 18f),
                 string.IsNullOrWhiteSpace(node.displayName) ? node.nodeId : node.displayName,
                 EditorStyles.boldLabel);
             GUI.Label(
-                new Rect(drawRect.x + 8f, drawRect.y + 26f, drawRect.width - 16f, 16f),
-                $"层 {node.layerIndex} | {roomTypeName}",
+                new Rect(innerRect.x, innerRect.y + 22f, innerRect.width, 16f),
+                roomTypeName,
                 EditorStyles.miniLabel);
             GUI.Label(
-                new Rect(drawRect.x + 8f, drawRect.y + 42f, drawRect.width - 16f, 16f),
+                new Rect(innerRect.x, innerRect.y + 40f, innerRect.width, 16f),
                 string.IsNullOrWhiteSpace(encounterName) ? "未绑定遭遇战" : encounterName,
                 EditorStyles.miniLabel);
 
@@ -542,70 +537,15 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
         MapTemplateDatabase.EnsureValidTemplate(template);
         string nodeId = BuildNextNodeId(template);
-        int layerIndex = template.nodes.Count == 0 ? 0 : template.nodes[template.nodes.Count - 1].layerIndex + 1;
         MapTemplateDatabase.MapNodeEntry node = new MapTemplateDatabase.MapNodeEntry
         {
             nodeId = nodeId,
             displayName = nodeId,
-            layerIndex = layerIndex,
             roomTypeId = RoomTypeDatabase.EncounterBattleTypeId,
-            position = new Vector2(120f + template.nodes.Count * 160f, 120f + layerIndex * 96f)
+            position = new Vector2(120f + template.nodes.Count * 180f, 180f)
         };
         template.nodes.Add(node);
         selectedNodeId = node.nodeId;
-        MarkDirty(database);
-    }
-
-    private void AutoLayoutSelectedTemplate(MapTemplateDatabase database)
-    {
-        MapTemplateDatabase.MapTemplateEntry template = GetSelectedTemplate(database);
-        if (template == null)
-        {
-            return;
-        }
-
-        Dictionary<int, List<MapTemplateDatabase.MapNodeEntry>> grouped = new Dictionary<int, List<MapTemplateDatabase.MapNodeEntry>>();
-        for (int i = 0; i < template.nodes.Count; i++)
-        {
-            MapTemplateDatabase.MapNodeEntry node = template.nodes[i];
-            if (node == null)
-            {
-                continue;
-            }
-
-            MapTemplateDatabase.EnsureValidNode(node);
-            if (!grouped.TryGetValue(node.layerIndex, out List<MapTemplateDatabase.MapNodeEntry> list))
-            {
-                list = new List<MapTemplateDatabase.MapNodeEntry>();
-                grouped.Add(node.layerIndex, list);
-            }
-
-            list.Add(node);
-        }
-
-        List<int> layers = new List<int>(grouped.Keys);
-        layers.Sort();
-
-        const float startX = 320f;
-        const float startY = 120f;
-        const float layerStepY = 180f;
-        const float siblingStepX = 220f;
-        const float diagonalOffsetX = 90f;
-
-        for (int i = 0; i < layers.Count; i++)
-        {
-            List<MapTemplateDatabase.MapNodeEntry> layerNodes = grouped[layers[i]];
-            layerNodes.Sort((a, b) => string.CompareOrdinal(a.nodeId, b.nodeId));
-            float width = (layerNodes.Count - 1) * siblingStepX;
-            float firstX = startX - width * 0.5f + i * diagonalOffsetX;
-            float y = startY + i * layerStepY;
-
-            for (int j = 0; j < layerNodes.Count; j++)
-            {
-                layerNodes[j].position = new Vector2(firstX + j * siblingStepX, y);
-            }
-        }
-
         MarkDirty(database);
     }
 
@@ -757,10 +697,24 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 ? new Color(0.35f, 0.78f, 1f, 1f)
                 : new Color(0f, 0f, 0f, 0.45f);
 
-        EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width, 2f), borderColor);
-        EditorGUI.DrawRect(new Rect(rect.x, rect.yMax - 2f, rect.width, 2f), borderColor);
-        EditorGUI.DrawRect(new Rect(rect.x, rect.y, 2f, rect.height), borderColor);
-        EditorGUI.DrawRect(new Rect(rect.xMax - 2f, rect.y, 2f, rect.height), borderColor);
+        Vector3[] points = ResolveDiamondPoints(rect);
+        Handles.BeginGUI();
+        Color oldColor = Handles.color;
+        Handles.color = borderColor;
+        Handles.DrawAAPolyLine(3f, points[0], points[1], points[2], points[3], points[0]);
+        Handles.color = oldColor;
+        Handles.EndGUI();
+    }
+
+    private static void DrawNodeFill(Rect rect, Color fillColor)
+    {
+        Vector3[] points = ResolveDiamondPoints(rect);
+        Handles.BeginGUI();
+        Color oldColor = Handles.color;
+        Handles.color = fillColor;
+        Handles.DrawAAConvexPolygon(points);
+        Handles.color = oldColor;
+        Handles.EndGUI();
     }
 
     private static Color ResolveNodeColor(MapTemplateDatabase.MapNodeEntry node)
@@ -776,6 +730,17 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         Color color = Color.HSVToRGB(hue, 0.35f, 0.42f);
         color.a = 1f;
         return color;
+    }
+
+    private static Vector3[] ResolveDiamondPoints(Rect rect)
+    {
+        return new[]
+        {
+            new Vector3(rect.center.x, rect.y),
+            new Vector3(rect.xMax, rect.center.y),
+            new Vector3(rect.center.x, rect.yMax),
+            new Vector3(rect.x, rect.center.y)
+        };
     }
 
     private static void BuildRoomTypeOptions(RoomTypeDatabase database, out string[] names, out string[] ids)

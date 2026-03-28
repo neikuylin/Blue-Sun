@@ -13,7 +13,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public string nodeId = string.Empty;
         public string displayName = string.Empty;
         public Vector2 position = new Vector2(120f, 120f);
-        public int layerIndex;
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public string encounterPresetId = string.Empty;
         public List<string> nextNodeIds = new List<string>();
