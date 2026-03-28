@@ -144,6 +144,7 @@ public class BattleTurnSystem : MonoBehaviour
     private AudioSource modeMusicSource;
     private Coroutine explorationMoveAudioStopRoutine;
     private bool pendingExplorationModeEnter;
+    private string lastDisplayedEquipmentCharacterId = string.Empty;
 
     private sealed class EnemySkillChoice
     {
@@ -350,6 +351,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        RefreshActiveUnitIdForDisplayedEquipmentCharacter();
         RefreshTargetPanelUi();
     }
 
@@ -1470,6 +1472,14 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
+        {
+            activeUnitIdText.enabled = true;
+            activeUnitIdText.text = displayedEquipmentCharacterId;
+            return;
+        }
+
         bool shouldShow = activeUnit != null &&
             activeUnit.IsAlive &&
             activeUnit.isPlayerControlled &&
@@ -1484,6 +1494,18 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         activeUnitIdText.text = string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId;
+    }
+
+    private void RefreshActiveUnitIdForDisplayedEquipmentCharacter()
+    {
+        string currentEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (string.Equals(lastDisplayedEquipmentCharacterId, currentEquipmentCharacterId, System.StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lastDisplayedEquipmentCharacterId = currentEquipmentCharacterId;
+        RefreshActiveUnitUi();
     }
 
     private void RefreshTimeline()
