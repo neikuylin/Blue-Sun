@@ -152,10 +152,6 @@ public class BattleBootstrap : MonoBehaviour
         RefreshSkillPagination(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
-        if (!turnSystem.IsExplorationMode)
-        {
-            StartCoroutine(PlayEnterBattleAnimations(units));
-        }
     }
 
     private void ResolveReferences()
@@ -210,124 +206,10 @@ public class BattleBootstrap : MonoBehaviour
         return units;
     }
 
-    private static IEnumerator PlayEnterBattleAnimations(IReadOnlyList<BattleUnit> units)
-    {
-        if (units == null || units.Count == 0)
-        {
-            yield break;
-        }
-
-        bool playedAny = false;
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null)
-            {
-                continue;
-            }
-
-            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
-            if (string.IsNullOrWhiteSpace(enterBattleStateName))
-            {
-                continue;
-            }
-
-            Animator animator = unit.GetComponentInChildren<Animator>(true);
-            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
-            {
-                continue;
-            }
-
-            BattleAudioUtility.PlayOnce(ResolveEnterBattleSound(), ResolveEnterBattleSoundPrefab(), unit);
-            unit.SetAnimationPositionCompensation(ShouldCompensateEnterBattleMotion());
-            animator.Play(enterBattleStateName, 0, 0f);
-            playedAny = true;
-        }
-
-        if (!playedAny)
-        {
-            yield break;
-        }
-
-        yield return null;
-
-        float longestDuration = 0f;
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null)
-            {
-                continue;
-            }
-
-            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
-            if (string.IsNullOrWhiteSpace(enterBattleStateName))
-            {
-                continue;
-            }
-
-            Animator animator = unit.GetComponentInChildren<Animator>(true);
-            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
-            {
-                continue;
-            }
-
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            longestDuration = Mathf.Max(longestDuration, stateInfo.length);
-        }
-
-        if (longestDuration > 0.01f)
-        {
-            yield return new WaitForSeconds(longestDuration);
-        }
-
-        string idleStateName = ResolveIdleStateName();
-        if (string.IsNullOrWhiteSpace(idleStateName))
-        {
-            yield break;
-        }
-
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null)
-            {
-                continue;
-            }
-
-            unit.SetAnimationPositionCompensation(false);
-            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
-        }
-    }
-
-    private static string ResolveEnterBattleStateName()
-    {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleStateName : string.Empty;
-    }
-
     private static string ResolveIdleStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
         return settings != null ? settings.idleStateName : string.Empty;
-    }
-
-    private static AudioClip ResolveEnterBattleSound()
-    {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleSound : null;
-    }
-
-    private static GameObject ResolveEnterBattleSoundPrefab()
-    {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleSoundPrefab : null;
-    }
-
-    private static bool ShouldCompensateEnterBattleMotion()
-    {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.enterBattleCompensateMotion;
     }
 
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()

@@ -9,6 +9,30 @@ public static class BattleAnimationSettingsResolver
         return settings != null ? settings.idleStateName : string.Empty;
     }
 
+    public static string ResolveEnterBattleStateName()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.enterBattleStateName : string.Empty;
+    }
+
+    public static AudioClip ResolveEnterBattleSound()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.enterBattleSound : null;
+    }
+
+    public static GameObject ResolveEnterBattleSoundPrefab()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.enterBattleSoundPrefab : null;
+    }
+
+    public static bool ResolveEnterBattleCompensateMotion()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null && settings.enterBattleCompensateMotion;
+    }
+
     public static string ResolveExplorationIdleStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();

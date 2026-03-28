@@ -244,7 +244,7 @@ public class BattleTurnSystem : MonoBehaviour
         absoluteRoundIndex = -1;
         activeSkillId = string.Empty;
         activeSkill = null;
-        currentMode = BattleFlowMode.Combat;
+        currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
         timelineLeadUnit = null;
@@ -258,10 +258,16 @@ public class BattleTurnSystem : MonoBehaviour
             }
         }
 
-        StartNewRound();
-        BeginCurrentTurn();
-        RefreshModeMusic();
-        EvaluateExplorationMode();
+        if (HasLivingEnemies())
+        {
+            EnterCombatMode(playEnterAnimation: true);
+            StartNewRound();
+            BeginCurrentTurn();
+        }
+        else
+        {
+            EnterExplorationMode(playExitAnimation: false);
+        }
     }
 
     public void SetSkillCostHintText(TMP_Text hintText)
@@ -604,8 +610,9 @@ public class BattleTurnSystem : MonoBehaviour
         EnterExplorationMode();
     }
 
-    private void EnterExplorationMode()
+    private void EnterExplorationMode(bool playExitAnimation = true)
     {
+        bool switchedFromCombat = currentMode == BattleFlowMode.Combat;
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         waitingForEnemyAction = false;
@@ -618,7 +625,15 @@ public class BattleTurnSystem : MonoBehaviour
         ClearHoveredSkillTarget();
         hoveredTargetUnit = null;
         activeUnit = FindExplorationPlayerUnit();
-        PlayExitBattleAnimations();
+        if (playExitAnimation && switchedFromCombat)
+        {
+            PlayExitBattleAnimations();
+        }
+        else
+        {
+            PlayExplorationIdleAnimation();
+        }
+
         if (activeUnit != null)
         {
             FocusCameraOnActiveUnit();
@@ -632,6 +647,24 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshTimeline();
         lastTargetUiSignature = "<exploration>";
         ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
+    }
+
+    private void EnterCombatMode(bool playEnterAnimation)
+    {
+        bool switchedFromExploration = currentMode == BattleFlowMode.Exploration;
+        currentMode = BattleFlowMode.Combat;
+        waitingForEnemyAction = false;
+        activeExplorationActionId = ExplorationMoveSkillId;
+        SetCombatUiVisible(true);
+        RefreshModeMusic();
+        RefreshSelectionOutlines();
+        RefreshHighlights();
+        RefreshActiveUnitUi();
+        RefreshTimeline();
+        if (playEnterAnimation && switchedFromExploration)
+        {
+            StartCoroutine(PlayEnterBattleAnimations());
+        }
     }
 
     private bool HasLivingEnemies()
@@ -5170,6 +5203,26 @@ public class BattleTurnSystem : MonoBehaviour
         return BattleAnimationSettingsResolver.ResolveIdleStateName();
     }
 
+    private static string ResolveEnterBattleStateName()
+    {
+        return BattleAnimationSettingsResolver.ResolveEnterBattleStateName();
+    }
+
+    private static AudioClip ResolveEnterBattleSound()
+    {
+        return BattleAnimationSettingsResolver.ResolveEnterBattleSound();
+    }
+
+    private static GameObject ResolveEnterBattleSoundPrefab()
+    {
+        return BattleAnimationSettingsResolver.ResolveEnterBattleSoundPrefab();
+    }
+
+    private static bool ResolveEnterBattleCompensateMotion()
+    {
+        return BattleAnimationSettingsResolver.ResolveEnterBattleCompensateMotion();
+    }
+
     private static string ResolveExplorationIdleStateName()
     {
         return BattleAnimationSettingsResolver.ResolveExplorationIdleStateName();
@@ -5235,6 +5288,7 @@ public class BattleTurnSystem : MonoBehaviour
         string stateName = ResolveExitBattleStateName();
         if (string.IsNullOrWhiteSpace(stateName))
         {
+            PlayExplorationIdleAnimation();
             return;
         }
 
@@ -5258,6 +5312,113 @@ public class BattleTurnSystem : MonoBehaviour
                 ResolveExplorationIdleStateName(),
                 ResolveExitBattleCompensateMotion());
             StartCoroutine(HideRuntimeWeaponsAfterExitAnimation(unit, stateName));
+        }
+    }
+
+    private void PlayExplorationIdleAnimation()
+    {
+        if (activeUnit == null || !activeUnit.IsAlive)
+        {
+            return;
+        }
+
+        string idleStateName = ResolveExplorationIdleStateName();
+        if (string.IsNullOrWhiteSpace(idleStateName))
+        {
+            return;
+        }
+
+        StopExplorationMoveAudio();
+        activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
+    }
+
+    private IEnumerator PlayEnterBattleAnimations()
+    {
+        if (units == null || units.Count == 0)
+        {
+            yield break;
+        }
+
+        bool playedAny = false;
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
+            if (string.IsNullOrWhiteSpace(enterBattleStateName))
+            {
+                continue;
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            BattleAudioUtility.PlayOnce(ResolveEnterBattleSound(), ResolveEnterBattleSoundPrefab(), unit, battleCamera);
+            unit.SetAnimationPositionCompensation(ResolveEnterBattleCompensateMotion());
+            animator.Play(enterBattleStateName, 0, 0f);
+            playedAny = true;
+        }
+
+        if (!playedAny)
+        {
+            yield break;
+        }
+
+        yield return null;
+
+        float longestDuration = 0f;
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName());
+            if (string.IsNullOrWhiteSpace(enterBattleStateName))
+            {
+                continue;
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            longestDuration = Mathf.Max(longestDuration, stateInfo.length);
+        }
+
+        if (longestDuration > 0.01f)
+        {
+            yield return new WaitForSeconds(longestDuration);
+        }
+
+        string idleStateName = ResolveIdleStateName();
+        if (string.IsNullOrWhiteSpace(idleStateName))
+        {
+            yield break;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            unit.SetAnimationPositionCompensation(false);
+            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
         }
     }
 
