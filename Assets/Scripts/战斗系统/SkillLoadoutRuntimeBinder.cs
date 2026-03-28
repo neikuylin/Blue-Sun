@@ -42,7 +42,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         public SkillSlotRelay relay;
     }
 
-    private sealed class SkillSlotRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+    private sealed class SkillSlotRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
     {
         private SkillLoadoutRuntimeBinder owner;
         private SlotSurface surface;
@@ -83,6 +83,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         public void OnDrop(PointerEventData eventData)
         {
             owner?.HandleDrop(surface, index);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            owner?.HandlePointerClick(surface, index, eventData);
         }
     }
 
@@ -446,6 +451,54 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         RefreshAll();
     }
 
+    private void HandlePointerClick(SlotSurface surface, int index, PointerEventData eventData)
+    {
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Right || isDragging)
+        {
+            return;
+        }
+
+        SkillSlotWidget widget = ResolveWidget(surface, index);
+        if (!TryHandleRightClickMove(widget))
+        {
+            return;
+        }
+
+        eventData.Use();
+        RefreshAll();
+    }
+
+    private bool TryHandleRightClickMove(SkillSlotWidget widget)
+    {
+        if (widget == null || string.IsNullOrWhiteSpace(widget.skillId) || widget.isGranted)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        if (entry == null)
+        {
+            return false;
+        }
+
+        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int sourceDataIndex = ResolveDataIndex(widget, memorySlotCount);
+        if (sourceDataIndex < 0)
+        {
+            return false;
+        }
+
+        int targetDataIndex = widget.surface == SlotSurface.Warehouse
+            ? FindFirstEmptyMemorizedSlotIndex(entry, memorySlotCount)
+            : FindFirstEmptyWarehouseSlotIndex(entry, memorySlotCount);
+        if (targetDataIndex < 0)
+        {
+            return false;
+        }
+
+        return TryMoveSkillSlot(entry, sourceDataIndex, targetDataIndex);
+    }
+
     private bool TrySwapSkillSlots(SkillSlotWidget sourceWidget, SkillSlotWidget targetWidget)
     {
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
@@ -488,6 +541,87 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return widget.surface == SlotSurface.Loadout
             ? widget.slotIndex
             : memorySlotCount + widget.slotIndex;
+    }
+
+    private static int FindFirstEmptyMemorizedSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
+    {
+        if (entry == null || entry.skillIds == null || memorySlotCount <= 0)
+        {
+            return -1;
+        }
+
+        int count = Mathf.Min(memorySlotCount, entry.skillIds.Count);
+        for (int i = 0; i < count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(entry.skillIds[i]))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindFirstEmptyWarehouseSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
+    {
+        if (entry == null)
+        {
+            return -1;
+        }
+
+        EnsureSkillDataCapacity(entry, Mathf.Max(memorySlotCount, entry.skillIds != null ? entry.skillIds.Count : 0));
+        for (int i = memorySlotCount; i < entry.skillIds.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(entry.skillIds[i]))
+            {
+                return i;
+            }
+        }
+
+        int appendedIndex = entry.skillIds.Count;
+        EnsureSkillDataCapacity(entry, appendedIndex + 1);
+        return appendedIndex;
+    }
+
+    private static bool TryMoveSkillSlot(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        int sourceDataIndex,
+        int targetDataIndex)
+    {
+        if (entry == null || sourceDataIndex < 0 || targetDataIndex < 0)
+        {
+            return false;
+        }
+
+        EnsureSkillDataCapacity(entry, Mathf.Max(sourceDataIndex, targetDataIndex) + 1);
+        if (sourceDataIndex >= entry.skillIds.Count || targetDataIndex >= entry.skillIds.Count)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.skillIds[sourceDataIndex]) || !string.IsNullOrWhiteSpace(entry.skillIds[targetDataIndex]))
+        {
+            return false;
+        }
+
+        entry.skillIds[targetDataIndex] = entry.skillIds[sourceDataIndex];
+        entry.skillIds[sourceDataIndex] = string.Empty;
+
+        if (entry.skillWeights != null)
+        {
+            int movedWeight = sourceDataIndex < entry.skillWeights.Count ? entry.skillWeights[sourceDataIndex] : 0;
+            if (targetDataIndex < entry.skillWeights.Count)
+            {
+                entry.skillWeights[targetDataIndex] = movedWeight;
+            }
+
+            if (sourceDataIndex < entry.skillWeights.Count)
+            {
+                entry.skillWeights[sourceDataIndex] = 0;
+            }
+        }
+
+        return true;
     }
 
     private static List<int> BuildDisplayedMemorizedDataIndices(
