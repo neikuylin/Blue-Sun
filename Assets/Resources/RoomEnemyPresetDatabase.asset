@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: RoomEnemyPresetDatabase
   m_EditorClassIdentifier: 
   entries:
-  - presetId: "\u623F\u95F4\u9884\u8BBE"
+  - presetId: "2\u4EBA\u5C0F\u961F"
+    roomTypeId: encounter_battle
     enemies:
     - enemyId: "\u5965\u624E\u514B\u58EB\u5175"
       spawnCell: {x: 13, y: 12}
