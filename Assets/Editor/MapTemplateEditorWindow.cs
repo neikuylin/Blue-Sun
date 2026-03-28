@@ -376,11 +376,15 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 }
 
                 Rect targetRect = ResolveNodeRect(canvasRect, target.position);
+                Vector2 offset = ResolveConnectionOffset(connection.direction, sourceRect.center, targetRect.center);
+                Vector2 drawSource = sourceRect.center + offset;
+                Vector2 drawTarget = targetRect.center + offset;
                 Handles.color = string.Equals(connectSourceNodeId, source.nodeId, StringComparison.Ordinal)
                     ? new Color(1f, 0.82f, 0.25f, 1f)
                     : new Color(0.9f, 0.9f, 0.9f, 0.9f);
-                Handles.DrawAAPolyLine(3f, sourceRect.center, targetRect.center);
-                DrawConnectionDirectionLabel(sourceRect.center, targetRect.center, connection.direction);
+                Handles.DrawAAPolyLine(3f, drawSource, drawTarget);
+                DrawConnectionArrow(drawSource, drawTarget);
+                DrawConnectionDirectionLabel(drawSource, drawTarget, connection.direction);
             }
         }
 
@@ -759,8 +763,65 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     private static void DrawConnectionDirectionLabel(Vector2 source, Vector2 target, MapTemplateDatabase.ConnectionDirection direction)
     {
         Vector2 mid = (source + target) * 0.5f;
-        Rect labelRect = new Rect(mid.x - 20f, mid.y - 10f, 40f, 20f);
+        float horizontalOffset = ResolveDirectionHorizontalOffset(direction);
+        Rect labelRect = new Rect(mid.x - 20f + horizontalOffset, mid.y - 10f, 40f, 20f);
         GUI.Label(labelRect, ResolveDirectionName(direction), EditorStyles.miniLabel);
+    }
+
+    private static Vector2 ResolveConnectionOffset(
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2 source,
+        Vector2 target)
+    {
+        Vector2 segment = target - source;
+        if (segment.sqrMagnitude <= 0.001f)
+        {
+            return new Vector2(ResolveDirectionHorizontalOffset(direction), 0f);
+        }
+
+        segment.Normalize();
+        Vector2 normal = new Vector2(-segment.y, segment.x);
+        float side = ResolveDirectionHorizontalOffset(direction) < 0f ? -1f : 1f;
+        return normal * 12f * side;
+    }
+
+    private static float ResolveDirectionHorizontalOffset(MapTemplateDatabase.ConnectionDirection direction)
+    {
+        switch (direction)
+        {
+            case MapTemplateDatabase.ConnectionDirection.North:
+            case MapTemplateDatabase.ConnectionDirection.East:
+                return -18f;
+            case MapTemplateDatabase.ConnectionDirection.West:
+            case MapTemplateDatabase.ConnectionDirection.South:
+                return 18f;
+            default:
+                return 0f;
+        }
+    }
+
+    private static void DrawConnectionArrow(Vector2 source, Vector2 target)
+    {
+        Vector2 direction = target - source;
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        direction.Normalize();
+        Vector2 mid = Vector2.Lerp(source, target, 0.5f);
+        Vector2 tip = mid + direction * 10f;
+        Vector2 back = mid - direction * 6f;
+        Vector2 normal = new Vector2(-direction.y, direction.x);
+        Vector2 left = back + normal * 6f;
+        Vector2 right = back - normal * 6f;
+
+        Handles.BeginGUI();
+        Color oldColor = Handles.color;
+        Handles.color = new Color(0.95f, 0.95f, 0.95f, 0.95f);
+        Handles.DrawAAConvexPolygon(tip, left, right);
+        Handles.color = oldColor;
+        Handles.EndGUI();
     }
 
     private static string ResolveDirectionName(MapTemplateDatabase.ConnectionDirection direction)
