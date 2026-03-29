@@ -27,6 +27,12 @@ public sealed class BattleRoomDirectionClickRelay : MonoBehaviour
             return;
         }
 
+        BattleTurnSystem turnSystem = Object.FindObjectOfType<BattleTurnSystem>();
+        if (turnSystem != null && !turnSystem.IsExplorationMode)
+        {
+            return;
+        }
+
         Debug.Log($"BattleRoomDirectionClickRelay: sprite click targetNode='{targetNodeId}' on '{gameObject.name}'.");
         BattleBootstrap.NavigateToNode(targetNodeId);
     }
