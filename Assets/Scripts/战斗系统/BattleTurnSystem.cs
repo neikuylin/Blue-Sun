@@ -3507,40 +3507,13 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < units.Count; i++)
+        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
+        for (int i = 0; i < targets.Count; i++)
         {
-            BattleUnit unit = units[i];
+            BattleUnit unit = targets[i];
             if (unit == null || !unit.IsAlive)
             {
                 continue;
-            }
-
-            if (!IsValidSkillTarget(caster, unit, skill))
-            {
-                continue;
-            }
-
-            if (UsesContinuousCircularArea(skill))
-            {
-                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else if (IsCircularAxisAreaSkill(skill))
-            {
-                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
-                if (!IsUnitInsideAreaCells(unit, affectedCells))
-                {
-                    continue;
-                }
             }
 
             if (!RollSkillHit(caster, unit))
@@ -3585,40 +3558,13 @@ public class BattleTurnSystem : MonoBehaviour
 
         List<string> hitTargets = new List<string>();
         List<string> missedTargets = new List<string>();
-        for (int i = 0; i < units.Count; i++)
+        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
+        for (int i = 0; i < targets.Count; i++)
         {
-            BattleUnit unit = units[i];
+            BattleUnit unit = targets[i];
             if (unit == null || !unit.IsAlive)
             {
                 continue;
-            }
-
-            if (!IsValidSkillTarget(caster, unit, skill))
-            {
-                continue;
-            }
-
-            if (UsesContinuousCircularArea(skill))
-            {
-                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else if (IsCircularAxisAreaSkill(skill))
-            {
-                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
-                if (!IsUnitInsideAreaCells(unit, affectedCells))
-                {
-                    continue;
-                }
             }
 
             string unitName = ResolveBattleInfoUnitName(unit, richText: true);
@@ -5482,6 +5428,32 @@ public class BattleTurnSystem : MonoBehaviour
             return names;
         }
 
+        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
+        for (int i = 0; i < targets.Count; i++)
+        {
+            BattleUnit unit = targets[i];
+            names.Add(ResolveBattleInfoUnitName(unit, richText: true));
+        }
+
+        return names;
+    }
+
+    private List<BattleUnit> CollectAreaSkillTargets(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        List<BattleUnit> targets = new List<BattleUnit>();
+        if (caster == null || skill == null)
+        {
+            return targets;
+        }
+
+        bool usesContinuousCircularArea = UsesContinuousCircularArea(skill);
+        bool usesCircularAxisArea = IsCircularAxisAreaSkill(skill);
+        HashSet<Vector2Int> affectedCells = null;
+        if (!usesContinuousCircularArea && !usesCircularAxisArea)
+        {
+            affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
+        }
+
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -5495,33 +5467,29 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (UsesContinuousCircularArea(skill))
+            if (usesContinuousCircularArea)
             {
                 if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
                 {
                     continue;
                 }
             }
-            else if (IsCircularAxisAreaSkill(skill))
+            else if (usesCircularAxisArea)
             {
                 if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
                 {
                     continue;
                 }
             }
-            else
+            else if (!IsUnitInsideAreaCells(unit, affectedCells))
             {
-                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
-                if (!IsUnitInsideAreaCells(unit, affectedCells))
-                {
-                    continue;
-                }
+                continue;
             }
 
-            names.Add(ResolveBattleInfoUnitName(unit, richText: true));
+            targets.Add(unit);
         }
 
-        return names;
+        return targets;
     }
 
     private static string ResolveBattleInfoUnitName(BattleUnit unit, bool richText = false)
