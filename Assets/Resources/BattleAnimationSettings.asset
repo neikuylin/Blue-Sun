@@ -114,19 +114,19 @@ MonoBehaviour:
     stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   - enabled: 1
     weaponCategory: 2
     stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   combatArtRightAimStateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
   combatArtRightAimSound: {fileID: 0}
   combatArtRightAimSoundPrefab: {fileID: 0}
@@ -143,19 +143,19 @@ MonoBehaviour:
     stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   - enabled: 1
     weaponCategory: 2
     stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
-    compensateMotion: 0
+    compensateMotion: 1
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
   hitReactionSoundPrefab: {fileID: 0}

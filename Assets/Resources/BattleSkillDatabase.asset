@@ -41,11 +41,35 @@ MonoBehaviour:
     requiredWeaponCategories: 
     weaponActionOverrides:
     - enabled: 1
-      weaponCategory: 1
+      weaponCategory: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
       actionYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
+      soundDelayFrame: 0
+      compensateActionMotion: 1
+    - enabled: 1
+      weaponCategory: 1
+      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
+      actionYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
+    - enabled: 1
+      weaponCategory: 2
+      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
+      actionYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
+    - enabled: 1
+      weaponCategory: 3
+      actionStateName: "\u5F13\u7BAD\u79FB\u52A8"
+      actionYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
       compensateActionMotion: 1
   - skillId: "\u666E\u901A\u653B\u51FB"
@@ -105,7 +129,7 @@ MonoBehaviour:
   - skillId: "\u5C04\u51FB"
     description: 
     actionStateName: "\u5C04\u51FB"
-    actionYawOffset: 0
+    actionYawOffset: 80
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
     soundDelayFrame: 0
