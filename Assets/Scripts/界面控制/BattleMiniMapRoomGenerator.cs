@@ -25,6 +25,9 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
     [SerializeField] private bool regenerateOnEnable = true;
 
     private bool isRegenerating;
+#if UNITY_EDITOR
+    private bool regenerateQueuedInEditor;
+#endif
 
     public void RegenerateRooms()
     {
@@ -99,19 +102,53 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
     {
         if (regenerateOnEnable)
         {
-            RegenerateRooms();
+            QueueRegenerate();
         }
     }
 
     private void OnValidate()
+    {
+        QueueRegenerate();
+    }
+
+    private void QueueRegenerate()
     {
         if (!regenerateOnEnable)
         {
             return;
         }
 
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            if (regenerateQueuedInEditor)
+            {
+                return;
+            }
+
+            regenerateQueuedInEditor = true;
+            EditorApplication.delayCall += RegenerateRoomsInEditor;
+            return;
+        }
+#endif
+
         RegenerateRooms();
     }
+
+#if UNITY_EDITOR
+    private void RegenerateRoomsInEditor()
+    {
+        EditorApplication.delayCall -= RegenerateRoomsInEditor;
+        regenerateQueuedInEditor = false;
+
+        if (this == null || gameObject == null)
+        {
+            return;
+        }
+
+        RegenerateRooms();
+    }
+#endif
 
     private void ClearGeneratedRooms()
     {
