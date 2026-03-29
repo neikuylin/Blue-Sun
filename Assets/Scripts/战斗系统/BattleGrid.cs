@@ -114,6 +114,16 @@ public class BattleGrid : MonoBehaviour
 
     public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)
     {
+        return IsWalkableInternal(unit, centerCell, false, false);
+    }
+
+    public bool IsWalkableIgnoringAllies(BattleUnit unit, Vector2Int centerCell)
+    {
+        return IsWalkableInternal(unit, centerCell, true, false);
+    }
+
+    private bool IsWalkableInternal(BattleUnit unit, Vector2Int centerCell, bool ignoreAlliedOccupants, bool allowDestinationOnAllies)
+    {
         int radius = unit != null ? unit.FootprintRadius : 0;
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
@@ -128,6 +138,18 @@ public class BattleGrid : MonoBehaviour
                 BattleUnit occupant = GetUnitAt(cell);
                 if (occupant != null && occupant != unit)
                 {
+                    bool isDestinationCell = cell == centerCell;
+                    if (ignoreAlliedOccupants &&
+                        unit != null &&
+                        occupant.team == unit.team &&
+                        occupant.isPlayerControlled == unit.isPlayerControlled)
+                    {
+                        if (allowDestinationOnAllies || !isDestinationCell)
+                        {
+                            continue;
+                        }
+                    }
+
                     return false;
                 }
             }
@@ -161,6 +183,17 @@ public class BattleGrid : MonoBehaviour
     public float MoveUnit(BattleUnit unit, Vector2Int destination)
     {
         List<Vector2Int> path = FindPath(unit, destination);
+        return MoveUnitAlongResolvedPath(unit, destination, path);
+    }
+
+    public float MoveUnitIgnoringAllies(BattleUnit unit, Vector2Int destination)
+    {
+        List<Vector2Int> path = FindPathIgnoringAllies(unit, destination);
+        return MoveUnitAlongResolvedPath(unit, destination, path);
+    }
+
+    private float MoveUnitAlongResolvedPath(BattleUnit unit, Vector2Int destination, List<Vector2Int> path)
+    {
         if (path == null || path.Count == 0)
         {
             return 0f;
@@ -197,7 +230,25 @@ public class BattleGrid : MonoBehaviour
 
     public List<Vector2Int> FindPath(BattleUnit unit, Vector2Int destination)
     {
-        if (unit == null || !IsInside(destination) || !IsWalkable(unit, destination))
+        return FindPathInternal(unit, destination, false);
+    }
+
+    public List<Vector2Int> FindPathIgnoringAllies(BattleUnit unit, Vector2Int destination)
+    {
+        return FindPathInternal(unit, destination, true);
+    }
+
+    private List<Vector2Int> FindPathInternal(BattleUnit unit, Vector2Int destination, bool ignoreAlliedOccupants)
+    {
+        if (unit == null || !IsInside(destination))
+        {
+            return null;
+        }
+
+        bool destinationWalkable = ignoreAlliedOccupants
+            ? IsWalkableIgnoringAllies(unit, destination)
+            : IsWalkable(unit, destination);
+        if (!destinationWalkable)
         {
             return null;
         }
@@ -219,7 +270,10 @@ public class BattleGrid : MonoBehaviour
             for (int i = 0; i < CardinalDirections.Length; i++)
             {
                 Vector2Int next = current + CardinalDirections[i];
-                if (cameFrom.ContainsKey(next) || !IsInside(next) || !IsWalkable(unit, next))
+                bool nextWalkable = ignoreAlliedOccupants
+                    ? IsWalkableIgnoringAllies(unit, next)
+                    : IsWalkable(unit, next);
+                if (cameFrom.ContainsKey(next) || !IsInside(next) || !nextWalkable)
                 {
                     continue;
                 }

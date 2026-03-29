@@ -556,7 +556,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        List<Vector2Int> path = grid.FindPath(unit, destination);
+        List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
         if (path == null || path.Count <= 1)
         {
             return;
@@ -573,7 +573,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        float moveDuration = grid.MoveUnit(unit, destination);
+        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
         if (moveSkill != null)
         {
             StartCoroutine(PlayTrackedSkillAudioRoutine(unit, moveSkill, moveDuration));
@@ -596,7 +596,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        List<Vector2Int> path = grid.FindPath(unit, destination);
+        List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
         if (path == null || path.Count <= 1)
         {
             return;
@@ -604,7 +604,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         float originalMoveSpeed = unit.moveSpeed;
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = grid.MoveUnit(unit, destination);
+        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
         unit.moveSpeed = originalMoveSpeed;
         string idleStateName = ResolveExplorationIdleStateName();
         PlayExplorationMoveAudio(unit, moveDuration);
@@ -745,12 +745,12 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                if (!grid.IsWalkable(follower, candidate))
+                if (!grid.IsWalkableIgnoringAllies(follower, candidate))
                 {
                     continue;
                 }
 
-                List<Vector2Int> path = grid.FindPath(follower, candidate);
+                List<Vector2Int> path = grid.FindPathIgnoringAllies(follower, candidate);
                 if (path == null || path.Count <= 1)
                 {
                     continue;
@@ -787,7 +787,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         float originalMoveSpeed = unit.moveSpeed;
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = grid.MoveUnit(unit, destination);
+        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
         unit.moveSpeed = originalMoveSpeed;
         if (moveDuration <= 0f)
         {
