@@ -22,7 +22,6 @@ public class BattleBootstrap : MonoBehaviour
     }
 
     private const string SceneName = "战斗副本";
-    private const string DefaultRoomEnemyPresetId = "房间预设";
     private const string DefaultDungeonTemplateId = "地牢1";
     private const string DefaultDungeonNodeId = "入口";
     private const string RuntimeRootName = "BattleRuntime";
@@ -329,6 +328,11 @@ public class BattleBootstrap : MonoBehaviour
     {
         List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
         string roomEnemyPresetId = ResolveBattleRoomEnemyPresetId();
+        if (string.IsNullOrWhiteSpace(roomEnemyPresetId))
+        {
+            return entries;
+        }
+
         RoomEnemyPresetDatabase presetDatabase = RoomEnemyPresetDatabase.LoadDefault();
         if (presetDatabase == null)
         {
@@ -354,11 +358,6 @@ public class BattleBootstrap : MonoBehaviour
             entries.Add(RoomEnemyPresetDatabase.CloneEnemy(entry));
         }
 
-        if (entries.Count == 0)
-        {
-            Debug.LogWarning($"BattleBootstrap: room enemy preset '{roomEnemyPresetId}' contains no valid enemies.");
-        }
-
         return entries;
     }
 
@@ -370,7 +369,7 @@ public class BattleBootstrap : MonoBehaviour
             return node.encounterPresetId.Trim();
         }
 
-        return DefaultRoomEnemyPresetId;
+        return string.Empty;
     }
 
     private static GameObject ResolveBattleRoomContentPrefab()
