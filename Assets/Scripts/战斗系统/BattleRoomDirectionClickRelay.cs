@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 [DisallowMultipleComponent]
 public sealed class BattleRoomDirectionClickRelay : MonoBehaviour
@@ -16,6 +17,12 @@ public sealed class BattleRoomDirectionClickRelay : MonoBehaviour
     private void OnMouseUpAsButton()
     {
         if (!interactable || string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            return;
+        }
+
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem != null && eventSystem.IsPointerOverGameObject())
         {
             return;
         }
