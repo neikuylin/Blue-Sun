@@ -28,10 +28,8 @@ MonoBehaviour:
   - characterId: "\u5E93\u9C81\u65AF"
     skillIds:
     - 
-    - "\u56DE\u65CB\u65A9"
-    - 
-    - "\u56DE\u65CB\u65A9"
-    skillWeights: 00000000000000000000000000000000
+    - "\u5C04\u51FB"
+    skillWeights: 0000000000000000
   - characterId: "\u5047\u4EBA"
     skillIds: []
     skillWeights: 
