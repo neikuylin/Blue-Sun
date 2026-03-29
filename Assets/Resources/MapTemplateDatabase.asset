@@ -27,7 +27,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
-      position: {x: 652, y: 162}
+      position: {x: 649, y: 162}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
