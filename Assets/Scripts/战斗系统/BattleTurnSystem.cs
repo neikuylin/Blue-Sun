@@ -653,12 +653,13 @@ public class BattleTurnSystem : MonoBehaviour
     private IEnumerator RunExplorationFollowerMovementRoutine(BattleUnit leaderUnit)
     {
         explorationFollowerInProgress = true;
-        WaitForSeconds tickDelay = new WaitForSeconds(0.12f);
+        WaitForSeconds idleDelay = new WaitForSeconds(2f);
 
         while (IsExplorationMode && leaderUnit != null && leaderUnit.IsAlive)
         {
             bool issuedFollowerMove = false;
             bool hasPendingFollowerGap = false;
+            float maxMoveDuration = 0f;
             Vector2Int leaderCell = leaderUnit.IsMoving ? grid.WorldToCell(leaderUnit.transform.position) : leaderUnit.currentCell;
             List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
             HashSet<Vector2Int> reservedDestinations = new HashSet<Vector2Int>();
@@ -690,15 +691,19 @@ public class BattleTurnSystem : MonoBehaviour
                 }
 
                 reservedDestinations.Add(destination);
-                if (PlayExplorationFollowerMove(follower, destination) > 0f)
+                float moveDuration = PlayExplorationFollowerMove(follower, destination);
+                if (moveDuration > 0f)
                 {
                     issuedFollowerMove = true;
+                    maxMoveDuration = Mathf.Max(maxMoveDuration, moveDuration);
                 }
             }
 
             if (issuedFollowerMove)
             {
                 RefreshHighlights();
+                yield return new WaitForSeconds(maxMoveDuration);
+                continue;
             }
 
             if (!leaderUnit.IsMoving && !hasPendingFollowerGap && !issuedFollowerMove)
@@ -706,7 +711,7 @@ public class BattleTurnSystem : MonoBehaviour
                 break;
             }
 
-            yield return tickDelay;
+            yield return idleDelay;
         }
 
         explorationFollowerInProgress = false;
@@ -778,7 +783,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
-                if (leaderDistance > 10)
+                if (leaderDistance > 5)
                 {
                     continue;
                 }
@@ -799,7 +804,7 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                int distanceDelta = Mathf.Abs(10 - leaderDistance);
+                int distanceDelta = Mathf.Abs(5 - leaderDistance);
                 int pathLength = path.Count - 1;
                 if (distanceDelta > bestDistanceDelta)
                 {
