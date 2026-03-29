@@ -26,6 +26,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string DefaultDungeonNodeId = "入口";
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
+    private const string RoomContentRootName = "RoomContent";
 
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
@@ -125,6 +126,7 @@ public class BattleBootstrap : MonoBehaviour
         AlignDungeonBoardToCamera(mainCamera);
 
         Transform runtimeRoot = CreateRuntimeRoot();
+        CreateRoomContent(runtimeRoot);
         BattleGrid grid = CreateGrid(runtimeRoot);
         List<BattleUnit> units = CreateUnits(grid, runtimeRoot);
         if (units.Count < 2)
@@ -172,6 +174,26 @@ public class BattleBootstrap : MonoBehaviour
         GameObject runtimeRoot = new GameObject(RuntimeRootName);
         runtimeRoot.transform.SetParent(transform, false);
         return runtimeRoot.transform;
+    }
+
+    private void CreateRoomContent(Transform runtimeRoot)
+    {
+        if (runtimeRoot == null)
+        {
+            return;
+        }
+
+        GameObject roomContentPrefab = ResolveBattleRoomContentPrefab();
+        if (roomContentPrefab == null)
+        {
+            return;
+        }
+
+        GameObject instance = Instantiate(roomContentPrefab, runtimeRoot, false);
+        instance.name = RoomContentRootName;
+        instance.transform.localPosition = roomContentPrefab.transform.localPosition;
+        instance.transform.localRotation = roomContentPrefab.transform.localRotation;
+        instance.transform.localScale = roomContentPrefab.transform.localScale;
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -269,16 +291,33 @@ public class BattleBootstrap : MonoBehaviour
 
     private static string ResolveBattleRoomEnemyPresetId()
     {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        if (node != null && !string.IsNullOrWhiteSpace(node.encounterPresetId))
+        {
+            return node.encounterPresetId.Trim();
+        }
+
+        return DefaultRoomEnemyPresetId;
+    }
+
+    private static GameObject ResolveBattleRoomContentPrefab()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        return node != null ? node.battleSceneContentPrefab : null;
+    }
+
+    private static MapTemplateDatabase.MapNodeEntry ResolveBattleRoomNode()
+    {
         MapTemplateDatabase mapTemplateDatabase = MapTemplateDatabase.LoadDefault();
         if (mapTemplateDatabase == null)
         {
-            return DefaultRoomEnemyPresetId;
+            return null;
         }
 
         MapTemplateDatabase.MapTemplateEntry template = mapTemplateDatabase.FindEntry(DefaultDungeonTemplateId);
         if (template == null || template.nodes == null)
         {
-            return DefaultRoomEnemyPresetId;
+            return null;
         }
 
         for (int i = 0; i < template.nodes.Count; i++)
@@ -294,15 +333,10 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(node.encounterPresetId))
-            {
-                return node.encounterPresetId.Trim();
-            }
-
-            return DefaultRoomEnemyPresetId;
+            return node;
         }
 
-        return DefaultRoomEnemyPresetId;
+        return null;
     }
 
     private void SetupBattleCamera(Camera mainCamera)

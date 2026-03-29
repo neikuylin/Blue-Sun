@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -250,7 +250,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         string editedNodeId = EditorGUILayout.TextField("节点ID", node.nodeId);
         node.nodeId = NormalizeIdentifier(editedNodeId, oldNodeId);
         node.displayName = EditorGUILayout.TextField("显示名字", node.displayName);
-        EditorGUILayout.HelpBox("节点ID仅用于内部定位，不建议输入空格。想写可读名字，请改“显示名字”。", MessageType.None);
+        EditorGUILayout.HelpBox("节点ID只用于内部定位，不建议输入空格。想写可读名字，请改“显示名字”。", MessageType.None);
 
         if (string.IsNullOrWhiteSpace(node.displayName))
         {
@@ -275,6 +275,17 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         if (nextEncounterIndex >= 0 && nextEncounterIndex < encounterIds.Length)
         {
             node.encounterPresetId = encounterIds[nextEncounterIndex];
+        }
+
+        GameObject nextBattleSceneContentPrefab = EditorGUILayout.ObjectField(
+            "战斗副本内容",
+            node.battleSceneContentPrefab,
+            typeof(GameObject),
+            false) as GameObject;
+        if (nextBattleSceneContentPrefab != node.battleSceneContentPrefab)
+        {
+            node.battleSceneContentPrefab = nextBattleSceneContentPrefab;
+            MarkDirty(database);
         }
 
         EditorGUILayout.Vector2Field("画布位置", node.position);
@@ -331,7 +342,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             MarkDirty(database);
         }
     }
-
     private void DrawCanvasGrid(Rect canvasRect)
     {
         Handles.BeginGUI();
@@ -1153,3 +1163,4 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         }
     }
 }
+
