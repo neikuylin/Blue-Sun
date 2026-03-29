@@ -18,7 +18,7 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 292, y: 93}
+      position: {x: 769, y: 73}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
@@ -29,16 +29,18 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: "\u623F\u95F41"
       displayName: "\u623F\u95F4"
-      position: {x: 159, y: 185}
+      position: {x: 650, y: 153}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
       - targetNodeId: "\u5165\u53E3"
         direction: 0
+      - targetNodeId: node_2
+        direction: 2
       nextNodeIds: []
     - nodeId: "\u623F\u95F42"
       displayName: "\u623F\u95F4"
-      position: {x: 440, y: 197}
+      position: {x: 900, y: 167}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
@@ -47,10 +49,26 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
-      position: {x: 424, y: 16}
+      position: {x: 886, y: 0}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       connections:
       - targetNodeId: "\u5165\u53E3"
         direction: 2
+      nextNodeIds: []
+    - nodeId: node_2
+      displayName: node_2
+      position: {x: 530, y: 233}
+      roomTypeId: encounter_battle
+      encounterPresetId: 
+      connections:
+      - targetNodeId: node_3
+        direction: 1
+      nextNodeIds: []
+    - nodeId: node_3
+      displayName: node_3
+      position: {x: 655, y: 334}
+      roomTypeId: encounter_battle
+      encounterPresetId: 
+      connections: []
       nextNodeIds: []
