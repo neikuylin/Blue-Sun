@@ -643,6 +643,8 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
+        HashSet<Vector2Int> reservedDestinations = new HashSet<Vector2Int>();
+        float maxMoveDuration = 0f;
         for (int i = 0; i < followers.Count; i++)
         {
             BattleUnit follower = followers[i];
@@ -657,17 +659,23 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             Vector2Int destination;
-            if (!TryFindExplorationFollowerDestination(follower, leaderUnit.currentCell, out destination))
+            if (!TryFindExplorationFollowerDestination(follower, leaderUnit.currentCell, reservedDestinations, out destination))
             {
                 continue;
             }
 
+            reservedDestinations.Add(destination);
             float moveDuration = PlayExplorationFollowerMove(follower, destination);
             if (moveDuration > 0f)
             {
-                RefreshHighlights();
-                yield return new WaitForSeconds(moveDuration);
+                maxMoveDuration = Mathf.Max(maxMoveDuration, moveDuration);
             }
+        }
+
+        if (maxMoveDuration > 0f)
+        {
+            RefreshHighlights();
+            yield return new WaitForSeconds(maxMoveDuration);
         }
 
         explorationFollowerInProgress = false;
@@ -717,7 +725,11 @@ public class BattleTurnSystem : MonoBehaviour
         return orderedFollowers;
     }
 
-    private bool TryFindExplorationFollowerDestination(BattleUnit follower, Vector2Int leaderCell, out Vector2Int destination)
+    private bool TryFindExplorationFollowerDestination(
+        BattleUnit follower,
+        Vector2Int leaderCell,
+        HashSet<Vector2Int> reservedDestinations,
+        out Vector2Int destination)
     {
         destination = follower != null ? follower.currentCell : Vector2Int.zero;
         if (follower == null || grid == null)
@@ -736,6 +748,11 @@ public class BattleTurnSystem : MonoBehaviour
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
                 if (leaderDistance > 10)
+                {
+                    continue;
+                }
+
+                if (reservedDestinations != null && reservedDestinations.Contains(candidate))
                 {
                     continue;
                 }
