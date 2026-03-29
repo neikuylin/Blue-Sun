@@ -93,7 +93,7 @@ MonoBehaviour:
     requiredWeaponCategories: 0100000002000000
   - skillId: "\u5C04\u51FB"
     description: 
-    actionStateName: 
+    actionStateName: "\u5C04\u51FB"
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
