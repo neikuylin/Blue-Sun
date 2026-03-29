@@ -459,11 +459,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (explorationFollowerInProgress)
-        {
-            return;
-        }
-
         if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || grid == null || battleCamera == null)
         {
             return;
@@ -656,7 +651,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 15)
+            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 10)
             {
                 continue;
             }
@@ -740,7 +735,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
-                if (leaderDistance > 15)
+                if (leaderDistance > 10)
                 {
                     continue;
                 }
@@ -756,7 +751,7 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                int distanceDelta = Mathf.Abs(15 - leaderDistance);
+                int distanceDelta = Mathf.Abs(10 - leaderDistance);
                 int pathLength = path.Count - 1;
                 if (distanceDelta > bestDistanceDelta)
                 {
