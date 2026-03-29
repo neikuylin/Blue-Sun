@@ -18,6 +18,7 @@ public class BattleTurnSystem : MonoBehaviour
     }
 
     private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
+    private const string TimelineDividerPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u65F6\u95F4\u8F74\u5206\u5272\u7EBF";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
@@ -102,6 +103,7 @@ public class BattleTurnSystem : MonoBehaviour
     private TMP_Text targetNameText;
     private BattleInfoWindowPresenter battleInfoWindowPresenter;
     private Transform timelineAnchor;
+    private Transform timelineDivider;
     private Button endTurnButton;
     private Button moveSkillButton;
     private BattleSceneBindings sceneBindings;
@@ -994,6 +996,16 @@ public class BattleTurnSystem : MonoBehaviour
             timelineAnchor.gameObject.SetActive(visible);
         }
 
+        if (timelineDivider == null)
+        {
+            timelineDivider = FindTransformByPath(TimelineDividerPath);
+        }
+
+        if (timelineDivider != null)
+        {
+            timelineDivider.gameObject.SetActive(visible);
+        }
+
         if (endTurnButton != null)
         {
             endTurnButton.gameObject.SetActive(visible);
@@ -1235,6 +1247,7 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (IsExplorationMode)
         {
+            CacheTargetPanelReferences();
             lastTargetUiSignature = "<exploration>";
             ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
             return;
