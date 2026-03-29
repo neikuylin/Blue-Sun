@@ -351,8 +351,9 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             return ResolveMiniMapCenter();
         }
 
+        string displayedCurrentNodeId = ResolveDisplayedCurrentNodeId();
         Vector2Int playerLogicalPosition;
-        if (nodeGridPositions.TryGetValue(currentPlayerNodeId, out playerLogicalPosition))
+        if (nodeGridPositions.TryGetValue(displayedCurrentNodeId, out playerLogicalPosition))
         {
             logicalPosition -= playerLogicalPosition;
         }
@@ -437,11 +438,12 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 
     private void TryAttachPlayerLocationMarker(GameObject roomInstance, MapTemplateDatabase.MapNodeEntry node)
     {
+        string displayedCurrentNodeId = ResolveDisplayedCurrentNodeId();
         if (roomInstance == null ||
             node == null ||
             playerLocationMarkerPrefab == null ||
-            string.IsNullOrWhiteSpace(currentPlayerNodeId) ||
-            !string.Equals(node.nodeId, currentPlayerNodeId, StringComparison.Ordinal))
+            string.IsNullOrWhiteSpace(displayedCurrentNodeId) ||
+            !string.Equals(node.nodeId, displayedCurrentNodeId, StringComparison.Ordinal))
         {
             return;
         }
@@ -483,6 +485,16 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             markerInstance.transform.localPosition = Vector3.zero;
             markerInstance.transform.localScale = Vector3.one;
         }
+    }
+
+    private string ResolveDisplayedCurrentNodeId()
+    {
+        if (Application.isPlaying && !string.IsNullOrWhiteSpace(BattleBootstrap.CurrentDungeonNodeId))
+        {
+            return BattleBootstrap.CurrentDungeonNodeId;
+        }
+
+        return currentPlayerNodeId;
     }
 
     private static void ApplyRectTransformFromPrefab(RectTransform target, RectTransform source)

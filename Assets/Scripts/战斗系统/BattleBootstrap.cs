@@ -87,6 +87,12 @@ public class BattleBootstrap : MonoBehaviour
     public bool showEditorGrid = true;
     public Color editorGridColor = new Color(0.15f, 0.7f, 1f, 0.8f);
 
+    private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
+    private static string currentDungeonNodeId = DefaultDungeonNodeId;
+
+    public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
+    public static string CurrentDungeonNodeId => currentDungeonNodeId;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AutoCreate()
     {
@@ -103,6 +109,19 @@ public class BattleBootstrap : MonoBehaviour
 
         GameObject bootstrapObject = new GameObject("BattleBootstrap");
         bootstrapObject.AddComponent<BattleBootstrap>();
+    }
+
+    public static void SetCurrentRoom(string templateId, string nodeId)
+    {
+        if (!string.IsNullOrWhiteSpace(templateId))
+        {
+            currentDungeonTemplateId = templateId.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(nodeId))
+        {
+            currentDungeonNodeId = nodeId.Trim();
+        }
     }
 
     private void Start()
@@ -252,7 +271,12 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        instanceButton.interactable = HasConnectionInDirection(roomNode, direction);
+        string targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
+        instanceButton.interactable = !string.IsNullOrWhiteSpace(targetNodeId);
+        if (!string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            instanceButton.onClick.AddListener(() => OnDirectionButtonClicked(targetNodeId));
+        }
     }
 
     private static bool HasConnectionInDirection(
@@ -279,6 +303,43 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return false;
+    }
+
+    private static string FindConnectionTargetInDirection(
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        MapTemplateDatabase.ConnectionDirection direction)
+    {
+        if (roomNode == null || roomNode.connections == null)
+        {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < roomNode.connections.Count; i++)
+        {
+            MapTemplateDatabase.MapConnectionEntry connection = roomNode.connections[i];
+            if (connection == null || string.IsNullOrWhiteSpace(connection.targetNodeId))
+            {
+                continue;
+            }
+
+            if (connection.direction == direction)
+            {
+                return connection.targetNodeId.Trim();
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static void OnDirectionButtonClicked(string targetNodeId)
+    {
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            return;
+        }
+
+        SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
+        SceneManager.LoadScene(SceneName);
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
@@ -386,7 +447,7 @@ public class BattleBootstrap : MonoBehaviour
             return null;
         }
 
-        MapTemplateDatabase.MapTemplateEntry template = mapTemplateDatabase.FindEntry(DefaultDungeonTemplateId);
+        MapTemplateDatabase.MapTemplateEntry template = mapTemplateDatabase.FindEntry(currentDungeonTemplateId);
         if (template == null || template.nodes == null)
         {
             return null;
@@ -400,12 +461,30 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
-            if (!string.Equals(node.nodeId, DefaultDungeonNodeId, System.StringComparison.Ordinal))
+            if (!string.Equals(node.nodeId, currentDungeonNodeId, System.StringComparison.Ordinal))
             {
                 continue;
             }
 
             return node;
+        }
+
+        if (!string.Equals(currentDungeonNodeId, DefaultDungeonNodeId, System.StringComparison.Ordinal))
+        {
+            for (int i = 0; i < template.nodes.Count; i++)
+            {
+                MapTemplateDatabase.MapNodeEntry node = template.nodes[i];
+                if (node == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(node.nodeId, DefaultDungeonNodeId, System.StringComparison.Ordinal))
+                {
+                    currentDungeonNodeId = DefaultDungeonNodeId;
+                    return node;
+                }
+            }
         }
 
         return null;
