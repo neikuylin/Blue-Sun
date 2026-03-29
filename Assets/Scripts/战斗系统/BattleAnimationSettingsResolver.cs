@@ -3,47 +3,35 @@ using UnityEngine;
 
 public static class BattleAnimationSettingsResolver
 {
-    public static string ResolveIdleStateName()
+    public static string ResolveIdleStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.idleStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.idleOverrides);
     }
 
-    public static string ResolveEnterBattleStateName()
+    public static string ResolveEnterBattleStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.enterBattleOverrides);
     }
 
-    public static AudioClip ResolveEnterBattleSound()
+    public static AudioClip ResolveEnterBattleSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleSound : null;
+        return ResolveSound(characterId, settings => settings.enterBattleOverrides);
     }
 
-    public static GameObject ResolveEnterBattleSoundPrefab()
+    public static GameObject ResolveEnterBattleSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.enterBattleSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.enterBattleOverrides);
     }
 
-    public static bool ResolveEnterBattleCompensateMotion()
+    public static bool ResolveEnterBattleCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.enterBattleCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.enterBattleOverrides);
     }
 
     public static string ResolveExplorationIdleStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        if (settings == null)
-        {
-            return string.Empty;
-        }
-
-        return string.IsNullOrWhiteSpace(settings.explorationIdleStateName)
-            ? settings.idleStateName
-            : settings.explorationIdleStateName;
+        return settings != null ? settings.explorationIdleStateName : string.Empty;
     }
 
     public static AudioClip ResolveExplorationIdleSound()
@@ -67,14 +55,7 @@ public static class BattleAnimationSettingsResolver
     public static string ResolveExplorationMoveStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        if (settings == null)
-        {
-            return string.Empty;
-        }
-
-        return string.IsNullOrWhiteSpace(settings.explorationMoveStateName)
-            ? settings.idleStateName
-            : settings.explorationMoveStateName;
+        return settings != null ? settings.explorationMoveStateName : string.Empty;
     }
 
     public static AudioClip ResolveExplorationMoveSound()
@@ -95,76 +76,64 @@ public static class BattleAnimationSettingsResolver
         return settings != null && settings.explorationMoveCompensateMotion;
     }
 
-    public static string ResolveExitBattleStateName()
+    public static string ResolveExitBattleStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.exitBattleOverrides);
     }
 
-    public static AudioClip ResolveExitBattleSound()
+    public static AudioClip ResolveExitBattleSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleSound : null;
+        return ResolveSound(characterId, settings => settings.exitBattleOverrides);
     }
 
-    public static GameObject ResolveExitBattleSoundPrefab()
+    public static GameObject ResolveExitBattleSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.exitBattleSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.exitBattleOverrides);
     }
 
-    public static bool ResolveExitBattleCompensateMotion()
+    public static bool ResolveExitBattleCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.exitBattleCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.exitBattleOverrides);
     }
 
-    public static string ResolveCombatArtLeftAimStateName()
+    public static string ResolveCombatArtLeftAimStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.combatArtLeftAimOverrides);
     }
 
-    public static bool ResolveCombatArtLeftAimCompensateMotion()
+    public static bool ResolveCombatArtLeftAimCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.combatArtLeftAimCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.combatArtLeftAimOverrides);
     }
 
-    public static AudioClip ResolveCombatArtLeftAimSound()
+    public static AudioClip ResolveCombatArtLeftAimSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimSound : null;
+        return ResolveSound(characterId, settings => settings.combatArtLeftAimOverrides);
     }
 
-    public static GameObject ResolveCombatArtLeftAimSoundPrefab()
+    public static GameObject ResolveCombatArtLeftAimSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtLeftAimSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.combatArtLeftAimOverrides);
     }
 
-    public static string ResolveCombatArtRightAimStateName()
+    public static string ResolveCombatArtRightAimStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.combatArtRightAimOverrides);
     }
 
-    public static bool ResolveCombatArtRightAimCompensateMotion()
+    public static bool ResolveCombatArtRightAimCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.combatArtRightAimCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.combatArtRightAimOverrides);
     }
 
-    public static AudioClip ResolveCombatArtRightAimSound()
+    public static AudioClip ResolveCombatArtRightAimSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimSound : null;
+        return ResolveSound(characterId, settings => settings.combatArtRightAimOverrides);
     }
 
-    public static GameObject ResolveCombatArtRightAimSoundPrefab()
+    public static GameObject ResolveCombatArtRightAimSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.combatArtRightAimSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.combatArtRightAimOverrides);
     }
 
     public static float ResolveIdleYawOffset()
@@ -173,55 +142,47 @@ public static class BattleAnimationSettingsResolver
         return settings != null ? settings.idleYawOffset : 0f;
     }
 
-    public static string ResolveHitReactionStateName()
+    public static string ResolveHitReactionStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.hitReactionOverrides);
     }
 
-    public static bool ResolveHitReactionCompensateMotion()
+    public static bool ResolveHitReactionCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.hitReactionCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.hitReactionOverrides);
     }
 
-    public static AudioClip ResolveHitReactionSound()
+    public static AudioClip ResolveHitReactionSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionSound : null;
+        return ResolveSound(characterId, settings => settings.hitReactionOverrides);
     }
 
-    public static GameObject ResolveHitReactionSoundPrefab()
+    public static GameObject ResolveHitReactionSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.hitReactionSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.hitReactionOverrides);
     }
 
-    public static string ResolveDodgeStateName()
+    public static string ResolveDodgeStateName(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeStateName : string.Empty;
+        return ResolveStateName(characterId, settings => settings.dodgeOverrides);
     }
 
-    public static bool ResolveDodgeCompensateMotion()
+    public static bool ResolveDodgeCompensateMotion(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null && settings.dodgeCompensateMotion;
+        return ResolveCompensateMotion(characterId, settings => settings.dodgeOverrides);
     }
 
-    public static AudioClip ResolveDodgeSound()
+    public static AudioClip ResolveDodgeSound(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeSound : null;
+        return ResolveSound(characterId, settings => settings.dodgeOverrides);
     }
 
-    public static GameObject ResolveDodgeSoundPrefab()
+    public static GameObject ResolveDodgeSoundPrefab(string characterId)
     {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.dodgeSoundPrefab : null;
+        return ResolveSoundPrefab(characterId, settings => settings.dodgeOverrides);
     }
 
-    public static void ResolveCombatArtAimAudioForState(string stateName, out AudioClip clip, out GameObject soundPrefab)
+    public static void ResolveCombatArtAimAudioForState(string stateName, string characterId, out AudioClip clip, out GameObject soundPrefab)
     {
         clip = null;
         soundPrefab = null;
@@ -231,53 +192,126 @@ public static class BattleAnimationSettingsResolver
             return;
         }
 
-        string leftStateName = ResolveCombatArtLeftAimStateName();
+        string leftStateName = ResolveCombatArtLeftAimStateName(characterId);
         if (string.Equals(stateName, leftStateName, StringComparison.Ordinal))
         {
-            clip = ResolveCombatArtLeftAimSound();
-            soundPrefab = ResolveCombatArtLeftAimSoundPrefab();
+            clip = ResolveCombatArtLeftAimSound(characterId);
+            soundPrefab = ResolveCombatArtLeftAimSoundPrefab(characterId);
             return;
         }
 
-        string rightStateName = ResolveCombatArtRightAimStateName();
+        string rightStateName = ResolveCombatArtRightAimStateName(characterId);
         if (string.Equals(stateName, rightStateName, StringComparison.Ordinal))
         {
-            clip = ResolveCombatArtRightAimSound();
-            soundPrefab = ResolveCombatArtRightAimSoundPrefab();
+            clip = ResolveCombatArtRightAimSound(characterId);
+            soundPrefab = ResolveCombatArtRightAimSoundPrefab(characterId);
         }
     }
 
-    public static bool ShouldCompensateGlobalMotionForState(string stateName)
+    public static bool ShouldCompensateGlobalMotionForState(string stateName, string characterId)
     {
         if (string.IsNullOrWhiteSpace(stateName))
         {
             return false;
         }
 
-        string leftStateName = ResolveCombatArtLeftAimStateName();
+        string leftStateName = ResolveCombatArtLeftAimStateName(characterId);
         if (string.Equals(stateName, leftStateName, StringComparison.Ordinal))
         {
-            return ResolveCombatArtLeftAimCompensateMotion();
+            return ResolveCombatArtLeftAimCompensateMotion(characterId);
         }
 
-        string rightStateName = ResolveCombatArtRightAimStateName();
+        string rightStateName = ResolveCombatArtRightAimStateName(characterId);
         if (string.Equals(stateName, rightStateName, StringComparison.Ordinal))
         {
-            return ResolveCombatArtRightAimCompensateMotion();
+            return ResolveCombatArtRightAimCompensateMotion(characterId);
         }
 
-        string hitStateName = ResolveHitReactionStateName();
+        string hitStateName = ResolveHitReactionStateName(characterId);
         if (string.Equals(stateName, hitStateName, StringComparison.Ordinal))
         {
-            return ResolveHitReactionCompensateMotion();
+            return ResolveHitReactionCompensateMotion(characterId);
         }
 
-        string dodgeStateName = ResolveDodgeStateName();
+        string dodgeStateName = ResolveDodgeStateName(characterId);
         if (string.Equals(stateName, dodgeStateName, StringComparison.Ordinal))
         {
-            return ResolveDodgeCompensateMotion();
+            return ResolveDodgeCompensateMotion(characterId);
         }
 
         return false;
+    }
+
+    private static string ResolveStateName(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings.WeaponScopedActionOverride entry = FindEnabledOverride(characterId, selector);
+        return entry != null ? entry.stateName : string.Empty;
+    }
+
+    private static AudioClip ResolveSound(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings.WeaponScopedActionOverride entry = FindEnabledOverride(characterId, selector);
+        return entry != null ? entry.sound : null;
+    }
+
+    private static GameObject ResolveSoundPrefab(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings.WeaponScopedActionOverride entry = FindEnabledOverride(characterId, selector);
+        return entry != null ? entry.soundPrefab : null;
+    }
+
+    private static bool ResolveCompensateMotion(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings.WeaponScopedActionOverride entry = FindEnabledOverride(characterId, selector);
+        return entry != null && entry.compensateMotion;
+    }
+
+    private static BattleAnimationSettings.WeaponScopedActionOverride FindEnabledOverride(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        if (settings == null || selector == null)
+        {
+            return null;
+        }
+
+        BattleAnimationSettings.WeaponScopedActionOverride[] entries = selector(settings);
+        if (entries == null || entries.Length == 0)
+        {
+            return null;
+        }
+
+        ItemDatabase.WeaponCategory weaponCategory = ResolveWeaponCategory(characterId);
+        for (int i = 0; i < entries.Length; i++)
+        {
+            BattleAnimationSettings.WeaponScopedActionOverride entry = entries[i];
+            if (entry == null || !entry.enabled || entry.weaponCategory != weaponCategory)
+            {
+                continue;
+            }
+
+            return entry;
+        }
+
+        return null;
+    }
+
+    private static ItemDatabase.WeaponCategory ResolveWeaponCategory(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return ItemDatabase.WeaponCategory.None;
+        }
+
+        return InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(characterId);
     }
 }

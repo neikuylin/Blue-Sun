@@ -6,7 +6,6 @@ public sealed class BattleUnitFactory
     private static readonly Color DefaultOutlineColor = Color.black;
     private const float DefaultOutlineWidth = 0.025f;
 
-    private readonly string idleStateName;
     private readonly float idleYawOffset;
     private readonly BattleCharacterBindingDatabase characterBindingDatabase;
     private readonly CharacterStatDatabase characterStatDatabase;
@@ -17,7 +16,6 @@ public sealed class BattleUnitFactory
     private readonly Color enemyPlaceholderColor;
 
     public BattleUnitFactory(
-        string idleStateName,
         float idleYawOffset,
         BattleCharacterBindingDatabase characterBindingDatabase,
         CharacterStatDatabase characterStatDatabase,
@@ -27,7 +25,6 @@ public sealed class BattleUnitFactory
         Color playerPlaceholderColor,
         Color enemyPlaceholderColor)
     {
-        this.idleStateName = idleStateName;
         this.idleYawOffset = idleYawOffset;
         this.characterBindingDatabase = characterBindingDatabase;
         this.characterStatDatabase = characterStatDatabase;
@@ -89,7 +86,8 @@ public sealed class BattleUnitFactory
             unit.isPlayerControlled = true;
             unit.SetCell(startCell, grid.GetWorldPosition(startCell));
             unit.FaceToward(grid.GetWorldPosition(startCell + Vector2Int.right));
-            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
+            string resolvedIdleStateName = unit.GetIdleAnimationStateName(BattleAnimationSettingsResolver.ResolveIdleStateName(selection.characterId));
+            unit.PlayAnimationState(resolvedIdleStateName);
             unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);
@@ -156,7 +154,8 @@ public sealed class BattleUnitFactory
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
             Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
             unit.FaceToward(grid.GetWorldPosition(facingCell));
-            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
+            string resolvedIdleStateName = unit.GetIdleAnimationStateName(BattleAnimationSettingsResolver.ResolveIdleStateName(enemyEntry.enemyId));
+            unit.PlayAnimationState(resolvedIdleStateName);
             unit.ApplyYawOffset(idleYawOffset);
             grid.RegisterUnit(unit);
             units.Add(unit);

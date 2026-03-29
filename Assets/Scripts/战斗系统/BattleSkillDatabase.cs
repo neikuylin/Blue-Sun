@@ -44,6 +44,19 @@ public sealed class BattleSkillDatabase : ScriptableObject
     [Serializable]
     public sealed class SkillEntry
     {
+        [Serializable]
+        public sealed class WeaponScopedActionOverride
+        {
+            public bool enabled = true;
+            public ItemDatabase.WeaponCategory weaponCategory = ItemDatabase.WeaponCategory.None;
+            public string actionStateName = string.Empty;
+            public float actionYawOffset;
+            public AudioClip actionSound;
+            public GameObject actionSoundPrefab;
+            public int soundDelayFrame;
+            public bool compensateActionMotion;
+        }
+
         public string skillId = string.Empty;
         public string description = string.Empty;
         public string actionStateName = string.Empty;
@@ -70,6 +83,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float axisAngle = 180f;
         public Vector2Int effectSize = new Vector2Int(3, 3);
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
+        public List<WeaponScopedActionOverride> weaponActionOverrides = new List<WeaponScopedActionOverride>();
 
         public int ResolveActionPointCost()
         {
@@ -102,6 +116,27 @@ public sealed class BattleSkillDatabase : ScriptableObject
             }
 
             return false;
+        }
+
+        public WeaponScopedActionOverride FindEnabledWeaponActionOverride(ItemDatabase.WeaponCategory weaponCategory)
+        {
+            if (weaponActionOverrides == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < weaponActionOverrides.Count; i++)
+            {
+                WeaponScopedActionOverride entry = weaponActionOverrides[i];
+                if (entry == null || !entry.enabled || entry.weaponCategory != weaponCategory)
+                {
+                    continue;
+                }
+
+                return entry;
+            }
+
+            return null;
         }
     }
 

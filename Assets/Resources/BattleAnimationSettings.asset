@@ -15,30 +15,205 @@ MonoBehaviour:
   idleStateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
   idleSound: {fileID: 0}
   idleSoundPrefab: {fileID: 0}
+  idleOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   enterBattleStateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
   enterBattleSound: {fileID: 0}
   enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
   enterBattleCompensateMotion: 0
+  enterBattleOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u8FDB\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   exitBattleStateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
   exitBattleSound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
   exitBattleSoundPrefab: {fileID: 0}
   exitBattleCompensateMotion: 0
+  exitBattleOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
+    sound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
+    sound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u9000\u6218\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   combatArtLeftAimStateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
   combatArtLeftAimSound: {fileID: 0}
   combatArtLeftAimSoundPrefab: {fileID: 0}
   combatArtLeftAimCompensateMotion: 1
+  combatArtLeftAimOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 1
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   combatArtRightAimStateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
   combatArtRightAimSound: {fileID: 0}
   combatArtRightAimSoundPrefab: {fileID: 0}
   combatArtRightAimCompensateMotion: 1
+  combatArtRightAimOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 1
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
   hitReactionSoundPrefab: {fileID: 0}
   hitReactionCompensateMotion: 0
+  hitReactionOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5F13\u7BAD\u53D7\u51FB\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   dodgeStateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
   dodgeSound: {fileID: 0}
   dodgeSoundPrefab: {fileID: 0}
   dodgeCompensateMotion: 0
+  dodgeOverrides:
+  - enabled: 1
+    weaponCategory: 0
+    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 1
+    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 2
+    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 3
+    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
   explorationIdleStateName: "\u975E\u6218\u6597\u5F85\u673A"
   explorationIdleSound: {fileID: 0}
   explorationIdleSoundPrefab: {fileID: 0}

@@ -7,6 +7,13 @@ using UnityEngine;
 public sealed class SkillActionBindingWindow : EditorWindow
 {
     private const string SkillAssetPath = "Assets/Resources/BattleSkillDatabase.asset";
+    private static readonly ItemDatabase.WeaponCategory[] MoveWeaponCategories =
+    {
+        ItemDatabase.WeaponCategory.None,
+        ItemDatabase.WeaponCategory.OneHanded,
+        ItemDatabase.WeaponCategory.TwoHanded,
+        ItemDatabase.WeaponCategory.Bow
+    };
 
     private Vector2 scroll;
     private SerializedObject skillDatabaseObject;
@@ -113,6 +120,170 @@ public sealed class SkillActionBindingWindow : EditorWindow
             {
                 compensateActionMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateActionMotionProperty.boolValue);
             }
+
+            if (string.Equals(skillId, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal))
+            {
+                DrawMoveWeaponOverrides(entry, actionOptions);
+            }
+        }
+    }
+
+    private static void DrawMoveWeaponOverrides(SerializedProperty entry, List<string> actionOptions)
+    {
+        SerializedProperty overridesProperty = entry.FindPropertyRelative("weaponActionOverrides");
+        if (overridesProperty == null)
+        {
+            return;
+        }
+
+        EnsureMoveOverrideEntries(overridesProperty);
+
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("按武器分流", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("移动技能只读取这里的武器分类动作，不回退到上面的默认动作。", MessageType.Info);
+
+        for (int i = 0; i < MoveWeaponCategories.Length; i++)
+        {
+            SerializedProperty overrideEntry = overridesProperty.GetArrayElementAtIndex(i);
+            DrawMoveOverrideEntry(overrideEntry, MoveWeaponCategories[i], actionOptions);
+        }
+    }
+
+    private static void EnsureMoveOverrideEntries(SerializedProperty overridesProperty)
+    {
+        int originalSize = overridesProperty.arraySize;
+        while (overridesProperty.arraySize < MoveWeaponCategories.Length)
+        {
+            overridesProperty.InsertArrayElementAtIndex(overridesProperty.arraySize);
+        }
+
+        for (int i = 0; i < MoveWeaponCategories.Length; i++)
+        {
+            SerializedProperty entry = overridesProperty.GetArrayElementAtIndex(i);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+            if (enabledProperty != null)
+            {
+                enabledProperty.boolValue = true;
+            }
+
+            SerializedProperty weaponCategoryProperty = entry.FindPropertyRelative("weaponCategory");
+            if (weaponCategoryProperty != null)
+            {
+                weaponCategoryProperty.enumValueIndex = (int)MoveWeaponCategories[i];
+            }
+
+            if (i >= originalSize)
+            {
+                ClearMoveOverrideEntry(entry);
+            }
+        }
+    }
+
+    private static void ClearMoveOverrideEntry(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        if (actionStateNameProperty != null)
+        {
+            actionStateNameProperty.stringValue = string.Empty;
+        }
+
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        if (actionYawOffsetProperty != null)
+        {
+            actionYawOffsetProperty.floatValue = 0f;
+        }
+
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        if (actionSoundProperty != null)
+        {
+            actionSoundProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        if (actionSoundPrefabProperty != null)
+        {
+            actionSoundPrefabProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        if (soundDelayFrameProperty != null)
+        {
+            soundDelayFrameProperty.intValue = 0;
+        }
+
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
+        if (compensateActionMotionProperty != null)
+        {
+            compensateActionMotionProperty.boolValue = false;
+        }
+    }
+
+    private static void DrawMoveOverrideEntry(SerializedProperty entry, ItemDatabase.WeaponCategory weaponCategory, List<string> actionOptions)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
+
+        using (new EditorGUI.IndentLevelScope())
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField(GetWeaponCategoryLabel(weaponCategory), EditorStyles.boldLabel);
+
+            if (enabledProperty != null)
+            {
+                enabledProperty.boolValue = EditorGUILayout.Toggle("启用", enabledProperty.boolValue);
+            }
+
+            int selectedIndex = FindOptionIndex(actionOptions, actionStateNameProperty != null ? actionStateNameProperty.stringValue : string.Empty);
+            int newIndex = EditorGUILayout.Popup("绑定动作", selectedIndex, actionOptions.ToArray());
+            if (actionStateNameProperty != null)
+            {
+                actionStateNameProperty.stringValue = newIndex <= 0 ? string.Empty : actionOptions[newIndex];
+            }
+
+            if (actionYawOffsetProperty != null)
+            {
+                actionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", actionYawOffsetProperty.floatValue);
+            }
+
+            if (actionSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(actionSoundProperty, new GUIContent("技能音效"));
+            }
+
+            if (actionSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
+            }
+
+            if (soundDelayFrameProperty != null)
+            {
+                soundDelayFrameProperty.intValue = EditorGUILayout.IntField("音效延迟帧数", Mathf.Max(0, soundDelayFrameProperty.intValue));
+            }
+
+            if (compensateActionMotionProperty != null)
+            {
+                compensateActionMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateActionMotionProperty.boolValue);
+            }
         }
     }
 
@@ -147,6 +318,21 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         return "战技";
+    }
+
+    private static string GetWeaponCategoryLabel(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        switch (weaponCategory)
+        {
+            case ItemDatabase.WeaponCategory.OneHanded:
+                return "单手武器";
+            case ItemDatabase.WeaponCategory.TwoHanded:
+                return "双手武器";
+            case ItemDatabase.WeaponCategory.Bow:
+                return "弓箭";
+            default:
+                return "无武器";
+        }
     }
 
     private static List<string> BuildActionOptions()

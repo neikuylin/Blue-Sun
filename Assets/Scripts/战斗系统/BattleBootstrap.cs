@@ -474,7 +474,6 @@ public class BattleBootstrap : MonoBehaviour
     {
         BattleAnimationSettings animationSettings = BattleAnimationSettings.LoadDefault();
         BattleUnitFactory factory = new BattleUnitFactory(
-            animationSettings != null ? animationSettings.idleStateName : string.Empty,
             animationSettings != null ? animationSettings.idleYawOffset : 0f,
             characterBindingDatabase,
             characterStatDatabase,
@@ -487,12 +486,6 @@ public class BattleBootstrap : MonoBehaviour
         List<BattleUnit> units = factory.CreatePlayers(GetSelectedPlayers(), playerSpawnOrigin, playerSpawnSpacing);
         units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
         return units;
-    }
-
-    private static string ResolveIdleStateName()
-    {
-        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
-        return settings != null ? settings.idleStateName : string.Empty;
     }
 
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()

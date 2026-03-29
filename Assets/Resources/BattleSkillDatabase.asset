@@ -39,6 +39,15 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 
+    weaponActionOverrides:
+    - enabled: 1
+      weaponCategory: 1
+      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
+      actionYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
+      soundDelayFrame: 0
+      compensateActionMotion: 1
   - skillId: "\u666E\u901A\u653B\u51FB"
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
@@ -65,6 +74,7 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 1, y: 1}
     requiredWeaponCategories: 0100000002000000
+    weaponActionOverrides: []
   - skillId: "\u56DE\u65CB\u65A9"
     description: 
     actionStateName: "\u56DE\u65CB\u65A9"
@@ -91,6 +101,7 @@ MonoBehaviour:
     axisAngle: 360
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000
+    weaponActionOverrides: []
   - skillId: "\u5C04\u51FB"
     description: 
     actionStateName: "\u5C04\u51FB"
@@ -117,3 +128,4 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 1, y: 1}
     requiredWeaponCategories: 03000000
+    weaponActionOverrides: []

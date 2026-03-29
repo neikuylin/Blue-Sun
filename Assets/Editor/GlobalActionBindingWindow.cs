@@ -8,23 +8,32 @@ public sealed class GlobalActionBindingWindow : EditorWindow
 {
     private const string SettingsAssetPath = "Assets/Resources/BattleAnimationSettings.asset";
 
+    private static readonly ItemDatabase.WeaponCategory[] ScopedWeaponCategories =
+    {
+        ItemDatabase.WeaponCategory.None,
+        ItemDatabase.WeaponCategory.OneHanded,
+        ItemDatabase.WeaponCategory.TwoHanded,
+        ItemDatabase.WeaponCategory.Bow
+    };
+
     private SerializedObject settingsObject;
     private bool showIdle = true;
     private bool showEnterBattle = true;
     private bool showExitBattle = true;
-    private bool showCombatArtLeftAim = false;
-    private bool showCombatArtRightAim = false;
-    private bool showHitReaction = false;
-    private bool showDodge = false;
+    private bool showCombatArtLeftAim;
+    private bool showCombatArtRightAim;
+    private bool showHitReaction;
+    private bool showDodge;
     private bool showExplorationIdle = true;
     private bool showExplorationMove = true;
-    private bool showMisc = false;
+    private bool showMisc;
+    private Vector2 scroll;
 
     [MenuItem("Tools/技能/全局动作")]
     private static void Open()
     {
         GlobalActionBindingWindow window = GetWindow<GlobalActionBindingWindow>("全局动作");
-        window.minSize = new Vector2(760f, 480f);
+        window.minSize = new Vector2(860f, 520f);
         window.Show();
         window.Focus();
     }
@@ -38,174 +47,37 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         }
 
         List<string> actionOptions = BuildActionOptions();
-
-        EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("按动作分组折叠。每组里包含动画、音效、音效预制体和位移补偿。", MessageType.Info);
-
         settingsObject.Update();
 
-        SerializedProperty idleStateNameProperty = settingsObject.FindProperty("idleStateName");
-        SerializedProperty idleSoundProperty = settingsObject.FindProperty("idleSound");
-        SerializedProperty idleSoundPrefabProperty = settingsObject.FindProperty("idleSoundPrefab");
-        SerializedProperty enterBattleStateNameProperty = settingsObject.FindProperty("enterBattleStateName");
-        SerializedProperty enterBattleSoundProperty = settingsObject.FindProperty("enterBattleSound");
-        SerializedProperty enterBattleSoundPrefabProperty = settingsObject.FindProperty("enterBattleSoundPrefab");
-        SerializedProperty enterBattleCompensateMotionProperty = settingsObject.FindProperty("enterBattleCompensateMotion");
-        SerializedProperty exitBattleStateNameProperty = settingsObject.FindProperty("exitBattleStateName");
-        SerializedProperty exitBattleSoundProperty = settingsObject.FindProperty("exitBattleSound");
-        SerializedProperty exitBattleSoundPrefabProperty = settingsObject.FindProperty("exitBattleSoundPrefab");
-        SerializedProperty exitBattleCompensateMotionProperty = settingsObject.FindProperty("exitBattleCompensateMotion");
-        SerializedProperty combatArtLeftAimStateNameProperty = settingsObject.FindProperty("combatArtLeftAimStateName");
-        SerializedProperty combatArtLeftAimSoundProperty = settingsObject.FindProperty("combatArtLeftAimSound");
-        SerializedProperty combatArtLeftAimSoundPrefabProperty = settingsObject.FindProperty("combatArtLeftAimSoundPrefab");
-        SerializedProperty combatArtLeftAimCompensateMotionProperty = settingsObject.FindProperty("combatArtLeftAimCompensateMotion");
-        SerializedProperty combatArtRightAimStateNameProperty = settingsObject.FindProperty("combatArtRightAimStateName");
-        SerializedProperty combatArtRightAimSoundProperty = settingsObject.FindProperty("combatArtRightAimSound");
-        SerializedProperty combatArtRightAimSoundPrefabProperty = settingsObject.FindProperty("combatArtRightAimSoundPrefab");
-        SerializedProperty combatArtRightAimCompensateMotionProperty = settingsObject.FindProperty("combatArtRightAimCompensateMotion");
-        SerializedProperty hitReactionStateNameProperty = settingsObject.FindProperty("hitReactionStateName");
-        SerializedProperty hitReactionSoundProperty = settingsObject.FindProperty("hitReactionSound");
-        SerializedProperty hitReactionSoundPrefabProperty = settingsObject.FindProperty("hitReactionSoundPrefab");
-        SerializedProperty hitReactionCompensateMotionProperty = settingsObject.FindProperty("hitReactionCompensateMotion");
-        SerializedProperty dodgeStateNameProperty = settingsObject.FindProperty("dodgeStateName");
-        SerializedProperty dodgeSoundProperty = settingsObject.FindProperty("dodgeSound");
-        SerializedProperty dodgeSoundPrefabProperty = settingsObject.FindProperty("dodgeSoundPrefab");
-        SerializedProperty dodgeCompensateMotionProperty = settingsObject.FindProperty("dodgeCompensateMotion");
-        SerializedProperty explorationIdleStateNameProperty = settingsObject.FindProperty("explorationIdleStateName");
-        SerializedProperty explorationIdleSoundProperty = settingsObject.FindProperty("explorationIdleSound");
-        SerializedProperty explorationIdleSoundPrefabProperty = settingsObject.FindProperty("explorationIdleSoundPrefab");
-        SerializedProperty explorationIdleCompensateMotionProperty = settingsObject.FindProperty("explorationIdleCompensateMotion");
-        SerializedProperty explorationMoveStateNameProperty = settingsObject.FindProperty("explorationMoveStateName");
-        SerializedProperty explorationMoveSoundProperty = settingsObject.FindProperty("explorationMoveSound");
-        SerializedProperty explorationMoveSoundPrefabProperty = settingsObject.FindProperty("explorationMoveSoundPrefab");
-        SerializedProperty explorationMoveCompensateMotionProperty = settingsObject.FindProperty("explorationMoveCompensateMotion");
-        SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
+        EditorGUILayout.LabelField("全局动作", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("除探索待机和探索移动外，所有全局动作都按武器分类单独配置。没有武器也要单独配一套。这里不做回退。", MessageType.Info);
 
-        DrawActionSection(
-            ref showIdle,
-            "待机",
-            actionOptions,
-            idleStateNameProperty,
-            "待机动画",
-            idleSoundProperty,
-            "待机音效",
-            idleSoundPrefabProperty,
-            "待机音效预制体",
-            null,
-            null);
+        scroll = EditorGUILayout.BeginScrollView(scroll);
 
-        DrawActionSection(
-            ref showEnterBattle,
-            "进战",
-            actionOptions,
-            enterBattleStateNameProperty,
-            "进战动画",
-            enterBattleSoundProperty,
-            "进战音效",
-            enterBattleSoundPrefabProperty,
-            "进战音效预制体",
-            enterBattleCompensateMotionProperty,
-            "进战位移补偿");
-
-        DrawActionSection(
-            ref showExitBattle,
-            "退战",
-            actionOptions,
-            exitBattleStateNameProperty,
-            "退战动画",
-            exitBattleSoundProperty,
-            "退战音效",
-            exitBattleSoundPrefabProperty,
-            "退战音效预制体",
-            exitBattleCompensateMotionProperty,
-            "退战位移补偿");
-
-        DrawActionSection(
-            ref showCombatArtLeftAim,
-            "战技左瞄准",
-            actionOptions,
-            combatArtLeftAimStateNameProperty,
-            "战技左转身瞄准动画",
-            combatArtLeftAimSoundProperty,
-            "战技左瞄准音效",
-            combatArtLeftAimSoundPrefabProperty,
-            "战技左瞄准音效预制体",
-            combatArtLeftAimCompensateMotionProperty,
-            "战技左瞄准位移补偿");
-
-        DrawActionSection(
-            ref showCombatArtRightAim,
-            "战技右瞄准",
-            actionOptions,
-            combatArtRightAimStateNameProperty,
-            "战技右转身瞄准动画",
-            combatArtRightAimSoundProperty,
-            "战技右瞄准音效",
-            combatArtRightAimSoundPrefabProperty,
-            "战技右瞄准音效预制体",
-            combatArtRightAimCompensateMotionProperty,
-            "战技右瞄准位移补偿");
-
-        DrawActionSection(
-            ref showHitReaction,
-            "受击",
-            actionOptions,
-            hitReactionStateNameProperty,
-            "受击动画",
-            hitReactionSoundProperty,
-            "受击音效",
-            hitReactionSoundPrefabProperty,
-            "受击音效预制体",
-            hitReactionCompensateMotionProperty,
-            "受击位移补偿");
-
-        DrawActionSection(
-            ref showDodge,
-            "闪避",
-            actionOptions,
-            dodgeStateNameProperty,
-            "闪避动画",
-            dodgeSoundProperty,
-            "闪避音效",
-            dodgeSoundPrefabProperty,
-            "闪避音效预制体",
-            dodgeCompensateMotionProperty,
-            "闪避位移补偿");
-
-        DrawActionSection(
-            ref showExplorationIdle,
-            "探索待机",
-            actionOptions,
-            explorationIdleStateNameProperty,
-            "探索待机动画",
-            explorationIdleSoundProperty,
-            "探索待机音效",
-            explorationIdleSoundPrefabProperty,
-            "探索待机音效预制体",
-            explorationIdleCompensateMotionProperty,
-            "探索待机位移补偿");
-
-        DrawActionSection(
-            ref showExplorationMove,
-            "探索移动",
-            actionOptions,
-            explorationMoveStateNameProperty,
-            "探索移动动画",
-            explorationMoveSoundProperty,
-            "探索移动音效",
-            explorationMoveSoundPrefabProperty,
-            "探索移动音效预制体",
-            explorationMoveCompensateMotionProperty,
-            "探索移动位移补偿");
+        DrawScopedSection(ref showIdle, "待机", "idleOverrides", actionOptions);
+        DrawScopedSection(ref showEnterBattle, "进战", "enterBattleOverrides", actionOptions);
+        DrawScopedSection(ref showExitBattle, "退战", "exitBattleOverrides", actionOptions);
+        DrawScopedSection(ref showCombatArtLeftAim, "战技左瞄准", "combatArtLeftAimOverrides", actionOptions);
+        DrawScopedSection(ref showCombatArtRightAim, "战技右瞄准", "combatArtRightAimOverrides", actionOptions);
+        DrawScopedSection(ref showHitReaction, "受击", "hitReactionOverrides", actionOptions);
+        DrawScopedSection(ref showDodge, "闪避", "dodgeOverrides", actionOptions);
+        DrawSimpleSection(ref showExplorationIdle, "探索待机", "explorationIdleStateName", "explorationIdleSound", "explorationIdleSoundPrefab", "explorationIdleCompensateMotion", actionOptions);
+        DrawSimpleSection(ref showExplorationMove, "探索移动", "explorationMoveStateName", "explorationMoveSound", "explorationMoveSoundPrefab", "explorationMoveCompensateMotion", actionOptions);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
             showMisc = EditorGUILayout.Foldout(showMisc, "其他", true);
-            if (showMisc && idleYawOffsetProperty != null)
+            if (showMisc)
             {
-                idleYawOffsetProperty.floatValue = EditorGUILayout.FloatField("待机角度修正", idleYawOffsetProperty.floatValue);
+                SerializedProperty idleYawOffsetProperty = settingsObject.FindProperty("idleYawOffset");
+                if (idleYawOffsetProperty != null)
+                {
+                    idleYawOffsetProperty.floatValue = EditorGUILayout.FloatField("待机角度修正", idleYawOffsetProperty.floatValue);
+                }
             }
         }
+
+        EditorGUILayout.EndScrollView();
 
         if (settingsObject.ApplyModifiedProperties())
         {
@@ -214,18 +86,7 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         }
     }
 
-    private static void DrawActionSection(
-        ref bool expanded,
-        string title,
-        List<string> actionOptions,
-        SerializedProperty stateProperty,
-        string stateLabel,
-        SerializedProperty soundProperty,
-        string soundLabel,
-        SerializedProperty soundPrefabProperty,
-        string soundPrefabLabel,
-        SerializedProperty compensateMotionProperty,
-        string compensateMotionLabel)
+    private void DrawScopedSection(ref bool expanded, string title, string arrayPropertyName, List<string> actionOptions)
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -235,27 +96,192 @@ public sealed class GlobalActionBindingWindow : EditorWindow
                 return;
             }
 
-            int selectedIndex = FindOptionIndex(actionOptions, stateProperty != null ? stateProperty.stringValue : string.Empty);
-            int newIndex = EditorGUILayout.Popup(stateLabel, selectedIndex, actionOptions.ToArray());
-            if (stateProperty != null)
+            SerializedProperty arrayProperty = settingsObject.FindProperty(arrayPropertyName);
+            if (arrayProperty == null)
             {
-                stateProperty.stringValue = newIndex <= 0 ? string.Empty : actionOptions[newIndex];
+                EditorGUILayout.HelpBox($"未找到配置字段: {arrayPropertyName}", MessageType.Error);
+                return;
             }
 
+            EnsureScopedOverrideArray(arrayProperty);
+
+            for (int i = 0; i < ScopedWeaponCategories.Length; i++)
+            {
+                SerializedProperty entry = arrayProperty.GetArrayElementAtIndex(i);
+                DrawScopedEntry(entry, ScopedWeaponCategories[i], actionOptions);
+            }
+        }
+    }
+
+    private void DrawSimpleSection(
+        ref bool expanded,
+        string title,
+        string statePropertyName,
+        string soundPropertyName,
+        string soundPrefabPropertyName,
+        string compensateMotionPropertyName,
+        List<string> actionOptions)
+    {
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            expanded = EditorGUILayout.Foldout(expanded, title, true);
+            if (!expanded)
+            {
+                return;
+            }
+
+            SerializedProperty stateProperty = settingsObject.FindProperty(statePropertyName);
+            SerializedProperty soundProperty = settingsObject.FindProperty(soundPropertyName);
+            SerializedProperty soundPrefabProperty = settingsObject.FindProperty(soundPrefabPropertyName);
+            SerializedProperty compensateMotionProperty = settingsObject.FindProperty(compensateMotionPropertyName);
+
+            DrawStatePopup("动画", stateProperty, actionOptions);
             if (soundProperty != null)
             {
-                EditorGUILayout.PropertyField(soundProperty, new GUIContent(soundLabel));
+                EditorGUILayout.PropertyField(soundProperty, new GUIContent("音效"));
             }
 
             if (soundPrefabProperty != null)
             {
-                EditorGUILayout.PropertyField(soundPrefabProperty, new GUIContent(soundPrefabLabel));
+                EditorGUILayout.PropertyField(soundPrefabProperty, new GUIContent("音效预制体"));
             }
 
-            if (compensateMotionProperty != null && !string.IsNullOrWhiteSpace(compensateMotionLabel))
+            if (compensateMotionProperty != null)
             {
-                compensateMotionProperty.boolValue = EditorGUILayout.Toggle(compensateMotionLabel, compensateMotionProperty.boolValue);
+                compensateMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateMotionProperty.boolValue);
             }
+        }
+    }
+
+    private static void DrawScopedEntry(SerializedProperty entry, ItemDatabase.WeaponCategory weaponCategory, List<string> actionOptions)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        SerializedProperty weaponCategoryProperty = entry.FindPropertyRelative("weaponCategory");
+        SerializedProperty stateProperty = entry.FindPropertyRelative("stateName");
+        SerializedProperty soundProperty = entry.FindPropertyRelative("sound");
+        SerializedProperty soundPrefabProperty = entry.FindPropertyRelative("soundPrefab");
+        SerializedProperty compensateMotionProperty = entry.FindPropertyRelative("compensateMotion");
+
+        if (weaponCategoryProperty != null)
+        {
+            weaponCategoryProperty.enumValueIndex = (int)weaponCategory;
+        }
+
+        using (new EditorGUI.IndentLevelScope())
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField(GetWeaponCategoryLabel(weaponCategory), EditorStyles.boldLabel);
+
+            if (enabledProperty != null)
+            {
+                enabledProperty.boolValue = EditorGUILayout.Toggle("启用", enabledProperty.boolValue);
+            }
+
+            DrawStatePopup("动画", stateProperty, actionOptions);
+
+            if (soundProperty != null)
+            {
+                EditorGUILayout.PropertyField(soundProperty, new GUIContent("音效"));
+            }
+
+            if (soundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(soundPrefabProperty, new GUIContent("音效预制体"));
+            }
+
+            if (compensateMotionProperty != null)
+            {
+                compensateMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateMotionProperty.boolValue);
+            }
+        }
+    }
+
+    private static void DrawStatePopup(string label, SerializedProperty stateProperty, List<string> actionOptions)
+    {
+        if (stateProperty == null)
+        {
+            return;
+        }
+
+        int selectedIndex = FindOptionIndex(actionOptions, stateProperty.stringValue);
+        int newIndex = EditorGUILayout.Popup(label, selectedIndex, actionOptions.ToArray());
+        stateProperty.stringValue = newIndex <= 0 ? string.Empty : actionOptions[newIndex];
+    }
+
+    private static void EnsureScopedOverrideArray(SerializedProperty arrayProperty)
+    {
+        if (arrayProperty == null)
+        {
+            return;
+        }
+
+        int originalSize = arrayProperty.arraySize;
+        while (arrayProperty.arraySize < ScopedWeaponCategories.Length)
+        {
+            arrayProperty.InsertArrayElementAtIndex(arrayProperty.arraySize);
+        }
+
+        for (int i = 0; i < ScopedWeaponCategories.Length; i++)
+        {
+            SerializedProperty entry = arrayProperty.GetArrayElementAtIndex(i);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+            if (enabledProperty != null)
+            {
+                enabledProperty.boolValue = true;
+            }
+
+            SerializedProperty weaponCategoryProperty = entry.FindPropertyRelative("weaponCategory");
+            if (weaponCategoryProperty != null)
+            {
+                weaponCategoryProperty.enumValueIndex = (int)ScopedWeaponCategories[i];
+            }
+
+            if (i >= originalSize)
+            {
+                ClearScopedEntry(entry);
+            }
+        }
+    }
+
+    private static void ClearScopedEntry(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty stateProperty = entry.FindPropertyRelative("stateName");
+        if (stateProperty != null)
+        {
+            stateProperty.stringValue = string.Empty;
+        }
+
+        SerializedProperty soundProperty = entry.FindPropertyRelative("sound");
+        if (soundProperty != null)
+        {
+            soundProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty soundPrefabProperty = entry.FindPropertyRelative("soundPrefab");
+        if (soundPrefabProperty != null)
+        {
+            soundPrefabProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty compensateMotionProperty = entry.FindPropertyRelative("compensateMotion");
+        if (compensateMotionProperty != null)
+        {
+            compensateMotionProperty.boolValue = false;
         }
     }
 
@@ -295,6 +321,21 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         }
 
         return 0;
+    }
+
+    private static string GetWeaponCategoryLabel(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        switch (weaponCategory)
+        {
+            case ItemDatabase.WeaponCategory.OneHanded:
+                return "单手武器";
+            case ItemDatabase.WeaponCategory.TwoHanded:
+                return "双手武器";
+            case ItemDatabase.WeaponCategory.Bow:
+                return "弓箭";
+            default:
+                return "无武器";
+        }
     }
 
     private static List<string> BuildActionOptions()
