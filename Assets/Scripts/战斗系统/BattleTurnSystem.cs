@@ -586,21 +586,31 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMoveFreely(BattleUnit unit, Vector2Int destination)
     {
-        if (unit == null || grid == null || unit.IsMoving || destination == unit.currentCell)
+        if (unit == null || grid == null || destination == unit.currentCell)
         {
             return;
         }
 
-        List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
-        if (path == null || path.Count <= 1)
+        if (!unit.IsMoving)
         {
-            return;
+            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
+            if (path == null || path.Count <= 1)
+            {
+                return;
+            }
         }
 
         float originalMoveSpeed = unit.moveSpeed;
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
+        float moveDuration = unit.IsMoving
+            ? grid.RedirectMovingUnitIgnoringAllies(unit, destination)
+            : grid.MoveUnitIgnoringAllies(unit, destination);
         unit.moveSpeed = originalMoveSpeed;
+        if (moveDuration <= 0f)
+        {
+            return;
+        }
+
         string idleStateName = ResolveExplorationIdleStateName();
         PlayExplorationMoveAudio(unit, moveDuration);
         unit.PlayTimedAnimation(

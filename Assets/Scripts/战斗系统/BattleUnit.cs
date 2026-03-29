@@ -302,6 +302,17 @@ public class BattleUnit : MonoBehaviour
         return duration;
     }
 
+    public void CancelMovement()
+    {
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+            moveRoutine = null;
+        }
+
+        IsMoving = false;
+    }
+
     public void FaceToward(Vector3 worldPosition)
     {
         Vector3 delta = worldPosition - transform.position;

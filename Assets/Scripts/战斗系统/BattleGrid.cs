@@ -192,6 +192,28 @@ public class BattleGrid : MonoBehaviour
         return MoveUnitAlongResolvedPath(unit, destination, path);
     }
 
+    public float RedirectMovingUnitIgnoringAllies(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null)
+        {
+            return 0f;
+        }
+
+        Vector2Int currentWorldCell = WorldToCell(unit.transform.position);
+        if (!IsInside(currentWorldCell))
+        {
+            currentWorldCell = unit.currentCell;
+        }
+
+        unit.CancelMovement();
+        SetOccupancy(unit, unit.currentCell, false);
+        unit.currentCell = currentWorldCell;
+        SetOccupancy(unit, currentWorldCell, true);
+
+        List<Vector2Int> path = FindPathIgnoringAllies(unit, destination);
+        return MoveUnitAlongResolvedPath(unit, destination, path);
+    }
+
     private float MoveUnitAlongResolvedPath(BattleUnit unit, Vector2Int destination, List<Vector2Int> path)
     {
         if (path == null || path.Count == 0)
