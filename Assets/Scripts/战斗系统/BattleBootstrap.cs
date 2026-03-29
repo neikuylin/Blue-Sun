@@ -204,6 +204,7 @@ public class BattleBootstrap : MonoBehaviour
 
         MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
         GameObject roomContentPrefab = ResolveBattleRoomContentPrefab();
+        Debug.Log($"BattleBootstrap: CreateRoomContent currentTemplate='{currentDungeonTemplateId}', currentNode='{currentDungeonNodeId}', roomNode='{(roomNode != null ? roomNode.nodeId : "<null>")}', prefab='{(roomContentPrefab != null ? roomContentPrefab.name : "<null>")}'.");
         if (roomContentPrefab == null)
         {
             return;
@@ -272,10 +273,17 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         string targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
-        instanceButton.interactable = !string.IsNullOrWhiteSpace(targetNodeId);
-        if (!string.IsNullOrWhiteSpace(targetNodeId))
+        bool canInteract = !string.IsNullOrWhiteSpace(targetNodeId);
+        instanceButton.interactable = canInteract;
+        ConfigureDirectionClickRelay(instanceButtonTransform.gameObject, targetNodeId, canInteract);
+        if (canInteract)
         {
-            instanceButton.onClick.AddListener(() => OnDirectionButtonClicked(targetNodeId));
+            Debug.Log($"BattleBootstrap: bind direction button path='{buttonPath}', direction='{direction}', sourceNode='{roomNode.nodeId}', targetNode='{targetNodeId}', interactable={instanceButton.interactable}.");
+            instanceButton.onClick.AddListener(() => NavigateToNode(targetNodeId));
+        }
+        else
+        {
+            Debug.Log($"BattleBootstrap: direction button path='{buttonPath}', direction='{direction}' has no target from node '{roomNode.nodeId}'.");
         }
     }
 
@@ -331,14 +339,67 @@ public class BattleBootstrap : MonoBehaviour
         return string.Empty;
     }
 
-    private static void OnDirectionButtonClicked(string targetNodeId)
+    private static void ConfigureDirectionClickRelay(GameObject buttonObject, string targetNodeId, bool canInteract)
     {
-        if (string.IsNullOrWhiteSpace(targetNodeId))
+        if (buttonObject == null)
         {
             return;
         }
 
+        BattleRoomDirectionClickRelay relay = buttonObject.GetComponent<BattleRoomDirectionClickRelay>();
+        if (relay == null)
+        {
+            relay = buttonObject.AddComponent<BattleRoomDirectionClickRelay>();
+        }
+
+        relay.Configure(targetNodeId, canInteract);
+
+        if (!canInteract)
+        {
+            return;
+        }
+
+        Collider existingCollider = buttonObject.GetComponent<Collider>();
+        if (existingCollider != null)
+        {
+            existingCollider.enabled = true;
+            return;
+        }
+
+        SpriteRenderer spriteRenderer = buttonObject.GetComponent<SpriteRenderer>();
+        BoxCollider collider = buttonObject.GetComponent<BoxCollider>();
+        if (collider == null)
+        {
+            collider = buttonObject.AddComponent<BoxCollider>();
+        }
+
+        if (spriteRenderer != null && spriteRenderer.sprite != null)
+        {
+            Vector2 spriteSize = spriteRenderer.sprite.bounds.size;
+            collider.size = new Vector3(
+                Mathf.Max(0.01f, spriteSize.x),
+                Mathf.Max(0.01f, spriteSize.y),
+                0.5f);
+            collider.center = Vector3.zero;
+        }
+        else
+        {
+            collider.size = new Vector3(1f, 1f, 0.5f);
+            collider.center = Vector3.zero;
+        }
+    }
+
+    public static void NavigateToNode(string targetNodeId)
+    {
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            Debug.LogWarning("BattleBootstrap: NavigateToNode received empty targetNodeId.");
+            return;
+        }
+
+        Debug.Log($"BattleBootstrap: direction button clicked. currentTemplate='{currentDungeonTemplateId}', currentNode='{currentDungeonNodeId}', nextNode='{targetNodeId}'.");
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
+        Debug.Log($"BattleBootstrap: loading scene '{SceneName}' for nextNode='{currentDungeonNodeId}'.");
         SceneManager.LoadScene(SceneName);
     }
 
