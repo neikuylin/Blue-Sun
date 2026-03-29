@@ -19,7 +19,7 @@ MonoBehaviour:
   enterBattleSound: {fileID: 0}
   enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
   enterBattleCompensateMotion: 0
-  exitBattleStateName: "\u9000\u6218\u52A8\u753B"
+  exitBattleStateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
   exitBattleSound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
   exitBattleSoundPrefab: {fileID: 0}
   exitBattleCompensateMotion: 0
