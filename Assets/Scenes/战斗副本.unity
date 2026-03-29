@@ -8523,6 +8523,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1337556461}
   - component: {fileID: 1337556462}
+  - component: {fileID: 1337556463}
   m_Layer: 5
   m_Name: "\u623F\u95F4\u533A\u57DF"
   m_TagString: Untagged
@@ -8546,7 +8547,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 1.273201, y: 1.6976013}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1337556462
@@ -8569,6 +8570,22 @@ MonoBehaviour:
   m_ChildAlignment: 0
   cellSize: {x: 80, y: 60}
   spacing: {x: 10, y: -26}
+--- !u!114 &1337556463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1337556460}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b82a9d530cd23a4ab0e92858b0a58d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapTemplateDatabase: {fileID: 11400000, guid: 2418917108b9bbc48a397d5bfbf26a4e, type: 2}
+  templateId: "\u5730\u72621"
+  roomPrefab: {fileID: 0}
+  regenerateOnEnable: 1
 --- !u!1001 &1355053246
 PrefabInstance:
   m_ObjectHideFlags: 0
