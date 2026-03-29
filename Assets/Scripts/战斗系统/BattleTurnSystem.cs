@@ -141,6 +141,8 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
+    private Coroutine explorationFollowerRoutine;
+    private bool explorationFollowerInProgress;
     private AudioSource modeMusicSource;
     private Coroutine explorationMoveAudioStopRoutine;
     private bool pendingExplorationModeEnter;
@@ -308,6 +310,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        StopExplorationFollowerRoutine();
         RestoreGlobalTimeScale();
         UnbindEndTurnButton();
         UnbindSkillButton();
@@ -452,6 +455,11 @@ public class BattleTurnSystem : MonoBehaviour
     private void HandleExplorationInput()
     {
         if (!string.Equals(activeExplorationActionId, ExplorationMoveSkillId, System.StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (explorationFollowerInProgress)
         {
             return;
         }
@@ -605,7 +613,194 @@ public class BattleTurnSystem : MonoBehaviour
             moveDuration,
             idleStateName,
             ResolveExplorationMoveCompensateMotion());
+        QueueExplorationFollowerMovement(unit, moveDuration);
         RefreshHighlights();
+    }
+
+    private void QueueExplorationFollowerMovement(BattleUnit leaderUnit, float leaderMoveDuration)
+    {
+        if (!IsExplorationMode || leaderUnit == null || !leaderUnit.IsAlive || !leaderUnit.isPlayerControlled)
+        {
+            return;
+        }
+
+        if (!string.Equals(leaderUnit.characterId, "玩家", System.StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (explorationFollowerRoutine != null)
+        {
+            StopCoroutine(explorationFollowerRoutine);
+            explorationFollowerRoutine = null;
+        }
+
+        explorationFollowerRoutine = StartCoroutine(RunExplorationFollowerMovementRoutine(leaderUnit, leaderMoveDuration));
+    }
+
+    private IEnumerator RunExplorationFollowerMovementRoutine(BattleUnit leaderUnit, float leaderMoveDuration)
+    {
+        explorationFollowerInProgress = true;
+
+        if (leaderMoveDuration > 0f)
+        {
+            yield return new WaitForSeconds(leaderMoveDuration);
+        }
+
+        List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
+        for (int i = 0; i < followers.Count; i++)
+        {
+            BattleUnit follower = followers[i];
+            if (follower == null || !follower.IsAlive || follower.IsMoving)
+            {
+                continue;
+            }
+
+            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 5)
+            {
+                continue;
+            }
+
+            Vector2Int destination;
+            if (!TryFindExplorationFollowerDestination(follower, leaderUnit.currentCell, out destination))
+            {
+                continue;
+            }
+
+            float moveDuration = PlayExplorationFollowerMove(follower, destination);
+            if (moveDuration > 0f)
+            {
+                RefreshHighlights();
+                yield return new WaitForSeconds(moveDuration);
+            }
+        }
+
+        explorationFollowerInProgress = false;
+        explorationFollowerRoutine = null;
+        RefreshHighlights();
+    }
+
+    private List<BattleUnit> GetExplorationFollowersInSlotOrder(BattleUnit leaderUnit)
+    {
+        List<BattleUnit> orderedFollowers = new List<BattleUnit>();
+        HashSet<BattleUnit> added = new HashSet<BattleUnit>();
+        IReadOnlyList<CharacterSelectionState.SlotSelection> slotSelections = CharacterSelectionState.SlotSelections;
+        for (int i = 0; i < slotSelections.Count; i++)
+        {
+            CharacterSelectionState.SlotSelection slot = slotSelections[i];
+            if (string.IsNullOrWhiteSpace(slot.characterId))
+            {
+                continue;
+            }
+
+            BattleUnit unit = FindUnitByCharacterId(slot.characterId);
+            if (unit == null || unit == leaderUnit || !unit.IsAlive || !unit.isPlayerControlled || unit.team != BattleTeam.Player)
+            {
+                continue;
+            }
+
+            if (added.Add(unit))
+            {
+                orderedFollowers.Add(unit);
+            }
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || unit == leaderUnit || !unit.IsAlive || !unit.isPlayerControlled || unit.team != BattleTeam.Player)
+            {
+                continue;
+            }
+
+            if (added.Add(unit))
+            {
+                orderedFollowers.Add(unit);
+            }
+        }
+
+        return orderedFollowers;
+    }
+
+    private bool TryFindExplorationFollowerDestination(BattleUnit follower, Vector2Int leaderCell, out Vector2Int destination)
+    {
+        destination = follower != null ? follower.currentCell : Vector2Int.zero;
+        if (follower == null || grid == null)
+        {
+            return false;
+        }
+
+        int bestDistanceDelta = int.MaxValue;
+        int bestPathLength = int.MaxValue;
+        bool found = false;
+
+        for (int y = 0; y < grid.height; y++)
+        {
+            for (int x = 0; x < grid.width; x++)
+            {
+                Vector2Int candidate = new Vector2Int(x, y);
+                int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
+                if (leaderDistance > 5)
+                {
+                    continue;
+                }
+
+                if (!grid.IsWalkable(follower, candidate))
+                {
+                    continue;
+                }
+
+                List<Vector2Int> path = grid.FindPath(follower, candidate);
+                if (path == null || path.Count <= 1)
+                {
+                    continue;
+                }
+
+                int distanceDelta = Mathf.Abs(5 - leaderDistance);
+                int pathLength = path.Count - 1;
+                if (distanceDelta > bestDistanceDelta)
+                {
+                    continue;
+                }
+
+                if (distanceDelta == bestDistanceDelta && pathLength >= bestPathLength)
+                {
+                    continue;
+                }
+
+                bestDistanceDelta = distanceDelta;
+                bestPathLength = pathLength;
+                destination = candidate;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
+    private float PlayExplorationFollowerMove(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null || grid == null || destination == unit.currentCell)
+        {
+            return 0f;
+        }
+
+        float originalMoveSpeed = unit.moveSpeed;
+        unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
+        float moveDuration = grid.MoveUnit(unit, destination);
+        unit.moveSpeed = originalMoveSpeed;
+        if (moveDuration <= 0f)
+        {
+            return 0f;
+        }
+
+        string idleStateName = ResolveExplorationIdleStateName();
+        unit.PlayTimedAnimation(
+            unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
+            moveDuration,
+            idleStateName,
+            ResolveExplorationMoveCompensateMotion());
+        return moveDuration;
     }
 
     private void EndTurn()
@@ -674,6 +869,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void EnterCombatMode(bool playEnterAnimation)
     {
+        StopExplorationFollowerRoutine();
         bool switchedFromExploration = currentMode == BattleFlowMode.Exploration;
         currentMode = BattleFlowMode.Combat;
         waitingForEnemyAction = false;
@@ -688,6 +884,18 @@ public class BattleTurnSystem : MonoBehaviour
         {
             StartCoroutine(PlayEnterBattleAnimations());
         }
+    }
+
+    private void StopExplorationFollowerRoutine()
+    {
+        explorationFollowerInProgress = false;
+        if (explorationFollowerRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(explorationFollowerRoutine);
+        explorationFollowerRoutine = null;
     }
 
     private bool HasLivingEnemies()
