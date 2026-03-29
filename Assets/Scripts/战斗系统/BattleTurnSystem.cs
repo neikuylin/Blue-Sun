@@ -2681,12 +2681,14 @@ public class BattleTurnSystem : MonoBehaviour
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
+                SetAllRuntimeWeaponModelsVisible(false);
                 BattleAudioUtility.PlayOnce(ResolveExplorationIdleSound(), ResolveExplorationIdleSoundPrefab(), activeUnit, battleCamera);
                 activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
             }
         }
         else
         {
+            SetAllRuntimeWeaponModelsVisible(false);
             string moveStateName = activeUnit.GetMoveAnimationStateName(ResolveExplorationMoveStateName());
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(moveStateName))
@@ -5623,7 +5625,6 @@ public class BattleTurnSystem : MonoBehaviour
                 stateName,
                 ResolveExplorationIdleStateName(),
                 ResolveExitBattleCompensateMotion());
-            StartCoroutine(HideRuntimeWeaponsAfterExitAnimation(unit, stateName));
         }
     }
 
@@ -5756,29 +5757,18 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
-    private IEnumerator HideRuntimeWeaponsAfterExitAnimation(BattleUnit unit, string stateName)
+    private void SetAllRuntimeWeaponModelsVisible(bool visible)
     {
-        if (unit == null || string.IsNullOrWhiteSpace(stateName))
+        for (int i = 0; i < units.Count; i++)
         {
-            yield break;
+            BattleUnit unit = units[i];
+            if (unit == null)
+            {
+                continue;
+            }
+
+            SetRuntimeWeaponModelsVisible(unit.transform, visible);
         }
-
-        Animator animator = unit.GetComponentInChildren<Animator>(true);
-        if (animator == null || animator.runtimeAnimatorController == null)
-        {
-            yield break;
-        }
-
-        yield return null;
-
-        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
-        float duration = currentState.length;
-        if (duration > 0.01f)
-        {
-            yield return new WaitForSeconds(duration);
-        }
-
-        SetRuntimeWeaponModelsVisible(unit.transform, false);
     }
 
     private static void SetRuntimeWeaponModelsVisible(Transform root, bool visible)
