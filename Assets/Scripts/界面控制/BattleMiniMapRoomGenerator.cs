@@ -47,6 +47,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
     private bool isRegenerating;
 #if UNITY_EDITOR
     private bool regenerateQueuedInEditor;
+    private bool editorRegenerateSubscribed;
 #endif
 
     public void RegenerateRooms()
@@ -113,6 +114,19 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
         QueueRegenerate();
     }
 
+    private void OnDisable()
+    {
+#if UNITY_EDITOR
+        if (editorRegenerateSubscribed)
+        {
+            EditorApplication.update -= RegenerateRoomsInEditor;
+            editorRegenerateSubscribed = false;
+        }
+
+        regenerateQueuedInEditor = false;
+#endif
+    }
+
     private void QueueRegenerate()
     {
         if (!regenerateOnEnable)
@@ -129,7 +143,11 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             }
 
             regenerateQueuedInEditor = true;
-            EditorApplication.delayCall += RegenerateRoomsInEditor;
+            if (!editorRegenerateSubscribed)
+            {
+                editorRegenerateSubscribed = true;
+                EditorApplication.update += RegenerateRoomsInEditor;
+            }
             return;
         }
 #endif
@@ -158,7 +176,20 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 #if UNITY_EDITOR
     private void RegenerateRoomsInEditor()
     {
-        EditorApplication.delayCall -= RegenerateRoomsInEditor;
+        if (!regenerateQueuedInEditor)
+        {
+            EditorApplication.update -= RegenerateRoomsInEditor;
+            editorRegenerateSubscribed = false;
+            return;
+        }
+
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+        {
+            return;
+        }
+
+        EditorApplication.update -= RegenerateRoomsInEditor;
+        editorRegenerateSubscribed = false;
         regenerateQueuedInEditor = false;
 
         if (this == null || gameObject == null)

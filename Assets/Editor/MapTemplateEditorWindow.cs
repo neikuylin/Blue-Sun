@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public sealed class MapTemplateEditorWindow : EditorWindow
 {
@@ -285,6 +286,24 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         if (nextBattleSceneContentPrefab != node.battleSceneContentPrefab)
         {
             node.battleSceneContentPrefab = nextBattleSceneContentPrefab;
+            MarkDirty(database);
+        }
+
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("房间方向按钮", EditorStyles.boldLabel);
+        Button nextEastButton = EditorGUILayout.ObjectField("东按钮", node.eastButton, typeof(Button), true) as Button;
+        Button nextSouthButton = EditorGUILayout.ObjectField("南按钮", node.southButton, typeof(Button), true) as Button;
+        Button nextWestButton = EditorGUILayout.ObjectField("西按钮", node.westButton, typeof(Button), true) as Button;
+        Button nextNorthButton = EditorGUILayout.ObjectField("北按钮", node.northButton, typeof(Button), true) as Button;
+        if (nextEastButton != node.eastButton ||
+            nextSouthButton != node.southButton ||
+            nextWestButton != node.westButton ||
+            nextNorthButton != node.northButton)
+        {
+            node.eastButton = nextEastButton;
+            node.southButton = nextSouthButton;
+            node.westButton = nextWestButton;
+            node.northButton = nextNorthButton;
             MarkDirty(database);
         }
 

@@ -3,6 +3,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -183,6 +184,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
         GameObject roomContentPrefab = ResolveBattleRoomContentPrefab();
         if (roomContentPrefab == null)
         {
@@ -194,6 +196,7 @@ public class BattleBootstrap : MonoBehaviour
         instance.transform.localPosition = roomContentPrefab.transform.localPosition;
         instance.transform.localRotation = roomContentPrefab.transform.localRotation;
         instance.transform.localScale = roomContentPrefab.transform.localScale;
+        ConfigureRoomDirectionButtons(roomNode, roomContentPrefab.transform, instance.transform);
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -207,6 +210,107 @@ public class BattleBootstrap : MonoBehaviour
         grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
+    }
+
+    private void ConfigureRoomDirectionButtons(
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        Transform prefabRoot,
+        Transform instanceRoot)
+    {
+        if (roomNode == null || prefabRoot == null || instanceRoot == null)
+        {
+            return;
+        }
+
+        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.eastButton, MapTemplateDatabase.ConnectionDirection.East);
+        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.southButton, MapTemplateDatabase.ConnectionDirection.South);
+        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.westButton, MapTemplateDatabase.ConnectionDirection.West);
+        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.northButton, MapTemplateDatabase.ConnectionDirection.North);
+    }
+
+    private static void SetDirectionButtonInteractable(
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        Transform prefabRoot,
+        Transform instanceRoot,
+        Button prefabButton,
+        MapTemplateDatabase.ConnectionDirection direction)
+    {
+        if (roomNode == null || prefabRoot == null || instanceRoot == null || prefabButton == null)
+        {
+            return;
+        }
+
+        string relativePath = GetRelativePath(prefabRoot, prefabButton.transform);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            Debug.LogWarning($"BattleBootstrap: direction button '{prefabButton.name}' is not under room content prefab root '{prefabRoot.name}'.");
+            return;
+        }
+
+        Transform instanceButtonTransform = instanceRoot.Find(relativePath);
+        if (instanceButtonTransform == null)
+        {
+            Debug.LogWarning($"BattleBootstrap: missing instantiated direction button path '{relativePath}' in room content '{instanceRoot.name}'.");
+            return;
+        }
+
+        Button instanceButton = instanceButtonTransform.GetComponent<Button>();
+        if (instanceButton == null)
+        {
+            Debug.LogWarning($"BattleBootstrap: instantiated object '{instanceButtonTransform.name}' has no Button component.");
+            return;
+        }
+
+        instanceButton.interactable = HasConnectionInDirection(roomNode, direction);
+    }
+
+    private static bool HasConnectionInDirection(
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        MapTemplateDatabase.ConnectionDirection direction)
+    {
+        if (roomNode == null || roomNode.connections == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < roomNode.connections.Count; i++)
+        {
+            MapTemplateDatabase.MapConnectionEntry connection = roomNode.connections[i];
+            if (connection == null || string.IsNullOrWhiteSpace(connection.targetNodeId))
+            {
+                continue;
+            }
+
+            if (connection.direction == direction)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetRelativePath(Transform root, Transform target)
+    {
+        if (root == null || target == null || root == target)
+        {
+            return string.Empty;
+        }
+
+        Stack<string> pathSegments = new Stack<string>();
+        Transform current = target;
+        while (current != null && current != root)
+        {
+            pathSegments.Push(current.name);
+            current = current.parent;
+        }
+
+        if (current != root)
+        {
+            return string.Empty;
+        }
+
+        return string.Join("/", pathSegments.ToArray());
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)

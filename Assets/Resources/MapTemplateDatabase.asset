@@ -18,10 +18,14 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 766, y: 92}
+      position: {x: 767, y: 91}
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
+      eastButton: {fileID: 0}
+      southButton: {fileID: 0}
+      westButton: {fileID: 0}
+      northButton: {fileID: 0}
       connections:
       - targetNodeId: node_1
         direction: 2
@@ -32,6 +36,10 @@ MonoBehaviour:
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleSceneContentPrefab: {fileID: 0}
+      eastButton: {fileID: 0}
+      southButton: {fileID: 0}
+      westButton: {fileID: 0}
+      northButton: {fileID: 0}
       connections:
       - targetNodeId: "\u5165\u53E3"
         direction: 0
@@ -46,6 +54,10 @@ MonoBehaviour:
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleSceneContentPrefab: {fileID: 0}
+      eastButton: {fileID: 0}
+      southButton: {fileID: 0}
+      westButton: {fileID: 0}
+      northButton: {fileID: 0}
       connections:
       - targetNodeId: node_1
         direction: 0
@@ -56,6 +68,10 @@ MonoBehaviour:
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleSceneContentPrefab: {fileID: 0}
+      eastButton: {fileID: 0}
+      southButton: {fileID: 0}
+      westButton: {fileID: 0}
+      northButton: {fileID: 0}
       connections:
       - targetNodeId: node_1
         direction: 3
