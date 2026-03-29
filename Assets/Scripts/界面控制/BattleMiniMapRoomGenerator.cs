@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -13,21 +14,35 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
     private const string GeneratedNodePrefix = "__MiniMapRoom_";
     private const string DefaultTemplateId = "地牢1";
     private const string DefaultStartNodeId = "入口";
+    private const string DefaultPlayerMarkerContainerName = "位置信息";
 
-    [Header("Template")]
-    [SerializeField] private MapTemplateDatabase mapTemplateDatabase;
-    [SerializeField] private string templateId = DefaultTemplateId;
-    [SerializeField] private string startNodeId = DefaultStartNodeId;
+    [Header("地图模板")]
+    [SerializeField, InspectorName("地图模板库")]
+    private MapTemplateDatabase mapTemplateDatabase;
+    [SerializeField, InspectorName("模板ID")]
+    private string templateId = DefaultTemplateId;
+    [SerializeField, InspectorName("起点节点ID")]
+    private string startNodeId = DefaultStartNodeId;
 
-    [Header("Prefab")]
-    [SerializeField] private GameObject roomPrefab;
+    [Header("房间预制体")]
+    [SerializeField, InspectorName("房间预制体")]
+    private GameObject roomPrefab;
+    [SerializeField, InspectorName("玩家所在标识预制体")]
+    private GameObject playerLocationMarkerPrefab;
+    [SerializeField, InspectorName("玩家当前节点ID")]
+    private string currentPlayerNodeId = DefaultStartNodeId;
+    [SerializeField, InspectorName("标识容器子物体名")]
+    private string playerMarkerContainerName = DefaultPlayerMarkerContainerName;
 
-    [Header("Placement")]
-    [SerializeField] private Vector2 startAnchoredPosition = Vector2.zero;
-    [SerializeField] private Vector2 directionStep = new Vector2(56f, 56f);
+    [Header("摆放")]
+    [SerializeField, InspectorName("起始锚点坐标")]
+    private Vector2 startAnchoredPosition = Vector2.zero;
+    [SerializeField, InspectorName("方向步长")]
+    private Vector2 directionStep = new Vector2(56f, 56f);
 
-    [Header("Generation")]
-    [SerializeField] private bool regenerateOnEnable = true;
+    [Header("生成")]
+    [SerializeField, InspectorName("启用时自动重建")]
+    private bool regenerateOnEnable = true;
 
     private bool isRegenerating;
 #if UNITY_EDITOR
@@ -78,6 +93,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
                 }
 
                 ApplyNodeLabel(instance, node);
+                TryAttachPlayerLocationMarker(instance, node);
             }
         }
         finally
@@ -345,11 +361,80 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             return;
         }
 
-        UnityEngine.UI.Text legacyText = instance.GetComponentInChildren<UnityEngine.UI.Text>(true);
+        Text legacyText = instance.GetComponentInChildren<Text>(true);
         if (legacyText != null)
         {
             legacyText.text = label;
         }
+    }
+
+    private void TryAttachPlayerLocationMarker(GameObject roomInstance, MapTemplateDatabase.MapNodeEntry node)
+    {
+        if (roomInstance == null ||
+            node == null ||
+            playerLocationMarkerPrefab == null ||
+            string.IsNullOrWhiteSpace(currentPlayerNodeId) ||
+            !string.Equals(node.nodeId, currentPlayerNodeId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Transform markerContainer = ResolvePlayerMarkerContainer(roomInstance.transform);
+        if (markerContainer == null)
+        {
+            Debug.LogError($"BattleMiniMapRoomGenerator: 房间预制体 '{roomInstance.name}' 缺少标识容器子物体 '{playerMarkerContainerName}'。", roomInstance);
+            return;
+        }
+
+        GameObject markerInstance;
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            markerInstance = PrefabUtility.InstantiatePrefab(playerLocationMarkerPrefab, markerContainer) as GameObject;
+        }
+        else
+        {
+            markerInstance = Instantiate(playerLocationMarkerPrefab, markerContainer, false);
+        }
+#else
+        markerInstance = Instantiate(playerLocationMarkerPrefab, markerContainer, false);
+#endif
+        if (markerInstance == null)
+        {
+            return;
+        }
+
+        markerInstance.name = playerLocationMarkerPrefab.name;
+        RectTransform markerRect = markerInstance.GetComponent<RectTransform>();
+        if (markerRect != null)
+        {
+            markerRect.anchoredPosition = Vector2.zero;
+            markerRect.localScale = Vector3.one;
+        }
+        else
+        {
+            markerInstance.transform.localPosition = Vector3.zero;
+            markerInstance.transform.localScale = Vector3.one;
+        }
+    }
+
+    private Transform ResolvePlayerMarkerContainer(Transform roomRoot)
+    {
+        if (roomRoot == null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(playerMarkerContainerName))
+        {
+            Transform namedChild = roomRoot.Find(playerMarkerContainerName);
+            if (namedChild != null)
+            {
+                return namedChild;
+            }
+        }
+
+        return null;
     }
 
     private static void DestroyObject(GameObject target)
