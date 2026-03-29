@@ -18,7 +18,7 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 767, y: 91}
+      position: {x: 767, y: 90}
       roomTypeId: encounter_battle
       encounterPresetId: "\u7A7A\u623F\u95F4"
       battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
@@ -32,7 +32,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
-      position: {x: 649, y: 162}
+      position: {x: 650, y: 161}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleSceneContentPrefab: {fileID: 0}
@@ -64,7 +64,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_3
       displayName: node_3
-      position: {x: 767, y: 246}
+      position: {x: 768, y: 246}
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleSceneContentPrefab: {fileID: 0}
