@@ -222,35 +222,27 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.eastButton, MapTemplateDatabase.ConnectionDirection.East);
-        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.southButton, MapTemplateDatabase.ConnectionDirection.South);
-        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.westButton, MapTemplateDatabase.ConnectionDirection.West);
-        SetDirectionButtonInteractable(roomNode, prefabRoot, instanceRoot, roomNode.northButton, MapTemplateDatabase.ConnectionDirection.North);
+        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.eastButtonPath, MapTemplateDatabase.ConnectionDirection.East);
+        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.southButtonPath, MapTemplateDatabase.ConnectionDirection.South);
+        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.westButtonPath, MapTemplateDatabase.ConnectionDirection.West);
+        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.northButtonPath, MapTemplateDatabase.ConnectionDirection.North);
     }
 
     private static void SetDirectionButtonInteractable(
         MapTemplateDatabase.MapNodeEntry roomNode,
-        Transform prefabRoot,
         Transform instanceRoot,
-        Button prefabButton,
+        string buttonPath,
         MapTemplateDatabase.ConnectionDirection direction)
     {
-        if (roomNode == null || prefabRoot == null || instanceRoot == null || prefabButton == null)
+        if (roomNode == null || instanceRoot == null || string.IsNullOrWhiteSpace(buttonPath))
         {
             return;
         }
 
-        string relativePath = GetRelativePath(prefabRoot, prefabButton.transform);
-        if (string.IsNullOrWhiteSpace(relativePath))
-        {
-            Debug.LogWarning($"BattleBootstrap: direction button '{prefabButton.name}' is not under room content prefab root '{prefabRoot.name}'.");
-            return;
-        }
-
-        Transform instanceButtonTransform = instanceRoot.Find(relativePath);
+        Transform instanceButtonTransform = instanceRoot.Find(buttonPath);
         if (instanceButtonTransform == null)
         {
-            Debug.LogWarning($"BattleBootstrap: missing instantiated direction button path '{relativePath}' in room content '{instanceRoot.name}'.");
+            Debug.LogWarning($"BattleBootstrap: missing instantiated direction button path '{buttonPath}' in room content '{instanceRoot.name}'.");
             return;
         }
 
@@ -288,29 +280,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return false;
-    }
-
-    private static string GetRelativePath(Transform root, Transform target)
-    {
-        if (root == null || target == null || root == target)
-        {
-            return string.Empty;
-        }
-
-        Stack<string> pathSegments = new Stack<string>();
-        Transform current = target;
-        while (current != null && current != root)
-        {
-            pathSegments.Push(current.name);
-            current = current.parent;
-        }
-
-        if (current != root)
-        {
-            return string.Empty;
-        }
-
-        return string.Join("/", pathSegments.ToArray());
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)

@@ -291,21 +291,10 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
         EditorGUILayout.Space(4f);
         EditorGUILayout.LabelField("房间方向按钮", EditorStyles.boldLabel);
-        Button nextEastButton = EditorGUILayout.ObjectField("东按钮", node.eastButton, typeof(Button), true) as Button;
-        Button nextSouthButton = EditorGUILayout.ObjectField("南按钮", node.southButton, typeof(Button), true) as Button;
-        Button nextWestButton = EditorGUILayout.ObjectField("西按钮", node.westButton, typeof(Button), true) as Button;
-        Button nextNorthButton = EditorGUILayout.ObjectField("北按钮", node.northButton, typeof(Button), true) as Button;
-        if (nextEastButton != node.eastButton ||
-            nextSouthButton != node.southButton ||
-            nextWestButton != node.westButton ||
-            nextNorthButton != node.northButton)
-        {
-            node.eastButton = nextEastButton;
-            node.southButton = nextSouthButton;
-            node.westButton = nextWestButton;
-            node.northButton = nextNorthButton;
-            MarkDirty(database);
-        }
+        DrawDirectionButtonField("东按钮", ref node.eastButtonPath, node.battleSceneContentPrefab, database);
+        DrawDirectionButtonField("南按钮", ref node.southButtonPath, node.battleSceneContentPrefab, database);
+        DrawDirectionButtonField("西按钮", ref node.westButtonPath, node.battleSceneContentPrefab, database);
+        DrawDirectionButtonField("北按钮", ref node.northButtonPath, node.battleSceneContentPrefab, database);
 
         EditorGUILayout.Vector2Field("画布位置", node.position);
 
@@ -360,6 +349,79 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             }
             MarkDirty(database);
         }
+    }
+
+    private void DrawDirectionButtonField(
+        string label,
+        ref string pathValue,
+        GameObject roomContentPrefab,
+        MapTemplateDatabase database)
+    {
+        Button currentButton = ResolveButtonFromPath(roomContentPrefab, pathValue);
+        Button nextButton = EditorGUILayout.ObjectField(label, currentButton, typeof(Button), true) as Button;
+        if (nextButton == currentButton)
+        {
+            return;
+        }
+
+        string nextPath = ResolveButtonPath(roomContentPrefab, nextButton);
+        if (nextButton != null && string.IsNullOrWhiteSpace(nextPath))
+        {
+            EditorGUILayout.HelpBox($"{label} 必须拖战斗副本内容 prefab 里的按钮，不能拖场景里不相关的按钮。", MessageType.Warning);
+            return;
+        }
+
+        pathValue = nextPath;
+        MarkDirty(database);
+    }
+
+    private static Button ResolveButtonFromPath(GameObject roomContentPrefab, string pathValue)
+    {
+        if (roomContentPrefab == null || string.IsNullOrWhiteSpace(pathValue))
+        {
+            return null;
+        }
+
+        Transform target = roomContentPrefab.transform.Find(pathValue);
+        return target != null ? target.GetComponent<Button>() : null;
+    }
+
+    private static string ResolveButtonPath(GameObject roomContentPrefab, Button button)
+    {
+        if (roomContentPrefab == null || button == null)
+        {
+            return string.Empty;
+        }
+
+        return GetRelativePath(roomContentPrefab.transform, button.transform);
+    }
+
+    private static string GetRelativePath(Transform root, Transform target)
+    {
+        if (root == null || target == null)
+        {
+            return string.Empty;
+        }
+
+        if (root == target)
+        {
+            return string.Empty;
+        }
+
+        Stack<string> pathSegments = new Stack<string>();
+        Transform current = target;
+        while (current != null && current != root)
+        {
+            pathSegments.Push(current.name);
+            current = current.parent;
+        }
+
+        if (current != root)
+        {
+            return string.Empty;
+        }
+
+        return string.Join("/", pathSegments.ToArray());
     }
     private void DrawCanvasGrid(Rect canvasRect)
     {

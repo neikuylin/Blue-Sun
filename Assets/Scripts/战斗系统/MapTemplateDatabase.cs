@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "MapTemplateDatabase", menuName = "战斗/地图模板库")]
 public sealed class MapTemplateDatabase : ScriptableObject
@@ -32,10 +31,10 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public string encounterPresetId = string.Empty;
         public GameObject battleSceneContentPrefab;
-        public Button eastButton;
-        public Button southButton;
-        public Button westButton;
-        public Button northButton;
+        public string eastButtonPath = string.Empty;
+        public string southButtonPath = string.Empty;
+        public string westButtonPath = string.Empty;
+        public string northButtonPath = string.Empty;
         public List<MapConnectionEntry> connections = new List<MapConnectionEntry>();
         public List<string> nextNodeIds = new List<string>();
     }

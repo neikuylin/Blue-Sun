@@ -111,7 +111,6 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 
     private void OnValidate()
     {
-        QueueRegenerate();
     }
 
     private void OnDisable()
