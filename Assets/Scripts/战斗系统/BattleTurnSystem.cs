@@ -19,7 +19,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
     private const string TimelineDividerPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u65F6\u95F4\u8F74\u5206\u5272\u7EBF";
-    private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
+    private const string WeaponMountPointName = "武器挂载点";
 
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
@@ -622,6 +622,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         string idleStateName = ResolveExplorationIdleStateName();
         PlayExplorationMoveAudio(unit, moveDuration);
+        SetAllWeaponMountPointsActive(false);
         unit.PlayTimedAnimation(
             unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
             moveDuration,
@@ -845,6 +846,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         string idleStateName = ResolveExplorationIdleStateName();
+        SetAllWeaponMountPointsActive(false);
         unit.PlayTimedAnimation(
             unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
             moveDuration,
@@ -2681,19 +2683,19 @@ public class BattleTurnSystem : MonoBehaviour
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
-                SetAllRuntimeWeaponModelsVisible(false);
+                SetAllWeaponMountPointsActive(false);
                 BattleAudioUtility.PlayOnce(ResolveExplorationIdleSound(), ResolveExplorationIdleSoundPrefab(), activeUnit, battleCamera);
                 activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
             }
         }
         else
         {
-            SetAllRuntimeWeaponModelsVisible(false);
             string moveStateName = activeUnit.GetMoveAnimationStateName(ResolveExplorationMoveStateName());
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(moveStateName))
             {
                 StopExplorationMoveAudio();
+                SetAllWeaponMountPointsActive(false);
                 activeUnit.PlayTimedAnimation(moveStateName, 0.05f, idleStateName, ResolveExplorationMoveCompensateMotion());
             }
         }
@@ -4626,6 +4628,36 @@ public class BattleTurnSystem : MonoBehaviour
         return SceneHierarchyPathUtility.FindDirectChildByName(parent, childName);
     }
 
+    private static Transform FindDescendantByName(Transform parent, string childName)
+    {
+        if (parent == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (string.Equals(child.name, childName, System.StringComparison.Ordinal))
+            {
+                return child;
+            }
+
+            Transform nested = FindDescendantByName(child, childName);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
     private BattleUnit FindClosestLivingOpponent(BattleUnit source)
     {
         BattleUnit best = null;
@@ -5621,6 +5653,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             BattleAudioUtility.PlayOnce(ResolveExitBattleSound(), ResolveExitBattleSoundPrefab(), unit, battleCamera);
+            SetAllWeaponMountPointsActive(false);
             unit.PlayAnimationStateForCurrentClipDuration(
                 stateName,
                 ResolveExplorationIdleStateName(),
@@ -5642,6 +5675,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         StopExplorationMoveAudio();
+        SetAllWeaponMountPointsActive(false);
         activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
     }
 
@@ -5654,6 +5688,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         StopExplorationMoveAudio();
+        SetAllWeaponMountPointsActive(false);
 
         for (int i = 0; i < units.Count; i++)
         {
@@ -5757,7 +5792,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
-    private void SetAllRuntimeWeaponModelsVisible(bool visible)
+    private void SetAllWeaponMountPointsActive(bool active)
     {
         for (int i = 0; i < units.Count; i++)
         {
@@ -5767,31 +5802,26 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            SetRuntimeWeaponModelsVisible(unit.transform, visible);
+            SetWeaponMountPointActive(unit.transform, active);
         }
     }
 
-    private static void SetRuntimeWeaponModelsVisible(Transform root, bool visible)
+    private static void SetWeaponMountPointActive(Transform root, bool active)
     {
         if (root == null)
         {
             return;
         }
 
-        for (int i = 0; i < root.childCount; i++)
+        Transform mountPoint = FindChildByName(root, WeaponMountPointName);
+        if (mountPoint == null)
         {
-            Transform child = root.GetChild(i);
-            if (child == null)
-            {
-                continue;
-            }
+            mountPoint = FindDescendantByName(root, WeaponMountPointName);
+        }
 
-            if (string.Equals(child.name, RuntimeWeaponModelName, System.StringComparison.Ordinal))
-            {
-                child.gameObject.SetActive(visible);
-            }
-
-            SetRuntimeWeaponModelsVisible(child, visible);
+        if (mountPoint != null && mountPoint.gameObject.activeSelf != active)
+        {
+            mountPoint.gameObject.SetActive(active);
         }
     }
 
