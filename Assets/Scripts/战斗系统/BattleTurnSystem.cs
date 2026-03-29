@@ -625,11 +625,11 @@ public class BattleTurnSystem : MonoBehaviour
             moveDuration,
             idleStateName,
             ResolveExplorationMoveCompensateMotion());
-        QueueExplorationFollowerMovement(unit, moveDuration);
+        QueueExplorationFollowerMovement(unit);
         RefreshHighlights();
     }
 
-    private void QueueExplorationFollowerMovement(BattleUnit leaderUnit, float leaderMoveDuration)
+    private void QueueExplorationFollowerMovement(BattleUnit leaderUnit)
     {
         if (!IsExplorationMode || leaderUnit == null || !leaderUnit.IsAlive || !leaderUnit.isPlayerControlled)
         {
@@ -647,52 +647,66 @@ public class BattleTurnSystem : MonoBehaviour
             explorationFollowerRoutine = null;
         }
 
-        explorationFollowerRoutine = StartCoroutine(RunExplorationFollowerMovementRoutine(leaderUnit, leaderMoveDuration));
+        explorationFollowerRoutine = StartCoroutine(RunExplorationFollowerMovementRoutine(leaderUnit));
     }
 
-    private IEnumerator RunExplorationFollowerMovementRoutine(BattleUnit leaderUnit, float leaderMoveDuration)
+    private IEnumerator RunExplorationFollowerMovementRoutine(BattleUnit leaderUnit)
     {
         explorationFollowerInProgress = true;
+        WaitForSeconds tickDelay = new WaitForSeconds(0.12f);
 
-        if (leaderMoveDuration > 0f)
+        while (IsExplorationMode && leaderUnit != null && leaderUnit.IsAlive)
         {
-            yield return new WaitForSeconds(leaderMoveDuration);
-        }
-
-        List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
-        HashSet<Vector2Int> reservedDestinations = new HashSet<Vector2Int>();
-        float maxMoveDuration = 0f;
-        for (int i = 0; i < followers.Count; i++)
-        {
-            BattleUnit follower = followers[i];
-            if (follower == null || !follower.IsAlive || follower.IsMoving)
+            bool issuedFollowerMove = false;
+            bool hasPendingFollowerGap = false;
+            Vector2Int leaderCell = leaderUnit.IsMoving ? grid.WorldToCell(leaderUnit.transform.position) : leaderUnit.currentCell;
+            List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
+            HashSet<Vector2Int> reservedDestinations = new HashSet<Vector2Int>();
+            for (int i = 0; i < followers.Count; i++)
             {
-                continue;
+                BattleUnit follower = followers[i];
+                if (follower == null || !follower.IsAlive)
+                {
+                    continue;
+                }
+
+                if (follower.IsMoving)
+                {
+                    hasPendingFollowerGap = true;
+                    continue;
+                }
+
+                if (grid.ManhattanDistance(follower.currentCell, leaderCell) <= 10)
+                {
+                    continue;
+                }
+
+                hasPendingFollowerGap = true;
+
+                Vector2Int destination;
+                if (!TryFindExplorationFollowerDestination(follower, leaderCell, reservedDestinations, out destination))
+                {
+                    continue;
+                }
+
+                reservedDestinations.Add(destination);
+                if (PlayExplorationFollowerMove(follower, destination) > 0f)
+                {
+                    issuedFollowerMove = true;
+                }
             }
 
-            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 10)
+            if (issuedFollowerMove)
             {
-                continue;
+                RefreshHighlights();
             }
 
-            Vector2Int destination;
-            if (!TryFindExplorationFollowerDestination(follower, leaderUnit.currentCell, reservedDestinations, out destination))
+            if (!leaderUnit.IsMoving && !hasPendingFollowerGap && !issuedFollowerMove)
             {
-                continue;
+                break;
             }
 
-            reservedDestinations.Add(destination);
-            float moveDuration = PlayExplorationFollowerMove(follower, destination);
-            if (moveDuration > 0f)
-            {
-                maxMoveDuration = Mathf.Max(maxMoveDuration, moveDuration);
-            }
-        }
-
-        if (maxMoveDuration > 0f)
-        {
-            RefreshHighlights();
-            yield return new WaitForSeconds(maxMoveDuration);
+            yield return tickDelay;
         }
 
         explorationFollowerInProgress = false;
