@@ -656,7 +656,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 5)
+            if (grid.ManhattanDistance(follower.currentCell, leaderUnit.currentCell) <= 15)
             {
                 continue;
             }
@@ -740,7 +740,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
-                if (leaderDistance > 5)
+                if (leaderDistance > 15)
                 {
                     continue;
                 }
@@ -756,7 +756,7 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                int distanceDelta = Mathf.Abs(5 - leaderDistance);
+                int distanceDelta = Mathf.Abs(15 - leaderDistance);
                 int pathLength = path.Count - 1;
                 if (distanceDelta > bestDistanceDelta)
                 {
