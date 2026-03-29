@@ -357,22 +357,22 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         GameObject roomContentPrefab,
         MapTemplateDatabase database)
     {
-        Button currentButton = ResolveButtonFromPath(roomContentPrefab, pathValue);
-        UnityEngine.Object currentObject = currentButton != null ? (UnityEngine.Object)currentButton.gameObject : null;
-        UnityEngine.Object nextObject = EditorGUILayout.ObjectField(label, currentObject, typeof(GameObject), true);
-        if (nextObject == currentObject)
+        if (roomContentPrefab == null)
+        {
+            EditorGUILayout.HelpBox($"{label} 需要先绑定“战斗副本内容”。", MessageType.None);
+            return;
+        }
+
+        List<Button> buttons = CollectPrefabButtons(roomContentPrefab);
+        string[] optionPaths = BuildButtonPathOptions(roomContentPrefab, buttons);
+        int currentIndex = FindOptionIndex(optionPaths, pathValue);
+        int nextIndex = EditorGUILayout.Popup(label, currentIndex, optionPaths);
+        if (nextIndex == currentIndex)
         {
             return;
         }
 
-        string nextPath = ResolveButtonPath(roomContentPrefab, nextObject);
-        if (nextObject != null && string.IsNullOrWhiteSpace(nextPath))
-        {
-            EditorGUILayout.HelpBox($"{label} 必须拖战斗副本内容 prefab 里的按钮，不能拖场景里不相关的按钮。", MessageType.Warning);
-            return;
-        }
-
-        pathValue = nextPath;
+        pathValue = nextIndex <= 0 || nextIndex >= optionPaths.Length ? string.Empty : optionPaths[nextIndex];
         MarkDirty(database);
     }
 
@@ -387,53 +387,55 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         return target != null ? target.GetComponent<Button>() : null;
     }
 
-    private static string ResolveButtonPath(GameObject roomContentPrefab, UnityEngine.Object draggedObject)
+    private static List<Button> CollectPrefabButtons(GameObject roomContentPrefab)
     {
-        if (roomContentPrefab == null || draggedObject == null)
+        List<Button> results = new List<Button>();
+        if (roomContentPrefab == null)
         {
-            return string.Empty;
+            return results;
         }
 
-        GameObject draggedGameObject = draggedObject as GameObject;
-        if (draggedGameObject == null)
+        Button[] buttons = roomContentPrefab.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < buttons.Length; i++)
         {
-            Component component = draggedObject as Component;
-            if (component != null)
+            Button button = buttons[i];
+            if (button == null)
             {
-                draggedGameObject = component.gameObject;
+                continue;
             }
+
+            results.Add(button);
         }
 
-        if (draggedGameObject == null)
+        return results;
+    }
+
+    private static string[] BuildButtonPathOptions(GameObject roomContentPrefab, List<Button> buttons)
+    {
+        List<string> options = new List<string> { "<无>" };
+        if (roomContentPrefab == null || buttons == null)
         {
-            return string.Empty;
+            return options.ToArray();
         }
 
-        Button sceneOrPrefabButton = draggedGameObject.GetComponent<Button>();
-        if (sceneOrPrefabButton == null)
+        for (int i = 0; i < buttons.Count; i++)
         {
-            return string.Empty;
-        }
-
-        string directPath = GetRelativePath(roomContentPrefab.transform, sceneOrPrefabButton.transform);
-        if (!string.IsNullOrWhiteSpace(directPath))
-        {
-            return directPath;
-        }
-
-#if UNITY_EDITOR
-        Transform sourceTransform = PrefabUtility.GetCorrespondingObjectFromSource(sceneOrPrefabButton.transform);
-        if (sourceTransform != null)
-        {
-            string sourcePath = GetRelativePath(roomContentPrefab.transform, sourceTransform);
-            if (!string.IsNullOrWhiteSpace(sourcePath))
+            Button button = buttons[i];
+            if (button == null)
             {
-                return sourcePath;
+                continue;
             }
-        }
-#endif
 
-        return string.Empty;
+            string path = GetRelativePath(roomContentPrefab.transform, button.transform);
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                continue;
+            }
+
+            options.Add(path);
+        }
+
+        return options.ToArray();
     }
 
     private static string GetRelativePath(Transform root, Transform target)
