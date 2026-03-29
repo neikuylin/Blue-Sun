@@ -406,16 +406,39 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 
         markerInstance.name = playerLocationMarkerPrefab.name;
         RectTransform markerRect = markerInstance.GetComponent<RectTransform>();
+        RectTransform prefabRect = playerLocationMarkerPrefab.GetComponent<RectTransform>();
         if (markerRect != null)
         {
-            markerRect.anchoredPosition = Vector2.zero;
-            markerRect.localScale = Vector3.one;
+            ApplyRectTransformFromPrefab(markerRect, prefabRect);
         }
         else
         {
             markerInstance.transform.localPosition = Vector3.zero;
             markerInstance.transform.localScale = Vector3.one;
         }
+    }
+
+    private static void ApplyRectTransformFromPrefab(RectTransform target, RectTransform source)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (source == null)
+        {
+            target.anchoredPosition = Vector2.zero;
+            target.localScale = Vector3.one;
+            return;
+        }
+
+        target.anchorMin = source.anchorMin;
+        target.anchorMax = source.anchorMax;
+        target.pivot = source.pivot;
+        target.anchoredPosition = source.anchoredPosition;
+        target.sizeDelta = source.sizeDelta;
+        target.localRotation = source.localRotation;
+        target.localScale = source.localScale;
     }
 
     private Transform ResolvePlayerMarkerContainer(Transform roomRoot)
