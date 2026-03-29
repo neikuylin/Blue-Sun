@@ -321,6 +321,12 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             return startAnchoredPosition;
         }
 
+        Vector2Int playerLogicalPosition;
+        if (nodeGridPositions.TryGetValue(currentPlayerNodeId, out playerLogicalPosition))
+        {
+            logicalPosition -= playerLogicalPosition;
+        }
+
         return new Vector2(
             startAnchoredPosition.x + logicalPosition.x * directionStep.x,
             startAnchoredPosition.y + logicalPosition.y * directionStep.y);
