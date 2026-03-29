@@ -35,7 +35,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
     private string playerMarkerContainerName = DefaultPlayerMarkerContainerName;
 
     [Header("摆放")]
-    [SerializeField, InspectorName("起始锚点坐标")]
+    [SerializeField, InspectorName("中心点偏移")]
     private Vector2 startAnchoredPosition = Vector2.zero;
     [SerializeField, InspectorName("方向步长")]
     private Vector2 directionStep = new Vector2(56f, 56f);
@@ -89,7 +89,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
                 RectTransform rectTransform = instance.GetComponent<RectTransform>();
                 if (rectTransform != null)
                 {
-                    rectTransform.anchoredPosition = ResolveAnchoredPosition(nodeGridPositions, node.nodeId);
+                    rectTransform.anchoredPosition = ResolveAnchoredPosition(nodeGridPositions, node.nodeId) - rectTransform.anchoredPosition;
                 }
 
                 ApplyNodeLabel(instance, node);
@@ -318,7 +318,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
         Vector2Int logicalPosition;
         if (nodeGridPositions == null || !nodeGridPositions.TryGetValue(nodeId, out logicalPosition))
         {
-            return startAnchoredPosition;
+            return ResolveMiniMapCenter();
         }
 
         Vector2Int playerLogicalPosition;
@@ -327,9 +327,21 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
             logicalPosition -= playerLogicalPosition;
         }
 
+        Vector2 mapCenter = ResolveMiniMapCenter();
         return new Vector2(
-            startAnchoredPosition.x + logicalPosition.x * directionStep.x,
-            startAnchoredPosition.y + logicalPosition.y * directionStep.y);
+            mapCenter.x + logicalPosition.x * directionStep.x,
+            mapCenter.y + logicalPosition.y * directionStep.y);
+    }
+
+    private Vector2 ResolveMiniMapCenter()
+    {
+        RectTransform rootRect = transform as RectTransform;
+        if (rootRect == null)
+        {
+            return startAnchoredPosition;
+        }
+
+        return (Vector2)rootRect.rect.center + startAnchoredPosition;
     }
 
     private static Vector2Int ResolveDirectionOffset(MapTemplateDatabase.ConnectionDirection direction)
