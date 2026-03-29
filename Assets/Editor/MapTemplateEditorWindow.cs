@@ -358,14 +358,15 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         MapTemplateDatabase database)
     {
         Button currentButton = ResolveButtonFromPath(roomContentPrefab, pathValue);
-        Button nextButton = EditorGUILayout.ObjectField(label, currentButton, typeof(Button), true) as Button;
-        if (nextButton == currentButton)
+        UnityEngine.Object currentObject = currentButton != null ? (UnityEngine.Object)currentButton.gameObject : null;
+        UnityEngine.Object nextObject = EditorGUILayout.ObjectField(label, currentObject, typeof(GameObject), true);
+        if (nextObject == currentObject)
         {
             return;
         }
 
-        string nextPath = ResolveButtonPath(roomContentPrefab, nextButton);
-        if (nextButton != null && string.IsNullOrWhiteSpace(nextPath))
+        string nextPath = ResolveButtonPath(roomContentPrefab, nextObject);
+        if (nextObject != null && string.IsNullOrWhiteSpace(nextPath))
         {
             EditorGUILayout.HelpBox($"{label} 必须拖战斗副本内容 prefab 里的按钮，不能拖场景里不相关的按钮。", MessageType.Warning);
             return;
@@ -386,14 +387,53 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         return target != null ? target.GetComponent<Button>() : null;
     }
 
-    private static string ResolveButtonPath(GameObject roomContentPrefab, Button button)
+    private static string ResolveButtonPath(GameObject roomContentPrefab, UnityEngine.Object draggedObject)
     {
-        if (roomContentPrefab == null || button == null)
+        if (roomContentPrefab == null || draggedObject == null)
         {
             return string.Empty;
         }
 
-        return GetRelativePath(roomContentPrefab.transform, button.transform);
+        GameObject draggedGameObject = draggedObject as GameObject;
+        if (draggedGameObject == null)
+        {
+            Component component = draggedObject as Component;
+            if (component != null)
+            {
+                draggedGameObject = component.gameObject;
+            }
+        }
+
+        if (draggedGameObject == null)
+        {
+            return string.Empty;
+        }
+
+        Button sceneOrPrefabButton = draggedGameObject.GetComponent<Button>();
+        if (sceneOrPrefabButton == null)
+        {
+            return string.Empty;
+        }
+
+        string directPath = GetRelativePath(roomContentPrefab.transform, sceneOrPrefabButton.transform);
+        if (!string.IsNullOrWhiteSpace(directPath))
+        {
+            return directPath;
+        }
+
+#if UNITY_EDITOR
+        Transform sourceTransform = PrefabUtility.GetCorrespondingObjectFromSource(sceneOrPrefabButton.transform);
+        if (sourceTransform != null)
+        {
+            string sourcePath = GetRelativePath(roomContentPrefab.transform, sourceTransform);
+            if (!string.IsNullOrWhiteSpace(sourcePath))
+            {
+                return sourcePath;
+            }
+        }
+#endif
+
+        return string.Empty;
     }
 
     private static string GetRelativePath(Transform root, Transform target)
