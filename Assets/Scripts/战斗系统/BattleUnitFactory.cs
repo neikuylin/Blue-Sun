@@ -276,6 +276,11 @@ public sealed class BattleUnitFactory
             unit = target.AddComponent<BattleUnit>();
         }
 
+        if (target.GetComponent<BattleWeaponMountStateWatcher>() == null)
+        {
+            target.AddComponent<BattleWeaponMountStateWatcher>();
+        }
+
         return unit;
     }
 
