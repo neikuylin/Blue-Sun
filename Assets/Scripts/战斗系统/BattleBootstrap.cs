@@ -28,6 +28,12 @@ public class BattleBootstrap : MonoBehaviour
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
 
+    [System.Serializable]
+    public sealed class RoomStateMemory
+    {
+        public bool encounterCleared;
+    }
+
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
 
@@ -89,6 +95,7 @@ public class BattleBootstrap : MonoBehaviour
 
     private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
+    private static readonly Dictionary<string, RoomStateMemory> roomStateMemories = new Dictionary<string, RoomStateMemory>(System.StringComparer.Ordinal);
 
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
     public static string CurrentDungeonNodeId => currentDungeonNodeId;
@@ -122,6 +129,48 @@ public class BattleBootstrap : MonoBehaviour
         {
             currentDungeonNodeId = nodeId.Trim();
         }
+    }
+
+    public static RoomStateMemory GetCurrentRoomStateMemory()
+    {
+        return GetRoomStateMemory(currentDungeonTemplateId, currentDungeonNodeId);
+    }
+
+    public static RoomStateMemory GetRoomStateMemory(string templateId, string nodeId)
+    {
+        string roomKey = BuildRoomKey(templateId, nodeId);
+        if (string.IsNullOrWhiteSpace(roomKey))
+        {
+            return null;
+        }
+
+        RoomStateMemory memory;
+        if (!roomStateMemories.TryGetValue(roomKey, out memory) || memory == null)
+        {
+            memory = new RoomStateMemory();
+            roomStateMemories[roomKey] = memory;
+        }
+
+        return memory;
+    }
+
+    public static void MarkCurrentRoomEncounterCleared()
+    {
+        RoomStateMemory memory = GetCurrentRoomStateMemory();
+        if (memory == null)
+        {
+            Debug.LogWarning("BattleBootstrap: MarkCurrentRoomEncounterCleared failed because current room memory is missing.");
+            return;
+        }
+
+        memory.encounterCleared = true;
+        Debug.Log($"BattleBootstrap: marked room '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}' as encounter cleared.");
+    }
+
+    public static bool IsCurrentRoomEncounterCleared()
+    {
+        RoomStateMemory memory = GetCurrentRoomStateMemory();
+        return memory != null && memory.encounterCleared;
     }
 
     private void Start()
@@ -397,10 +446,34 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        CommitCurrentRoomStateOnLeave();
         Debug.Log($"BattleBootstrap: direction button clicked. currentTemplate='{currentDungeonTemplateId}', currentNode='{currentDungeonNodeId}', nextNode='{targetNodeId}'.");
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
         Debug.Log($"BattleBootstrap: loading scene '{SceneName}' for nextNode='{currentDungeonNodeId}'.");
         SceneManager.LoadScene(SceneName);
+    }
+
+    private static string BuildRoomKey(string templateId, string nodeId)
+    {
+        if (string.IsNullOrWhiteSpace(templateId) || string.IsNullOrWhiteSpace(nodeId))
+        {
+            return string.Empty;
+        }
+
+        return templateId.Trim() + "::" + nodeId.Trim();
+    }
+
+    private static void CommitCurrentRoomStateOnLeave()
+    {
+        RoomStateMemory memory = GetCurrentRoomStateMemory();
+        if (memory == null)
+        {
+            Debug.LogWarning("BattleBootstrap: CommitCurrentRoomStateOnLeave failed because current room memory is missing.");
+            return;
+        }
+
+        memory.encounterCleared = true;
+        Debug.Log($"BattleBootstrap: committed room state on leave for '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}'.");
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
@@ -449,6 +522,12 @@ public class BattleBootstrap : MonoBehaviour
     private List<EnemySpawnEntry> GetEnemySpawnEntries()
     {
         List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
+        if (IsCurrentRoomEncounterCleared())
+        {
+            Debug.Log($"BattleBootstrap: current room '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}' already cleared, skipping enemy spawn.");
+            return entries;
+        }
+
         string roomEnemyPresetId = ResolveBattleRoomEnemyPresetId();
         if (string.IsNullOrWhiteSpace(roomEnemyPresetId))
         {
