@@ -253,7 +253,6 @@ public class BattleBootstrap : MonoBehaviour
 
         MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
         GameObject roomContentPrefab = ResolveBattleRoomContentPrefab();
-        Debug.Log($"BattleBootstrap: CreateRoomContent currentTemplate='{currentDungeonTemplateId}', currentNode='{currentDungeonNodeId}', roomNode='{(roomNode != null ? roomNode.nodeId : "<null>")}', prefab='{(roomContentPrefab != null ? roomContentPrefab.name : "<null>")}'.");
         if (roomContentPrefab == null)
         {
             return;
@@ -327,12 +326,10 @@ public class BattleBootstrap : MonoBehaviour
         ConfigureDirectionClickRelay(instanceButtonTransform.gameObject, targetNodeId, canInteract);
         if (canInteract)
         {
-            Debug.Log($"BattleBootstrap: bind direction button path='{buttonPath}', direction='{direction}', sourceNode='{roomNode.nodeId}', targetNode='{targetNodeId}', interactable={instanceButton.interactable}.");
             instanceButton.onClick.AddListener(() => NavigateToNode(targetNodeId));
         }
         else
         {
-            Debug.Log($"BattleBootstrap: direction button path='{buttonPath}', direction='{direction}' has no target from node '{roomNode.nodeId}'.");
         }
     }
 
@@ -447,9 +444,7 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         CommitCurrentRoomStateOnLeave();
-        Debug.Log($"BattleBootstrap: direction button clicked. currentTemplate='{currentDungeonTemplateId}', currentNode='{currentDungeonNodeId}', nextNode='{targetNodeId}'.");
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
-        Debug.Log($"BattleBootstrap: loading scene '{SceneName}' for nextNode='{currentDungeonNodeId}'.");
         SceneManager.LoadScene(SceneName);
     }
 
@@ -473,7 +468,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         memory.encounterCleared = true;
-        Debug.Log($"BattleBootstrap: committed room state on leave for '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}'.");
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
@@ -524,7 +518,6 @@ public class BattleBootstrap : MonoBehaviour
         List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
         if (IsCurrentRoomEncounterCleared())
         {
-            Debug.Log($"BattleBootstrap: current room '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}' already cleared, skipping enemy spawn.");
             return entries;
         }
 

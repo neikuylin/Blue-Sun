@@ -33,7 +33,6 @@ public sealed class BattleRoomDirectionClickRelay : MonoBehaviour
             return;
         }
 
-        Debug.Log($"BattleRoomDirectionClickRelay: sprite click targetNode='{targetNodeId}' on '{gameObject.name}'.");
         BattleBootstrap.NavigateToNode(targetNodeId);
     }
 }

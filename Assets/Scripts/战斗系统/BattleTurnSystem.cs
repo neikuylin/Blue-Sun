@@ -389,7 +389,7 @@ public class BattleTurnSystem : MonoBehaviour
             RefreshActiveUnitUi();
         }
 
-        if (activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving)
+        if (activeUnit == null || !activeUnit.IsAlive)
         {
             return;
         }
@@ -480,7 +480,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         BattleUnit target = grid.GetUnitAt(clickedCell);
-        if (target != null && target != activeUnit)
+        if (target != null && target != activeUnit && target.team != activeUnit.team)
         {
             return;
         }
@@ -586,7 +586,13 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMoveFreely(BattleUnit unit, Vector2Int destination)
     {
-        if (unit == null || grid == null || destination == unit.currentCell)
+        if (unit == null || grid == null)
+        {
+            return;
+        }
+
+        Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
+        if (destination == currentCell)
         {
             return;
         }
@@ -602,7 +608,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         float originalMoveSpeed = unit.moveSpeed;
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = unit.IsMoving
+        bool redirected = unit.IsMoving;
+        float moveDuration = redirected
             ? grid.RedirectMovingUnitIgnoringAllies(unit, destination)
             : grid.MoveUnitIgnoringAllies(unit, destination);
         unit.moveSpeed = originalMoveSpeed;
