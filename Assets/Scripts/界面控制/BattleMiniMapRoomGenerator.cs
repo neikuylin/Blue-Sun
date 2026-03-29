@@ -104,6 +104,7 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 
     private void OnEnable()
     {
+        EnsureRectMask();
         QueueRegenerate();
     }
 
@@ -134,6 +135,24 @@ public sealed class BattleMiniMapRoomGenerator : MonoBehaviour
 #endif
 
         RegenerateRooms();
+    }
+
+    private void EnsureRectMask()
+    {
+        if (GetComponent<RectMask2D>() != null)
+        {
+            return;
+        }
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            Undo.AddComponent<RectMask2D>(gameObject);
+            return;
+        }
+#endif
+
+        gameObject.AddComponent<RectMask2D>();
     }
 
 #if UNITY_EDITOR
