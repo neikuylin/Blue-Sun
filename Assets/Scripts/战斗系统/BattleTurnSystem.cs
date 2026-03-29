@@ -5653,7 +5653,6 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             BattleAudioUtility.PlayOnce(ResolveExitBattleSound(), ResolveExitBattleSoundPrefab(), unit, battleCamera);
-            SetAllWeaponMountPointsActive(false);
             unit.PlayAnimationStateForCurrentClipDuration(
                 stateName,
                 ResolveExplorationIdleStateName(),
