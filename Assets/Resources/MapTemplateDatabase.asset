@@ -35,11 +35,11 @@ MonoBehaviour:
       position: {x: 650, y: 161}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
-      battleSceneContentPrefab: {fileID: 0}
-      eastButtonPath: 
-      southButtonPath: 
-      westButtonPath: 
-      northButtonPath: 
+      battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
+      eastButtonPath: "\u5899\u58C1/\u4E1C\u5899/\u4E1C"
+      southButtonPath: "\u5899\u58C1/\u5357\u5899/\u5357"
+      westButtonPath: "\u5899\u58C1/\u897F\u5899/\u897F"
+      northButtonPath: "\u5899\u58C1/\u5317\u5899/\u5317"
       connections:
       - targetNodeId: "\u5165\u53E3"
         direction: 0
