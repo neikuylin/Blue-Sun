@@ -11,7 +11,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static readonly ItemDatabase.WeaponCategory[] RequiredWeaponCategories =
     {
         ItemDatabase.WeaponCategory.OneHanded,
-        ItemDatabase.WeaponCategory.TwoHanded
+        ItemDatabase.WeaponCategory.TwoHanded,
+        ItemDatabase.WeaponCategory.Bow
     };
 
     private static readonly string[] SkillGroupLabels =
@@ -351,6 +352,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 return "单手武器";
             case ItemDatabase.WeaponCategory.TwoHanded:
                 return "双手武器";
+            case ItemDatabase.WeaponCategory.Bow:
+                return "弓箭";
             default:
                 return category.ToString();
         }

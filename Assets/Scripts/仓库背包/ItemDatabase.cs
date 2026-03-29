@@ -33,7 +33,8 @@ public sealed class ItemDatabase : ScriptableObject
     {
         None,
         OneHanded,
-        TwoHanded
+        TwoHanded,
+        Bow
     }
 
     public enum WeaponAttributeType
@@ -205,7 +206,8 @@ public sealed class ItemDatabase : ScriptableObject
         }
 
         return weaponCategory == WeaponCategory.OneHanded ||
-            weaponCategory == WeaponCategory.TwoHanded;
+            weaponCategory == WeaponCategory.TwoHanded ||
+            weaponCategory == WeaponCategory.Bow;
     }
 
     public static bool ShouldShowWeaponDamageDistribution(

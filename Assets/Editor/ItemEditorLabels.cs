@@ -34,7 +34,8 @@
     {
         "无",
         "单手武器",
-        "双手武器"
+        "双手武器",
+        "弓箭"
     };
 
     public static readonly string[] MainOrOffHandWeaponCategoryLabels =

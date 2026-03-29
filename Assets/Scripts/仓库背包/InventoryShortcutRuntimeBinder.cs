@@ -2269,7 +2269,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.Bow;
     }
 
     public static float GetCharacterWeaponAttackPower(string characterId)
@@ -3361,7 +3362,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         bool isWeaponCategory = entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.Bow;
         if (!isWeaponCategory)
         {
             return false;
@@ -3631,6 +3633,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return "单手武器";
             case ItemDatabase.WeaponCategory.TwoHanded:
                 return "双手武器";
+            case ItemDatabase.WeaponCategory.Bow:
+                return "弓箭";
             default:
                 return string.Empty;
         }
