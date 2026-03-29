@@ -173,6 +173,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
             DrawConnections(template, canvasRect);
             DrawNodes(template, canvasRect, roomTypeDatabase, encounterDatabase);
+            DrawConnectionLabels(template, canvasRect);
             HandleCanvasMouse(template, canvasRect);
 
             EditorGUILayout.EndScrollView();
@@ -393,12 +394,46 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                     : new Color(0.9f, 0.9f, 0.9f, 0.9f);
                 Handles.DrawAAPolyLine(3f, drawSource, drawTarget);
                 DrawConnectionArrow(drawSource, drawTarget);
-                DrawConnectionDirectionLabel(drawSource, drawTarget, connection.direction);
             }
         }
 
         Handles.color = oldColor;
         Handles.EndGUI();
+    }
+
+    private void DrawConnectionLabels(MapTemplateDatabase.MapTemplateEntry template, Rect canvasRect)
+    {
+        for (int i = 0; i < template.nodes.Count; i++)
+        {
+            MapTemplateDatabase.MapNodeEntry source = template.nodes[i];
+            if (source == null)
+            {
+                continue;
+            }
+
+            MapTemplateDatabase.EnsureValidNode(source);
+            Rect sourceRect = ResolveNodeRect(canvasRect, source.position);
+            for (int j = 0; j < source.connections.Count; j++)
+            {
+                MapTemplateDatabase.MapConnectionEntry connection = source.connections[j];
+                MapTemplateDatabase.MapNodeEntry target = FindNode(template, connection.targetNodeId);
+                if (target == null)
+                {
+                    continue;
+                }
+
+                Rect targetRect = ResolveNodeRect(canvasRect, target.position);
+                Vector2 offset = ResolveConnectionOffset(
+                    connection.direction,
+                    source.nodeId,
+                    target.nodeId,
+                    sourceRect.center,
+                    targetRect.center);
+                Vector2 drawSource = sourceRect.center + offset;
+                Vector2 drawTarget = targetRect.center + offset;
+                DrawConnectionDirectionLabel(drawSource, drawTarget, connection.direction);
+            }
+        }
     }
 
     private void DrawNodes(
@@ -771,9 +806,15 @@ public sealed class MapTemplateEditorWindow : EditorWindow
 
     private static void DrawConnectionDirectionLabel(Vector2 source, Vector2 target, MapTemplateDatabase.ConnectionDirection direction)
     {
-        Vector2 mid = (source + target) * 0.5f;
+        Vector2 segment = target - source;
+        Vector2 anchor = source;
+        if (segment.sqrMagnitude > 0.001f)
+        {
+            anchor += segment.normalized * 90f;
+        }
+
         float horizontalOffset = ResolveDirectionHorizontalOffset(direction);
-        Rect labelRect = new Rect(mid.x - 20f + horizontalOffset, mid.y - 10f, 40f, 20f);
+        Rect labelRect = new Rect(anchor.x - 20f + horizontalOffset, anchor.y - 10f, 40f, 20f);
         GUI.Label(labelRect, ResolveDirectionName(direction), EditorStyles.miniLabel);
     }
 
