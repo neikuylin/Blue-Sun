@@ -47,7 +47,7 @@ MonoBehaviour:
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
       soundDelayFrame: 0
-      compensateActionMotion: 1
+      compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 2
       actionStateName: 
@@ -63,7 +63,7 @@ MonoBehaviour:
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
-      compensateActionMotion: 1
+      compensateActionMotion: 0
   - skillId: "\u666E\u901A\u653B\u51FB"
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: 
