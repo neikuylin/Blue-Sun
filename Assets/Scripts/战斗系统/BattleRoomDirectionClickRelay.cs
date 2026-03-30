@@ -27,12 +27,6 @@ public sealed class BattleRoomDirectionClickRelay : MonoBehaviour
             return;
         }
 
-        BattleTurnSystem turnSystem = Object.FindObjectOfType<BattleTurnSystem>();
-        if (turnSystem != null && !turnSystem.IsExplorationMode)
-        {
-            return;
-        }
-
         BattleBootstrap.NavigateToNode(targetNodeId);
     }
 }
