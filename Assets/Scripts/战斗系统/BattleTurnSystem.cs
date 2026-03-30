@@ -137,6 +137,9 @@ public class BattleTurnSystem : MonoBehaviour
     private string activeExplorationActionId = ExplorationMoveSkillId;
     private string currentSkillTargetSelectionStateName = string.Empty;
     private float currentSkillTargetSelectionYawOffset;
+    private bool enterBattleAnimationInProgress;
+    private bool beginTurnAfterEnterBattle;
+    private BattleUnit pendingEnterBattleLeadUnit;
     private Coroutine explorationFollowerRoutine;
     private bool explorationFollowerInProgress;
     private AudioSource modeMusicSource;
@@ -280,9 +283,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (HasLivingEnemies())
         {
-            EnterCombatMode(playEnterAnimation: true);
             StartNewRound();
-            BeginCurrentTurn();
+            EnterCombatMode(playEnterAnimation: true);
+            if (!enterBattleAnimationInProgress)
+            {
+                BeginCurrentTurn();
+            }
         }
         else
         {
@@ -927,8 +933,16 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshTimeline();
         if (playEnterAnimation && switchedFromExploration)
         {
+            pendingEnterBattleLeadUnit = GetNextLivingRoundUnit();
+            beginTurnAfterEnterBattle = pendingEnterBattleLeadUnit != null;
+            enterBattleAnimationInProgress = true;
             StartCoroutine(PlayEnterBattleAnimations());
+            return;
         }
+
+        enterBattleAnimationInProgress = false;
+        beginTurnAfterEnterBattle = false;
+        pendingEnterBattleLeadUnit = null;
     }
 
     private void StopExplorationFollowerRoutine()
@@ -5817,10 +5831,13 @@ public class BattleTurnSystem : MonoBehaviour
     {
         if (units == null || units.Count == 0)
         {
+            enterBattleAnimationInProgress = false;
             yield break;
         }
 
         bool playedAny = false;
+        float leadDuration = 0f;
+        BattleUnit leadUnit = pendingEnterBattleLeadUnit;
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -5844,63 +5861,121 @@ public class BattleTurnSystem : MonoBehaviour
             BattleAudioUtility.PlayOnce(ResolveEnterBattleSound(unit), ResolveEnterBattleSoundPrefab(unit), unit, battleCamera);
             unit.SetAnimationPositionCompensation(ResolveEnterBattleCompensateMotion(unit));
             animator.Play(enterBattleStateName, 0, 0f);
+            float duration = ResolveAnimationStateDuration(animator, enterBattleStateName);
+            StartCoroutine(ReturnUnitToIdleAfterEnterBattle(unit, duration));
+            if (unit == leadUnit)
+            {
+                leadDuration = duration;
+            }
+
             playedAny = true;
         }
 
         if (!playedAny)
         {
+            enterBattleAnimationInProgress = false;
+            BattleUnit currentLeadUnit = pendingEnterBattleLeadUnit;
+            pendingEnterBattleLeadUnit = null;
+            if (beginTurnAfterEnterBattle && currentLeadUnit != null)
+            {
+                beginTurnAfterEnterBattle = false;
+                BeginCurrentTurn();
+            }
             yield break;
         }
 
-        yield return null;
-
-        float longestDuration = 0f;
-        for (int i = 0; i < units.Count; i++)
+        if (leadUnit != null && leadDuration > 0.01f)
         {
-            BattleUnit unit = units[i];
-            if (unit == null)
-            {
-                continue;
-            }
-
-            string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName(unit));
-            if (string.IsNullOrWhiteSpace(enterBattleStateName))
-            {
-                continue;
-            }
-
-            Animator animator = unit.GetComponentInChildren<Animator>(true);
-            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
-            {
-                continue;
-            }
-
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            longestDuration = Mathf.Max(longestDuration, stateInfo.length);
+            yield return new WaitForSeconds(leadDuration);
+        }
+        else
+        {
+            yield return null;
         }
 
-        if (longestDuration > 0.01f)
+        enterBattleAnimationInProgress = false;
+        BattleUnit pendingLeadUnit = pendingEnterBattleLeadUnit;
+        pendingEnterBattleLeadUnit = null;
+        if (beginTurnAfterEnterBattle && pendingLeadUnit != null)
         {
-            yield return new WaitForSeconds(longestDuration);
+            beginTurnAfterEnterBattle = false;
+            BeginCurrentTurn();
+        }
+    }
+
+    private IEnumerator ReturnUnitToIdleAfterEnterBattle(BattleUnit unit, float duration)
+    {
+        if (unit == null)
+        {
+            yield break;
         }
 
-        for (int i = 0; i < units.Count; i++)
+        if (duration > 0.01f)
         {
-            BattleUnit unit = units[i];
-            if (unit == null)
+            yield return new WaitForSeconds(duration);
+        }
+        else
+        {
+            yield return null;
+        }
+
+        if (unit == null || !unit.IsAlive)
+        {
+            yield break;
+        }
+
+        unit.SetAnimationPositionCompensation(false);
+        string idleStateName = ResolveIdleStateName(unit);
+        if (string.IsNullOrWhiteSpace(idleStateName))
+        {
+            yield break;
+        }
+
+        unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
+    }
+
+    private BattleUnit GetNextLivingRoundUnit()
+    {
+        if (currentRoundOrder == null || currentRoundOrder.Count == 0)
+        {
+            return null;
+        }
+
+        for (int i = Mathf.Max(0, currentRoundIndex); i < currentRoundOrder.Count; i++)
+        {
+            BattleUnit unit = currentRoundOrder[i];
+            if (unit != null && unit.IsAlive)
+            {
+                return unit;
+            }
+        }
+
+        return null;
+    }
+
+    private static float ResolveAnimationStateDuration(Animator animator, string stateName)
+    {
+        if (animator == null || string.IsNullOrWhiteSpace(stateName) || animator.runtimeAnimatorController == null)
+        {
+            return 0f;
+        }
+
+        AnimationClip[] clips = animator.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < clips.Length; i++)
+        {
+            AnimationClip clip = clips[i];
+            if (clip == null || string.IsNullOrWhiteSpace(clip.name))
             {
                 continue;
             }
 
-            unit.SetAnimationPositionCompensation(false);
-            string idleStateName = ResolveIdleStateName(unit);
-            if (string.IsNullOrWhiteSpace(idleStateName))
+            if (string.Equals(clip.name, stateName, System.StringComparison.Ordinal))
             {
-                continue;
+                return clip.length;
             }
-
-            unit.PlayAnimationState(unit.GetIdleAnimationStateName(idleStateName));
         }
+
+        return 0f;
     }
 
     private void PlayExplorationMoveAudio(BattleUnit unit, float duration)
