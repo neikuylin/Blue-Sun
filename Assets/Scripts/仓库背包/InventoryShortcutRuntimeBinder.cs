@@ -226,7 +226,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GameObject runtimeTooltipRootInstance;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
-    public static int WarehouseSlotCount => BackpackSlotCount;
+    public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
     public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
@@ -341,7 +341,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static bool TryGetWarehouseSlotData(int index, out ItemSlotData data)
     {
-        return TryGetBackpackSlotData(index, out data);
+        data = default;
+        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        {
+            return false;
+        }
+
+        data = instance.warehouseData[index];
+        return true;
     }
 
     public static bool TrySetBackpackSlotData(int index, ItemSlotData data)
@@ -360,7 +367,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static bool TrySetWarehouseSlotData(int index, ItemSlotData data)
     {
-        return TrySetBackpackSlotData(index, data);
+        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        {
+            return false;
+        }
+
+        instance.warehouseData[index] = NormalizeItemSlotData(data);
+        instance.RefreshWarehouseSlot(index);
+        return true;
     }
 
     public static bool TryGetEquipmentSlotData(string characterId, int index, out ItemSlotData data)
