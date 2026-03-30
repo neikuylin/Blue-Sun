@@ -138,6 +138,24 @@ public sealed class BattleSkillDatabase : ScriptableObject
 
             return null;
         }
+
+        public bool HasRequiredWeaponCategory(ItemDatabase.WeaponCategory weaponCategory)
+        {
+            if (requiredWeaponCategories == null || requiredWeaponCategories.Count == 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < requiredWeaponCategories.Count; i++)
+            {
+                if (requiredWeaponCategories[i] == weaponCategory)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     [SerializeField] private List<SkillEntry> entries = new List<SkillEntry>();

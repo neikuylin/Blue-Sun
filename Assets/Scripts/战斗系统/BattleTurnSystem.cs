@@ -5328,78 +5328,83 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static string ResolveSkillActionStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.actionStateName;
         }
 
-        return skill != null ? skill.actionStateName : string.Empty;
+        return string.Empty;
     }
 
     private static float ResolveSkillActionYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.actionYawOffset;
         }
 
-        return skill != null ? skill.actionYawOffset : 0f;
+        return 0f;
     }
 
     private static AudioClip ResolveSkillActionSound(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.actionSound;
         }
 
-        return skill != null ? skill.actionSound : null;
+        return null;
     }
 
     private static GameObject ResolveSkillActionSoundPrefab(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.actionSoundPrefab;
         }
 
-        return skill != null ? skill.actionSoundPrefab : null;
+        return null;
     }
 
     private static int ResolveSkillSoundDelayFrame(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return Mathf.Max(0, overrideEntry.soundDelayFrame);
         }
 
-        return skill != null ? Mathf.Max(0, skill.soundDelayFrame) : 0;
+        return 0;
     }
 
     private static bool ResolveSkillCompensateActionMotion(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveMoveSkillOverride(skill, unit);
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.compensateActionMotion;
         }
 
-        return skill != null && skill.compensateActionMotion;
+        return false;
     }
 
-    private static BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride ResolveMoveSkillOverride(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    private static BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride ResolveSkillActionOverride(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
-        if (skill == null || !string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        if (skill == null || unit == null)
         {
             return null;
         }
 
-        ItemDatabase.WeaponCategory weaponCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(unit != null ? unit.characterId : string.Empty);
+        ItemDatabase.WeaponCategory weaponCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(unit.characterId);
+        if (!skill.HasRequiredWeaponCategory(weaponCategory))
+        {
+            return null;
+        }
+
         return skill.FindEnabledWeaponActionOverride(weaponCategory);
     }
 

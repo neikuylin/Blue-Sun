@@ -149,11 +149,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 castTarget.enumValueIndex = EditorGUILayout.Popup("\u65bd\u6cd5\u5bf9\u8c61", castTarget.enumValueIndex, CastTargetLabels);
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
-                DrawActionStateField(entry.FindPropertyRelative("actionStateName"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionYawOffset"), new GUIContent("\u52a8\u4f5c\u89d2\u5ea6\u4fee\u6b63"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionSound"), new GUIContent("\u6280\u80fd\u97f3\u6548"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionSoundPrefab"), new GUIContent("\u6280\u80fd\u97f3\u6548\u9884\u5236\u4f53"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("soundDelayFrame"), new GUIContent("\u97f3\u6548\u5ef6\u8fdf\u5e27\u6570"));
+                ClearLegacyActionFields(entry);
+                EditorGUILayout.HelpBox("技能本体动作字段已停用。技能动作现在只在 Tools/技能/技能动作栏 中按“必须武器”勾选类别做分流配置。", MessageType.Info);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
@@ -228,11 +225,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
         entry.FindPropertyRelative("description").stringValue = string.Empty;
-        entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
-        entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
-        entry.FindPropertyRelative("actionSound").objectReferenceValue = null;
-        entry.FindPropertyRelative("actionSoundPrefab").objectReferenceValue = null;
-        entry.FindPropertyRelative("soundDelayFrame").intValue = 0;
+        ClearLegacyActionFields(entry);
         entry.FindPropertyRelative("enableHitFeel").boolValue = false;
         entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
@@ -252,6 +245,22 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("axisAngle").floatValue = 180f;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
+        entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
+    }
+
+    private static void ClearLegacyActionFields(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
+        entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
+        entry.FindPropertyRelative("actionSound").objectReferenceValue = null;
+        entry.FindPropertyRelative("actionSoundPrefab").objectReferenceValue = null;
+        entry.FindPropertyRelative("soundDelayFrame").intValue = 0;
+        entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
     }
 
     private bool GetFoldoutState(string key)
@@ -442,7 +451,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         string actionStateName = actionStateNameProperty.stringValue;
         if (string.IsNullOrWhiteSpace(actionStateName))
         {
-            resolveFrameProperty.intValue = 0;
+            resolveFrameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue)));
+            EditorGUILayout.LabelField("说明", "技能动作已改为武器分流，当前不再从本体动作自动推导总帧数");
             return;
         }
 
@@ -453,36 +463,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             ? Mathf.Clamp(editedResolveFrame, 0, totalFrames)
             : Mathf.Max(0, editedResolveFrame);
         EditorGUILayout.LabelField("说明", totalFrames > 0 ? $"这个动画共 {totalFrames} 帧" : "未能解析动画总帧数");
-    }
-
-    private static void DrawActionStateField(SerializedProperty actionStateNameProperty)
-    {
-        List<string> options = BuildActionOptions();
-        string currentValue = actionStateNameProperty != null ? actionStateNameProperty.stringValue : string.Empty;
-        int selectedIndex = 0;
-
-        for (int i = 1; i < options.Count; i++)
-        {
-            if (string.Equals(options[i], currentValue, StringComparison.Ordinal))
-            {
-                selectedIndex = i;
-                break;
-            }
-        }
-
-        int newIndex = EditorGUILayout.Popup("\u52a8\u4f5c\u72b6\u6001", selectedIndex, options.ToArray());
-        if (actionStateNameProperty == null)
-        {
-            return;
-        }
-
-        if (newIndex > 0 && newIndex < options.Count)
-        {
-            actionStateNameProperty.stringValue = options[newIndex];
-            return;
-        }
-
-        actionStateNameProperty.stringValue = string.Empty;
     }
 
     private static AnimationClip FindActionClipByStateName(string stateName)
@@ -540,50 +520,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         }
 
         return Mathf.Max(1, Mathf.RoundToInt(clip.length * clip.frameRate));
-    }
-
-    private static List<string> BuildActionOptions()
-    {
-        List<string> options = new List<string> { "\uff08\u7a7a\uff09" };
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        BattleCharacterBindingDatabase bindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
-        if (bindingDatabase == null)
-        {
-            return options;
-        }
-
-        for (int i = 0; i < bindingDatabase.Entries.Count; i++)
-        {
-            BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.Entries[i];
-            AnimatorController controller = binding != null ? binding.animatorController as AnimatorController : null;
-            if (controller == null || controller.layers == null)
-            {
-                continue;
-            }
-
-            for (int layerIndex = 0; layerIndex < controller.layers.Length; layerIndex++)
-            {
-                AnimatorStateMachine stateMachine = controller.layers[layerIndex].stateMachine;
-                if (stateMachine == null)
-                {
-                    continue;
-                }
-
-                ChildAnimatorState[] states = stateMachine.states;
-                for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
-                {
-                    AnimatorState state = states[stateIndex].state;
-                    if (state == null || string.IsNullOrWhiteSpace(state.name) || !seen.Add(state.name))
-                    {
-                        continue;
-                    }
-
-                    options.Add(state.name);
-                }
-            }
-        }
-
-        return options;
     }
 }
 

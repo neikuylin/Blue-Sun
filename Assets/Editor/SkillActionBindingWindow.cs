@@ -7,17 +7,10 @@ using UnityEngine;
 public sealed class SkillActionBindingWindow : EditorWindow
 {
     private const string SkillAssetPath = "Assets/Resources/BattleSkillDatabase.asset";
-    private static readonly ItemDatabase.WeaponCategory[] MoveWeaponCategories =
-    {
-        ItemDatabase.WeaponCategory.None,
-        ItemDatabase.WeaponCategory.OneHanded,
-        ItemDatabase.WeaponCategory.TwoHanded,
-        ItemDatabase.WeaponCategory.Bow
-    };
 
     private Vector2 scroll;
     private SerializedObject skillDatabaseObject;
-    private static bool showMoveWeaponOverrides = true;
+    private static readonly Dictionary<string, bool> WeaponOverrideFoldouts = new Dictionary<string, bool>();
 
     [MenuItem("Tools/技能/技能动作栏")]
     private static void Open()
@@ -79,94 +72,80 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty enableHitFeelProperty = entry.FindPropertyRelative("enableHitFeel");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
+        SerializedProperty requiredWeaponCategoriesProperty = entry.FindPropertyRelative("requiredWeaponCategories");
 
         string skillId = skillIdProperty != null ? skillIdProperty.stringValue : string.Empty;
-        string currentAction = actionStateNameProperty != null ? actionStateNameProperty.stringValue : string.Empty;
-        int selectedIndex = FindOptionIndex(actionOptions, currentAction);
         string groupLabel = ResolveGroupLabel(groupProperty != null ? groupProperty.enumValueIndex : 0);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(skillId) ? "（未命名技能）" : skillId, EditorStyles.boldLabel);
             EditorGUILayout.LabelField("分组", groupLabel);
-            int newIndex = EditorGUILayout.Popup("绑定动作", selectedIndex, actionOptions.ToArray());
-            if (actionStateNameProperty != null)
-            {
-                actionStateNameProperty.stringValue = newIndex <= 0 ? string.Empty : actionOptions[newIndex];
-            }
+            ClearLegacySkillActionFields(
+                actionStateNameProperty,
+                actionYawOffsetProperty,
+                actionSoundProperty,
+                actionSoundPrefabProperty,
+                soundDelayFrameProperty,
+                compensateActionMotionProperty);
 
-            if (actionYawOffsetProperty != null)
-            {
-                actionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", actionYawOffsetProperty.floatValue);
-            }
-
-            if (actionSoundProperty != null)
-            {
-                EditorGUILayout.PropertyField(actionSoundProperty, new GUIContent("技能音效"));
-            }
-            if (actionSoundPrefabProperty != null)
-            {
-                EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
-            }
-            if (soundDelayFrameProperty != null)
-            {
-                soundDelayFrameProperty.intValue = EditorGUILayout.IntField("音效延迟帧数", Mathf.Max(0, soundDelayFrameProperty.intValue));
-            }
             if (enableHitFeelProperty != null)
             {
                 enableHitFeelProperty.boolValue = EditorGUILayout.Toggle("打击感", enableHitFeelProperty.boolValue);
             }
 
-            if (compensateActionMotionProperty != null)
+            DrawWeaponOverrides(entry, skillId, requiredWeaponCategoriesProperty, actionOptions);
+        }
+    }
+
+    private static void DrawWeaponOverrides(SerializedProperty entry, string skillId, SerializedProperty requiredWeaponCategoriesProperty, List<string> actionOptions)
+    {
+        SerializedProperty overridesProperty = entry.FindPropertyRelative("weaponActionOverrides");
+        if (overridesProperty == null || requiredWeaponCategoriesProperty == null)
+        {
+            return;
+        }
+
+        List<ItemDatabase.WeaponCategory> categories = GetRequiredWeaponCategories(requiredWeaponCategoriesProperty);
+        SyncWeaponOverrideEntries(overridesProperty, categories);
+
+        EditorGUILayout.Space(4f);
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            string foldoutKey = string.IsNullOrWhiteSpace(skillId) ? "skill_weapon_overrides" : skillId;
+            bool expanded = GetWeaponOverrideFoldoutState(foldoutKey);
+            expanded = EditorGUILayout.Foldout(expanded, "按武器分流", true);
+            SetWeaponOverrideFoldoutState(foldoutKey, expanded);
+            if (!expanded)
             {
-                compensateActionMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateActionMotionProperty.boolValue);
+                return;
             }
 
-            if (IsMoveSkill(skillId))
+            if (categories.Count == 0)
             {
-                DrawMoveWeaponOverrides(entry, actionOptions);
+                EditorGUILayout.HelpBox("这个技能现在没有勾选任何“必须武器”类别，所以这里不会出现武器分流。先去技能编辑器勾选武器类别。", MessageType.Info);
+                return;
+            }
+
+            EditorGUILayout.HelpBox("技能动作只读取这里的武器分流。上面的技能本体动作字段已经退出使用。", MessageType.Info);
+
+            for (int i = 0; i < categories.Count; i++)
+            {
+                SerializedProperty overrideEntry = overridesProperty.GetArrayElementAtIndex(i);
+                DrawWeaponOverrideEntry(overrideEntry, categories[i], actionOptions);
             }
         }
     }
 
-    private static void DrawMoveWeaponOverrides(SerializedProperty entry, List<string> actionOptions)
+    private static void SyncWeaponOverrideEntries(SerializedProperty overridesProperty, List<ItemDatabase.WeaponCategory> categories)
     {
-        SerializedProperty overridesProperty = entry.FindPropertyRelative("weaponActionOverrides");
         if (overridesProperty == null)
         {
             return;
         }
 
-        EnsureMoveOverrideEntries(overridesProperty);
-
-        EditorGUILayout.Space(4f);
-        using (new EditorGUILayout.VerticalScope("box"))
-        {
-            showMoveWeaponOverrides = EditorGUILayout.Foldout(showMoveWeaponOverrides, "移动按武器分流", true);
-            if (!showMoveWeaponOverrides)
-            {
-                return;
-            }
-
-            EditorGUILayout.HelpBox("移动技能只读取这里的武器分类动作，不回退到上面的默认动作。", MessageType.Info);
-
-            for (int i = 0; i < MoveWeaponCategories.Length; i++)
-            {
-                SerializedProperty overrideEntry = overridesProperty.GetArrayElementAtIndex(i);
-                DrawMoveOverrideEntry(overrideEntry, MoveWeaponCategories[i], actionOptions);
-            }
-        }
-    }
-
-    private static void EnsureMoveOverrideEntries(SerializedProperty overridesProperty)
-    {
-        int originalSize = overridesProperty.arraySize;
-        while (overridesProperty.arraySize < MoveWeaponCategories.Length)
-        {
-            overridesProperty.InsertArrayElementAtIndex(overridesProperty.arraySize);
-        }
-
-        for (int i = 0; i < MoveWeaponCategories.Length; i++)
+        Dictionary<ItemDatabase.WeaponCategory, WeaponOverrideSnapshot> existingSnapshots = new Dictionary<ItemDatabase.WeaponCategory, WeaponOverrideSnapshot>();
+        for (int i = 0; i < overridesProperty.arraySize; i++)
         {
             SerializedProperty entry = overridesProperty.GetArrayElementAtIndex(i);
             if (entry == null)
@@ -174,70 +153,37 @@ public sealed class SkillActionBindingWindow : EditorWindow
                 continue;
             }
 
-            SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
-            if (enabledProperty != null)
-            {
-                enabledProperty.boolValue = true;
-            }
-
             SerializedProperty weaponCategoryProperty = entry.FindPropertyRelative("weaponCategory");
-            if (weaponCategoryProperty != null)
+            if (weaponCategoryProperty == null)
             {
-                weaponCategoryProperty.enumValueIndex = (int)MoveWeaponCategories[i];
+                continue;
             }
 
-            if (i >= originalSize)
+            ItemDatabase.WeaponCategory category = (ItemDatabase.WeaponCategory)weaponCategoryProperty.enumValueIndex;
+            if (!existingSnapshots.ContainsKey(category))
             {
-                ClearMoveOverrideEntry(entry);
+                existingSnapshots.Add(category, CaptureWeaponOverrideSnapshot(entry));
             }
+        }
+
+        overridesProperty.arraySize = categories.Count;
+        for (int i = 0; i < categories.Count; i++)
+        {
+            SerializedProperty entry = overridesProperty.GetArrayElementAtIndex(i);
+            ItemDatabase.WeaponCategory category = categories[i];
+            ApplyWeaponCategory(entry, category);
+
+            if (existingSnapshots.TryGetValue(category, out WeaponOverrideSnapshot snapshot))
+            {
+                RestoreWeaponOverrideSnapshot(entry, snapshot);
+                continue;
+            }
+
+            ClearWeaponOverrideEntry(entry);
         }
     }
 
-    private static void ClearMoveOverrideEntry(SerializedProperty entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
-        if (actionStateNameProperty != null)
-        {
-            actionStateNameProperty.stringValue = string.Empty;
-        }
-
-        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
-        if (actionYawOffsetProperty != null)
-        {
-            actionYawOffsetProperty.floatValue = 0f;
-        }
-
-        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
-        if (actionSoundProperty != null)
-        {
-            actionSoundProperty.objectReferenceValue = null;
-        }
-
-        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
-        if (actionSoundPrefabProperty != null)
-        {
-            actionSoundPrefabProperty.objectReferenceValue = null;
-        }
-
-        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
-        if (soundDelayFrameProperty != null)
-        {
-            soundDelayFrameProperty.intValue = 0;
-        }
-
-        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
-        if (compensateActionMotionProperty != null)
-        {
-            compensateActionMotionProperty.boolValue = false;
-        }
-    }
-
-    private static void DrawMoveOverrideEntry(SerializedProperty entry, ItemDatabase.WeaponCategory weaponCategory, List<string> actionOptions)
+    private static void DrawWeaponOverrideEntry(SerializedProperty entry, ItemDatabase.WeaponCategory weaponCategory, List<string> actionOptions)
     {
         if (entry == null)
         {
@@ -296,6 +242,132 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
     }
 
+    private static List<ItemDatabase.WeaponCategory> GetRequiredWeaponCategories(SerializedProperty requiredWeaponCategoriesProperty)
+    {
+        List<ItemDatabase.WeaponCategory> categories = new List<ItemDatabase.WeaponCategory>();
+        for (int i = 0; i < requiredWeaponCategoriesProperty.arraySize; i++)
+        {
+            SerializedProperty element = requiredWeaponCategoriesProperty.GetArrayElementAtIndex(i);
+            if (element == null)
+            {
+                continue;
+            }
+
+            ItemDatabase.WeaponCategory category = (ItemDatabase.WeaponCategory)element.enumValueIndex;
+            if (category == ItemDatabase.WeaponCategory.None || categories.Contains(category))
+            {
+                continue;
+            }
+
+            categories.Add(category);
+        }
+
+        return categories;
+    }
+
+    private static void ApplyWeaponCategory(SerializedProperty entry, ItemDatabase.WeaponCategory category)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        if (enabledProperty != null)
+        {
+            enabledProperty.boolValue = true;
+        }
+
+        SerializedProperty weaponCategoryProperty = entry.FindPropertyRelative("weaponCategory");
+        if (weaponCategoryProperty != null)
+        {
+            weaponCategoryProperty.enumValueIndex = (int)category;
+        }
+    }
+
+    private static void ClearWeaponOverrideEntry(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        if (actionStateNameProperty != null)
+        {
+            actionStateNameProperty.stringValue = string.Empty;
+        }
+
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        if (actionYawOffsetProperty != null)
+        {
+            actionYawOffsetProperty.floatValue = 0f;
+        }
+
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        if (actionSoundProperty != null)
+        {
+            actionSoundProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        if (actionSoundPrefabProperty != null)
+        {
+            actionSoundPrefabProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        if (soundDelayFrameProperty != null)
+        {
+            soundDelayFrameProperty.intValue = 0;
+        }
+
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
+        if (compensateActionMotionProperty != null)
+        {
+            compensateActionMotionProperty.boolValue = false;
+        }
+    }
+
+    private static void ClearLegacySkillActionFields(
+        SerializedProperty actionStateNameProperty,
+        SerializedProperty actionYawOffsetProperty,
+        SerializedProperty actionSoundProperty,
+        SerializedProperty actionSoundPrefabProperty,
+        SerializedProperty soundDelayFrameProperty,
+        SerializedProperty compensateActionMotionProperty)
+    {
+        if (actionStateNameProperty != null)
+        {
+            actionStateNameProperty.stringValue = string.Empty;
+        }
+
+        if (actionYawOffsetProperty != null)
+        {
+            actionYawOffsetProperty.floatValue = 0f;
+        }
+
+        if (actionSoundProperty != null)
+        {
+            actionSoundProperty.objectReferenceValue = null;
+        }
+
+        if (actionSoundPrefabProperty != null)
+        {
+            actionSoundPrefabProperty.objectReferenceValue = null;
+        }
+
+        if (soundDelayFrameProperty != null)
+        {
+            soundDelayFrameProperty.intValue = 0;
+        }
+
+        if (compensateActionMotionProperty != null)
+        {
+            compensateActionMotionProperty.boolValue = false;
+        }
+    }
+
     private static int FindOptionIndex(List<string> options, string currentValue)
     {
         if (options == null || string.IsNullOrWhiteSpace(currentValue))
@@ -344,16 +416,134 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
     }
 
-    private static bool IsMoveSkill(string skillId)
+    private static bool GetWeaponOverrideFoldoutState(string key)
     {
-        if (string.IsNullOrWhiteSpace(skillId))
+        if (WeaponOverrideFoldouts.TryGetValue(key, out bool expanded))
         {
-            return false;
+            return expanded;
         }
 
-        string normalized = skillId.Trim();
-        return string.Equals(normalized, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal) ||
-            normalized.Contains(BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal);
+        WeaponOverrideFoldouts[key] = true;
+        return true;
+    }
+
+    private static void SetWeaponOverrideFoldoutState(string key, bool expanded)
+    {
+        WeaponOverrideFoldouts[key] = expanded;
+    }
+
+    private struct WeaponOverrideSnapshot
+    {
+        public bool enabled;
+        public string actionStateName;
+        public float actionYawOffset;
+        public UnityEngine.Object actionSound;
+        public UnityEngine.Object actionSoundPrefab;
+        public int soundDelayFrame;
+        public bool compensateActionMotion;
+    }
+
+    private static WeaponOverrideSnapshot CaptureWeaponOverrideSnapshot(SerializedProperty entry)
+    {
+        WeaponOverrideSnapshot snapshot = new WeaponOverrideSnapshot();
+        if (entry == null)
+        {
+            return snapshot;
+        }
+
+        SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        if (enabledProperty != null)
+        {
+            snapshot.enabled = enabledProperty.boolValue;
+        }
+
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        if (actionStateNameProperty != null)
+        {
+            snapshot.actionStateName = actionStateNameProperty.stringValue;
+        }
+
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        if (actionYawOffsetProperty != null)
+        {
+            snapshot.actionYawOffset = actionYawOffsetProperty.floatValue;
+        }
+
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        if (actionSoundProperty != null)
+        {
+            snapshot.actionSound = actionSoundProperty.objectReferenceValue;
+        }
+
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        if (actionSoundPrefabProperty != null)
+        {
+            snapshot.actionSoundPrefab = actionSoundPrefabProperty.objectReferenceValue;
+        }
+
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        if (soundDelayFrameProperty != null)
+        {
+            snapshot.soundDelayFrame = soundDelayFrameProperty.intValue;
+        }
+
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
+        if (compensateActionMotionProperty != null)
+        {
+            snapshot.compensateActionMotion = compensateActionMotionProperty.boolValue;
+        }
+
+        return snapshot;
+    }
+
+    private static void RestoreWeaponOverrideSnapshot(SerializedProperty entry, WeaponOverrideSnapshot snapshot)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        if (enabledProperty != null)
+        {
+            enabledProperty.boolValue = snapshot.enabled;
+        }
+
+        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
+        if (actionStateNameProperty != null)
+        {
+            actionStateNameProperty.stringValue = snapshot.actionStateName ?? string.Empty;
+        }
+
+        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        if (actionYawOffsetProperty != null)
+        {
+            actionYawOffsetProperty.floatValue = snapshot.actionYawOffset;
+        }
+
+        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
+        if (actionSoundProperty != null)
+        {
+            actionSoundProperty.objectReferenceValue = snapshot.actionSound;
+        }
+
+        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        if (actionSoundPrefabProperty != null)
+        {
+            actionSoundPrefabProperty.objectReferenceValue = snapshot.actionSoundPrefab;
+        }
+
+        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
+        if (soundDelayFrameProperty != null)
+        {
+            soundDelayFrameProperty.intValue = snapshot.soundDelayFrame;
+        }
+
+        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
+        if (compensateActionMotionProperty != null)
+        {
+            compensateActionMotionProperty.boolValue = snapshot.compensateActionMotion;
+        }
     }
 
     private static List<string> BuildActionOptions()
