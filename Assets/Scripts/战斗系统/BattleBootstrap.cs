@@ -27,7 +27,6 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
-    private const string SnapshotCacheRootName = "BattleRoomSnapshotCache";
 
     [System.Serializable]
     public sealed class RoomStateMemory
@@ -98,7 +97,6 @@ public class BattleBootstrap : MonoBehaviour
     private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
     private static readonly Dictionary<string, RoomStateMemory> roomStateMemories = new Dictionary<string, RoomStateMemory>(System.StringComparer.Ordinal);
-    private static Transform snapshotCacheRoot;
 
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
     public static string CurrentDungeonNodeId => currentDungeonNodeId;
@@ -204,6 +202,7 @@ public class BattleBootstrap : MonoBehaviour
         {
             grid = ResolveRestoredGrid(runtimeRoot);
             units = CollectRuntimeUnits(runtimeRoot);
+            ResetPlayerUnitPositionsForSnapshotRestore(grid, units);
         }
         else
         {
@@ -266,15 +265,17 @@ public class BattleBootstrap : MonoBehaviour
             GameObject preservedRuntimeRoot = roomMemory.preservedRuntimeRoot;
             roomMemory.preservedRuntimeRoot = null;
             restoredFromSnapshot = true;
+            if (preservedRuntimeRoot.transform.parent != null)
+            {
+                preservedRuntimeRoot.transform.SetParent(null, true);
+            }
             SceneManager.MoveGameObjectToScene(preservedRuntimeRoot, gameObject.scene);
-            preservedRuntimeRoot.transform.SetParent(transform, false);
             preservedRuntimeRoot.name = RuntimeRootName;
             preservedRuntimeRoot.SetActive(true);
             return preservedRuntimeRoot.transform;
         }
 
         GameObject runtimeRoot = new GameObject(RuntimeRootName);
-        runtimeRoot.transform.SetParent(transform, false);
         restoredFromSnapshot = false;
         return runtimeRoot.transform;
     }
@@ -530,7 +531,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        Transform runtimeRoot = bootstrap.transform.Find(RuntimeRootName);
+        Transform runtimeRoot = FindRuntimeRootInScene(bootstrap.gameObject.scene);
         if (runtimeRoot == null)
         {
             return;
@@ -541,32 +542,13 @@ public class BattleBootstrap : MonoBehaviour
             Object.Destroy(memory.preservedRuntimeRoot);
         }
 
-        Transform cacheRoot = EnsureSnapshotCacheRoot();
-        runtimeRoot.SetParent(cacheRoot, false);
+        if (runtimeRoot.parent != null)
+        {
+            runtimeRoot.SetParent(null, true);
+        }
         runtimeRoot.gameObject.SetActive(false);
         DontDestroyOnLoad(runtimeRoot.gameObject);
         memory.preservedRuntimeRoot = runtimeRoot.gameObject;
-    }
-
-    private static Transform EnsureSnapshotCacheRoot()
-    {
-        if (snapshotCacheRoot != null)
-        {
-            return snapshotCacheRoot;
-        }
-
-        GameObject existingRoot = GameObject.Find(SnapshotCacheRootName);
-        if (existingRoot != null)
-        {
-            snapshotCacheRoot = existingRoot.transform;
-            DontDestroyOnLoad(existingRoot);
-            return snapshotCacheRoot;
-        }
-
-        GameObject cacheRoot = new GameObject(SnapshotCacheRootName);
-        DontDestroyOnLoad(cacheRoot);
-        snapshotCacheRoot = cacheRoot.transform;
-        return snapshotCacheRoot;
     }
 
     private static BattleGrid ResolveRestoredGrid(Transform runtimeRoot)
@@ -595,6 +577,26 @@ public class BattleBootstrap : MonoBehaviour
         return units;
     }
 
+    private static Transform FindRuntimeRootInScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return null;
+        }
+
+        GameObject[] roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            GameObject root = roots[i];
+            if (root != null && string.Equals(root.name, RuntimeRootName, System.StringComparison.Ordinal))
+            {
+                return root.transform;
+            }
+        }
+
+        return null;
+    }
+
     private List<CharacterSelectionState.SlotSelection> GetSelectedPlayers()
     {
         List<CharacterSelectionState.SlotSelection> result = new List<CharacterSelectionState.SlotSelection>();
@@ -611,6 +613,61 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return result;
+    }
+
+    private void ResetPlayerUnitPositionsForSnapshotRestore(BattleGrid grid, List<BattleUnit> units)
+    {
+        if (grid == null || units == null || units.Count == 0)
+        {
+            return;
+        }
+
+        List<CharacterSelectionState.SlotSelection> selectedPlayers = GetSelectedPlayers();
+        if (selectedPlayers.Count == 0)
+        {
+            return;
+        }
+
+        Dictionary<string, BattleUnit> unitsByCharacterId = new Dictionary<string, BattleUnit>(System.StringComparer.Ordinal);
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || string.IsNullOrWhiteSpace(unit.characterId))
+            {
+                continue;
+            }
+
+            unitsByCharacterId[unit.characterId] = unit;
+        }
+
+        for (int i = 0; i < selectedPlayers.Count; i++)
+        {
+            CharacterSelectionState.SlotSelection selection = selectedPlayers[i];
+            if (string.IsNullOrWhiteSpace(selection.characterId))
+            {
+                continue;
+            }
+
+            BattleUnit unit;
+            if (!unitsByCharacterId.TryGetValue(selection.characterId, out unit) || unit == null)
+            {
+                continue;
+            }
+
+            Vector2Int spawnCell = GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing);
+            grid.RemoveUnit(unit);
+            unit.CancelMovement();
+            unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
+            unit.FaceToward(grid.GetWorldPosition(spawnCell + Vector2Int.right));
+            grid.RegisterUnit(unit);
+        }
+    }
+
+    private static Vector2Int GetPlayerSpawnCell(int index, Vector2Int spawnOrigin, Vector2Int spawnSpacing)
+    {
+        int column = index % 2;
+        int row = index / 2;
+        return spawnOrigin + new Vector2Int(column * spawnSpacing.x, row * spawnSpacing.y);
     }
 
     private List<EnemySpawnEntry> GetEnemySpawnEntries()
