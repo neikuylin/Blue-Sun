@@ -49,6 +49,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         {
             public bool enabled = true;
             public ItemDatabase.WeaponCategory weaponCategory = ItemDatabase.WeaponCategory.None;
+            public string raiseHandStateName = string.Empty;
+            public float raiseHandYawOffset;
             public string targetSelectionStateName = string.Empty;
             public float targetSelectionYawOffset;
             public string actionStateName = string.Empty;

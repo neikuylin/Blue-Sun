@@ -191,6 +191,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        SerializedProperty raiseHandStateNameProperty = entry.FindPropertyRelative("raiseHandStateName");
+        SerializedProperty raiseHandYawOffsetProperty = entry.FindPropertyRelative("raiseHandYawOffset");
         SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
         SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
@@ -208,6 +210,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (enabledProperty != null)
             {
                 enabledProperty.boolValue = EditorGUILayout.Toggle("启用", enabledProperty.boolValue);
+            }
+
+            int raiseHandIndex = FindOptionIndex(actionOptions, raiseHandStateNameProperty != null ? raiseHandStateNameProperty.stringValue : string.Empty);
+            int newRaiseHandIndex = EditorGUILayout.Popup("抬手动画", raiseHandIndex, actionOptions.ToArray());
+            if (raiseHandStateNameProperty != null)
+            {
+                raiseHandStateNameProperty.stringValue = newRaiseHandIndex <= 0 ? string.Empty : actionOptions[newRaiseHandIndex];
+            }
+
+            if (raiseHandYawOffsetProperty != null)
+            {
+                raiseHandYawOffsetProperty.floatValue = EditorGUILayout.FloatField("抬手角度修正", raiseHandYawOffsetProperty.floatValue);
             }
 
             int targetSelectionIndex = FindOptionIndex(actionOptions, targetSelectionStateNameProperty != null ? targetSelectionStateNameProperty.stringValue : string.Empty);
@@ -304,6 +318,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (entry == null)
         {
             return;
+        }
+
+        SerializedProperty raiseHandStateNameProperty = entry.FindPropertyRelative("raiseHandStateName");
+        if (raiseHandStateNameProperty != null)
+        {
+            raiseHandStateNameProperty.stringValue = string.Empty;
+        }
+
+        SerializedProperty raiseHandYawOffsetProperty = entry.FindPropertyRelative("raiseHandYawOffset");
+        if (raiseHandYawOffsetProperty != null)
+        {
+            raiseHandYawOffsetProperty.floatValue = 0f;
         }
 
         SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
@@ -461,6 +487,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
     private struct WeaponOverrideSnapshot
     {
         public bool enabled;
+        public string raiseHandStateName;
+        public float raiseHandYawOffset;
         public string targetSelectionStateName;
         public float targetSelectionYawOffset;
         public string actionStateName;
@@ -483,6 +511,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (enabledProperty != null)
         {
             snapshot.enabled = enabledProperty.boolValue;
+        }
+
+        SerializedProperty raiseHandStateNameProperty = entry.FindPropertyRelative("raiseHandStateName");
+        if (raiseHandStateNameProperty != null)
+        {
+            snapshot.raiseHandStateName = raiseHandStateNameProperty.stringValue;
+        }
+
+        SerializedProperty raiseHandYawOffsetProperty = entry.FindPropertyRelative("raiseHandYawOffset");
+        if (raiseHandYawOffsetProperty != null)
+        {
+            snapshot.raiseHandYawOffset = raiseHandYawOffsetProperty.floatValue;
         }
 
         SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
@@ -547,6 +587,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (enabledProperty != null)
         {
             enabledProperty.boolValue = snapshot.enabled;
+        }
+
+        SerializedProperty raiseHandStateNameProperty = entry.FindPropertyRelative("raiseHandStateName");
+        if (raiseHandStateNameProperty != null)
+        {
+            raiseHandStateNameProperty.stringValue = snapshot.raiseHandStateName ?? string.Empty;
+        }
+
+        SerializedProperty raiseHandYawOffsetProperty = entry.FindPropertyRelative("raiseHandYawOffset");
+        if (raiseHandYawOffsetProperty != null)
+        {
+            raiseHandYawOffsetProperty.floatValue = snapshot.raiseHandYawOffset;
         }
 
         SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");

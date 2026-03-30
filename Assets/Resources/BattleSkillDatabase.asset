@@ -42,6 +42,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
@@ -52,6 +54,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 2
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: 
@@ -62,6 +66,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 3
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: "\u5F13\u7BAD\u79FB\u52A8"
@@ -99,6 +105,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
@@ -109,6 +117,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 2
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: 
@@ -146,6 +156,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: "\u56DE\u65CB\u65A9"
@@ -156,6 +168,8 @@ MonoBehaviour:
       compensateActionMotion: 1
     - enabled: 1
       weaponCategory: 2
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: 
@@ -193,10 +207,12 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 3
+      raiseHandStateName: "\u5C04\u51FB\u84C4\u529B"
+      raiseHandYawOffset: 75
       targetSelectionStateName: "\u5C04\u51FB\u84C4\u529B\u5F85\u673A"
-      targetSelectionYawOffset: 80
+      targetSelectionYawOffset: 75
       actionStateName: "\u5C04\u51FB"
-      actionYawOffset: 80
+      actionYawOffset: 75
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
       soundDelayFrame: 0

@@ -135,8 +135,10 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
-    private string currentSkillTargetSelectionStateName = string.Empty;
-    private float currentSkillTargetSelectionYawOffset;
+    private string currentSkillTargetingStateName = string.Empty;
+    private float currentSkillTargetingYawOffset;
+    private bool skillTargetSelectionReady;
+    private Coroutine skillTargetingIntroRoutine;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
@@ -2667,7 +2669,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
-            PlaySkillTargetSelectionAnimation(activeUnit, activeSkill);
+            StartSkillTargetingIntro(activeUnit, activeSkill);
         }
 
         RefreshHighlights();
@@ -2753,6 +2755,27 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (!skillTargetSelectionReady)
+        {
+            if (TryGetMouseWorldPoint(out Vector3 introHitPoint))
+            {
+                UpdateSkillTargetingFacing(introHitPoint);
+            }
+
+            if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells || skillHoverValid || skillHoverActionPointCost > 0)
+            {
+                hasSkillHoverPreview = false;
+                skillHoverValid = false;
+                skillHoverHasAnyVisibleCells = false;
+                skillHoverActionPointCost = 0;
+                RefreshHighlights();
+            }
+
+            HideSkillCostHint();
+            ClearHoveredSkillTarget();
+            return;
+        }
+
         bool shouldShowAreaPreview = ShouldShowSkillAreaPreview(activeSkill);
         if (!shouldShowAreaPreview)
         {
@@ -2787,7 +2810,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         Vector3 hitPoint = ray.GetPoint(enter);
-        UpdateSkillTargetSelectionFacing(hitPoint);
+        UpdateSkillTargetingFacing(hitPoint);
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
@@ -3202,14 +3225,20 @@ public class BattleTurnSystem : MonoBehaviour
         BattleUnit unit = activeUnit;
         activeSkillId = string.Empty;
         activeSkill = null;
-        currentSkillTargetSelectionStateName = string.Empty;
-        currentSkillTargetSelectionYawOffset = 0f;
+        currentSkillTargetingStateName = string.Empty;
+        currentSkillTargetingYawOffset = 0f;
+        skillTargetSelectionReady = false;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
         ClearHoveredSkillTarget();
         HideSkillCostHint();
+        if (skillTargetingIntroRoutine != null)
+        {
+            StopCoroutine(skillTargetingIntroRoutine);
+            skillTargetingIntroRoutine = null;
+        }
 
         if (IsExplorationMode || unit == null || !unit.IsAlive || unit.IsMoving || isResolvingSkillExecution)
         {
@@ -3226,6 +3255,11 @@ public class BattleTurnSystem : MonoBehaviour
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
     {
         if (!IsSkillModeActive() || isResolvingSkillExecution)
+        {
+            return;
+        }
+
+        if (!skillTargetSelectionReady)
         {
             return;
         }
@@ -5364,12 +5398,34 @@ public class BattleTurnSystem : MonoBehaviour
         return string.Empty;
     }
 
+    private static string ResolveSkillRaiseHandStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    {
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
+        if (overrideEntry != null)
+        {
+            return overrideEntry.raiseHandStateName;
+        }
+
+        return string.Empty;
+    }
+
     private static float ResolveSkillTargetSelectionYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
         BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
         if (overrideEntry != null)
         {
             return overrideEntry.targetSelectionYawOffset;
+        }
+
+        return 0f;
+    }
+
+    private static float ResolveSkillRaiseHandYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    {
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
+        if (overrideEntry != null)
+        {
+            return overrideEntry.raiseHandYawOffset;
         }
 
         return 0f;
@@ -5446,13 +5502,57 @@ public class BattleTurnSystem : MonoBehaviour
         return skill.FindEnabledWeaponActionOverride(weaponCategory);
     }
 
-    private void PlaySkillTargetSelectionAnimation(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    private void StartSkillTargetingIntro(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
     {
-        currentSkillTargetSelectionStateName = string.Empty;
-        currentSkillTargetSelectionYawOffset = 0f;
+        if (skillTargetingIntroRoutine != null)
+        {
+            StopCoroutine(skillTargetingIntroRoutine);
+            skillTargetingIntroRoutine = null;
+        }
+
+        skillTargetingIntroRoutine = StartCoroutine(PlaySkillTargetingIntroRoutine(unit, skill));
+    }
+
+    private IEnumerator PlaySkillTargetingIntroRoutine(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        currentSkillTargetingStateName = string.Empty;
+        currentSkillTargetingYawOffset = 0f;
+        skillTargetSelectionReady = false;
         if (unit == null || skill == null || !unit.IsAlive)
         {
-            return;
+            skillTargetingIntroRoutine = null;
+            yield break;
+        }
+
+        string raiseHandStateName = ResolveSkillRaiseHandStateName(skill, unit);
+        if (!string.IsNullOrWhiteSpace(raiseHandStateName))
+        {
+            unit.SetAnimationPositionCompensation(false);
+            unit.PlayAnimationState(raiseHandStateName);
+            currentSkillTargetingStateName = raiseHandStateName;
+            currentSkillTargetingYawOffset = ResolveSkillRaiseHandYawOffset(skill, unit);
+
+            if (TryGetMouseWorldPoint(out Vector3 raiseHandHitPoint))
+            {
+                UpdateSkillTargetingFacing(raiseHandHitPoint);
+            }
+
+            Animator animator = unit.GetComponentInChildren<Animator>(true);
+            if (animator != null && animator.runtimeAnimatorController != null && animator.isActiveAndEnabled)
+            {
+                yield return null;
+                float duration = animator.GetCurrentAnimatorStateInfo(0).length;
+                if (duration > 0.01f)
+                {
+                    yield return new WaitForSeconds(duration);
+                }
+            }
+        }
+
+        if (activeUnit != unit || activeSkill != skill || !string.Equals(activeSkillId, skill.skillId, System.StringComparison.Ordinal))
+        {
+            skillTargetingIntroRoutine = null;
+            yield break;
         }
 
         string targetSelectionStateName = ResolveSkillTargetSelectionStateName(skill, unit);
@@ -5464,32 +5564,55 @@ public class BattleTurnSystem : MonoBehaviour
                 unit.PlayAnimationState(idleStateName);
             }
 
-            return;
+            skillTargetSelectionReady = true;
+            skillTargetingIntroRoutine = null;
+            yield break;
         }
 
         unit.SetAnimationPositionCompensation(false);
         unit.PlayAnimationState(targetSelectionStateName);
-        currentSkillTargetSelectionStateName = targetSelectionStateName;
-        currentSkillTargetSelectionYawOffset = ResolveSkillTargetSelectionYawOffset(skill, unit);
+        currentSkillTargetingStateName = targetSelectionStateName;
+        currentSkillTargetingYawOffset = ResolveSkillTargetSelectionYawOffset(skill, unit);
+        skillTargetSelectionReady = true;
+        skillTargetingIntroRoutine = null;
     }
 
-    private void UpdateSkillTargetSelectionFacing(Vector3 worldPosition)
+    private void UpdateSkillTargetingFacing(Vector3 worldPosition)
     {
         if (!IsSkillModeActive() || activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving)
         {
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(currentSkillTargetSelectionStateName))
+        if (string.IsNullOrWhiteSpace(currentSkillTargetingStateName))
         {
             return;
         }
 
         activeUnit.FaceToward(worldPosition);
-        if (Mathf.Abs(currentSkillTargetSelectionYawOffset) > 0.01f)
+        if (Mathf.Abs(currentSkillTargetingYawOffset) > 0.01f)
         {
-            activeUnit.transform.rotation = activeUnit.transform.rotation * Quaternion.Euler(0f, currentSkillTargetSelectionYawOffset, 0f);
+            activeUnit.transform.rotation = activeUnit.transform.rotation * Quaternion.Euler(0f, currentSkillTargetingYawOffset, 0f);
         }
+    }
+
+    private bool TryGetMouseWorldPoint(out Vector3 hitPoint)
+    {
+        hitPoint = Vector3.zero;
+        if (grid == null || battleCamera == null)
+        {
+            return false;
+        }
+
+        Plane clickPlane = grid.GetInteractionPlane();
+        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
+        if (!clickPlane.Raycast(ray, out float enter))
+        {
+            return false;
+        }
+
+        hitPoint = ray.GetPoint(enter);
+        return true;
     }
 
     private void TriggerSkillHitFeel(BattleSkillDatabase.SkillEntry skill)
