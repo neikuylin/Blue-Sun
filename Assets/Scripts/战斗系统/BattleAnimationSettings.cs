@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "BattleAnimationSettings", menuName = "Battle/Animation Settings")]
 public sealed class BattleAnimationSettings : ScriptableObject
@@ -31,18 +30,6 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public GameObject exitBattleSoundPrefab;
     public bool exitBattleCompensateMotion;
     public WeaponScopedActionOverride[] exitBattleOverrides = new WeaponScopedActionOverride[0];
-    [FormerlySerializedAs("aimStateName")]
-    [FormerlySerializedAs("combatArtAimStateName")]
-    public string combatArtLeftAimStateName = string.Empty;
-    public AudioClip combatArtLeftAimSound;
-    public GameObject combatArtLeftAimSoundPrefab;
-    public bool combatArtLeftAimCompensateMotion;
-    public WeaponScopedActionOverride[] combatArtLeftAimOverrides = new WeaponScopedActionOverride[0];
-    public string combatArtRightAimStateName = string.Empty;
-    public AudioClip combatArtRightAimSound;
-    public GameObject combatArtRightAimSoundPrefab;
-    public bool combatArtRightAimCompensateMotion;
-    public WeaponScopedActionOverride[] combatArtRightAimOverrides = new WeaponScopedActionOverride[0];
     public string hitReactionStateName = string.Empty;
     public AudioClip hitReactionSound;
     public GameObject hitReactionSoundPrefab;

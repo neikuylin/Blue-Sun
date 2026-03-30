@@ -20,8 +20,6 @@ public sealed class GlobalActionBindingWindow : EditorWindow
     private bool showIdle = true;
     private bool showEnterBattle = true;
     private bool showExitBattle = true;
-    private bool showCombatArtLeftAim;
-    private bool showCombatArtRightAim;
     private bool showHitReaction;
     private bool showDodge;
     private bool showExplorationIdle = true;
@@ -57,8 +55,6 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         DrawScopedSection(ref showIdle, "待机", "idleOverrides", actionOptions);
         DrawScopedSection(ref showEnterBattle, "进战", "enterBattleOverrides", actionOptions);
         DrawScopedSection(ref showExitBattle, "退战", "exitBattleOverrides", actionOptions);
-        DrawScopedSection(ref showCombatArtLeftAim, "战技左瞄准", "combatArtLeftAimOverrides", actionOptions);
-        DrawScopedSection(ref showCombatArtRightAim, "战技右瞄准", "combatArtRightAimOverrides", actionOptions);
         DrawScopedSection(ref showHitReaction, "受击", "hitReactionOverrides", actionOptions);
         DrawScopedSection(ref showDodge, "闪避", "dodgeOverrides", actionOptions);
         DrawSimpleSection(ref showExplorationIdle, "探索待机", "explorationIdleStateName", "explorationIdleSound", "explorationIdleSoundPrefab", "explorationIdleCompensateMotion", actionOptions);

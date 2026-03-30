@@ -98,64 +98,6 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
-  combatArtLeftAimStateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
-  combatArtLeftAimSound: {fileID: 0}
-  combatArtLeftAimSoundPrefab: {fileID: 0}
-  combatArtLeftAimCompensateMotion: 1
-  combatArtLeftAimOverrides:
-  - enabled: 1
-    weaponCategory: 0
-    stateName: 
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 0
-  - enabled: 1
-    weaponCategory: 1
-    stateName: "\u5355\u624B\u6B66\u5668\u5DE6\u8F6C\u8EAB\u52A8\u753B"
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 1
-  - enabled: 1
-    weaponCategory: 2
-    stateName: 
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 0
-  - enabled: 1
-    weaponCategory: 3
-    stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 1
-  combatArtRightAimStateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
-  combatArtRightAimSound: {fileID: 0}
-  combatArtRightAimSoundPrefab: {fileID: 0}
-  combatArtRightAimCompensateMotion: 1
-  combatArtRightAimOverrides:
-  - enabled: 1
-    weaponCategory: 0
-    stateName: 
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 0
-  - enabled: 1
-    weaponCategory: 1
-    stateName: "\u5355\u624B\u6B66\u5668\u53F3\u8F6C\u8EAB\u52A8\u753B"
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 1
-  - enabled: 1
-    weaponCategory: 2
-    stateName: 
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 0
-  - enabled: 1
-    weaponCategory: 3
-    stateName: "\u5F13\u7BAD\u5DE6\u53F3\u8F6C\u8EAB"
-    sound: {fileID: 0}
-    soundPrefab: {fileID: 0}
-    compensateMotion: 1
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
   hitReactionSoundPrefab: {fileID: 0}

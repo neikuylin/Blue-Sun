@@ -55,8 +55,6 @@ public class BattleUnit : MonoBehaviour
     [SerializeField] private string moveStateName = string.Empty;
     [SerializeField] private string hitReactionStateName = string.Empty;
     [SerializeField] private string dodgeStateName = string.Empty;
-    [SerializeField] private string combatArtLeftAimStateName = string.Empty;
-    [SerializeField] private string combatArtRightAimStateName = string.Empty;
 
     [Header("Runtime")]
     public int currentHealth;
@@ -123,8 +121,6 @@ public class BattleUnit : MonoBehaviour
         moveStateName = string.Empty;
         hitReactionStateName = string.Empty;
         dodgeStateName = string.Empty;
-        combatArtLeftAimStateName = string.Empty;
-        combatArtRightAimStateName = string.Empty;
     }
 
     public string GetIdleAnimationStateName(string fallback = "")
@@ -150,16 +146,6 @@ public class BattleUnit : MonoBehaviour
     public string GetDodgeAnimationStateName(string fallback = "")
     {
         return string.IsNullOrWhiteSpace(dodgeStateName) ? fallback : dodgeStateName;
-    }
-
-    public string GetCombatArtLeftAimAnimationStateName(string fallback = "")
-    {
-        return string.IsNullOrWhiteSpace(combatArtLeftAimStateName) ? fallback : combatArtLeftAimStateName;
-    }
-
-    public string GetCombatArtRightAimAnimationStateName(string fallback = "")
-    {
-        return string.IsNullOrWhiteSpace(combatArtRightAimStateName) ? fallback : combatArtRightAimStateName;
     }
 
     public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)

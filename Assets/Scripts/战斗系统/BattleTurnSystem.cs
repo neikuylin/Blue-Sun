@@ -132,13 +132,6 @@ public class BattleTurnSystem : MonoBehaviour
     private string lastTargetUiSignature = "<unset>";
     private RectSnapshot targetHealthFillBaseRect;
     private bool cachedTargetBaseRect;
-    private bool combatArtAimAnimationActive;
-    private bool hasLastCombatArtAimHoverCell;
-    private Vector2Int lastCombatArtAimHoverCell;
-    private float combatArtAimAnimationActiveUntilTime;
-    private const float MinCombatArtAimAnimationDurationSeconds = 60f / 60f;
-    private string currentCombatArtAimStateName = string.Empty;
-    private BattleAudioUtility.PlaybackHandle currentCombatArtAimAudioHandle;
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
@@ -1110,10 +1103,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ClearSelectionOutlines();
-        StopCombatArtAimAnimation(force: true);
-        hasLastCombatArtAimHoverCell = false;
-        combatArtAimAnimationActiveUntilTime = 0f;
-        currentCombatArtAimStateName = string.Empty;
         CleanupDeadUnits();
         while (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
         {
@@ -2652,7 +2641,6 @@ public class BattleTurnSystem : MonoBehaviour
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
-            hasLastCombatArtAimHoverCell = false;
         }
 
         RefreshHighlights();
@@ -2786,16 +2774,6 @@ public class BattleTurnSystem : MonoBehaviour
 
             HideSkillCostHint();
             return;
-        }
-
-        if (ShouldUseCombatArtAimPreview(activeSkill))
-        {
-            UpdateCombatArtAimFacing(hitPoint, hoveredCell);
-        }
-        else
-        {
-            StopCombatArtAimAnimation(force: true);
-            hasLastCombatArtAimHoverCell = false;
         }
 
         BattleUnit hoveredUnit = grid.GetUnitAt(hoveredCell);
@@ -3201,10 +3179,6 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverActionPointCost = 0;
         ClearHoveredSkillTarget();
         HideSkillCostHint();
-        StopCombatArtAimAnimation(force: true);
-        hasLastCombatArtAimHoverCell = false;
-        combatArtAimAnimationActiveUntilTime = 0f;
-        currentCombatArtAimStateName = string.Empty;
     }
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
@@ -5884,46 +5858,6 @@ public class BattleTurnSystem : MonoBehaviour
         currentExplorationMoveAudioHandle = null;
     }
 
-    private static string ResolveCombatArtLeftAimStateName(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimStateName(ResolveAnimationCharacterId(unit));
-    }
-
-    private static bool ResolveCombatArtLeftAimCompensateMotion(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimCompensateMotion(ResolveAnimationCharacterId(unit));
-    }
-
-    private static AudioClip ResolveCombatArtLeftAimSound(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimSound(ResolveAnimationCharacterId(unit));
-    }
-
-    private static GameObject ResolveCombatArtLeftAimSoundPrefab(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtLeftAimSoundPrefab(ResolveAnimationCharacterId(unit));
-    }
-
-    private static string ResolveCombatArtRightAimStateName(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimStateName(ResolveAnimationCharacterId(unit));
-    }
-
-    private static bool ResolveCombatArtRightAimCompensateMotion(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimCompensateMotion(ResolveAnimationCharacterId(unit));
-    }
-
-    private static AudioClip ResolveCombatArtRightAimSound(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimSound(ResolveAnimationCharacterId(unit));
-    }
-
-    private static GameObject ResolveCombatArtRightAimSoundPrefab(BattleUnit unit = null)
-    {
-        return BattleAnimationSettingsResolver.ResolveCombatArtRightAimSoundPrefab(ResolveAnimationCharacterId(unit));
-    }
-
     private static float ResolveIdleYawOffset()
     {
         return BattleAnimationSettingsResolver.ResolveIdleYawOffset();
@@ -6026,108 +5960,6 @@ public class BattleTurnSystem : MonoBehaviour
         modeMusicSource.clip = null;
     }
 
-    private void StartCombatArtAimAnimation(string stateName)
-    {
-        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            combatArtAimAnimationActive = false;
-            currentCombatArtAimStateName = string.Empty;
-            return;
-        }
-
-        StopCombatArtAimAudio();
-        ResolveCombatArtAimAudioForState(activeUnit, stateName, out AudioClip aimSound, out GameObject aimSoundPrefab);
-        currentCombatArtAimAudioHandle = BattleAudioUtility.StartTracked(aimSound, aimSoundPrefab, activeUnit, battleCamera);
-        activeUnit.PlayAnimationState(stateName, ShouldCompensateGlobalMotionForState(activeUnit, stateName));
-        combatArtAimAnimationActive = true;
-        combatArtAimAnimationActiveUntilTime = Time.time + MinCombatArtAimAnimationDurationSeconds;
-        currentCombatArtAimStateName = stateName;
-    }
-
-    private void StopCombatArtAimAnimation(bool force = false)
-    {
-        if (!combatArtAimAnimationActive)
-        {
-            return;
-        }
-
-        if (activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving || isResolvingSkillExecution)
-        {
-            if (force)
-            {
-                StopCombatArtAimAudio();
-                combatArtAimAnimationActive = false;
-                currentCombatArtAimStateName = string.Empty;
-            }
-            return;
-        }
-
-        if (!force && Time.time < combatArtAimAnimationActiveUntilTime)
-        {
-            return;
-        }
-
-        string idleStateName = activeUnit.GetIdleAnimationStateName(ResolveIdleStateName(activeUnit));
-        if (!string.IsNullOrWhiteSpace(idleStateName))
-        {
-            activeUnit.PlayAnimationState(idleStateName);
-        }
-
-        activeUnit.SetAnimationPositionCompensation(false);
-        StopCombatArtAimAudio();
-        combatArtAimAnimationActive = false;
-        currentCombatArtAimStateName = string.Empty;
-    }
-
-    private void UpdateCombatArtAimFacing(Vector3 worldPosition, Vector2Int hoveredCell)
-    {
-        if (!IsSkillModeActive() || activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled)
-        {
-            return;
-        }
-
-        // Root 朝向始终由代码接管，瞄准动画只负责脚步表现。
-        activeUnit.FaceToward(worldPosition);
-
-        bool cellChanged = !hasLastCombatArtAimHoverCell || hoveredCell != lastCombatArtAimHoverCell;
-        lastCombatArtAimHoverCell = hoveredCell;
-        hasLastCombatArtAimHoverCell = true;
-
-        if (!cellChanged)
-        {
-            StopCombatArtAimAnimation();
-            return;
-        }
-
-        string stateName = ResolveCombatArtAimStateNameForTarget(worldPosition);
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            StopCombatArtAimAnimation(force: true);
-            activeUnit.FaceToward(worldPosition);
-            return;
-        }
-
-        if (!combatArtAimAnimationActive || !string.Equals(currentCombatArtAimStateName, stateName, System.StringComparison.Ordinal))
-        {
-            StartCombatArtAimAnimation(stateName);
-        }
-    }
-
-    private static bool ShouldUseCombatArtAimPreview(BattleSkillDatabase.SkillEntry skill)
-    {
-        return skill != null && skill.group == BattleSkillDatabase.SkillGroup.CombatArt;
-    }
-
-    private static void ResolveCombatArtAimAudioForState(BattleUnit unit, string stateName, out AudioClip clip, out GameObject soundPrefab)
-    {
-        BattleAnimationSettingsResolver.ResolveCombatArtAimAudioForState(stateName, ResolveAnimationCharacterId(unit), out clip, out soundPrefab);
-    }
-
     private static bool ShouldCompensateGlobalMotionForState(BattleUnit unit, string stateName)
     {
         return BattleAnimationSettingsResolver.ShouldCompensateGlobalMotionForState(stateName, ResolveAnimationCharacterId(unit));
@@ -6136,56 +5968,6 @@ public class BattleTurnSystem : MonoBehaviour
     private static string ResolveAnimationCharacterId(BattleUnit unit)
     {
         return unit != null ? unit.characterId : string.Empty;
-    }
-
-    private void StopCombatArtAimAudio()
-    {
-        if (currentCombatArtAimAudioHandle == null)
-        {
-            return;
-        }
-
-        currentCombatArtAimAudioHandle.Stop();
-        currentCombatArtAimAudioHandle = null;
-    }
-
-    private string ResolveCombatArtAimStateNameForTarget(Vector3 worldPosition)
-    {
-        if (activeUnit == null)
-        {
-            return string.Empty;
-        }
-
-        Vector3 localDirection = activeUnit.transform.InverseTransformPoint(worldPosition);
-        string leftStateName = activeUnit.GetCombatArtLeftAimAnimationStateName(ResolveCombatArtLeftAimStateName(activeUnit));
-        string rightStateName = activeUnit.GetCombatArtRightAimAnimationStateName(ResolveCombatArtRightAimStateName(activeUnit));
-
-        if (localDirection.x < -0.001f)
-        {
-            if (!string.IsNullOrWhiteSpace(leftStateName))
-            {
-                return leftStateName;
-            }
-
-            return rightStateName;
-        }
-
-        if (localDirection.x > 0.001f)
-        {
-            if (!string.IsNullOrWhiteSpace(rightStateName))
-            {
-                return rightStateName;
-            }
-
-            return leftStateName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(currentCombatArtAimStateName))
-        {
-            return currentCombatArtAimStateName;
-        }
-
-        return !string.IsNullOrWhiteSpace(rightStateName) ? rightStateName : leftStateName;
     }
 
     private Vector2Int FindBestStepToward(BattleUnit mover, BattleUnit target, int desiredRange = 0)

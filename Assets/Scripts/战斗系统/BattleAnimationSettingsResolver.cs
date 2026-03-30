@@ -96,46 +96,6 @@ public static class BattleAnimationSettingsResolver
         return ResolveCompensateMotion(characterId, settings => settings.exitBattleOverrides);
     }
 
-    public static string ResolveCombatArtLeftAimStateName(string characterId)
-    {
-        return ResolveStateName(characterId, settings => settings.combatArtLeftAimOverrides);
-    }
-
-    public static bool ResolveCombatArtLeftAimCompensateMotion(string characterId)
-    {
-        return ResolveCompensateMotion(characterId, settings => settings.combatArtLeftAimOverrides);
-    }
-
-    public static AudioClip ResolveCombatArtLeftAimSound(string characterId)
-    {
-        return ResolveSound(characterId, settings => settings.combatArtLeftAimOverrides);
-    }
-
-    public static GameObject ResolveCombatArtLeftAimSoundPrefab(string characterId)
-    {
-        return ResolveSoundPrefab(characterId, settings => settings.combatArtLeftAimOverrides);
-    }
-
-    public static string ResolveCombatArtRightAimStateName(string characterId)
-    {
-        return ResolveStateName(characterId, settings => settings.combatArtRightAimOverrides);
-    }
-
-    public static bool ResolveCombatArtRightAimCompensateMotion(string characterId)
-    {
-        return ResolveCompensateMotion(characterId, settings => settings.combatArtRightAimOverrides);
-    }
-
-    public static AudioClip ResolveCombatArtRightAimSound(string characterId)
-    {
-        return ResolveSound(characterId, settings => settings.combatArtRightAimOverrides);
-    }
-
-    public static GameObject ResolveCombatArtRightAimSoundPrefab(string characterId)
-    {
-        return ResolveSoundPrefab(characterId, settings => settings.combatArtRightAimOverrides);
-    }
-
     public static float ResolveIdleYawOffset()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -182,49 +142,11 @@ public static class BattleAnimationSettingsResolver
         return ResolveSoundPrefab(characterId, settings => settings.dodgeOverrides);
     }
 
-    public static void ResolveCombatArtAimAudioForState(string stateName, string characterId, out AudioClip clip, out GameObject soundPrefab)
-    {
-        clip = null;
-        soundPrefab = null;
-
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            return;
-        }
-
-        string leftStateName = ResolveCombatArtLeftAimStateName(characterId);
-        if (string.Equals(stateName, leftStateName, StringComparison.Ordinal))
-        {
-            clip = ResolveCombatArtLeftAimSound(characterId);
-            soundPrefab = ResolveCombatArtLeftAimSoundPrefab(characterId);
-            return;
-        }
-
-        string rightStateName = ResolveCombatArtRightAimStateName(characterId);
-        if (string.Equals(stateName, rightStateName, StringComparison.Ordinal))
-        {
-            clip = ResolveCombatArtRightAimSound(characterId);
-            soundPrefab = ResolveCombatArtRightAimSoundPrefab(characterId);
-        }
-    }
-
     public static bool ShouldCompensateGlobalMotionForState(string stateName, string characterId)
     {
         if (string.IsNullOrWhiteSpace(stateName))
         {
             return false;
-        }
-
-        string leftStateName = ResolveCombatArtLeftAimStateName(characterId);
-        if (string.Equals(stateName, leftStateName, StringComparison.Ordinal))
-        {
-            return ResolveCombatArtLeftAimCompensateMotion(characterId);
-        }
-
-        string rightStateName = ResolveCombatArtRightAimStateName(characterId);
-        if (string.Equals(stateName, rightStateName, StringComparison.Ordinal))
-        {
-            return ResolveCombatArtRightAimCompensateMotion(characterId);
         }
 
         string hitStateName = ResolveHitReactionStateName(characterId);
