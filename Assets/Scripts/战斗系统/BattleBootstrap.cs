@@ -27,11 +27,13 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
+    private const string SnapshotCacheRootName = "BattleRoomSnapshotCache";
 
     [System.Serializable]
     public sealed class RoomStateMemory
     {
         public bool encounterCleared;
+        public GameObject preservedRuntimeRoot;
     }
 
     [Header("Binding Database")]
@@ -96,6 +98,7 @@ public class BattleBootstrap : MonoBehaviour
     private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
     private static readonly Dictionary<string, RoomStateMemory> roomStateMemories = new Dictionary<string, RoomStateMemory>(System.StringComparer.Ordinal);
+    private static Transform snapshotCacheRoot;
 
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
     public static string CurrentDungeonNodeId => currentDungeonNodeId;
@@ -193,13 +196,31 @@ public class BattleBootstrap : MonoBehaviour
         SetupBattleCamera(mainCamera);
         AlignDungeonBoardToCamera(mainCamera);
 
-        Transform runtimeRoot = CreateRuntimeRoot();
-        CreateRoomContent(runtimeRoot);
-        BattleGrid grid = CreateGrid(runtimeRoot);
-        List<BattleUnit> units = CreateUnits(grid, runtimeRoot);
-        if (units.Count < 2)
+        bool restoredFromSnapshot;
+        Transform runtimeRoot = CreateRuntimeRoot(out restoredFromSnapshot);
+        BattleGrid grid;
+        List<BattleUnit> units;
+        if (restoredFromSnapshot)
         {
-            Debug.LogWarning("BattleBootstrap: not enough units for turn-based combat.");
+            grid = ResolveRestoredGrid(runtimeRoot);
+            units = CollectRuntimeUnits(runtimeRoot);
+        }
+        else
+        {
+            CreateRoomContent(runtimeRoot);
+            grid = CreateGrid(runtimeRoot);
+            units = CreateUnits(grid, runtimeRoot);
+        }
+
+        if (grid == null)
+        {
+            Debug.LogWarning("BattleBootstrap: failed to resolve BattleGrid for current room.");
+            return;
+        }
+
+        if (units.Count < 1)
+        {
+            Debug.LogWarning("BattleBootstrap: not enough units to initialize room runtime.");
             return;
         }
 
@@ -237,10 +258,24 @@ public class BattleBootstrap : MonoBehaviour
         }
     }
 
-    private Transform CreateRuntimeRoot()
+    private Transform CreateRuntimeRoot(out bool restoredFromSnapshot)
     {
+        RoomStateMemory roomMemory = GetCurrentRoomStateMemory();
+        if (roomMemory != null && roomMemory.preservedRuntimeRoot != null)
+        {
+            GameObject preservedRuntimeRoot = roomMemory.preservedRuntimeRoot;
+            roomMemory.preservedRuntimeRoot = null;
+            restoredFromSnapshot = true;
+            SceneManager.MoveGameObjectToScene(preservedRuntimeRoot, gameObject.scene);
+            preservedRuntimeRoot.transform.SetParent(transform, false);
+            preservedRuntimeRoot.name = RuntimeRootName;
+            preservedRuntimeRoot.SetActive(true);
+            return preservedRuntimeRoot.transform;
+        }
+
         GameObject runtimeRoot = new GameObject(RuntimeRootName);
         runtimeRoot.transform.SetParent(transform, false);
+        restoredFromSnapshot = false;
         return runtimeRoot.transform;
     }
 
@@ -443,7 +478,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        CommitCurrentRoomStateOnLeave();
+        PreserveCurrentRoomSnapshot();
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
         SceneManager.LoadScene(SceneName);
     }
@@ -456,18 +491,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return templateId.Trim() + "::" + nodeId.Trim();
-    }
-
-    private static void CommitCurrentRoomStateOnLeave()
-    {
-        RoomStateMemory memory = GetCurrentRoomStateMemory();
-        if (memory == null)
-        {
-            Debug.LogWarning("BattleBootstrap: CommitCurrentRoomStateOnLeave failed because current room memory is missing.");
-            return;
-        }
-
-        memory.encounterCleared = true;
     }
 
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
@@ -485,6 +508,90 @@ public class BattleBootstrap : MonoBehaviour
 
         List<BattleUnit> units = factory.CreatePlayers(GetSelectedPlayers(), playerSpawnOrigin, playerSpawnSpacing);
         units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
+        return units;
+    }
+
+    private static void PreserveCurrentRoomSnapshot()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        RoomStateMemory memory = GetCurrentRoomStateMemory();
+        if (memory == null)
+        {
+            return;
+        }
+
+        BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>();
+        if (bootstrap == null)
+        {
+            return;
+        }
+
+        Transform runtimeRoot = bootstrap.transform.Find(RuntimeRootName);
+        if (runtimeRoot == null)
+        {
+            return;
+        }
+
+        if (memory.preservedRuntimeRoot != null && memory.preservedRuntimeRoot != runtimeRoot.gameObject)
+        {
+            Object.Destroy(memory.preservedRuntimeRoot);
+        }
+
+        Transform cacheRoot = EnsureSnapshotCacheRoot();
+        runtimeRoot.SetParent(cacheRoot, false);
+        runtimeRoot.gameObject.SetActive(false);
+        DontDestroyOnLoad(runtimeRoot.gameObject);
+        memory.preservedRuntimeRoot = runtimeRoot.gameObject;
+    }
+
+    private static Transform EnsureSnapshotCacheRoot()
+    {
+        if (snapshotCacheRoot != null)
+        {
+            return snapshotCacheRoot;
+        }
+
+        GameObject existingRoot = GameObject.Find(SnapshotCacheRootName);
+        if (existingRoot != null)
+        {
+            snapshotCacheRoot = existingRoot.transform;
+            DontDestroyOnLoad(existingRoot);
+            return snapshotCacheRoot;
+        }
+
+        GameObject cacheRoot = new GameObject(SnapshotCacheRootName);
+        DontDestroyOnLoad(cacheRoot);
+        snapshotCacheRoot = cacheRoot.transform;
+        return snapshotCacheRoot;
+    }
+
+    private static BattleGrid ResolveRestoredGrid(Transform runtimeRoot)
+    {
+        return runtimeRoot != null ? runtimeRoot.GetComponentInChildren<BattleGrid>(true) : null;
+    }
+
+    private static List<BattleUnit> CollectRuntimeUnits(Transform runtimeRoot)
+    {
+        List<BattleUnit> units = new List<BattleUnit>();
+        if (runtimeRoot == null)
+        {
+            return units;
+        }
+
+        BattleUnit[] foundUnits = runtimeRoot.GetComponentsInChildren<BattleUnit>(true);
+        for (int i = 0; i < foundUnits.Length; i++)
+        {
+            BattleUnit unit = foundUnits[i];
+            if (unit != null)
+            {
+                units.Add(unit);
+            }
+        }
+
         return units;
     }
 
