@@ -17,6 +17,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
     private Vector2 scroll;
     private SerializedObject skillDatabaseObject;
+    private static bool showMoveWeaponOverrides = true;
 
     [MenuItem("Tools/技能/技能动作栏")]
     private static void Open()
@@ -121,7 +122,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
                 compensateActionMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateActionMotionProperty.boolValue);
             }
 
-            if (string.Equals(skillId, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal))
+            if (IsMoveSkill(skillId))
             {
                 DrawMoveWeaponOverrides(entry, actionOptions);
             }
@@ -139,13 +140,21 @@ public sealed class SkillActionBindingWindow : EditorWindow
         EnsureMoveOverrideEntries(overridesProperty);
 
         EditorGUILayout.Space(4f);
-        EditorGUILayout.LabelField("按武器分流", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("移动技能只读取这里的武器分类动作，不回退到上面的默认动作。", MessageType.Info);
-
-        for (int i = 0; i < MoveWeaponCategories.Length; i++)
+        using (new EditorGUILayout.VerticalScope("box"))
         {
-            SerializedProperty overrideEntry = overridesProperty.GetArrayElementAtIndex(i);
-            DrawMoveOverrideEntry(overrideEntry, MoveWeaponCategories[i], actionOptions);
+            showMoveWeaponOverrides = EditorGUILayout.Foldout(showMoveWeaponOverrides, "移动按武器分流", true);
+            if (!showMoveWeaponOverrides)
+            {
+                return;
+            }
+
+            EditorGUILayout.HelpBox("移动技能只读取这里的武器分类动作，不回退到上面的默认动作。", MessageType.Info);
+
+            for (int i = 0; i < MoveWeaponCategories.Length; i++)
+            {
+                SerializedProperty overrideEntry = overridesProperty.GetArrayElementAtIndex(i);
+                DrawMoveOverrideEntry(overrideEntry, MoveWeaponCategories[i], actionOptions);
+            }
         }
     }
 
@@ -333,6 +342,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
             default:
                 return "无武器";
         }
+    }
+
+    private static bool IsMoveSkill(string skillId)
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+        {
+            return false;
+        }
+
+        string normalized = skillId.Trim();
+        return string.Equals(normalized, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal) ||
+            normalized.Contains(BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal);
     }
 
     private static List<string> BuildActionOptions()

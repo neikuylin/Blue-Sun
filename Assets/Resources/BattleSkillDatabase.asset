@@ -42,6 +42,14 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 0
+      actionStateName: 
+      actionYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
+    - enabled: 1
+      weaponCategory: 1
       actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -49,16 +57,8 @@ MonoBehaviour:
       soundDelayFrame: 0
       compensateActionMotion: 1
     - enabled: 1
-      weaponCategory: 1
-      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
-      actionYawOffset: 0
-      actionSound: {fileID: 0}
-      actionSoundPrefab: {fileID: 0}
-      soundDelayFrame: 0
-      compensateActionMotion: 0
-    - enabled: 1
       weaponCategory: 2
-      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
+      actionStateName: 
       actionYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
