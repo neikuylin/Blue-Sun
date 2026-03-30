@@ -42,6 +42,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -50,6 +52,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 2
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: 
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -58,6 +62,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 3
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: "\u5F13\u7BAD\u79FB\u52A8"
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -93,6 +99,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
       actionYawOffset: 45
       actionSound: {fileID: 0}
@@ -101,6 +109,8 @@ MonoBehaviour:
       compensateActionMotion: 0
     - enabled: 1
       weaponCategory: 2
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: 
       actionYawOffset: 45
       actionSound: {fileID: 0}
@@ -136,6 +146,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 1
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: "\u56DE\u65CB\u65A9"
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -144,6 +156,8 @@ MonoBehaviour:
       compensateActionMotion: 1
     - enabled: 1
       weaponCategory: 2
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
       actionStateName: 
       actionYawOffset: 0
       actionSound: {fileID: 0}
@@ -179,6 +193,8 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 3
+      targetSelectionStateName: "\u5C04\u51FB\u84C4\u529B\u5F85\u673A"
+      targetSelectionYawOffset: 80
       actionStateName: "\u5C04\u51FB"
       actionYawOffset: 80
       actionSound: {fileID: 0}

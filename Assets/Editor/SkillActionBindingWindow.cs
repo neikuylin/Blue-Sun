@@ -191,6 +191,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         SerializedProperty enabledProperty = entry.FindPropertyRelative("enabled");
+        SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
+        SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
@@ -206,6 +208,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (enabledProperty != null)
             {
                 enabledProperty.boolValue = EditorGUILayout.Toggle("启用", enabledProperty.boolValue);
+            }
+
+            int targetSelectionIndex = FindOptionIndex(actionOptions, targetSelectionStateNameProperty != null ? targetSelectionStateNameProperty.stringValue : string.Empty);
+            int newTargetSelectionIndex = EditorGUILayout.Popup("选目标动画", targetSelectionIndex, actionOptions.ToArray());
+            if (targetSelectionStateNameProperty != null)
+            {
+                targetSelectionStateNameProperty.stringValue = newTargetSelectionIndex <= 0 ? string.Empty : actionOptions[newTargetSelectionIndex];
+            }
+
+            if (targetSelectionYawOffsetProperty != null)
+            {
+                targetSelectionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("选目标角度修正", targetSelectionYawOffsetProperty.floatValue);
             }
 
             int selectedIndex = FindOptionIndex(actionOptions, actionStateNameProperty != null ? actionStateNameProperty.stringValue : string.Empty);
@@ -290,6 +304,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (entry == null)
         {
             return;
+        }
+
+        SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
+        if (targetSelectionStateNameProperty != null)
+        {
+            targetSelectionStateNameProperty.stringValue = string.Empty;
+        }
+
+        SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
+        if (targetSelectionYawOffsetProperty != null)
+        {
+            targetSelectionYawOffsetProperty.floatValue = 0f;
         }
 
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
@@ -435,6 +461,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
     private struct WeaponOverrideSnapshot
     {
         public bool enabled;
+        public string targetSelectionStateName;
+        public float targetSelectionYawOffset;
         public string actionStateName;
         public float actionYawOffset;
         public UnityEngine.Object actionSound;
@@ -455,6 +483,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (enabledProperty != null)
         {
             snapshot.enabled = enabledProperty.boolValue;
+        }
+
+        SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
+        if (targetSelectionStateNameProperty != null)
+        {
+            snapshot.targetSelectionStateName = targetSelectionStateNameProperty.stringValue;
+        }
+
+        SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
+        if (targetSelectionYawOffsetProperty != null)
+        {
+            snapshot.targetSelectionYawOffset = targetSelectionYawOffsetProperty.floatValue;
         }
 
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
@@ -507,6 +547,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (enabledProperty != null)
         {
             enabledProperty.boolValue = snapshot.enabled;
+        }
+
+        SerializedProperty targetSelectionStateNameProperty = entry.FindPropertyRelative("targetSelectionStateName");
+        if (targetSelectionStateNameProperty != null)
+        {
+            targetSelectionStateNameProperty.stringValue = snapshot.targetSelectionStateName ?? string.Empty;
+        }
+
+        SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
+        if (targetSelectionYawOffsetProperty != null)
+        {
+            targetSelectionYawOffsetProperty.floatValue = snapshot.targetSelectionYawOffset;
         }
 
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
