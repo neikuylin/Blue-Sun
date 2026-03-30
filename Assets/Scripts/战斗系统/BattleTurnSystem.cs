@@ -935,6 +935,15 @@ public class BattleTurnSystem : MonoBehaviour
         {
             pendingEnterBattleLeadUnit = GetNextLivingRoundUnit();
             beginTurnAfterEnterBattle = pendingEnterBattleLeadUnit != null;
+            if (pendingEnterBattleLeadUnit != null)
+            {
+                activeUnit = pendingEnterBattleLeadUnit;
+                FocusCameraOnActiveUnit();
+            }
+            else
+            {
+                StopCameraFollow();
+            }
             enterBattleAnimationInProgress = true;
             StartCoroutine(PlayEnterBattleAnimations());
             return;
@@ -943,6 +952,7 @@ public class BattleTurnSystem : MonoBehaviour
         enterBattleAnimationInProgress = false;
         beginTurnAfterEnterBattle = false;
         pendingEnterBattleLeadUnit = null;
+        StopCameraFollow();
     }
 
     private void StopExplorationFollowerRoutine()
