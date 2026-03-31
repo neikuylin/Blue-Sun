@@ -18,7 +18,7 @@ MonoBehaviour:
   idleOverrides:
   - enabled: 1
     weaponCategory: 0
-    stateName: 
+    stateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
