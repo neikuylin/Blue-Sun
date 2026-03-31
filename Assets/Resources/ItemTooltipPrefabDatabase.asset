@@ -12,7 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b20f803197ad68f4d9eb0d965f3df738, type: 3}
   m_Name: ItemTooltipPrefabDatabase
   m_EditorClassIdentifier: 
-  oneHandedTwoHandedTooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+  legacyWeaponTooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+  weaponTooltipPrefabs:
+  - weaponCategory: 1
+    tooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+  - weaponCategory: 2
+    tooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
+  - weaponCategory: 3
+    tooltipPrefab: {fileID: 600530451829299626, guid: d67a4211f7e6c774b9765a4eb58208ec, type: 3}
   commonBackgroundPrefab: {fileID: 3285891317064698256, guid: 60018fc30cbd85d49be5d2dad0e61a13, type: 3}
   excellentBackgroundPrefab: {fileID: 3527128896730674504, guid: 8c4f431e5a9484445953a7d721fd6d03, type: 3}
   epicBackgroundPrefab: {fileID: 5580978698064613126, guid: 14a17d071104fc54ebc06ba24eafa67f, type: 3}

@@ -225,6 +225,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private SlotRef hoveredTooltipSlot;
     private float pendingTooltipShownAt;
     private GameObject runtimeTooltipRootInstance;
+    private GameObject runtimeTooltipSourcePrefab;
 
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
@@ -697,7 +698,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         journeyBindings = JourneySceneBindings.FindInActiveScene();
         battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheQualityBackgroundPrefabs();
-        CacheItemTooltip();
+        CacheItemTooltip(ItemDatabase.WeaponCategory.OneHanded, true);
         CacheBackpackSlotTemplate();
         UnbindAll();
 
@@ -2283,9 +2284,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        return entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.Bow;
+        return entry.weaponCategory != ItemDatabase.WeaponCategory.None &&
+            (entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ||
+             entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand);
     }
 
     public static float GetCharacterWeaponAttackPower(string characterId)
@@ -2832,16 +2833,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RebuildItemVisual(widget, data);
     }
 
-    private void CacheItemTooltip()
+    private void CacheItemTooltip(ItemDatabase.WeaponCategory weaponCategory, bool resetTooltipState)
     {
         itemTooltipRoot = null;
-        EnsureTooltipRootsFromDatabase();
-        itemTooltipDetailRoot =
-            FindChildByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
-            FindChildByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
-            FindDescendantByName(itemTooltipRoot, "单_双手武器详情") as RectTransform ??
-            FindDescendantByName(itemTooltipRoot, "单/双手武器详情") as RectTransform ??
-            itemTooltipRoot;
+        EnsureTooltipRootsFromDatabase(weaponCategory);
+        itemTooltipDetailRoot = ResolveItemTooltipDetailRoot(itemTooltipRoot, weaponCategory);
         itemTooltipLowerBackgroundRoot =
             FindChildByName(itemTooltipDetailRoot, "下背景") as RectTransform ??
             FindDescendantByName(itemTooltipDetailRoot, "下背景") as RectTransform;
@@ -2869,10 +2865,56 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ? (FindChildByName(itemTooltipGrantedSkillsText.transform, "技能区域") ?? FindDescendantByName(itemTooltipGrantedSkillsText.transform, "技能区域"))
             : null;
         itemTooltipGrantedSkillsIconRoot = grantedSkillRoot as RectTransform;
-        HideItemTooltip();
+        if (resetTooltipState)
+        {
+            HideItemTooltip();
+        }
     }
 
-    private void EnsureTooltipRootsFromDatabase()
+    private static RectTransform ResolveItemTooltipDetailRoot(RectTransform tooltipRoot, ItemDatabase.WeaponCategory weaponCategory)
+    {
+        if (tooltipRoot == null)
+        {
+            return null;
+        }
+
+        string[] detailRootNames = GetTooltipDetailRootNames(weaponCategory);
+        for (int i = 0; i < detailRootNames.Length; i++)
+        {
+            string rootName = detailRootNames[i];
+            if (string.IsNullOrWhiteSpace(rootName))
+            {
+                continue;
+            }
+
+            RectTransform detailRoot =
+                FindChildByName(tooltipRoot, rootName) as RectTransform ??
+                FindDescendantByName(tooltipRoot, rootName) as RectTransform;
+            if (detailRoot != null)
+            {
+                return detailRoot;
+            }
+        }
+
+        return tooltipRoot;
+    }
+
+    private static string[] GetTooltipDetailRootNames(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        switch (weaponCategory)
+        {
+            case ItemDatabase.WeaponCategory.OneHanded:
+                return new[] { "单手武器详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
+            case ItemDatabase.WeaponCategory.TwoHanded:
+                return new[] { "双手武器详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
+            case ItemDatabase.WeaponCategory.Bow:
+                return new[] { "弓箭详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
+            default:
+                return new[] { "武器详情", "单_双手武器详情", "单/双手武器详情" };
+        }
+    }
+
+    private void EnsureTooltipRootsFromDatabase(ItemDatabase.WeaponCategory weaponCategory)
     {
         ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
         if (database == null)
@@ -2888,7 +2930,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         runtimeTooltipRootInstance = EnsureTooltipInstance(
             runtimeTooltipRootInstance,
-            database.oneHandedTwoHandedTooltipPrefab,
+            ref runtimeTooltipSourcePrefab,
+            database.GetWeaponTooltipPrefab(weaponCategory),
             parent,
             "物品内容");
         itemTooltipRoot = runtimeTooltipRootInstance != null ? runtimeTooltipRootInstance.transform as RectTransform : null;
@@ -2912,21 +2955,29 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return canvas != null ? canvas.transform : null;
     }
 
-    private static GameObject EnsureTooltipInstance(GameObject currentInstance, GameObject prefab, Transform parent, string runtimeName)
+    private static GameObject EnsureTooltipInstance(GameObject currentInstance, ref GameObject sourcePrefab, GameObject prefab, Transform parent, string runtimeName)
     {
-        if (currentInstance != null)
+        if (currentInstance != null && sourcePrefab == prefab)
         {
             return currentInstance;
         }
 
+        if (currentInstance != null)
+        {
+            Destroy(currentInstance);
+            currentInstance = null;
+        }
+
         if (prefab == null || parent == null)
         {
+            sourcePrefab = prefab;
             return null;
         }
 
         GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
         instance.name = runtimeName;
         instance.SetActive(false);
+        sourcePrefab = prefab;
         return instance;
     }
 
@@ -2938,7 +2989,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry)
     {
-        if (widget == null || widget.root == null || entry == null || itemTooltipRoot == null)
+        if (entry == null)
+        {
+            return;
+        }
+
+        CacheItemTooltip(entry.weaponCategory, false);
+        if (widget == null || widget.root == null || itemTooltipRoot == null)
         {
             return;
         }
@@ -3403,9 +3460,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        bool isWeaponCategory = entry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.Bow;
+        bool isWeaponCategory = entry.weaponCategory != ItemDatabase.WeaponCategory.None;
         if (!isWeaponCategory)
         {
             return false;
@@ -3678,7 +3733,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             case ItemDatabase.WeaponCategory.Bow:
                 return "弓箭";
             default:
-                return string.Empty;
+                return weaponCategory == ItemDatabase.WeaponCategory.None ? string.Empty : weaponCategory.ToString();
         }
     }
 
