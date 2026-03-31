@@ -108,7 +108,7 @@ MonoBehaviour:
       raiseHandStateName: 
       raiseHandYawOffset: 0
       targetSelectionStateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
-      targetSelectionYawOffset: 0
+      targetSelectionYawOffset: 80
       actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
       actionYawOffset: 45
       actionSound: {fileID: 0}

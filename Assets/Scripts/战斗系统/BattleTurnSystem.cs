@@ -5163,16 +5163,16 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        float idleYawOffset = ResolveIdleYawOffset();
+        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(caster.transform.rotation, actionYawOffset);
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
             animator.Play(idleStateName, 0, 0f);
-            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, idleYawOffset, 0f);
+            caster.transform.rotation = postSkillIdleRotation;
         }
         else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
             animator.Play(previousStateHash, 0, 0f);
-            caster.transform.rotation = previousRotation;
+            caster.transform.rotation = postSkillIdleRotation;
         }
 
         caster.SetAnimationPositionCompensation(false);
@@ -5242,16 +5242,16 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        float idleYawOffset = ResolveIdleYawOffset();
+        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(caster.transform.rotation, actionYawOffset);
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
             animator.Play(idleStateName, 0, 0f);
-            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, idleYawOffset, 0f);
+            caster.transform.rotation = postSkillIdleRotation;
         }
         else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
             animator.Play(previousStateHash, 0, 0f);
-            caster.transform.rotation = previousRotation;
+            caster.transform.rotation = postSkillIdleRotation;
         }
 
         caster.SetAnimationPositionCompensation(false);
@@ -5385,6 +5385,12 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return string.Empty;
+    }
+
+    private static Quaternion ResolvePostSkillIdleRotation(Quaternion currentRotation, float actionYawOffset)
+    {
+        float idleYawOffset = ResolveIdleYawOffset();
+        return currentRotation * Quaternion.Euler(0f, idleYawOffset - actionYawOffset, 0f);
     }
 
     private static string ResolveSkillTargetSelectionStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
