@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1135957316842707616
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7776664867666719656}
+  m_Layer: 0
+  m_Name: "\u6B66\u5668\u6302\u8F7D\u70B9\uFF08\u5DE6\uFF09"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7776664867666719656
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1135957316842707616}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0.05, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5637003061890436687}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &8204469773993097860
 GameObject:
   m_ObjectHideFlags: 0
@@ -10,7 +41,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2377165241485595755}
   m_Layer: 0
-  m_Name: "\u6B66\u5668\u6302\u8F7D\u70B9"
+  m_Name: "\u6B66\u5668\u6302\u8F7D\u70B9\uFF08\u53F3\uFF09"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -93,6 +124,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4801265172104333336}
+    - targetCorrespondingSourceObject: {fileID: -2307443142658214589, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
+      insertIndex: 1
+      addedObject: {fileID: 7776664867666719656}
     - targetCorrespondingSourceObject: {fileID: 5208108882989476298, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2377165241485595755}
@@ -101,6 +135,11 @@ PrefabInstance:
 --- !u!4 &1606168482973195495 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
+  m_PrefabInstance: {fileID: 1279295818288265996}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5637003061890436687 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2307443142658214589, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
   m_PrefabInstance: {fileID: 1279295818288265996}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &6450865144528507590 stripped
