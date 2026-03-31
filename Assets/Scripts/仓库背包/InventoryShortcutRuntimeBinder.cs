@@ -134,7 +134,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string BattleBackpackMirrorContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域/格子容器";
     private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
     private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
-    private const string WeaponMountPointName = "武器挂载点";
+    private const string LeftWeaponMountPointName = "武器挂载点（左）";
+    private const string RightWeaponMountPointName = "武器挂载点（右）";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
     private const float DefaultOutlineWidth = 0.025f;
     private const string SlotNameKeyword = "格子";
@@ -2664,16 +2665,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Transform mountPoint = FindChildByName(unit.transform, WeaponMountPointName) ?? FindDescendantByName(unit.transform, WeaponMountPointName);
-        if (mountPoint == null)
+        Transform leftMountPoint = FindWeaponMountPoint(unit.transform, LeftWeaponMountPointName);
+        Transform rightMountPoint = FindWeaponMountPoint(unit.transform, RightWeaponMountPointName);
+        ClearRuntimeWeaponModel(leftMountPoint);
+        ClearRuntimeWeaponModel(rightMountPoint);
+
+        ItemDatabase.ItemEntry weaponEntry = ResolveEquippedWeaponModelEntry(unit.characterId);
+        if (weaponEntry == null || weaponEntry.weaponModelPrefab == null)
         {
             return;
         }
 
-        ClearRuntimeWeaponModel(mountPoint);
-
-        ItemDatabase.ItemEntry weaponEntry = ResolveEquippedWeaponModelEntry(unit.characterId);
-        if (weaponEntry == null || weaponEntry.weaponModelPrefab == null)
+        Transform mountPoint = ResolveWeaponMountPoint(weaponEntry, leftMountPoint, rightMountPoint);
+        if (mountPoint == null)
         {
             return;
         }
@@ -2724,6 +2728,32 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static float DivideScaleAxis(float value, float parentScale)
     {
         return Mathf.Abs(parentScale) <= 0.0001f ? value : value / parentScale;
+    }
+
+    private static Transform FindWeaponMountPoint(Transform root, string mountPointName)
+    {
+        return FindChildByName(root, mountPointName) ?? FindDescendantByName(root, mountPointName);
+    }
+
+    private static Transform ResolveWeaponMountPoint(
+        ItemDatabase.ItemEntry weaponEntry,
+        Transform leftMountPoint,
+        Transform rightMountPoint)
+    {
+        if (weaponEntry == null)
+        {
+            return rightMountPoint != null ? rightMountPoint : leftMountPoint;
+        }
+
+        switch (weaponEntry.weaponCategory)
+        {
+            case ItemDatabase.WeaponCategory.Bow:
+                return leftMountPoint != null ? leftMountPoint : rightMountPoint;
+            case ItemDatabase.WeaponCategory.OneHanded:
+            case ItemDatabase.WeaponCategory.TwoHanded:
+            default:
+                return rightMountPoint != null ? rightMountPoint : leftMountPoint;
+        }
     }
 
     private ItemDatabase.ItemEntry ResolveEquippedWeaponModelEntry(string characterId)

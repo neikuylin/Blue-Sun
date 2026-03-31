@@ -2,10 +2,11 @@ using UnityEngine;
 
 public sealed class BattleWeaponMountStateWatcher : MonoBehaviour
 {
-    private const string WeaponMountPointName = "武器挂载点";
+    private const string LeftWeaponMountPointName = "武器挂载点（左）";
+    private const string RightWeaponMountPointName = "武器挂载点（右）";
 
     private Animator animator;
-    private Transform mountPoint;
+    private readonly System.Collections.Generic.List<Transform> mountPoints = new System.Collections.Generic.List<Transform>();
     private int lastStateHash = int.MinValue;
     private bool lastVisibilityApplied;
     private bool hasAppliedVisibility;
@@ -13,7 +14,7 @@ public sealed class BattleWeaponMountStateWatcher : MonoBehaviour
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>(true);
-        mountPoint = FindChildByName(transform, WeaponMountPointName) ?? FindDescendantByName(transform, WeaponMountPointName);
+        RefreshMountPoints();
     }
 
     private void LateUpdate()
@@ -23,12 +24,12 @@ public sealed class BattleWeaponMountStateWatcher : MonoBehaviour
             animator = GetComponentInChildren<Animator>(true);
         }
 
-        if (mountPoint == null)
+        if (mountPoints.Count == 0)
         {
-            mountPoint = FindChildByName(transform, WeaponMountPointName) ?? FindDescendantByName(transform, WeaponMountPointName);
+            RefreshMountPoints();
         }
 
-        if (animator == null || mountPoint == null || !animator.isActiveAndEnabled)
+        if (animator == null || mountPoints.Count == 0 || !animator.isActiveAndEnabled)
         {
             return;
         }
@@ -41,10 +42,33 @@ public sealed class BattleWeaponMountStateWatcher : MonoBehaviour
         bool shouldShowMountPoint = !shouldHide;
         if (!hasAppliedVisibility || stateHash != lastStateHash || shouldShowMountPoint != lastVisibilityApplied)
         {
-            mountPoint.gameObject.SetActive(shouldShowMountPoint);
+            for (int i = 0; i < mountPoints.Count; i++)
+            {
+                Transform mountPoint = mountPoints[i];
+                if (mountPoint != null)
+                {
+                    mountPoint.gameObject.SetActive(shouldShowMountPoint);
+                }
+            }
+
             lastStateHash = stateHash;
             lastVisibilityApplied = shouldShowMountPoint;
             hasAppliedVisibility = true;
+        }
+    }
+
+    private void RefreshMountPoints()
+    {
+        mountPoints.Clear();
+        AddMountPoint(FindChildByName(transform, LeftWeaponMountPointName) ?? FindDescendantByName(transform, LeftWeaponMountPointName));
+        AddMountPoint(FindChildByName(transform, RightWeaponMountPointName) ?? FindDescendantByName(transform, RightWeaponMountPointName));
+    }
+
+    private void AddMountPoint(Transform mountPoint)
+    {
+        if (mountPoint != null && !mountPoints.Contains(mountPoint))
+        {
+            mountPoints.Add(mountPoint);
         }
     }
 
