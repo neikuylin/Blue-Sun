@@ -46,7 +46,7 @@ MonoBehaviour:
       raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
-      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8"
+      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8\u52A8\u753B"
       actionYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
@@ -70,7 +70,7 @@ MonoBehaviour:
       raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
-      actionStateName: "\u5F13\u7BAD\u79FB\u52A8"
+      actionStateName: "\u5F13\u7BAD\u79FB\u52A8\u52A8\u753B"
       actionYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
@@ -107,7 +107,7 @@ MonoBehaviour:
       weaponCategory: 1
       raiseHandStateName: 
       raiseHandYawOffset: 0
-      targetSelectionStateName: 
+      targetSelectionStateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
       targetSelectionYawOffset: 0
       actionStateName: "\u5355\u624B\u6B66\u5668\u666E\u901A\u653B\u51FB"
       actionYawOffset: 45
@@ -160,7 +160,7 @@ MonoBehaviour:
       raiseHandYawOffset: 0
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
-      actionStateName: "\u56DE\u65CB\u65A9"
+      actionStateName: "\u5355\u624B\u6B66\u5668\u56DE\u65CB\u65A9"
       actionYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
@@ -207,11 +207,11 @@ MonoBehaviour:
     weaponActionOverrides:
     - enabled: 1
       weaponCategory: 3
-      raiseHandStateName: "\u5C04\u51FB\u84C4\u529B"
+      raiseHandStateName: "\u5C04\u51FB\u62AC\u624B"
       raiseHandYawOffset: 75
-      targetSelectionStateName: "\u5C04\u51FB\u84C4\u529B\u5F85\u673A"
+      targetSelectionStateName: "\u5C04\u51FB\u9009\u76EE\u6807"
       targetSelectionYawOffset: 75
-      actionStateName: "\u5C04\u51FB"
+      actionStateName: "\u5C04\u51FB\u52A8\u753B"
       actionYawOffset: 75
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}

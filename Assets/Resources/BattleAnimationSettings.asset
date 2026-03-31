@@ -134,34 +134,34 @@ MonoBehaviour:
   dodgeOverrides:
   - enabled: 1
     weaponCategory: 0
-    stateName: 
+    stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
   - enabled: 1
     weaponCategory: 1
-    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
   - enabled: 1
     weaponCategory: 2
-    stateName: 
+    stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
   - enabled: 1
     weaponCategory: 3
-    stateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
+    stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
-  explorationIdleStateName: "\u975E\u6218\u6597\u5F85\u673A"
+  explorationIdleStateName: "\u63A2\u7D22\u5F85\u673A"
   explorationIdleSound: {fileID: 0}
   explorationIdleSoundPrefab: {fileID: 0}
   explorationIdleCompensateMotion: 0
-  explorationMoveStateName: "\u975E\u6218\u6597\u79FB\u52A8"
+  explorationMoveStateName: "\u63A2\u7D22\u79FB\u52A8"
   explorationMoveSound: {fileID: 0}
   explorationMoveSoundPrefab: {fileID: 2428638727268532093, guid: 16182c7b8dc8b494682f80d220398bd1, type: 3}
   explorationMoveCompensateMotion: 0
-  idleYawOffset: 45
+  idleYawOffset: 0
