@@ -2684,8 +2684,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         GameObject instance = Instantiate(weaponEntry.weaponModelPrefab, mountPoint, false);
         instance.name = RuntimeWeaponModelName;
-        instance.transform.localPosition = Vector3.zero;
-        instance.transform.localRotation = Quaternion.identity;
         ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
         BattleUnitOutlineBuilder.Apply(instance, Color.black, DefaultOutlineWidth);
         unit.RefreshOutlineBindings();
