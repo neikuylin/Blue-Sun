@@ -640,45 +640,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         toSlot = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, toSlot);
         ItemSlotData from = instance.backpackData[fromSlot];
         ItemSlotData to = instance.backpackData[toSlot];
-        if (from.IsEmpty || instance.IsFootprintItem(from) || instance.IsFootprintItem(to) || from.isFootprintExtension || to.isFootprintExtension)
+        if (from.IsEmpty || from.isFootprintExtension || to.isFootprintExtension)
         {
             return false;
         }
 
-        if (!to.IsEmpty && to.itemId == from.itemId)
-        {
-            int cap = Mathf.Max(1, to.maxStack > 0 ? to.maxStack : from.maxStack);
-            int canMove = Mathf.Min(from.count, Mathf.Max(0, cap - to.count));
-            if (canMove > 0)
-            {
-                to.count += canMove;
-                from.count -= canMove;
-                if (from.count <= 0)
-                {
-                    from = default;
-                }
-
-                instance.backpackData[fromSlot] = from;
-                instance.backpackData[toSlot] = to;
-                instance.RefreshBackpackSlot(fromSlot);
-                instance.RefreshBackpackSlot(toSlot);
-                instance.RefreshQuickSlot(fromSlot);
-                instance.RefreshQuickSlot(toSlot);
-                instance.RefreshBattleBackpackSlot(fromSlot);
-                instance.RefreshBattleBackpackSlot(toSlot);
-                return true;
-            }
-        }
-
-        instance.backpackData[fromSlot] = to;
-        instance.backpackData[toSlot] = from;
-        instance.RefreshBackpackSlot(fromSlot);
-        instance.RefreshBackpackSlot(toSlot);
-        instance.RefreshQuickSlot(fromSlot);
-        instance.RefreshQuickSlot(toSlot);
-        instance.RefreshBattleBackpackSlot(fromSlot);
-        instance.RefreshBattleBackpackSlot(toSlot);
-        return true;
+        return instance.TryTransferItem(
+            new SlotRef { kind = SlotKind.Backpack, index = fromSlot },
+            new SlotRef { kind = SlotKind.Backpack, index = toSlot },
+            from);
     }
 
     private void OnEnable()
@@ -1621,18 +1591,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        int rawIndex = index;
         SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty)
         {
             return;
         }
 
-        if (IsFootprintItem(data))
-        {
-            return;
-        }
-
-        SlotWidget widget = ResolveDraggedWidget(source, eventData);
+        SlotWidget widget = rawIndex != source.index
+            ? GetWidget(source)
+            : ResolveDraggedWidget(source, eventData);
         if (widget == null || widget.root == null)
         {
             return;
@@ -1688,15 +1656,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        if (!CanSwapSlots(draggingSource, target))
-        {
-            return;
-        }
-
-        SwapSlotData(draggingSource, target);
-        RefreshByRef(draggingSource);
-        RefreshByRef(target);
-        ItemSoundUtility.PlayForItem(sourceData.itemId);
+        TryTransferItem(draggingSource, target, sourceData);
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
@@ -1801,12 +1761,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         SlotRef target = new SlotRef { kind = targetKind, index = targetIndex };
-        if (targetKind == SlotKind.Backpack || targetKind == SlotKind.Warehouse)
-        {
-            return TryMoveItemToEmptyStorageSlot(source, target, sourceData);
-        }
-
-        return TryExecuteSlotTransfer(source, target, sourceData);
+        return TryTransferItem(source, target, sourceData);
     }
 
     private bool TryAutoEquipFromBackpack(SlotRef source, ItemSlotData sourceData)
@@ -1829,26 +1784,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = targetIndex };
-        if (IsFootprintItem(sourceData))
-        {
-            return TryMoveStorageItemToEquipment(source, target, sourceData);
-        }
-
-        return TryExecuteSlotTransfer(source, target, sourceData);
+        return TryTransferItem(source, target, sourceData);
     }
 
     private bool TryExecuteSlotTransfer(SlotRef source, SlotRef target, ItemSlotData sourceData)
     {
-        if (!CanSwapSlots(source, target))
-        {
-            return false;
-        }
-
-        SwapSlotData(source, target);
-        RefreshByRef(source);
-        RefreshByRef(target);
-        ItemSoundUtility.PlayForItem(sourceData.itemId);
-        return true;
+        return TryTransferItem(source, target, sourceData);
     }
 
     private int FindFirstEmptySlotIndex(SlotKind kind)
@@ -2317,6 +2258,206 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         SlotRef resolved = ResolvePrimarySlotRef(slot);
         return TryGetSlotData(resolved, out ItemSlotData data) ? data : default;
+    }
+
+    private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
+    {
+        source = ResolvePrimarySlotRef(source);
+        target = ResolvePrimarySlotRef(target);
+        sourceData = GetResolvedSlotData(source);
+        if (sourceData.IsEmpty)
+        {
+            return false;
+        }
+
+        if (source.kind == target.kind && source.index == target.index)
+        {
+            return false;
+        }
+
+        if (!TryGetSlotData(target, out ItemSlotData targetData))
+        {
+            return false;
+        }
+
+        if (targetData.isFootprintExtension)
+        {
+            return false;
+        }
+
+        if (TryMergeStorageStack(source, target, sourceData, targetData))
+        {
+            return true;
+        }
+
+        if (!CanSwapPlacements(source, sourceData, target, targetData))
+        {
+            return false;
+        }
+
+        ClearPlacement(source, sourceData);
+        ClearPlacement(target, targetData);
+        PlaceDataAt(target, sourceData);
+        PlaceDataAt(source, targetData);
+        RefreshAll();
+        ItemSoundUtility.PlayForItem(sourceData.itemId);
+        return true;
+    }
+
+    private bool TryMergeStorageStack(SlotRef source, SlotRef target, ItemSlotData sourceData, ItemSlotData targetData)
+    {
+        if (source.kind == SlotKind.Equipment || target.kind == SlotKind.Equipment)
+        {
+            return false;
+        }
+
+        if (sourceData.IsEmpty || targetData.IsEmpty || sourceData.itemId != targetData.itemId)
+        {
+            return false;
+        }
+
+        if (IsFootprintItem(sourceData) || IsFootprintItem(targetData))
+        {
+            return false;
+        }
+
+        int cap = Mathf.Max(1, targetData.maxStack > 0 ? targetData.maxStack : sourceData.maxStack);
+        int canMove = Mathf.Min(sourceData.count, Mathf.Max(0, cap - targetData.count));
+        if (canMove <= 0)
+        {
+            return false;
+        }
+
+        targetData.count += canMove;
+        sourceData.count -= canMove;
+        SetSlotData(target, targetData);
+        SetSlotData(source, sourceData.count > 0 ? sourceData : default);
+        RefreshAll();
+        ItemSoundUtility.PlayForItem(targetData.itemId);
+        return true;
+    }
+
+    private bool CanSwapPlacements(SlotRef source, ItemSlotData sourceData, SlotRef target, ItemSlotData targetData)
+    {
+        List<ItemSlotData> sourceActual = GetDataList(source.kind);
+        List<ItemSlotData> sourceSim = CloneItemSlotDataList(sourceActual);
+        List<ItemSlotData> targetSim = source.kind == target.kind
+            ? sourceSim
+            : CloneItemSlotDataList(GetDataList(target.kind));
+
+        ClearPlacement(source.kind, source.index, sourceData, sourceSim);
+        ClearPlacement(target.kind, target.index, targetData, targetSim);
+
+        if (!CanPlaceDataAt(target.kind, target.index, sourceData, targetSim))
+        {
+            return false;
+        }
+
+        if (targetData.IsEmpty)
+        {
+            return true;
+        }
+
+        return CanPlaceDataAt(source.kind, source.index, targetData, sourceSim);
+    }
+
+    private bool CanPlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
+    {
+        if (data.IsEmpty)
+        {
+            return true;
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            if (index < 0 || index >= equipmentSlots.Count)
+            {
+                return false;
+            }
+
+            SlotWidget widget = equipmentSlots[index];
+            if (widget == null)
+            {
+                return false;
+            }
+
+            ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+            if (entry == null || !IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
+            {
+                return false;
+            }
+
+            return CanUseEquipmentSlotIndex(index, widget.equipmentSlotType, requireEmpty: false, entry, list);
+        }
+
+        return CanPlaceItemAtIndex(kind, index, ResolveItemEntry(data.itemId), list);
+    }
+
+    private void PlaceDataAt(SlotRef target, ItemSlotData data)
+    {
+        if (data.IsEmpty)
+        {
+            SetSlotData(target, default);
+            return;
+        }
+
+        if (target.kind == SlotKind.Equipment)
+        {
+            SetFootprintDataAt(target.kind, target.index, data);
+            return;
+        }
+
+        SetFootprintDataAt(target.kind, target.index, data);
+    }
+
+    private void ClearPlacement(SlotRef slot, ItemSlotData data)
+    {
+        if (data.IsEmpty)
+        {
+            return;
+        }
+
+        ClearPlacement(slot.kind, slot.index, data, GetDataList(slot.kind));
+        if (slot.kind == SlotKind.Equipment)
+        {
+            RebuildEquipmentFootprintOccupancy(GetDataList(slot.kind));
+        }
+    }
+
+    private void ClearPlacement(SlotKind kind, int primaryIndex, ItemSlotData data, List<ItemSlotData> list)
+    {
+        if (data.IsEmpty || list == null || primaryIndex < 0 || primaryIndex >= list.Count)
+        {
+            return;
+        }
+
+        list[primaryIndex] = default;
+        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
+        if (extensionIndex >= 0 && extensionIndex < list.Count)
+        {
+            list[extensionIndex] = default;
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            RebuildEquipmentFootprintOccupancy(list);
+        }
+    }
+
+    private int GetExtensionIndexForData(SlotKind kind, int primaryIndex, ItemSlotData data)
+    {
+        if (data.IsEmpty)
+        {
+            return -1;
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            return IsFootprintItem(data) ? GetOffHandEquipmentSlotIndex() : -1;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex) : -1;
     }
 
     private SlotRef ResolvePrimarySlotRef(SlotRef slot)
