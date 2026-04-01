@@ -197,6 +197,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty targetSelectionYawOffsetProperty = entry.FindPropertyRelative("targetSelectionYawOffset");
         SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
+        SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
@@ -246,6 +247,11 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionYawOffsetProperty != null)
             {
                 actionYawOffsetProperty.floatValue = EditorGUILayout.FloatField("角度修正", actionYawOffsetProperty.floatValue);
+            }
+
+            if (postUseYawOffsetProperty != null)
+            {
+                postUseYawOffsetProperty.floatValue = EditorGUILayout.FloatField("释放后朝向偏移", postUseYawOffsetProperty.floatValue);
             }
 
             if (actionSoundProperty != null)
@@ -354,6 +360,12 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (actionYawOffsetProperty != null)
         {
             actionYawOffsetProperty.floatValue = 0f;
+        }
+
+        SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
+        if (postUseYawOffsetProperty != null)
+        {
+            postUseYawOffsetProperty.floatValue = 0f;
         }
 
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
@@ -493,6 +505,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         public float targetSelectionYawOffset;
         public string actionStateName;
         public float actionYawOffset;
+        public float postUseYawOffset;
         public UnityEngine.Object actionSound;
         public UnityEngine.Object actionSoundPrefab;
         public int soundDelayFrame;
@@ -547,6 +560,12 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (actionYawOffsetProperty != null)
         {
             snapshot.actionYawOffset = actionYawOffsetProperty.floatValue;
+        }
+
+        SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
+        if (postUseYawOffsetProperty != null)
+        {
+            snapshot.postUseYawOffset = postUseYawOffsetProperty.floatValue;
         }
 
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
@@ -623,6 +642,12 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (actionYawOffsetProperty != null)
         {
             actionYawOffsetProperty.floatValue = snapshot.actionYawOffset;
+        }
+
+        SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
+        if (postUseYawOffsetProperty != null)
+        {
+            postUseYawOffsetProperty.floatValue = snapshot.postUseYawOffset;
         }
 
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");

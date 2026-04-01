@@ -5202,7 +5202,10 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(caster.transform.rotation, actionYawOffset);
+        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(
+            caster.transform.rotation,
+            actionYawOffset,
+            ResolveSkillPostUseYawOffset(skill, caster));
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
             animator.Play(idleStateName, 0, 0f);
@@ -5281,7 +5284,10 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(caster.transform.rotation, actionYawOffset);
+        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(
+            caster.transform.rotation,
+            actionYawOffset,
+            ResolveSkillPostUseYawOffset(skill, caster));
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
             animator.Play(idleStateName, 0, 0f);
@@ -5426,10 +5432,13 @@ public class BattleTurnSystem : MonoBehaviour
         return string.Empty;
     }
 
-    private static Quaternion ResolvePostSkillIdleRotation(Quaternion currentRotation, float actionYawOffset)
+    private static Quaternion ResolvePostSkillIdleRotation(
+        Quaternion currentRotation,
+        float actionYawOffset,
+        float postUseYawOffset)
     {
         float idleYawOffset = ResolveIdleYawOffset();
-        return currentRotation * Quaternion.Euler(0f, idleYawOffset - actionYawOffset, 0f);
+        return currentRotation * Quaternion.Euler(0f, idleYawOffset - actionYawOffset + postUseYawOffset, 0f);
     }
 
     private static string ResolveSkillTargetSelectionStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
@@ -5482,6 +5491,17 @@ public class BattleTurnSystem : MonoBehaviour
         if (overrideEntry != null)
         {
             return overrideEntry.actionYawOffset;
+        }
+
+        return 0f;
+    }
+
+    private static float ResolveSkillPostUseYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    {
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
+        if (overrideEntry != null)
+        {
+            return overrideEntry.postUseYawOffset;
         }
 
         return 0f;

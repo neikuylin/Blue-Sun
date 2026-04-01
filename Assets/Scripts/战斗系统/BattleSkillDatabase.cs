@@ -55,6 +55,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
             public float targetSelectionYawOffset;
             public string actionStateName = string.Empty;
             public float actionYawOffset;
+            public float postUseYawOffset;
             public AudioClip actionSound;
             public GameObject actionSoundPrefab;
             public int soundDelayFrame;
