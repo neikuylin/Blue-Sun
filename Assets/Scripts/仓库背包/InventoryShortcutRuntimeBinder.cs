@@ -3895,12 +3895,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             instanceRect.localScale = sourceRect.localScale;
             instanceRect.offsetMin = sourceRect.offsetMin;
             instanceRect.offsetMax = sourceRect.offsetMax;
+            AlignRuntimeVisualToTop(instanceRect);
         }
         else if (instanceRect != null)
         {
-            instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
-            instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
-            instanceRect.pivot = new Vector2(0.5f, 0.5f);
+            instanceRect.anchorMin = new Vector2(0.5f, 1f);
+            instanceRect.anchorMax = new Vector2(0.5f, 1f);
+            instanceRect.pivot = new Vector2(0.5f, 1f);
             instanceRect.anchoredPosition3D = Vector3.zero;
             instanceRect.localRotation = Quaternion.identity;
             instanceRect.localScale = Vector3.one;
@@ -3922,9 +3923,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RectTransform instanceRect = instance.transform as RectTransform;
         if (instanceRect != null)
         {
-            instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
-            instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
-            instanceRect.pivot = new Vector2(0.5f, 0.5f);
+            instanceRect.anchorMin = new Vector2(0.5f, 1f);
+            instanceRect.anchorMax = new Vector2(0.5f, 1f);
+            instanceRect.pivot = new Vector2(0.5f, 1f);
             instanceRect.anchoredPosition3D = Vector3.zero;
             instanceRect.localRotation = Quaternion.identity;
             instanceRect.localScale = Vector3.one;
@@ -3979,6 +3980,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         qualityBackgroundPrefabCache[BuildQualityBackgroundCacheKey(quality, useOneByTwo)] = prefab;
+    }
+
+    private static void AlignRuntimeVisualToTop(RectTransform rectTransform)
+    {
+        if (rectTransform == null)
+        {
+            return;
+        }
+
+        Vector2 anchoredPosition = rectTransform.anchoredPosition;
+        rectTransform.anchorMin = new Vector2(rectTransform.anchorMin.x, 1f);
+        rectTransform.anchorMax = new Vector2(rectTransform.anchorMax.x, 1f);
+        rectTransform.pivot = new Vector2(rectTransform.pivot.x, 1f);
+        rectTransform.anchoredPosition = new Vector2(anchoredPosition.x, 0f);
     }
 
     private static bool ShouldUseOneByTwoQualityBackground(ItemDatabase.ItemEntry entry)
