@@ -2413,18 +2413,56 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        if (displacedItems.Count != 1)
+        List<int> sourceCells = GetFootprintCellIndices(source.kind, source.index, sourceData);
+        if (sourceCells.Count == 0)
         {
             return false;
         }
 
-        if (!CanPlaceDataAt(source.kind, source.index, displacedItems[0], sourceSim))
+        List<SlotRef> workingPlacements = new List<SlotRef>(displacedItems.Count);
+        if (!TryResolveDisplacedPlacementsRecursive(source.kind, displacedItems, 0, sourceCells, sourceSim, workingPlacements))
         {
             return false;
         }
 
-        displacedPlacements.Add(source);
+        displacedPlacements.AddRange(workingPlacements);
         return true;
+    }
+
+    private bool TryResolveDisplacedPlacementsRecursive(
+        SlotKind kind,
+        List<ItemSlotData> displacedItems,
+        int itemIndex,
+        List<int> candidateCells,
+        List<ItemSlotData> workingData,
+        List<SlotRef> resolvedPlacements)
+    {
+        if (itemIndex >= displacedItems.Count)
+        {
+            return true;
+        }
+
+        ItemSlotData item = displacedItems[itemIndex];
+        for (int i = 0; i < candidateCells.Count; i++)
+        {
+            int candidateIndex = candidateCells[i];
+            if (!CanPlaceDataAt(kind, candidateIndex, item, workingData))
+            {
+                continue;
+            }
+
+            List<ItemSlotData> nextData = CloneItemSlotDataList(workingData);
+            PlaceDataAt(kind, candidateIndex, item, nextData);
+            resolvedPlacements.Add(new SlotRef { kind = kind, index = candidateIndex });
+            if (TryResolveDisplacedPlacementsRecursive(kind, displacedItems, itemIndex + 1, candidateCells, nextData, resolvedPlacements))
+            {
+                return true;
+            }
+
+            resolvedPlacements.RemoveAt(resolvedPlacements.Count - 1);
+        }
+
+        return false;
     }
 
     private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
