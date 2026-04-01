@@ -453,7 +453,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         maxStack = ResolveMaxStack(itemId, maxStack);
         int remain = count;
 
-        for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
+        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0; i--)
         {
             ItemSlotData slot = instance.backpackData[i];
             if (slot.IsEmpty || slot.itemId != itemId)
@@ -478,7 +478,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             instance.RefreshBattleBackpackSlot(i);
         }
 
-        for (int i = 0; i < instance.backpackData.Count && remain > 0; i++)
+        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0; i--)
         {
             if (!instance.backpackData[i].IsEmpty)
             {
@@ -1816,7 +1816,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int FindFirstEmptySlotIndex(SlotKind kind)
     {
         List<ItemSlotData> dataList = GetDataList(kind);
-        for (int i = 0; i < dataList.Count; i++)
+        for (int i = dataList.Count - 1; i >= 0; i--)
         {
             if (dataList[i].IsEmpty)
             {

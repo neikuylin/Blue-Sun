@@ -19557,8 +19557,8 @@ RectTransform:
   - {fileID: 1823790703}
   - {fileID: 370500687}
   - {fileID: 1406225691}
-  - {fileID: 1205014605}
   - {fileID: 1673736986}
+  - {fileID: 1205014605}
   m_Father: {fileID: 1226700822}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
