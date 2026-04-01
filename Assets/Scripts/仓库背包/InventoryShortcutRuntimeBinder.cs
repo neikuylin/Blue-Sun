@@ -414,10 +414,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         equipment[index] = NormalizeItemSlotData(data);
+        instance.RebuildEquipmentFootprintOccupancy(equipment);
         instance.MarkEquipmentSkillsDirty();
         if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
         {
-            instance.RefreshEquipmentSlot(index);
+            instance.RefreshEquipmentSlots();
         }
 
         instance.RefreshRuntimeWeaponModelForCharacter(characterId);
@@ -1889,13 +1890,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ? ItemDatabase.EquipmentSlotType.MainHand
             : entry.equipmentSlot;
 
-        int emptySlotIndex = FindEquipmentSlotIndex(desiredSlotType, requireEmpty: true);
+        int emptySlotIndex = FindEquipmentSlotIndex(desiredSlotType, requireEmpty: true, entry);
         return emptySlotIndex >= 0
             ? emptySlotIndex
-            : FindEquipmentSlotIndex(desiredSlotType, requireEmpty: false);
+            : FindEquipmentSlotIndex(desiredSlotType, requireEmpty: false, entry);
     }
 
-    private int FindEquipmentSlotIndex(ItemDatabase.EquipmentSlotType slotType, bool requireEmpty)
+    private int FindEquipmentSlotIndex(ItemDatabase.EquipmentSlotType slotType, bool requireEmpty, ItemDatabase.ItemEntry entry = null)
     {
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
         if (equipmentData == null)
@@ -1911,7 +1912,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            if (requireEmpty && i < equipmentData.Count && !equipmentData[i].IsEmpty)
+            if (!CanUseEquipmentSlotIndex(i, slotType, requireEmpty, entry, equipmentData))
             {
                 continue;
             }
@@ -2092,6 +2093,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         list[slot.index] = NormalizeItemSlotData(data);
         if (slot.kind == SlotKind.Equipment)
         {
+            RebuildEquipmentFootprintOccupancy(list);
             MarkEquipmentSkillsDirty();
         }
     }
@@ -2153,7 +2155,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        return IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType);
+        if (!IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
+        {
+            return false;
+        }
+
+        int targetIndex = ResolvePrimarySlotIndex(SlotKind.Equipment, target.index);
+        return CanUseEquipmentSlotIndex(targetIndex, widget.equipmentSlotType, requireEmpty: false, entry, GetCurrentEquipmentData(true));
     }
 
     private static bool IsEquipmentSlotCompatible(
@@ -2396,6 +2404,134 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
+    private bool CanUseEquipmentSlotIndex(int index, ItemDatabase.EquipmentSlotType slotType, bool requireEmpty, ItemDatabase.ItemEntry entry, List<ItemSlotData> equipmentData)
+    {
+        if (equipmentData == null || index < 0 || index >= equipmentData.Count)
+        {
+            return false;
+        }
+
+        ItemSlotData targetData = equipmentData[index];
+        if (targetData.isFootprintExtension)
+        {
+            return false;
+        }
+
+        if (requireEmpty && !targetData.IsEmpty)
+        {
+            return false;
+        }
+
+        if (!IsOneByTwoItem(entry))
+        {
+            return true;
+        }
+
+        if (slotType != ItemDatabase.EquipmentSlotType.MainHand &&
+            slotType != ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            return false;
+        }
+
+        int offHandIndex = GetOffHandEquipmentSlotIndex();
+        if (offHandIndex < 0 || offHandIndex >= equipmentData.Count)
+        {
+            return false;
+        }
+
+        if (offHandIndex == index)
+        {
+            return false;
+        }
+
+        ItemSlotData offHandData = equipmentData[offHandIndex];
+        return offHandData.IsEmpty || (offHandData.isFootprintExtension && offHandData.primarySlotIndex == index);
+    }
+
+    private void RebuildEquipmentFootprintOccupancy(List<ItemSlotData> equipmentData)
+    {
+        if (equipmentData == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < equipmentData.Count; i++)
+        {
+            if (!equipmentData[i].isFootprintExtension)
+            {
+                continue;
+            }
+
+            equipmentData[i] = default;
+        }
+
+        int offHandIndex = GetOffHandEquipmentSlotIndex();
+        if (offHandIndex < 0 || offHandIndex >= equipmentData.Count)
+        {
+            return;
+        }
+
+        for (int i = 0; i < equipmentData.Count; i++)
+        {
+            ItemSlotData data = equipmentData[i];
+            if (data.isFootprintExtension || string.IsNullOrWhiteSpace(data.itemId))
+            {
+                continue;
+            }
+
+            if (!ShouldOccupyOffHandSlot(i, data))
+            {
+                continue;
+            }
+
+            ItemSlotData offHandData = equipmentData[offHandIndex];
+            if (!offHandData.IsEmpty && !(offHandData.isFootprintExtension && offHandData.primarySlotIndex == i))
+            {
+                return;
+            }
+
+            equipmentData[offHandIndex] = NormalizeItemSlotData(new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = i
+            });
+            return;
+        }
+    }
+
+    private bool ShouldOccupyOffHandSlot(int primaryIndex, ItemSlotData data)
+    {
+        if (!IsFootprintItem(data))
+        {
+            return false;
+        }
+
+        if (primaryIndex < 0 || primaryIndex >= equipmentSlots.Count)
+        {
+            return false;
+        }
+
+        ItemDatabase.EquipmentSlotType slotType = equipmentSlots[primaryIndex] != null
+            ? equipmentSlots[primaryIndex].equipmentSlotType
+            : ItemDatabase.EquipmentSlotType.None;
+        return slotType == ItemDatabase.EquipmentSlotType.MainHand ||
+            slotType == ItemDatabase.EquipmentSlotType.MainOrOffHand;
+    }
+
+    private int GetOffHandEquipmentSlotIndex()
+    {
+        for (int i = 0; i < equipmentSlots.Count; i++)
+        {
+            SlotWidget widget = equipmentSlots[i];
+            if (widget != null && widget.equipmentSlotType == ItemDatabase.EquipmentSlotType.OffHand)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
     {
         dataList = dataList ?? GetDataList(kind);
@@ -2485,6 +2621,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex)
     {
+        if (kind == SlotKind.Equipment)
+        {
+            return GetOffHandEquipmentSlotIndex();
+        }
+
         int columnCount = GetGridColumnCount(kind);
         if (columnCount <= 0)
         {
@@ -2870,7 +3011,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        RefreshEquipmentSlot(slot.index);
+        RefreshEquipmentSlots();
     }
 
     private void RefreshAll()
