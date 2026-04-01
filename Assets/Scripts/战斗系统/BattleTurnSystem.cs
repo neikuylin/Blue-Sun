@@ -139,6 +139,9 @@ public class BattleTurnSystem : MonoBehaviour
     private float currentSkillTargetingYawOffset;
     private bool skillTargetSelectionReady;
     private Coroutine skillTargetingIntroRoutine;
+    private BattleUnit skillModeRotationAnchorUnit;
+    private Quaternion skillModeRotationAnchorRotation = Quaternion.identity;
+    private bool hasSkillModeRotationAnchor;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
@@ -2659,12 +2662,14 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        bool wasSkillModeActive = IsSkillModeActive();
         if (string.Equals(activeSkillId, skillId, System.StringComparison.Ordinal))
         {
             ClearActiveSkillMode();
         }
         else
         {
+            CacheSkillModeRotationAnchor(activeUnit, wasSkillModeActive);
             activeSkillId = skillId;
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
@@ -3223,6 +3228,12 @@ public class BattleTurnSystem : MonoBehaviour
     private void ClearActiveSkillMode()
     {
         BattleUnit unit = activeUnit;
+        bool shouldRestoreRotation =
+            hasSkillModeRotationAnchor &&
+            skillModeRotationAnchorUnit != null &&
+            !IsExplorationMode &&
+            !isResolvingSkillExecution;
+
         activeSkillId = string.Empty;
         activeSkill = null;
         currentSkillTargetingStateName = string.Empty;
@@ -3240,6 +3251,15 @@ public class BattleTurnSystem : MonoBehaviour
             skillTargetingIntroRoutine = null;
         }
 
+        if (shouldRestoreRotation &&
+            skillModeRotationAnchorUnit.IsAlive &&
+            !skillModeRotationAnchorUnit.IsMoving)
+        {
+            skillModeRotationAnchorUnit.transform.rotation = skillModeRotationAnchorRotation;
+        }
+
+        ClearSkillModeRotationAnchor();
+
         if (IsExplorationMode || unit == null || !unit.IsAlive || unit.IsMoving || isResolvingSkillExecution)
         {
             return;
@@ -3250,6 +3270,25 @@ public class BattleTurnSystem : MonoBehaviour
         {
             unit.PlayAnimationState(idleStateName);
         }
+    }
+
+    private void CacheSkillModeRotationAnchor(BattleUnit unit, bool wasSkillModeActive)
+    {
+        if (wasSkillModeActive || unit == null)
+        {
+            return;
+        }
+
+        skillModeRotationAnchorUnit = unit;
+        skillModeRotationAnchorRotation = unit.transform.rotation;
+        hasSkillModeRotationAnchor = true;
+    }
+
+    private void ClearSkillModeRotationAnchor()
+    {
+        skillModeRotationAnchorUnit = null;
+        skillModeRotationAnchorRotation = Quaternion.identity;
+        hasSkillModeRotationAnchor = false;
     }
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
