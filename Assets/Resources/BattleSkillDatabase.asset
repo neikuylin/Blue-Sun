@@ -225,3 +225,30 @@ MonoBehaviour:
       actionSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
       compensateActionMotion: 0
+  - skillId: "\u706B\u7403"
+    description: 
+    actionStateName: 
+    actionYawOffset: 0
+    actionSound: {fileID: 0}
+    actionSoundPrefab: {fileID: 0}
+    soundDelayFrame: 0
+    enableHitFeel: 0
+    compensateActionMotion: 0
+    resolveFrame: 0
+    group: 2
+    skillType: 0
+    castTarget: 1
+    icon: {fileID: 914947735, guid: 42771b41a34cc50438ae750d1c7bf85b, type: 3}
+    damageMultiplier: 1
+    actionPointCost: 2
+    manaCost: 1
+    cooldownTurns: 0
+    useMoveDistanceAsRange: 0
+    range: 8
+    areaCastType: 0
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
+    effectSize: {x: 1, y: 1}
+    requiredWeaponCategories: 
+    weaponActionOverrides: []
