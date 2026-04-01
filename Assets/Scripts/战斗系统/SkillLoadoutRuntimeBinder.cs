@@ -144,7 +144,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        string targetCharacterId = ResolveDisplayedCharacterId();
+        string targetCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
@@ -171,9 +171,21 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
-        currentCharacterId = ResolveDisplayedCharacterId();
+        currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         RefreshAll();
+    }
+
+    public static void ForceRefresh()
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.currentCharacterId = instance.ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        instance.lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        instance.RefreshAll();
     }
 
     private void RefreshAll()
@@ -1045,17 +1057,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
-    }
-
-    private string ResolveDisplayedCharacterId()
-    {
-        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
-        {
-            return ResolveCharacterId(equipmentCharacterId);
-        }
-
-        return ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
     }
 
     private static int ResolveVisibleSkillMemorySlotCount(string characterId)

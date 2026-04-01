@@ -3253,6 +3253,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        SkillLoadoutRuntimeBinder.ForceRefresh();
     }
 
     private void RefreshAllRuntimeWeaponModelsInternal()
