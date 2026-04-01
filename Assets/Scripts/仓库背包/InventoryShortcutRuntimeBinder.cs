@@ -2281,33 +2281,40 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        SlotRef displacedTarget = ResolvePrimarySlotRef(target);
-        ItemSlotData targetData = displacedTarget.index == target.index
-            ? targetRawData
-            : GetResolvedSlotData(displacedTarget);
         SlotRef placementTarget = ShouldUseRawTargetSlotForDrop(sourceData, targetRawData)
             ? target
-            : displacedTarget;
+            : ResolvePrimarySlotRef(target);
+        List<SlotRef> displacedTargets = CollectDisplacedTargetsForPlacement(source, placementTarget, sourceData);
+        List<ItemSlotData> displacedItems = GetResolvedSlotDataList(displacedTargets);
+        List<SlotRef> displacedPlacements = new List<SlotRef>();
 
         if (placementTarget.kind == source.kind && placementTarget.index == source.index)
         {
             return false;
         }
 
-        if (TryMergeStorageStack(source, placementTarget, sourceData, targetData))
+        if (displacedTargets.Count == 1 && TryMergeStorageStack(source, placementTarget, sourceData, displacedItems[0]))
         {
             return true;
         }
 
-        if (!CanSwapPlacements(source, sourceData, placementTarget, displacedTarget, targetData))
+        if (!CanSwapPlacements(source, sourceData, placementTarget, displacedTargets, displacedItems, displacedPlacements))
         {
             return false;
         }
 
         ClearPlacement(source, sourceData);
-        ClearPlacement(displacedTarget, targetData);
+        for (int i = 0; i < displacedTargets.Count; i++)
+        {
+            ClearPlacement(displacedTargets[i], displacedItems[i]);
+        }
+
         PlaceDataAt(placementTarget, sourceData);
-        PlaceDataAt(source, targetData);
+        for (int i = 0; i < displacedItems.Count; i++)
+        {
+            PlaceDataAt(displacedPlacements[i], displacedItems[i]);
+        }
+
         RefreshAll();
         ItemSoundUtility.PlayForItem(sourceData.itemId);
         return true;
@@ -2346,7 +2353,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
-    private bool CanSwapPlacements(SlotRef source, ItemSlotData sourceData, SlotRef placementTarget, SlotRef displacedTarget, ItemSlotData targetData)
+    private bool CanSwapPlacements(
+        SlotRef source,
+        ItemSlotData sourceData,
+        SlotRef placementTarget,
+        List<SlotRef> displacedTargets,
+        List<ItemSlotData> displacedItems,
+        List<SlotRef> displacedPlacements)
     {
         List<ItemSlotData> sourceActual = GetDataList(source.kind);
         List<ItemSlotData> sourceSim = CloneItemSlotDataList(sourceActual);
@@ -2355,24 +2368,156 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             : CloneItemSlotDataList(GetDataList(placementTarget.kind));
 
         ClearPlacement(source.kind, source.index, sourceData, sourceSim);
-        ClearPlacement(displacedTarget.kind, displacedTarget.index, targetData, targetSim);
+        for (int i = 0; i < displacedTargets.Count; i++)
+        {
+            ClearPlacement(displacedTargets[i].kind, displacedTargets[i].index, displacedItems[i], targetSim);
+        }
 
         if (!CanPlaceDataAt(placementTarget.kind, placementTarget.index, sourceData, targetSim))
         {
             return false;
         }
 
-        if (targetData.IsEmpty)
-        {
-            return true;
-        }
-
-        return CanPlaceDataAt(source.kind, source.index, targetData, sourceSim);
+        displacedPlacements.Clear();
+        return TryResolveDisplacedPlacements(source, sourceData, displacedItems, sourceSim, displacedPlacements);
     }
 
     private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
     {
         return !IsFootprintItem(sourceData) && targetRawData.isFootprintExtension;
+    }
+
+    private List<ItemSlotData> GetResolvedSlotDataList(List<SlotRef> slots)
+    {
+        List<ItemSlotData> result = new List<ItemSlotData>(slots != null ? slots.Count : 0);
+        if (slots == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            result.Add(GetResolvedSlotData(slots[i]));
+        }
+
+        return result;
+    }
+
+    private bool TryResolveDisplacedPlacements(
+        SlotRef source,
+        ItemSlotData sourceData,
+        List<ItemSlotData> displacedItems,
+        List<ItemSlotData> sourceSim,
+        List<SlotRef> resolvedTargets)
+    {
+        resolvedTargets.Clear();
+        if (displacedItems == null || displacedItems.Count == 0)
+        {
+            return true;
+        }
+
+        List<int> sourceCells = GetFootprintCellIndices(source.kind, source.index, sourceData);
+        if (sourceCells.Count == 0)
+        {
+            return false;
+        }
+
+        List<SlotRef> workingTargets = new List<SlotRef>(displacedItems.Count);
+        bool ok = TryResolveDisplacedPlacementsRecursive(
+            source.kind,
+            displacedItems,
+            0,
+            sourceCells,
+            sourceSim,
+            workingTargets);
+        if (!ok)
+        {
+            return false;
+        }
+
+        resolvedTargets.AddRange(workingTargets);
+        return true;
+    }
+
+    private bool TryResolveDisplacedPlacementsRecursive(
+        SlotKind targetKind,
+        List<ItemSlotData> displacedItems,
+        int itemIndex,
+        List<int> candidateCells,
+        List<ItemSlotData> targetSim,
+        List<SlotRef> resolvedTargets)
+    {
+        if (itemIndex >= displacedItems.Count)
+        {
+            return true;
+        }
+
+        ItemSlotData item = displacedItems[itemIndex];
+        for (int i = 0; i < candidateCells.Count; i++)
+        {
+            int candidateIndex = candidateCells[i];
+            if (!CanPlaceDataAt(targetKind, candidateIndex, item, targetSim))
+            {
+                continue;
+            }
+
+            List<ItemSlotData> nextSim = CloneItemSlotDataList(targetSim);
+            PlaceDataAt(targetKind, candidateIndex, item, nextSim);
+            resolvedTargets.Add(new SlotRef { kind = targetKind, index = candidateIndex });
+            if (TryResolveDisplacedPlacementsRecursive(targetKind, displacedItems, itemIndex + 1, candidateCells, nextSim, resolvedTargets))
+            {
+                return true;
+            }
+
+            resolvedTargets.RemoveAt(resolvedTargets.Count - 1);
+        }
+
+        return false;
+    }
+
+    private List<SlotRef> CollectDisplacedTargetsForPlacement(SlotRef source, SlotRef placementTarget, ItemSlotData sourceData)
+    {
+        List<SlotRef> result = new List<SlotRef>();
+        List<ItemSlotData> list = GetDataList(placementTarget.kind);
+        TryAddDisplacedTarget(result, source, placementTarget.kind, placementTarget.index, list);
+
+        int extensionIndex = GetExtensionIndexForData(placementTarget.kind, placementTarget.index, sourceData);
+        if (extensionIndex >= 0)
+        {
+            TryAddDisplacedTarget(result, source, placementTarget.kind, extensionIndex, list);
+        }
+
+        return result;
+    }
+
+    private void TryAddDisplacedTarget(List<SlotRef> targets, SlotRef source, SlotKind kind, int index, List<ItemSlotData> list)
+    {
+        if (targets == null || list == null || index < 0 || index >= list.Count)
+        {
+            return;
+        }
+
+        ItemSlotData data = list[index];
+        if (data.IsEmpty)
+        {
+            return;
+        }
+
+        SlotRef resolved = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
+        if (resolved.kind == source.kind && resolved.index == source.index)
+        {
+            return;
+        }
+
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (targets[i].kind == resolved.kind && targets[i].index == resolved.index)
+            {
+                return;
+            }
+        }
+
+        targets.Add(resolved);
     }
 
     private bool CanPlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
@@ -2424,6 +2569,42 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetFootprintDataAt(target.kind, target.index, data);
     }
 
+    private void PlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
+    {
+        if (list == null || index < 0 || index >= list.Count)
+        {
+            return;
+        }
+
+        if (data.IsEmpty)
+        {
+            list[index] = default;
+            if (kind == SlotKind.Equipment)
+            {
+                RebuildEquipmentFootprintOccupancy(list);
+            }
+
+            return;
+        }
+
+        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        list[index] = normalizedPrimary;
+        int extensionIndex = GetExtensionIndexForData(kind, index, normalizedPrimary);
+        if (extensionIndex >= 0 && extensionIndex < list.Count)
+        {
+            list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = index
+            });
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            RebuildEquipmentFootprintOccupancy(list);
+        }
+    }
+
     private void ClearPlacement(SlotRef slot, ItemSlotData data)
     {
         if (data.IsEmpty)
@@ -2472,6 +2653,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
         return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex) : -1;
+    }
+
+    private List<int> GetFootprintCellIndices(SlotKind kind, int primaryIndex, ItemSlotData data)
+    {
+        List<int> result = new List<int>();
+        if (data.IsEmpty)
+        {
+            return result;
+        }
+
+        result.Add(primaryIndex);
+        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
+        if (extensionIndex >= 0)
+        {
+            result.Add(extensionIndex);
+        }
+
+        return result;
     }
 
     private SlotRef ResolvePrimarySlotRef(SlotRef slot)
