@@ -25,8 +25,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Sprite icon;
         public int count;
         public int maxStack;
+        public bool isFootprintExtension;
+        public int primarySlotIndex;
 
-        public bool IsEmpty => icon == null && string.IsNullOrEmpty(itemId) && count <= 0;
+        public bool IsEmpty => !isFootprintExtension && icon == null && string.IsNullOrEmpty(itemId) && count <= 0;
     }
 
     private enum SlotKind
@@ -450,10 +452,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return count;
         }
 
+        ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(itemId);
+        bool useOneByTwo = instance.IsOneByTwoItem(itemEntry);
         maxStack = ResolveMaxStack(itemId, maxStack);
         int remain = count;
 
-        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0; i--)
+        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0 && !useOneByTwo; i--)
         {
             ItemSlotData slot = instance.backpackData[i];
             if (slot.IsEmpty || slot.itemId != itemId)
@@ -478,26 +482,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             instance.RefreshBattleBackpackSlot(i);
         }
 
-        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0; i--)
+        while (remain > 0)
         {
-            if (!instance.backpackData[i].IsEmpty)
+            int targetIndex = instance.FindFirstAvailableSlotIndex(SlotKind.Backpack, itemEntry);
+            if (targetIndex < 0)
             {
-                continue;
+                break;
             }
 
             int cap = Mathf.Max(1, maxStack);
             int add = Mathf.Min(remain, cap);
-            instance.backpackData[i] = new ItemSlotData
+            ItemSlotData data = new ItemSlotData
             {
                 itemId = itemId,
                 icon = icon,
                 count = add,
                 maxStack = cap
             };
+            instance.SetFootprintDataAt(SlotKind.Backpack, targetIndex, data);
             remain -= add;
-            instance.RefreshBackpackSlot(i);
-            instance.RefreshQuickSlot(i);
-            instance.RefreshBattleBackpackSlot(i);
+            instance.RefreshFootprintSlots(SlotKind.Backpack, targetIndex, data);
         }
 
         return remain;
@@ -556,11 +560,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private static ItemSlotData NormalizeItemSlotData(ItemSlotData data)
     {
+        if (data.isFootprintExtension)
+        {
+            data.itemId = string.Empty;
+            data.icon = null;
+            data.count = 0;
+            data.maxStack = 0;
+            data.primarySlotIndex = Mathf.Max(0, data.primarySlotIndex);
+            return data;
+        }
+
         if (data.IsEmpty)
         {
             return default;
         }
 
+        data.primarySlotIndex = -1;
         data.count = Mathf.Max(1, data.count);
         data.maxStack = ResolveMaxStack(data.itemId, data.maxStack);
         if (data.count > data.maxStack)
@@ -588,6 +603,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
+        slotIndex = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, slotIndex);
         ItemSlotData slot = instance.backpackData[slotIndex];
         if (slot.IsEmpty || slot.count <= 0)
         {
@@ -597,7 +613,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         slot.count -= count;
         if (slot.count <= 0)
         {
-            slot = default;
+            instance.ClearFootprintAt(SlotKind.Backpack, slotIndex, slot);
+            instance.RefreshFootprintSlots(SlotKind.Backpack, slotIndex, slot);
+            return true;
         }
 
         instance.backpackData[slotIndex] = slot;
@@ -617,9 +635,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
+        fromSlot = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, fromSlot);
+        toSlot = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, toSlot);
         ItemSlotData from = instance.backpackData[fromSlot];
         ItemSlotData to = instance.backpackData[toSlot];
-        if (from.IsEmpty)
+        if (from.IsEmpty || instance.IsFootprintItem(from) || instance.IsFootprintItem(to) || from.isFootprintExtension || to.isFootprintExtension)
         {
             return false;
         }
@@ -1600,8 +1620,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef source = new SlotRef { kind = kind, index = index };
+        SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty)
+        {
+            return;
+        }
+
+        if (IsFootprintItem(data))
         {
             return;
         }
@@ -1646,7 +1671,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef target = new SlotRef { kind = kind, index = index };
+        SlotRef target = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (draggingSource.kind == target.kind && draggingSource.index == target.index)
         {
             return;
@@ -1680,7 +1705,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef slot = new SlotRef { kind = kind, index = index };
+        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
         {
             HideItemTooltip();
@@ -1732,7 +1757,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef source = new SlotRef { kind = kind, index = index };
+        SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(source, out ItemSlotData sourceData) || sourceData.IsEmpty)
         {
             return;
@@ -1766,13 +1791,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool TryAutoMoveToFirstEmpty(SlotRef source, SlotKind targetKind, ItemSlotData sourceData)
     {
-        int targetIndex = FindFirstEmptySlotIndex(targetKind);
+        source = ResolvePrimarySlotRef(source);
+        sourceData = GetResolvedSlotData(source);
+        int targetIndex = FindFirstAvailableSlotIndex(targetKind, ResolveItemEntry(sourceData.itemId));
         if (targetIndex < 0)
         {
             return false;
         }
 
         SlotRef target = new SlotRef { kind = targetKind, index = targetIndex };
+        if (targetKind == SlotKind.Backpack || targetKind == SlotKind.Warehouse)
+        {
+            return TryMoveItemToEmptyStorageSlot(source, target, sourceData);
+        }
+
         return TryExecuteSlotTransfer(source, target, sourceData);
     }
 
@@ -1796,6 +1828,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = targetIndex };
+        if (IsFootprintItem(sourceData))
+        {
+            return TryMoveStorageItemToEquipment(source, target, sourceData);
+        }
+
         return TryExecuteSlotTransfer(source, target, sourceData);
     }
 
@@ -1819,6 +1856,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         for (int i = dataList.Count - 1; i >= 0; i--)
         {
             if (dataList[i].IsEmpty)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindFirstAvailableSlotIndex(SlotKind kind, ItemDatabase.ItemEntry entry)
+    {
+        List<ItemSlotData> dataList = GetDataList(kind);
+        for (int i = dataList.Count - 1; i >= 0; i--)
+        {
+            if (CanPlaceItemAtIndex(kind, i, entry, dataList))
             {
                 return i;
             }
@@ -2058,7 +2109,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool CanSwapSlots(SlotRef source, SlotRef target)
     {
+        source = ResolvePrimarySlotRef(source);
+        target = ResolvePrimarySlotRef(target);
         if (!TryGetSlotData(source, out ItemSlotData sourceData) || !TryGetSlotData(target, out ItemSlotData targetData))
+        {
+            return false;
+        }
+
+        if (IsFootprintItem(sourceData) || IsFootprintItem(targetData) || sourceData.isFootprintExtension || targetData.isFootprintExtension)
         {
             return false;
         }
@@ -2245,6 +2303,277 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return null;
+    }
+
+    private ItemSlotData GetResolvedSlotData(SlotRef slot)
+    {
+        SlotRef resolved = ResolvePrimarySlotRef(slot);
+        return TryGetSlotData(resolved, out ItemSlotData data) ? data : default;
+    }
+
+    private SlotRef ResolvePrimarySlotRef(SlotRef slot)
+    {
+        List<ItemSlotData> list = GetDataList(slot.kind);
+        if (slot.index < 0 || slot.index >= list.Count)
+        {
+            return slot;
+        }
+
+        ItemSlotData data = list[slot.index];
+        if (!data.isFootprintExtension)
+        {
+            return slot;
+        }
+
+        if (data.primarySlotIndex < 0 || data.primarySlotIndex >= list.Count)
+        {
+            return slot;
+        }
+
+        slot.index = data.primarySlotIndex;
+        return slot;
+    }
+
+    private int ResolvePrimarySlotIndex(SlotKind kind, int index)
+    {
+        SlotRef resolved = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
+        return resolved.index;
+    }
+
+    private bool TryMoveItemToEmptyStorageSlot(SlotRef source, SlotRef target, ItemSlotData sourceData)
+    {
+        List<ItemSlotData> sourceList = GetDataList(source.kind);
+        List<ItemSlotData> targetList = GetDataList(target.kind);
+        if (source.index < 0 || source.index >= sourceList.Count || target.index < 0 || target.index >= targetList.Count)
+        {
+            return false;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
+        if (!CanPlaceItemAtIndex(target.kind, target.index, entry, targetList))
+        {
+            return false;
+        }
+
+        ClearFootprintAt(source.kind, source.index, sourceData);
+        SetFootprintDataAt(target.kind, target.index, sourceData);
+        RefreshFootprintSlots(source.kind, source.index, sourceData);
+        RefreshFootprintSlots(target.kind, target.index, sourceData);
+        ItemSoundUtility.PlayForItem(sourceData.itemId);
+        return true;
+    }
+
+    private bool TryMoveStorageItemToEquipment(SlotRef source, SlotRef target, ItemSlotData sourceData)
+    {
+        if (!TryGetSlotData(target, out ItemSlotData targetData))
+        {
+            return false;
+        }
+
+        if (!CanPlaceIntoTarget(sourceData, target))
+        {
+            return false;
+        }
+
+        ClearFootprintAt(source.kind, source.index, sourceData);
+        if (targetData.IsEmpty)
+        {
+            SetSlotData(source, default);
+        }
+        else if (IsFootprintItem(targetData))
+        {
+            SetFootprintDataAt(source.kind, source.index, targetData);
+        }
+        else
+        {
+            SetSlotData(source, targetData);
+        }
+
+        SetSlotData(target, sourceData);
+        RefreshFootprintSlots(source.kind, source.index, sourceData);
+        RefreshByRef(target);
+        ItemSoundUtility.PlayForItem(sourceData.itemId);
+        return true;
+    }
+
+    private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
+    {
+        dataList = dataList ?? GetDataList(kind);
+        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !dataList[primaryIndex].IsEmpty)
+        {
+            return false;
+        }
+
+        if (!IsOneByTwoItem(entry))
+        {
+            return true;
+        }
+
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        return extensionIndex >= 0 &&
+            extensionIndex < dataList.Count &&
+            dataList[extensionIndex].IsEmpty;
+    }
+
+    private void SetFootprintDataAt(SlotKind kind, int primaryIndex, ItemSlotData data)
+    {
+        List<ItemSlotData> list = GetDataList(kind);
+        if (primaryIndex < 0 || primaryIndex >= list.Count)
+        {
+            return;
+        }
+
+        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        list[primaryIndex] = normalizedPrimary;
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(normalizedPrimary.itemId);
+        if (!IsOneByTwoItem(entry))
+        {
+            return;
+        }
+
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        if (extensionIndex < 0 || extensionIndex >= list.Count)
+        {
+            return;
+        }
+
+        list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+        {
+            isFootprintExtension = true,
+            primarySlotIndex = primaryIndex
+        });
+    }
+
+    private void ClearFootprintAt(SlotKind kind, int primaryIndex, ItemSlotData data)
+    {
+        List<ItemSlotData> list = GetDataList(kind);
+        if (primaryIndex < 0 || primaryIndex >= list.Count)
+        {
+            return;
+        }
+
+        list[primaryIndex] = default;
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(entry))
+        {
+            return;
+        }
+
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        if (extensionIndex >= 0 && extensionIndex < list.Count)
+        {
+            list[extensionIndex] = default;
+        }
+    }
+
+    private void RefreshFootprintSlots(SlotKind kind, int primaryIndex, ItemSlotData data)
+    {
+        RefreshByRef(new SlotRef { kind = kind, index = primaryIndex });
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(entry))
+        {
+            return;
+        }
+
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        if (extensionIndex >= 0)
+        {
+            RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
+        }
+    }
+
+    private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex)
+    {
+        int columnCount = GetGridColumnCount(kind);
+        if (columnCount <= 0)
+        {
+            return -1;
+        }
+
+        int verticalStep = UsesLowerStartCorner(kind) ? -columnCount : columnCount;
+        int extensionIndex = primaryIndex + verticalStep;
+        if (extensionIndex < 0)
+        {
+            return -1;
+        }
+
+        return extensionIndex;
+    }
+
+    private int GetGridColumnCount(SlotKind kind)
+    {
+        GridLayoutGroup layout = GetGridLayout(kind);
+        if (layout == null)
+        {
+            if (kind == SlotKind.Backpack && hasCachedBackpackLayout && cachedBackpackConstraint == GridLayoutGroup.Constraint.FixedColumnCount)
+            {
+                return Mathf.Max(1, cachedBackpackConstraintCount);
+            }
+
+            return 0;
+        }
+
+        if (layout.constraint == GridLayoutGroup.Constraint.FixedColumnCount)
+        {
+            return Mathf.Max(1, layout.constraintCount);
+        }
+
+        return 0;
+    }
+
+    private bool UsesLowerStartCorner(SlotKind kind)
+    {
+        GridLayoutGroup layout = GetGridLayout(kind);
+        if (layout == null)
+        {
+            if (kind == SlotKind.Backpack && hasCachedBackpackLayout)
+            {
+                return cachedBackpackStartCorner == GridLayoutGroup.Corner.LowerLeft ||
+                    cachedBackpackStartCorner == GridLayoutGroup.Corner.LowerRight;
+            }
+
+            return true;
+        }
+
+        return layout.startCorner == GridLayoutGroup.Corner.LowerLeft ||
+            layout.startCorner == GridLayoutGroup.Corner.LowerRight;
+    }
+
+    private GridLayoutGroup GetGridLayout(SlotKind kind)
+    {
+        List<SlotWidget> widgets = GetWidgetList(kind);
+        if (widgets.Count > 0 && widgets[0] != null && widgets[0].root != null && widgets[0].root.parent != null)
+        {
+            GridLayoutGroup layout = widgets[0].root.parent.GetComponent<GridLayoutGroup>();
+            if (layout != null)
+            {
+                return layout;
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsOneByTwoItem(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        return entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
+    }
+
+    private bool IsFootprintItem(ItemSlotData data)
+    {
+        if (data.isFootprintExtension || string.IsNullOrWhiteSpace(data.itemId))
+        {
+            return false;
+        }
+
+        return IsOneByTwoItem(ResolveItemEntry(data.itemId));
     }
 
     private List<SlotWidget> GetWidgetList(SlotKind kind)
