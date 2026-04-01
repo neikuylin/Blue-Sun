@@ -194,5 +194,5 @@ MonoBehaviour:
     weaponResistancePenetrations:
     - resistanceType: 1
       value: 0
-    prefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
+    prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
