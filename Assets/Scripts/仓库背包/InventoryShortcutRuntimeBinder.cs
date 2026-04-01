@@ -2407,6 +2407,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
+        PlaceDataAt(placementTarget.kind, placementTarget.index, sourceData, targetSim);
+
         displacedPlacements.Clear();
         if (displacedItems == null || displacedItems.Count == 0)
         {
