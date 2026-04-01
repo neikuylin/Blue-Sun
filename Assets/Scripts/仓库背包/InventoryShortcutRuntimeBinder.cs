@@ -2408,7 +2408,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         displacedPlacements.Clear();
-        return TryResolveDisplacedPlacements(source, sourceData, displacedItems, sourceSim, displacedPlacements);
+        if (displacedItems == null || displacedItems.Count == 0)
+        {
+            return true;
+        }
+
+        if (displacedItems.Count != 1)
+        {
+            return false;
+        }
+
+        if (!CanPlaceDataAt(source.kind, source.index, displacedItems[0], sourceSim))
+        {
+            return false;
+        }
+
+        displacedPlacements.Add(source);
+        return true;
     }
 
     private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
@@ -2430,78 +2446,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return result;
-    }
-
-    private bool TryResolveDisplacedPlacements(
-        SlotRef source,
-        ItemSlotData sourceData,
-        List<ItemSlotData> displacedItems,
-        List<ItemSlotData> sourceSim,
-        List<SlotRef> resolvedTargets)
-    {
-        resolvedTargets.Clear();
-        if (displacedItems == null || displacedItems.Count == 0)
-        {
-            return true;
-        }
-
-        List<int> sourceCells = GetFootprintCellIndices(source.kind, source.index, sourceData);
-        if (sourceCells.Count == 0)
-        {
-            return false;
-        }
-
-        List<SlotRef> workingTargets = new List<SlotRef>(displacedItems.Count);
-        bool ok = TryResolveDisplacedPlacementsRecursive(
-            source.kind,
-            displacedItems,
-            0,
-            sourceCells,
-            sourceSim,
-            workingTargets);
-        if (!ok)
-        {
-            return false;
-        }
-
-        resolvedTargets.AddRange(workingTargets);
-        return true;
-    }
-
-    private bool TryResolveDisplacedPlacementsRecursive(
-        SlotKind targetKind,
-        List<ItemSlotData> displacedItems,
-        int itemIndex,
-        List<int> candidateCells,
-        List<ItemSlotData> targetSim,
-        List<SlotRef> resolvedTargets)
-    {
-        if (itemIndex >= displacedItems.Count)
-        {
-            return true;
-        }
-
-        ItemSlotData item = displacedItems[itemIndex];
-        for (int i = 0; i < candidateCells.Count; i++)
-        {
-            int candidateIndex = candidateCells[i];
-            if (!CanPlaceDataAt(targetKind, candidateIndex, item, targetSim))
-            {
-                continue;
-            }
-
-            List<ItemSlotData> nextSim = CloneItemSlotDataList(targetSim);
-            PlaceDataAt(targetKind, candidateIndex, item, nextSim);
-            resolvedTargets.Add(new SlotRef { kind = targetKind, index = candidateIndex });
-            if (TryResolveDisplacedPlacementsRecursive(targetKind, displacedItems, itemIndex + 1, candidateCells, nextSim, resolvedTargets))
-            {
-                return true;
-            }
-
-            resolvedTargets.RemoveAt(resolvedTargets.Count - 1);
-        }
-
-        return false;
     }
 
     private List<SlotRef> CollectDisplacedTargetsForPlacement(SlotRef source, SlotRef placementTarget, ItemSlotData sourceData)
