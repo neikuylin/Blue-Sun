@@ -2481,7 +2481,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private bool ShouldUseBackpackFallbackForDisplacedItems(SlotRef source, SlotRef placementTarget, List<ItemSlotData> displacedItems)
     {
         return source.kind == SlotKind.Backpack
-            && placementTarget.kind == SlotKind.Equipment
+            && (placementTarget.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Backpack)
             && displacedItems != null
             && displacedItems.Count > 0;
     }
