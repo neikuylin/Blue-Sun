@@ -155,7 +155,7 @@ MonoBehaviour:
     areaCastType: 1
     circularAxisAreaType: 1
     axisWidth: 3
-    axisAngle: 360
+    axisAngle: 240
     effectSize: {x: 3, y: 3}
     requiredWeaponCategories: 0100000002000000
     weaponActionOverrides:
