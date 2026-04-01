@@ -166,7 +166,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
     private readonly Dictionary<string, List<ItemSlotData>> equipmentDataByCharacter = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
     private readonly Dictionary<string, List<ItemSlotData>> boundEnemyEquipmentDataCache = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
-    private readonly Dictionary<ItemDatabase.ItemQuality, GameObject> qualityBackgroundPrefabCache = new Dictionary<ItemDatabase.ItemQuality, GameObject>();
+    private readonly Dictionary<string, GameObject> qualityBackgroundPrefabCache = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
@@ -3803,7 +3803,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry.quality) : null;
+        GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry) : null;
         widget.runtimeBackgroundVisual = TryCreateRuntimePrefabVisual(qualityBackgroundPrefab, widget.backgroundAnchor ?? widget.root);
         widget.runtimeIconVisual = TryCreateRuntimeVisual(entry.prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
     }
@@ -3831,9 +3831,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return entry != null ? entry.prefab : null;
     }
 
-    private GameObject ResolveQualityBackgroundPrefab(ItemDatabase.ItemQuality quality)
+    private GameObject ResolveQualityBackgroundPrefab(ItemDatabase.ItemEntry entry)
     {
-        if (qualityBackgroundPrefabCache.TryGetValue(quality, out GameObject prefab))
+        if (entry == null)
+        {
+            return null;
+        }
+
+        string cacheKey = BuildQualityBackgroundCacheKey(entry.quality, ShouldUseOneByTwoQualityBackground(entry));
+        if (qualityBackgroundPrefabCache.TryGetValue(cacheKey, out GameObject prefab))
         {
             return prefab;
         }
@@ -3952,11 +3958,40 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        GameObject prefab = database.GetPrefab(quality);
-        if (prefab != null)
+        CacheQualityBackgroundPrefabVariant(database, quality, useOneByTwo: false);
+        CacheQualityBackgroundPrefabVariant(database, quality, useOneByTwo: true);
+    }
+
+    private void CacheQualityBackgroundPrefabVariant(
+        ItemQualityBackgroundDatabase database,
+        ItemDatabase.ItemQuality quality,
+        bool useOneByTwo)
+    {
+        if (database == null)
         {
-            qualityBackgroundPrefabCache[quality] = prefab;
+            return;
         }
+
+        GameObject prefab = database.GetPrefab(quality, useOneByTwo);
+        if (prefab == null)
+        {
+            return;
+        }
+
+        qualityBackgroundPrefabCache[BuildQualityBackgroundCacheKey(quality, useOneByTwo)] = prefab;
+    }
+
+    private static bool ShouldUseOneByTwoQualityBackground(ItemDatabase.ItemEntry entry)
+    {
+        return entry != null &&
+            entry.category == ItemDatabase.ItemCategory.Equipment &&
+            (entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
+             entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded);
+    }
+
+    private static string BuildQualityBackgroundCacheKey(ItemDatabase.ItemQuality quality, bool useOneByTwo)
+    {
+        return quality.ToString() + (useOneByTwo ? "_1x2" : "_1x1");
     }
 
     private static void DisableRaycasts(GameObject root)
