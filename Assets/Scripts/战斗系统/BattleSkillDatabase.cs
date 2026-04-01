@@ -107,6 +107,11 @@ public sealed class BattleSkillDatabase : ScriptableObject
 
         public bool RequiresWeaponCategory(ItemDatabase.WeaponCategory weaponCategory)
         {
+            if (group == SkillGroup.Spell)
+            {
+                return true;
+            }
+
             if (requiredWeaponCategories == null || requiredWeaponCategories.Count == 0)
             {
                 return false;
@@ -146,6 +151,11 @@ public sealed class BattleSkillDatabase : ScriptableObject
 
         public bool HasRequiredWeaponCategory(ItemDatabase.WeaponCategory weaponCategory)
         {
+            if (group == SkillGroup.Spell)
+            {
+                return false;
+            }
+
             if (requiredWeaponCategories == null || requiredWeaponCategories.Count == 0)
             {
                 return false;
