@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "ItemQualityBackgroundDatabase", menuName = "背包/物品品质底图数据库")]
 public sealed class ItemQualityBackgroundDatabase : ScriptableObject
@@ -9,7 +10,11 @@ public sealed class ItemQualityBackgroundDatabase : ScriptableObject
     public sealed class QualityBackgroundEntry
     {
         public ItemDatabase.ItemQuality quality = ItemDatabase.ItemQuality.Common;
-        public GameObject prefab;
+
+        [FormerlySerializedAs("prefab")]
+        public GameObject oneByOnePrefab;
+
+        public GameObject oneByTwoPrefab;
     }
 
     [SerializeField] private QualityBackgroundEntry common = new QualityBackgroundEntry
@@ -34,16 +39,38 @@ public sealed class ItemQualityBackgroundDatabase : ScriptableObject
 
     public GameObject GetPrefab(ItemDatabase.ItemQuality quality)
     {
+        QualityBackgroundEntry entry = GetEntry(quality);
+        return entry != null ? entry.oneByOnePrefab : null;
+    }
+
+    public GameObject GetPrefab(ItemDatabase.ItemQuality quality, bool useOneByTwo)
+    {
+        QualityBackgroundEntry entry = GetEntry(quality);
+        if (entry == null)
+        {
+            return null;
+        }
+
+        if (useOneByTwo && entry.oneByTwoPrefab != null)
+        {
+            return entry.oneByTwoPrefab;
+        }
+
+        return entry.oneByOnePrefab;
+    }
+
+    private QualityBackgroundEntry GetEntry(ItemDatabase.ItemQuality quality)
+    {
         switch (quality)
         {
             case ItemDatabase.ItemQuality.Excellent:
-                return excellent != null ? excellent.prefab : null;
+                return excellent;
             case ItemDatabase.ItemQuality.Epic:
-                return epic != null ? epic.prefab : null;
+                return epic;
             case ItemDatabase.ItemQuality.Blessed:
-                return blessed != null ? blessed.prefab : null;
+                return blessed;
             default:
-                return common != null ? common.prefab : null;
+                return common;
         }
     }
 

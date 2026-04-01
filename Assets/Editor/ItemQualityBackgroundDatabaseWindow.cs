@@ -7,12 +7,12 @@ public sealed class ItemQualityBackgroundDatabaseWindow : EditorWindow
 
     private ItemQualityBackgroundDatabase database;
 
-    [MenuItem("Tools/物品/物品品质底图库")]
+    [MenuItem("Tools/物品/物品品质图库")]
     private static void Open()
     {
         ItemQualityBackgroundDatabaseWindow window = GetWindow<ItemQualityBackgroundDatabaseWindow>();
-        window.titleContent = new GUIContent("物品品质底图库");
-        window.minSize = new Vector2(420f, 220f);
+        window.titleContent = new GUIContent("物品品质图库");
+        window.minSize = new Vector2(460f, 280f);
         window.Show();
     }
 
@@ -31,7 +31,7 @@ public sealed class ItemQualityBackgroundDatabaseWindow : EditorWindow
         }
 
         EditorGUILayout.LabelField("跨场景物品品质底图", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("启程和战斗副本都会优先读取这套配置。", MessageType.Info);
+        EditorGUILayout.HelpBox("旅程和战斗界面都会优先读取这套配置。现在每个品质支持 1x1 和 1x2 两种底图预制体。", MessageType.Info);
         EditorGUILayout.Space(6f);
 
         DrawEntry("普通（白）", database.Common);
@@ -51,7 +51,8 @@ public sealed class ItemQualityBackgroundDatabaseWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
-            entry.prefab = (GameObject)EditorGUILayout.ObjectField("底图预制体", entry.prefab, typeof(GameObject), false);
+            entry.oneByOnePrefab = (GameObject)EditorGUILayout.ObjectField("1x1 底图预制体", entry.oneByOnePrefab, typeof(GameObject), false);
+            entry.oneByTwoPrefab = (GameObject)EditorGUILayout.ObjectField("1x2 底图预制体", entry.oneByTwoPrefab, typeof(GameObject), false);
         }
     }
 
