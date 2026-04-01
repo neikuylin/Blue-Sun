@@ -1779,14 +1779,43 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        int targetIndex = FindRightClickEquipmentTargetIndex(entry);
-        if (targetIndex < 0)
+        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
+        if (equipmentData == null)
         {
             return false;
         }
 
-        SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = targetIndex };
-        return TryTransferItem(source, target, sourceData);
+        for (int pass = 0; pass < 2; pass++)
+        {
+            bool requireEmpty = pass == 0;
+            for (int i = 0; i < equipmentSlots.Count; i++)
+            {
+                SlotWidget widget = equipmentSlots[i];
+                if (widget == null || !IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
+                {
+                    continue;
+                }
+
+                ItemSlotData slotData = i < equipmentData.Count ? equipmentData[i] : default;
+                if (slotData.isFootprintExtension)
+                {
+                    continue;
+                }
+
+                if (requireEmpty != slotData.IsEmpty)
+                {
+                    continue;
+                }
+
+                SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = i };
+                if (TryTransferItem(source, target, sourceData))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private bool TryExecuteSlotTransfer(SlotRef source, SlotRef target, ItemSlotData sourceData)
