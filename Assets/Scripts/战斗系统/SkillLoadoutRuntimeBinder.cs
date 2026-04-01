@@ -144,7 +144,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        string targetCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        string targetCharacterId = ResolveDisplayedCharacterId();
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
@@ -171,7 +171,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
-        currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        currentCharacterId = ResolveDisplayedCharacterId();
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         RefreshAll();
     }
@@ -1045,6 +1045,17 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+    }
+
+    private string ResolveDisplayedCharacterId()
+    {
+        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
+        {
+            return ResolveCharacterId(equipmentCharacterId);
+        }
+
+        return ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
     }
 
     private static int ResolveVisibleSkillMemorySlotCount(string characterId)

@@ -1640,13 +1640,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef target = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (draggingSource.kind == target.kind && draggingSource.index == target.index)
-        {
-            return;
-        }
-
-        if (!TryGetSlotData(target, out _))
+        SlotRef rawTarget = new SlotRef { kind = kind, index = index };
+        if (!TryGetSlotData(rawTarget, out _))
         {
             return;
         }
@@ -1656,7 +1651,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        TryTransferItem(draggingSource, target, sourceData);
+        SlotRef effectiveTarget = ResolvePrimarySlotRef(rawTarget);
+        if (draggingSource.kind == effectiveTarget.kind && draggingSource.index == effectiveTarget.index &&
+            !(rawTarget.kind == effectiveTarget.kind && rawTarget.index != effectiveTarget.index && !IsFootprintItem(sourceData)))
+        {
+            return;
+        }
+
+        TryTransferItem(draggingSource, rawTarget, sourceData);
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
@@ -2263,7 +2265,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
     {
         source = ResolvePrimarySlotRef(source);
-        target = ResolvePrimarySlotRef(target);
         sourceData = GetResolvedSlotData(source);
         if (sourceData.IsEmpty)
         {
@@ -2275,29 +2276,37 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        if (!TryGetSlotData(target, out ItemSlotData targetData))
+        if (!TryGetSlotData(target, out ItemSlotData targetRawData))
         {
             return false;
         }
 
-        if (targetData.isFootprintExtension)
+        SlotRef displacedTarget = ResolvePrimarySlotRef(target);
+        ItemSlotData targetData = displacedTarget.index == target.index
+            ? targetRawData
+            : GetResolvedSlotData(displacedTarget);
+        SlotRef placementTarget = ShouldUseRawTargetSlotForDrop(sourceData, targetRawData)
+            ? target
+            : displacedTarget;
+
+        if (placementTarget.kind == source.kind && placementTarget.index == source.index)
         {
             return false;
         }
 
-        if (TryMergeStorageStack(source, target, sourceData, targetData))
+        if (TryMergeStorageStack(source, placementTarget, sourceData, targetData))
         {
             return true;
         }
 
-        if (!CanSwapPlacements(source, sourceData, target, targetData))
+        if (!CanSwapPlacements(source, sourceData, placementTarget, displacedTarget, targetData))
         {
             return false;
         }
 
         ClearPlacement(source, sourceData);
-        ClearPlacement(target, targetData);
-        PlaceDataAt(target, sourceData);
+        ClearPlacement(displacedTarget, targetData);
+        PlaceDataAt(placementTarget, sourceData);
         PlaceDataAt(source, targetData);
         RefreshAll();
         ItemSoundUtility.PlayForItem(sourceData.itemId);
@@ -2337,18 +2346,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return true;
     }
 
-    private bool CanSwapPlacements(SlotRef source, ItemSlotData sourceData, SlotRef target, ItemSlotData targetData)
+    private bool CanSwapPlacements(SlotRef source, ItemSlotData sourceData, SlotRef placementTarget, SlotRef displacedTarget, ItemSlotData targetData)
     {
         List<ItemSlotData> sourceActual = GetDataList(source.kind);
         List<ItemSlotData> sourceSim = CloneItemSlotDataList(sourceActual);
-        List<ItemSlotData> targetSim = source.kind == target.kind
+        List<ItemSlotData> targetSim = source.kind == placementTarget.kind
             ? sourceSim
-            : CloneItemSlotDataList(GetDataList(target.kind));
+            : CloneItemSlotDataList(GetDataList(placementTarget.kind));
 
         ClearPlacement(source.kind, source.index, sourceData, sourceSim);
-        ClearPlacement(target.kind, target.index, targetData, targetSim);
+        ClearPlacement(displacedTarget.kind, displacedTarget.index, targetData, targetSim);
 
-        if (!CanPlaceDataAt(target.kind, target.index, sourceData, targetSim))
+        if (!CanPlaceDataAt(placementTarget.kind, placementTarget.index, sourceData, targetSim))
         {
             return false;
         }
@@ -2359,6 +2368,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return CanPlaceDataAt(source.kind, source.index, targetData, sourceSim);
+    }
+
+    private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
+    {
+        return !IsFootprintItem(sourceData) && targetRawData.isFootprintExtension;
     }
 
     private bool CanPlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
