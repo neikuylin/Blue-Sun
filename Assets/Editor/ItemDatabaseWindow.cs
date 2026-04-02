@@ -390,7 +390,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
             criticalDamageBonus = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? Mathf.Max(0, createCriticalDamageBonus)
                 : 0,
-            grantedSkillIds = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
+            grantedSkillIds = ItemDatabase.ShouldShowGrantedSkillList(createCategory, createWeaponCategory)
                 ? CloneGrantedSkillList(createGrantedSkillIds)
                 : new List<string>(),
             weaponAttributeMultipliers = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
@@ -518,15 +518,31 @@ public sealed class ItemDatabaseWindow : EditorWindow
         List<ItemDatabase.WeaponResistancePenetrationEntry> resistancePenetrations,
         BattleSkillDatabase skillDatabase)
     {
-        if (!ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory))
+        bool showWeaponFields = ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory);
+        bool showGrantedSkills = ItemDatabase.ShouldShowGrantedSkillList(category, weaponCategory);
+
+        if (!showWeaponFields)
         {
             ResetWeaponDamageDistribution(weaponDamageDistribution);
             fixedDamage = 0f;
             criticalChanceBonus = 0;
             criticalDamageBonus = 0;
-            ResetGrantedSkillList(grantedSkillIds);
             ResetWeaponAttributeList(multipliers);
             ResetWeaponResistancePenetrationList(resistancePenetrations);
+        }
+
+        if (!showGrantedSkills)
+        {
+            ResetGrantedSkillList(grantedSkillIds);
+        }
+
+        if (!showWeaponFields)
+        {
+            if (showGrantedSkills)
+            {
+                DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
+            }
+
             return;
         }
 

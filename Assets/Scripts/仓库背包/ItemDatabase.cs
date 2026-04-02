@@ -34,7 +34,8 @@ public sealed class ItemDatabase : ScriptableObject
         None,
         OneHanded,
         TwoHanded,
-        Bow
+        Bow,
+        Staff
     }
 
     public enum WeaponAttributeType
@@ -193,7 +194,28 @@ public sealed class ItemDatabase : ScriptableObject
             return WeaponCategory.OneHanded;
         }
 
+        if (equipmentSlot == EquipmentSlotType.MainOrOffHand &&
+            weaponCategory == WeaponCategory.Staff)
+        {
+            return WeaponCategory.None;
+        }
+
         return weaponCategory;
+    }
+
+    public static bool ShouldShowGrantedSkillList(
+        ItemCategory category,
+        WeaponCategory weaponCategory)
+    {
+        if (category != ItemCategory.Equipment)
+        {
+            return false;
+        }
+
+        return weaponCategory == WeaponCategory.OneHanded ||
+            weaponCategory == WeaponCategory.TwoHanded ||
+            weaponCategory == WeaponCategory.Bow ||
+            weaponCategory == WeaponCategory.Staff;
     }
 
     public static bool ShouldShowWeaponAttributeMultiplier(

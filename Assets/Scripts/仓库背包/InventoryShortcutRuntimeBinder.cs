@@ -4619,6 +4619,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return "双手武器";
             case ItemDatabase.WeaponCategory.Bow:
                 return "弓箭";
+            case ItemDatabase.WeaponCategory.Staff:
+                return "法杖";
             default:
                 return weaponCategory == ItemDatabase.WeaponCategory.None ? string.Empty : weaponCategory.ToString();
         }

@@ -35,7 +35,8 @@
         "无",
         "单手武器",
         "双手武器",
-        "弓箭"
+        "弓箭",
+        "法杖"
     };
 
     public static readonly string[] MainOrOffHandWeaponCategoryLabels =
