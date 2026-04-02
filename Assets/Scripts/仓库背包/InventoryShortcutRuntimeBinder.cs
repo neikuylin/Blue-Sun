@@ -3120,7 +3120,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded;
+            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
+            entry.weaponCategory == ItemDatabase.WeaponCategory.Staff;
     }
 
     private bool IsFootprintItem(ItemSlotData data)
@@ -4902,7 +4903,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return entry != null &&
             entry.category == ItemDatabase.ItemCategory.Equipment &&
             (entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
-             entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded);
+             entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
+             entry.weaponCategory == ItemDatabase.WeaponCategory.Staff);
     }
 
     private static string BuildQualityBackgroundCacheKey(ItemDatabase.ItemQuality quality, bool useOneByTwo)

@@ -51,7 +51,7 @@ public sealed class ItemQualityBackgroundDatabase : ScriptableObject
             return null;
         }
 
-        if (useOneByTwo && entry.oneByTwoPrefab != null)
+        if (useOneByTwo)
         {
             return entry.oneByTwoPrefab;
         }
