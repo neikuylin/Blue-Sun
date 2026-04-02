@@ -3281,6 +3281,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
     }
 
+    public static float GetCharacterStaffDamageMultiplier(string characterId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
+        if (weaponEntry == null || weaponEntry.weaponCategory != ItemDatabase.WeaponCategory.Staff)
+        {
+            return 1f;
+        }
+
+        return Mathf.Max(0f, weaponEntry.staffDamageMultiplier);
+    }
+
     private static ItemDatabase.ItemEntry GetCharacterWeaponEntry(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))

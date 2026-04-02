@@ -246,7 +246,7 @@ MonoBehaviour:
     group: 2
     skillType: 0
     castTarget: 1
-    icon: {fileID: 0}
+    icon: {fileID: 914947735, guid: 42771b41a34cc50438ae750d1c7bf85b, type: 3}
     damageMultiplier: 1
     attributeMultiplier: 0.8
     fixedDamage: 3

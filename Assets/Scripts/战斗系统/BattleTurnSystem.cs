@@ -3542,11 +3542,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ResolveTargetSkillInfoAndDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        string message = ApplyCombatArtDamageWithMessage(caster, target, skill);
+        string message = ApplySkillDamageWithMessage(caster, target, skill);
         ShowBattleInfoMessage(message);
     }
 
-    private string ApplyCombatArtDamageWithMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    private string ApplySkillDamageWithMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || target == null || skill == null)
         {
@@ -3557,7 +3557,9 @@ public class BattleTurnSystem : MonoBehaviour
         string targetName = ResolveBattleInfoUnitName(target, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
 
-        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        bool isDamageSkill = skill.group == BattleSkillDatabase.SkillGroup.CombatArt ||
+            skill.group == BattleSkillDatabase.SkillGroup.Spell;
+        if (!isDamageSkill)
         {
             return $"{casterName}对{targetName}使用了{skillName}";
         }
@@ -3569,7 +3571,7 @@ public class BattleTurnSystem : MonoBehaviour
             return $"{casterName}对{targetName}使用了{skillName}，被{targetName}闪避了";
         }
 
-        CombatDamageResult damageResult = CalculateCombatArtDamage(caster, target, skill);
+        CombatDamageResult damageResult = CalculateSkillDamage(caster, target, skill);
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
             return $"{casterName}对{targetName}使用了{skillName}";
@@ -3628,11 +3630,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ResolveAreaSkillInfoAndDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
-        string message = ApplyCombatArtAreaDamageWithMessage(caster, targetCell, skill);
+        string message = ApplySkillAreaDamageWithMessage(caster, targetCell, skill);
         ShowBattleInfoMessage(message);
     }
 
-    private string ApplyCombatArtAreaDamageWithMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    private string ApplySkillAreaDamageWithMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || skill == null)
         {
@@ -3641,7 +3643,9 @@ public class BattleTurnSystem : MonoBehaviour
 
         string casterName = ResolveBattleInfoUnitName(caster, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
-        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        bool isDamageSkill = skill.group == BattleSkillDatabase.SkillGroup.CombatArt ||
+            skill.group == BattleSkillDatabase.SkillGroup.Spell;
+        if (!isDamageSkill)
         {
             return FormatAreaSkillMessage(caster, targetCell, skill);
         }
@@ -3666,7 +3670,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            CombatDamageResult damageResult = CalculateCombatArtDamage(caster, unit, skill);
+            CombatDamageResult damageResult = CalculateSkillDamage(caster, unit, skill);
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
                 continue;
@@ -3701,6 +3705,24 @@ public class BattleTurnSystem : MonoBehaviour
         return $"{casterName}在{targetCell}使用了{skillName}";
     }
 
+    private CombatDamageResult CalculateSkillDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null)
+        {
+            return null;
+        }
+
+        switch (skill.group)
+        {
+            case BattleSkillDatabase.SkillGroup.CombatArt:
+                return CalculateCombatArtDamage(caster, target, skill);
+            case BattleSkillDatabase.SkillGroup.Spell:
+                return CalculateSpellDamage(caster, target, skill);
+            default:
+                return null;
+        }
+    }
+
     private CombatDamageResult CalculateCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || target == null || skill == null)
@@ -3730,6 +3752,35 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), caster, target);
+        for (int i = 0; i < result.components.Count; i++)
+        {
+            result.totalDamage += result.components[i].amount;
+        }
+
+        result.appliedDamage = Mathf.Max(0, Mathf.RoundToInt(result.totalDamage));
+        return result;
+    }
+
+    private CombatDamageResult CalculateSpellDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return null;
+        }
+
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(caster.characterId) : null;
+        float intelligence = statEntry != null ? Mathf.Max(0, statEntry.intelligence) : 0f;
+        float baseDamage = Mathf.Max(0, skill.fixedDamage) +
+            (Mathf.Max(0f, skill.attributeMultiplier) * intelligence);
+        float damage = baseDamage * InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(caster.characterId);
+        if (damage <= 0f)
+        {
+            return null;
+        }
+
+        CombatDamageResult result = new CombatDamageResult();
+        BuildSpellDamageComponents(result.components, damage, caster, target);
         for (int i = 0; i < result.components.Count; i++)
         {
             result.totalDamage += result.components[i].amount;
@@ -3808,6 +3859,21 @@ public class BattleTurnSystem : MonoBehaviour
             attributeType = attributeType,
             amount = mitigatedAmount
         });
+    }
+
+    private void BuildSpellDamageComponents(
+        List<DamageComponent> components,
+        float totalDamage,
+        BattleUnit caster,
+        BattleUnit target)
+    {
+        components.Clear();
+        if (totalDamage <= 0f)
+        {
+            return;
+        }
+
+        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, 100, 100, caster, target);
     }
 
     private static float ApplyResistance(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)
