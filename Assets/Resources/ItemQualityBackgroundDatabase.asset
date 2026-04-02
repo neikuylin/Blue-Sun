@@ -14,13 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   common:
     quality: 0
-    prefab: {fileID: 3940386376165082690, guid: 182b194828a2d2e4f82c7466a59d7672, type: 3}
+    oneByOnePrefab: {fileID: 3940386376165082690, guid: 182b194828a2d2e4f82c7466a59d7672, type: 3}
+    oneByTwoPrefab: {fileID: 6509605037482847676, guid: 23869a52d42228443adc4708f0264304, type: 3}
   excellent:
     quality: 1
-    prefab: {fileID: 5758372314565584952, guid: 2c25e270ed3d1eb4695faba175c427ba, type: 3}
+    oneByOnePrefab: {fileID: 5758372314565584952, guid: 2c25e270ed3d1eb4695faba175c427ba, type: 3}
+    oneByTwoPrefab: {fileID: 7027862552679015875, guid: 7ba0f9456870fc043bba9a01cd94bbd9, type: 3}
   epic:
     quality: 2
-    prefab: {fileID: 3897428555922422410, guid: 77b18300d1664264db70fa1dd85b857a, type: 3}
+    oneByOnePrefab: {fileID: 3897428555922422410, guid: 77b18300d1664264db70fa1dd85b857a, type: 3}
+    oneByTwoPrefab: {fileID: 1074614295580063590, guid: be86fc7c41879654cb0c6730ff4b0460, type: 3}
   blessed:
     quality: 3
-    prefab: {fileID: 2119822421286859677, guid: 9371343f66b47d24099a3d684df10533, type: 3}
+    oneByOnePrefab: {fileID: 2119822421286859677, guid: 9371343f66b47d24099a3d684df10533, type: 3}
+    oneByTwoPrefab: {fileID: 2399795814161774216, guid: f7aa35c6972add94ca7ed1541f33e6de, type: 3}
