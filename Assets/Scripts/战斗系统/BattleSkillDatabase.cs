@@ -77,6 +77,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public CastTarget castTarget = CastTarget.Enemy;
         public Sprite icon;
         public float damageMultiplier = 1f;
+        public float attributeMultiplier = 1f;
+        public int fixedDamage;
         public int actionPointCost = 1;
         public int manaCost;
         public int cooldownTurns;

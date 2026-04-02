@@ -149,12 +149,23 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 castTarget.enumValueIndex = EditorGUILayout.Popup("\u65bd\u6cd5\u5bf9\u8c61", castTarget.enumValueIndex, CastTargetLabels);
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
-                ClearLegacyActionFields(entry);
-                EditorGUILayout.HelpBox("技能本体动作字段已停用。技能动作现在只在 Tools/技能/技能动作栏 中按“必须武器”勾选类别做分流配置。", MessageType.Info);
+                BattleSkillDatabase.SkillGroup currentGroup = (BattleSkillDatabase.SkillGroup)group.enumValueIndex;
+                EditorGUILayout.HelpBox("当前不会自动清空技能本体动作字段。", MessageType.Info);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
+                if (currentGroup == BattleSkillDatabase.SkillGroup.Spell)
+                {
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("attributeMultiplier"), new GUIContent("\u5c5e\u6027\u500d\u7387"));
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("fixedDamage"), new GUIContent("\u56fa\u5b9a\u4f24\u5bb3"));
+                    entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
+                }
+                else
+                {
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
+                    entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
+                    entry.FindPropertyRelative("fixedDamage").intValue = 0;
+                }
 
                 bool rangeFromMoveDistance = EditorGUILayout.Toggle("\u5c04\u7a0b\u53d6\u79fb\u52a8\u8ddd\u79bb", useMoveDistanceAsRange.boolValue);
                 useMoveDistanceAsRange.boolValue = rangeFromMoveDistance;
@@ -170,7 +181,14 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51b7\u5374\u65f6\u95f4\uff08\u56de\u5408\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("\u9b54\u6cd5\u6d88\u8017\uff08MP\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("\u884c\u52a8\u529b\u6d88\u8017\uff08AP\uff09"));
-                DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
+                if (currentGroup == BattleSkillDatabase.SkillGroup.CombatArt)
+                {
+                    DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
+                }
+                else
+                {
+                    entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
+                }
 
                 if ((BattleSkillDatabase.SkillType)skillType.enumValueIndex == BattleSkillDatabase.SkillType.Area)
                 {
@@ -234,6 +252,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
+        entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
+        entry.FindPropertyRelative("fixedDamage").intValue = 0;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;
         entry.FindPropertyRelative("cooldownTurns").intValue = 0;
