@@ -3780,7 +3780,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         CombatDamageResult result = new CombatDamageResult();
-        BuildSpellDamageComponents(result.components, damage, caster, target);
+        BuildSpellDamageComponents(result.components, damage, skill, caster, target);
         for (int i = 0; i < result.components.Count; i++)
         {
             result.totalDamage += result.components[i].amount;
@@ -3864,16 +3864,39 @@ public class BattleTurnSystem : MonoBehaviour
     private void BuildSpellDamageComponents(
         List<DamageComponent> components,
         float totalDamage,
+        BattleSkillDatabase.SkillEntry skill,
         BattleUnit caster,
         BattleUnit target)
     {
         components.Clear();
-        if (totalDamage <= 0f)
+        if (totalDamage <= 0f || skill == null)
         {
             return;
         }
 
-        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, 100, 100, caster, target);
+        AddDamageComponent(
+            components,
+            ConvertSpellDamageType(skill.damageType),
+            totalDamage,
+            100,
+            100,
+            caster,
+            target);
+    }
+
+    private static DamageAttributeType ConvertSpellDamageType(BattleSkillDatabase.DamageType damageType)
+    {
+        switch (damageType)
+        {
+            case BattleSkillDatabase.DamageType.Fire:
+                return DamageAttributeType.Fire;
+            case BattleSkillDatabase.DamageType.Corruption:
+                return DamageAttributeType.Corruption;
+            case BattleSkillDatabase.DamageType.Cold:
+                return DamageAttributeType.Cold;
+            default:
+                return DamageAttributeType.Physical;
+        }
     }
 
     private static float ApplyResistance(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)

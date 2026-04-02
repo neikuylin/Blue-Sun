@@ -224,12 +224,16 @@ MonoBehaviour:
     fixedDamage: 0
     criticalChanceBonus: 0
     criticalDamageBonus: 0
-    staffDamageMultiplier: 1
+    staffDamageMultiplier: 1.2
     manaRecovery: 1
     description: "\u4F20\u64AD\u5149\u660E"
     grantedSkillIds:
     - "\u706B\u7403"
-    weaponAttributeMultipliers: []
-    weaponResistancePenetrations: []
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
     prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
     weaponModelPrefab: {fileID: 0}

@@ -41,6 +41,14 @@ public sealed class BattleSkillDatabase : ScriptableObject
         Fan
     }
 
+    public enum DamageType
+    {
+        Physical,
+        Fire,
+        Corruption,
+        Cold
+    }
+
     [Serializable]
     public sealed class SkillEntry
     {
@@ -79,6 +87,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float damageMultiplier = 1f;
         public float attributeMultiplier = 1f;
         public int fixedDamage;
+        public DamageType damageType = DamageType.Physical;
         public int actionPointCost = 1;
         public int manaCost;
         public int cooldownTurns;

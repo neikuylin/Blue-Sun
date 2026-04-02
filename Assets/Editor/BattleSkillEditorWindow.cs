@@ -48,6 +48,14 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         "扇形"
     };
 
+    private static readonly string[] DamageTypeLabels =
+    {
+        "物理",
+        "火焰",
+        "腐败",
+        "寒冷"
+    };
+
     private Vector2 scroll;
     private SerializedObject databaseObject;
     private readonly Dictionary<string, bool> entryFoldoutStates = new Dictionary<string, bool>();
@@ -157,6 +165,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 {
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("attributeMultiplier"), new GUIContent("\u5c5e\u6027\u500d\u7387"));
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("fixedDamage"), new GUIContent("\u56fa\u5b9a\u4f24\u5bb3"));
+                    SerializedProperty damageType = entry.FindPropertyRelative("damageType");
+                    damageType.enumValueIndex = EditorGUILayout.Popup("\u4f24\u5bb3\u7c7b\u578b", damageType.enumValueIndex, DamageTypeLabels);
                     entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
                 }
                 else
@@ -164,6 +174,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
                     entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
                     entry.FindPropertyRelative("fixedDamage").intValue = 0;
+                    entry.FindPropertyRelative("damageType").enumValueIndex = (int)BattleSkillDatabase.DamageType.Physical;
                 }
 
                 bool rangeFromMoveDistance = EditorGUILayout.Toggle("\u5c04\u7a0b\u53d6\u79fb\u52a8\u8ddd\u79bb", useMoveDistanceAsRange.boolValue);
@@ -253,6 +264,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("fixedDamage").intValue = 0;
+        entry.FindPropertyRelative("damageType").enumValueIndex = (int)BattleSkillDatabase.DamageType.Physical;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;
         entry.FindPropertyRelative("cooldownTurns").intValue = 0;
