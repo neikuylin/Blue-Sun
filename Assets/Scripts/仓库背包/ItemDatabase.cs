@@ -101,6 +101,8 @@ public sealed class ItemDatabase : ScriptableObject
         public float fixedDamage;
         public int criticalChanceBonus;
         public int criticalDamageBonus;
+        public float staffDamageMultiplier = 1f;
+        public int manaRecovery;
         public string description = string.Empty;
         public List<string> grantedSkillIds = new List<string>();
         public List<WeaponAttributeMultiplierEntry> weaponAttributeMultipliers = new List<WeaponAttributeMultiplierEntry>();
@@ -237,6 +239,14 @@ public sealed class ItemDatabase : ScriptableObject
         WeaponCategory weaponCategory)
     {
         return ShouldShowWeaponAttributeMultiplier(category, weaponCategory);
+    }
+
+    public static bool ShouldShowStaffFields(
+        ItemCategory category,
+        WeaponCategory weaponCategory)
+    {
+        return category == ItemCategory.Equipment &&
+            weaponCategory == WeaponCategory.Staff;
     }
 
     public static void EnsureValidWeaponDamageDistribution(ItemEntry entry)

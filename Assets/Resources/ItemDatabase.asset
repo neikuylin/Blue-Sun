@@ -27,6 +27,8 @@ MonoBehaviour:
     fixedDamage: 3
     criticalChanceBonus: 0
     criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u968F\u5904\u53EF\u89C1\u7684\u6B66\u5668\u3002"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -54,6 +56,8 @@ MonoBehaviour:
     fixedDamage: 3
     criticalChanceBonus: 0
     criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u5BBD\u5203"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -79,6 +83,8 @@ MonoBehaviour:
     fixedDamage: 4
     criticalChanceBonus: 0
     criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u7834\u7532\uFF01"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -104,6 +110,8 @@ MonoBehaviour:
     fixedDamage: 4
     criticalChanceBonus: 0
     criticalDamageBonus: 20
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u4E07\u7528\u7684\u751F\u5B58\u5DE5\u5177\uFF0C\u5076\u5C14\u4E5F\u88AB\u62FF\u6765\u5F53\u6B66\u5668"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -129,6 +137,8 @@ MonoBehaviour:
     fixedDamage: 4
     criticalChanceBonus: 0
     criticalDamageBonus: 20
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u5965\u624E\u514B\u4EBA\u7528\u6765\u4E3E\u884C\u8BC5\u5492\u4EEA\u5F0F\u7684\u5C0F\u5200\uFF0C\u4E0A\u9762\u6CBE\u6EE1\u4E86\u53D7\u5BB3\u8005\u7684\u9C9C\u8840"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -156,6 +166,8 @@ MonoBehaviour:
     fixedDamage: 10
     criticalChanceBonus: 20
     criticalDamageBonus: 100
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: 
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
@@ -185,6 +197,8 @@ MonoBehaviour:
     fixedDamage: 3
     criticalChanceBonus: 0
     criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
     description: "\u54BB\uFF01"
     grantedSkillIds:
     - "\u5C04\u51FB"
@@ -196,3 +210,26 @@ MonoBehaviour:
       value: 0
     prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
+  - itemId: "itm_\u4FEE\u58EB\u6756"
+    displayName: "\u4FEE\u58EB\u6756"
+    category: 0
+    quality: 0
+    equipmentSlot: 1
+    weaponCategory: 4
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 0
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 1
+    description: "\u4F20\u64AD\u5149\u660E"
+    grantedSkillIds:
+    - "\u706B\u7403"
+    weaponAttributeMultipliers: []
+    weaponResistancePenetrations: []
+    prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
+    weaponModelPrefab: {fileID: 0}

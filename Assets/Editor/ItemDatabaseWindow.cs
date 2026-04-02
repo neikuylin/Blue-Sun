@@ -17,6 +17,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private float createFixedDamage;
     private int createCriticalChanceBonus;
     private int createCriticalDamageBonus;
+    private float createStaffDamageMultiplier = 1f;
+    private int createManaRecovery;
     private string newDescription = string.Empty;
     private readonly List<string> createGrantedSkillIds = new List<string> { string.Empty };
     private readonly List<ItemDatabase.WeaponAttributeMultiplierEntry> createWeaponAttributeMultipliers =
@@ -93,6 +95,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 ref createFixedDamage,
                 ref createCriticalChanceBonus,
                 ref createCriticalDamageBonus,
+                ref createStaffDamageMultiplier,
+                ref createManaRecovery,
                 createGrantedSkillIds,
                 createWeaponAttributeMultipliers,
                 createWeaponResistancePenetrations,
@@ -106,6 +110,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             createFixedDamage = 0f;
             createCriticalChanceBonus = 0;
             createCriticalDamageBonus = 0;
+            createStaffDamageMultiplier = 1f;
+            createManaRecovery = 0;
             ResetGrantedSkillList(createGrantedSkillIds);
             ResetWeaponAttributeList(createWeaponAttributeMultipliers);
             ResetWeaponResistancePenetrationList(createWeaponResistancePenetrations);
@@ -219,6 +225,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             float originalFixedDamage = entry.fixedDamage;
             int originalCriticalChanceBonus = entry.criticalChanceBonus;
             int originalCriticalDamageBonus = entry.criticalDamageBonus;
+            float originalStaffDamageMultiplier = entry.staffDamageMultiplier;
+            int originalManaRecovery = entry.manaRecovery;
             string originalDescription = entry.description;
             List<string> originalGrantedSkillIds = CloneGrantedSkillList(entry.grantedSkillIds);
             List<ItemDatabase.WeaponAttributeMultiplierEntry> originalWeaponAttributeMultipliers = CloneWeaponAttributeList(entry.weaponAttributeMultipliers);
@@ -256,6 +264,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     ref entry.fixedDamage,
                     ref entry.criticalChanceBonus,
                     ref entry.criticalDamageBonus,
+                    ref entry.staffDamageMultiplier,
+                    ref entry.manaRecovery,
                     entry.grantedSkillIds,
                     entry.weaponAttributeMultipliers,
                     entry.weaponResistancePenetrations,
@@ -269,6 +279,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 entry.fixedDamage = 0f;
                 entry.criticalChanceBonus = 0;
                 entry.criticalDamageBonus = 0;
+                entry.staffDamageMultiplier = 1f;
+                entry.manaRecovery = 0;
                 ResetGrantedSkillList(entry.grantedSkillIds);
                 ResetWeaponAttributeList(entry.weaponAttributeMultipliers);
                 ResetWeaponResistancePenetrationList(entry.weaponResistancePenetrations);
@@ -313,6 +325,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
                     entry.fixedDamage = originalFixedDamage;
                     entry.criticalChanceBonus = originalCriticalChanceBonus;
                     entry.criticalDamageBonus = originalCriticalDamageBonus;
+                    entry.staffDamageMultiplier = originalStaffDamageMultiplier;
+                    entry.manaRecovery = originalManaRecovery;
                     entry.grantedSkillIds = CloneGrantedSkillList(originalGrantedSkillIds);
                     entry.weaponAttributeMultipliers = CloneWeaponAttributeList(originalWeaponAttributeMultipliers);
                     entry.weaponResistancePenetrations = CloneWeaponResistancePenetrationList(originalWeaponResistancePenetrations);
@@ -389,6 +403,12 @@ public sealed class ItemDatabaseWindow : EditorWindow
                 : 0,
             criticalDamageBonus = ItemDatabase.ShouldShowWeaponAttributeMultiplier(createCategory, createWeaponCategory)
                 ? Mathf.Max(0, createCriticalDamageBonus)
+                : 0,
+            staffDamageMultiplier = ItemDatabase.ShouldShowStaffFields(createCategory, createWeaponCategory)
+                ? Mathf.Max(0f, createStaffDamageMultiplier)
+                : 1f,
+            manaRecovery = ItemDatabase.ShouldShowStaffFields(createCategory, createWeaponCategory)
+                ? Mathf.Max(0, createManaRecovery)
                 : 0,
             grantedSkillIds = ItemDatabase.ShouldShowGrantedSkillList(createCategory, createWeaponCategory)
                 ? CloneGrantedSkillList(createGrantedSkillIds)
@@ -513,6 +533,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
         ref float fixedDamage,
         ref int criticalChanceBonus,
         ref int criticalDamageBonus,
+        ref float staffDamageMultiplier,
+        ref int manaRecovery,
         List<string> grantedSkillIds,
         List<ItemDatabase.WeaponAttributeMultiplierEntry> multipliers,
         List<ItemDatabase.WeaponResistancePenetrationEntry> resistancePenetrations,
@@ -520,6 +542,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     {
         bool showWeaponFields = ItemDatabase.ShouldShowWeaponAttributeMultiplier(category, weaponCategory);
         bool showGrantedSkills = ItemDatabase.ShouldShowGrantedSkillList(category, weaponCategory);
+        bool showStaffFields = ItemDatabase.ShouldShowStaffFields(category, weaponCategory);
 
         if (!showWeaponFields)
         {
@@ -531,6 +554,12 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ResetWeaponResistancePenetrationList(resistancePenetrations);
         }
 
+        if (!showStaffFields)
+        {
+            staffDamageMultiplier = 1f;
+            manaRecovery = 0;
+        }
+
         if (!showGrantedSkills)
         {
             ResetGrantedSkillList(grantedSkillIds);
@@ -538,6 +567,12 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         if (!showWeaponFields)
         {
+            if (showStaffFields)
+            {
+                staffDamageMultiplier = Mathf.Max(0f, EditorGUILayout.FloatField("伤害倍率", staffDamageMultiplier));
+                manaRecovery = Mathf.Max(0, EditorGUILayout.IntField("法力回复", manaRecovery));
+            }
+
             if (showGrantedSkills)
             {
                 DrawGrantedSkillFields(grantedSkillIds, skillDatabase);
