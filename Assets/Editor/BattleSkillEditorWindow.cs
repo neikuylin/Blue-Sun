@@ -150,7 +150,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 BattleSkillDatabase.SkillGroup currentGroup = (BattleSkillDatabase.SkillGroup)group.enumValueIndex;
-                EditorGUILayout.HelpBox("当前不会自动清空技能本体动作字段。", MessageType.Info);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
@@ -301,7 +300,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
     private static string GetEntryFoldoutKey(string skillId, int index)
     {
-        return string.IsNullOrWhiteSpace(skillId) ? $"skill_{index}" : $"skill_{skillId}";
+        return $"skill_{index}";
     }
 
     private static string BuildSkillHeaderLabel(string skillId, int index)
