@@ -13,6 +13,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private const string StrengthPath = "\u6587\u672c\u533a\u57df/\u529b\u91cf";
     private const string AgilityPath = "\u6587\u672c\u533a\u57df/\u654f\u6377";
     private const string IntelligencePath = "\u6587\u672c\u533a\u57df/\u667a\u529b";
+    private const string HitRatePath = "\u6587\u672c\u533a\u57df/\u547d\u4e2d\u7387";
+    private const string DodgeRatePath = "\u6587\u672c\u533a\u57df/\u95ea\u907f\u7387";
     private const string PhysicalResistancePath = "\u6587\u672c\u533a\u57df/\u7269\u7406\u6297\u6027";
     private const string FireResistancePath = "\u6587\u672c\u533a\u57df/\u706b\u7130\u6297\u6027";
     private const string CorruptionResistancePath = "\u6587\u672c\u533a\u57df/\u8150\u8d25\u6297\u6027";
@@ -32,6 +34,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     [SerializeField] private Component strengthText;
     [SerializeField] private Component agilityText;
     [SerializeField] private Component intelligenceText;
+    [SerializeField] private Component hitRateText;
+    [SerializeField] private Component dodgeRateText;
     [SerializeField] private Component physicalResistanceText;
     [SerializeField] private Component fireResistanceText;
     [SerializeField] private Component corruptionResistanceText;
@@ -83,6 +87,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         strengthText = FindTextByPath(StrengthPath);
         agilityText = FindTextByPath(AgilityPath);
         intelligenceText = FindTextByPath(IntelligencePath);
+        hitRateText = FindTextByPath(HitRatePath);
+        dodgeRateText = FindTextByPath(DodgeRatePath);
         physicalResistanceText = FindTextByPath(PhysicalResistancePath);
         fireResistanceText = FindTextByPath(FireResistancePath);
         corruptionResistanceText = FindTextByPath(CorruptionResistancePath);
@@ -136,6 +142,16 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         if (intelligenceText == null)
         {
             intelligenceText = FindTextByPath(IntelligencePath);
+        }
+
+        if (hitRateText == null)
+        {
+            hitRateText = FindTextByPath(HitRatePath);
+        }
+
+        if (dodgeRateText == null)
+        {
+            dodgeRateText = FindTextByPath(DodgeRatePath);
         }
 
         if (physicalResistanceText == null)
@@ -211,20 +227,26 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
         float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
         int spellDamage = CalculateDisplayedSpellDamage(characterId, battleUnit, statEntry);
+        int hitRate = battleUnit != null
+            ? battleUnit.HitRate
+            : statEntry != null ? statEntry.ResolveHitRate() : -1;
+        int dodgeRate = battleUnit != null
+            ? battleUnit.DodgeRate
+            : statEntry != null ? statEntry.ResolveDodgeRate() : -1;
         int criticalChance = statEntry != null
             ? statEntry.ResolveCriticalChance() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(characterId)
             : -1;
         int criticalDamage = statEntry != null
             ? statEntry.ResolveCriticalDamage() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(characterId)
             : -1;
-        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower, spellDamage, criticalChance, criticalDamage);
+        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower, spellDamage, hitRate, dodgeRate, criticalChance, criticalDamage);
         if (!force && string.Equals(lastSignature, signature, System.StringComparison.Ordinal))
         {
             return;
         }
 
         lastSignature = signature;
-        ApplyCharacter(characterId, battleUnit, statEntry, attackPower, spellDamage, criticalChance, criticalDamage);
+        ApplyCharacter(characterId, battleUnit, statEntry, attackPower, spellDamage, hitRate, dodgeRate, criticalChance, criticalDamage);
     }
 
     private static string ResolveCurrentCharacterId()
@@ -319,6 +341,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         CharacterStatDatabase.StatEntry statEntry,
         float attackPower,
         int spellDamage,
+        int hitRate,
+        int dodgeRate,
         int criticalChance,
         int criticalDamage)
     {
@@ -336,6 +360,10 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
             battleUnit != null ? battleUnit.currentActionPoints : -1,
             "|",
             spellDamage,
+            "|",
+            hitRate,
+            "|",
+            dodgeRate,
             "|",
             statEntry != null ? statEntry.strength : -1,
             "|",
@@ -372,6 +400,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         CharacterStatDatabase.StatEntry statEntry,
         float attackPower,
         int spellDamage,
+        int hitRate,
+        int dodgeRate,
         int criticalChance,
         int criticalDamage)
     {
@@ -395,6 +425,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         SetText(strengthText, statEntry != null ? "\u529b\u91cf:" + statEntry.strength : "\u529b\u91cf:");
         SetText(agilityText, statEntry != null ? "\u654f\u6377:" + statEntry.agility : "\u654f\u6377:");
         SetText(intelligenceText, statEntry != null ? "\u667a\u529b:" + statEntry.intelligence : "\u667a\u529b:");
+        SetText(hitRateText, hitRate >= 0 ? "\u547d\u4e2d:" + hitRate + "%" : "\u547d\u4e2d:");
+        SetText(dodgeRateText, dodgeRate >= 0 ? "\u95ea\u907f:" + dodgeRate + "%" : "\u95ea\u907f:");
         SetText(physicalResistanceText, statEntry != null ? "\u7269\u7406\u6297\u6027:" + statEntry.ResolvePhysicalResistance() + "%" : "\u7269\u7406\u6297\u6027:");
         SetText(fireResistanceText, statEntry != null ? "\u706b\u7130\u6297\u6027:" + statEntry.ResolveFireResistance() + "%" : "\u706b\u7130\u6297\u6027:");
         SetText(corruptionResistanceText, statEntry != null ? "\u8150\u8d25\u6297\u6027:" + statEntry.ResolveCorruptionResistance() + "%" : "\u8150\u8d25\u6297\u6027:");
