@@ -201,6 +201,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51b7\u5374\u65f6\u95f4\uff08\u56de\u5408\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("\u9b54\u6cd5\u6d88\u8017\uff08MP\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("\u884c\u52a8\u529b\u6d88\u8017\uff08AP\uff09"));
+                DrawAttachedEffects(entry.FindPropertyRelative("attachedEffectIds"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.CombatArt)
                 {
                     DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
@@ -286,6 +287,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("axisWidth").intValue = 3;
         entry.FindPropertyRelative("axisAngle").floatValue = 180f;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
+        entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
     }
@@ -329,6 +331,105 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     private static string BuildSkillHeaderLabel(string skillId, int index)
     {
         return string.IsNullOrWhiteSpace(skillId) ? $"未命名技能 {index + 1}" : skillId;
+    }
+
+    private static void DrawAttachedEffects(SerializedProperty attachedEffectIdsProperty)
+    {
+        if (attachedEffectIdsProperty == null)
+        {
+            return;
+        }
+
+        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
+        List<EffectDatabase.EffectEntry> effectEntries = effectDatabase != null ? effectDatabase.Entries : null;
+
+        EditorGUILayout.Space(2f);
+        EditorGUILayout.LabelField("附加效果");
+
+        if (attachedEffectIdsProperty.arraySize == 0)
+        {
+            EditorGUILayout.HelpBox("当前没有附加效果。可从效果编辑器中配置好的效果里选择。", MessageType.None);
+        }
+
+        for (int i = 0; i < attachedEffectIdsProperty.arraySize; i++)
+        {
+            SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(i);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                string currentEffectId = effectIdProperty != null ? effectIdProperty.stringValue : string.Empty;
+                int selectedIndex = ResolveAttachedEffectIndex(effectEntries, currentEffectId);
+                string[] popupOptions = BuildAttachedEffectOptions(effectEntries);
+                int nextIndex = EditorGUILayout.Popup("效果 " + (i + 1), selectedIndex, popupOptions);
+                effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, nextIndex);
+
+                if (GUILayout.Button("删除", GUILayout.Width(60f)))
+                {
+                    attachedEffectIdsProperty.DeleteArrayElementAtIndex(i);
+                    break;
+                }
+            }
+        }
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("新增附加效果", GUILayout.Width(120f)))
+            {
+                int index = attachedEffectIdsProperty.arraySize;
+                attachedEffectIdsProperty.InsertArrayElementAtIndex(index);
+                SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(index);
+                effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
+            }
+        }
+    }
+
+    private static string[] BuildAttachedEffectOptions(List<EffectDatabase.EffectEntry> effectEntries)
+    {
+        if (effectEntries == null || effectEntries.Count == 0)
+        {
+            return new[] { "<无可用效果>" };
+        }
+
+        string[] options = new string[effectEntries.Count];
+        for (int i = 0; i < effectEntries.Count; i++)
+        {
+            EffectDatabase.EffectEntry entry = effectEntries[i];
+            string effectId = entry != null ? entry.effectId : string.Empty;
+            options[i] = string.IsNullOrWhiteSpace(effectId) ? "<未命名效果>" : effectId;
+        }
+
+        return options;
+    }
+
+    private static int ResolveAttachedEffectIndex(List<EffectDatabase.EffectEntry> effectEntries, string effectId)
+    {
+        if (effectEntries == null || effectEntries.Count == 0 || string.IsNullOrWhiteSpace(effectId))
+        {
+            return 0;
+        }
+
+        for (int i = 0; i < effectEntries.Count; i++)
+        {
+            EffectDatabase.EffectEntry entry = effectEntries[i];
+            if (entry != null && string.Equals(entry.effectId, effectId, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private static string ResolveAttachedEffectIdByIndex(List<EffectDatabase.EffectEntry> effectEntries, int index)
+    {
+        if (effectEntries == null || effectEntries.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        int safeIndex = Mathf.Clamp(index, 0, effectEntries.Count - 1);
+        EffectDatabase.EffectEntry entry = effectEntries[safeIndex];
+        return entry != null && !string.IsNullOrWhiteSpace(entry.effectId) ? entry.effectId : string.Empty;
     }
 
     private static void DrawRequiredWeaponCategories(SerializedProperty requiredCategoriesProperty)

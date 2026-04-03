@@ -99,6 +99,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int axisWidth = 3;
         public float axisAngle = 180f;
         public Vector2Int effectSize = new Vector2Int(3, 3);
+        public List<string> attachedEffectIds = new List<string>();
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
         public List<WeaponScopedActionOverride> weaponActionOverrides = new List<WeaponScopedActionOverride>();
 
