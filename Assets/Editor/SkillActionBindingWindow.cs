@@ -106,7 +106,10 @@ public sealed class SkillActionBindingWindow : EditorWindow
             return;
         }
 
-        List<ItemDatabase.WeaponCategory> categories = GetRequiredWeaponCategories(requiredWeaponCategoriesProperty);
+        bool isMoveSkill = string.Equals(skillId, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal);
+        List<ItemDatabase.WeaponCategory> categories = isMoveSkill
+            ? GetMoveSkillWeaponCategories()
+            : GetRequiredWeaponCategories(requiredWeaponCategoriesProperty);
         SyncWeaponOverrideEntries(overridesProperty, categories);
 
         EditorGUILayout.Space(4f);
@@ -127,7 +130,14 @@ public sealed class SkillActionBindingWindow : EditorWindow
                 return;
             }
 
-            EditorGUILayout.HelpBox("技能动作只读取这里的武器分流。上面的技能本体动作字段已经退出使用。", MessageType.Info);
+            if (isMoveSkill)
+            {
+                EditorGUILayout.HelpBox("移动技能固定按武器类别读取动作，包含无武器、单手、双手、弓箭。这里不依赖“必须武器”。", MessageType.Info);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("技能动作只读取这里的武器分流。上面的技能本体动作字段已经退出使用。", MessageType.Info);
+            }
 
             for (int i = 0; i < categories.Count; i++)
             {
@@ -297,6 +307,17 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         return categories;
+    }
+
+    private static List<ItemDatabase.WeaponCategory> GetMoveSkillWeaponCategories()
+    {
+        return new List<ItemDatabase.WeaponCategory>
+        {
+            ItemDatabase.WeaponCategory.None,
+            ItemDatabase.WeaponCategory.OneHanded,
+            ItemDatabase.WeaponCategory.TwoHanded,
+            ItemDatabase.WeaponCategory.Bow
+        };
     }
 
     private static void ApplyWeaponCategory(SerializedProperty entry, ItemDatabase.WeaponCategory category)

@@ -5717,7 +5717,8 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ItemDatabase.WeaponCategory weaponCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(unit.characterId);
-        if (!skill.HasRequiredWeaponCategory(weaponCategory))
+        bool isMoveSkill = string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal);
+        if (!isMoveSkill && !skill.HasRequiredWeaponCategory(weaponCategory))
         {
             return null;
         }
