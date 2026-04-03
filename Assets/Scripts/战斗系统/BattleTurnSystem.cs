@@ -3558,8 +3558,7 @@ public class BattleTurnSystem : MonoBehaviour
         string targetName = ResolveBattleInfoUnitName(target, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
 
-        bool isDamageSkill = skill.group == BattleSkillDatabase.SkillGroup.CombatArt ||
-            skill.group == BattleSkillDatabase.SkillGroup.Spell;
+        bool isDamageSkill = IsSkillConfiguredForDamage(skill);
         if (!isDamageSkill)
         {
             ApplyAttachedEffectsToUnit(caster, target, skill);
@@ -3647,8 +3646,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         string casterName = ResolveBattleInfoUnitName(caster, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
-        bool isDamageSkill = skill.group == BattleSkillDatabase.SkillGroup.CombatArt ||
-            skill.group == BattleSkillDatabase.SkillGroup.Spell;
+        bool isDamageSkill = IsSkillConfiguredForDamage(skill);
         if (!isDamageSkill)
         {
             ApplyAttachedEffectsToUnits(caster, CollectAreaSkillTargets(caster, targetCell, skill), skill);
@@ -4135,6 +4133,24 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return Random.Range(0, MaxHitChancePercent) < hitChance;
+    }
+
+    private static bool IsSkillConfiguredForDamage(BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null)
+        {
+            return false;
+        }
+
+        switch (skill.group)
+        {
+            case BattleSkillDatabase.SkillGroup.CombatArt:
+                return skill.damageMultiplier > 0f;
+            case BattleSkillDatabase.SkillGroup.Spell:
+                return skill.fixedDamage > 0 || skill.attributeMultiplier > 0f;
+            default:
+                return false;
+        }
     }
 
     private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
