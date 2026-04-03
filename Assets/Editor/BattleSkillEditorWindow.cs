@@ -161,6 +161,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.Spell)
                 {
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("attributeMultiplier"), new GUIContent("\u5c5e\u6027\u500d\u7387"));
@@ -272,6 +273,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
+        entry.FindPropertyRelative("noDamage").boolValue = false;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("fixedDamage").intValue = 0;
@@ -341,7 +343,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         }
 
         EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
-        List<EffectDatabase.EffectEntry> effectEntries = effectDatabase != null ? effectDatabase.Entries : null;
+        List<EffectDatabase.EffectEntry> effectEntries = GetValidEffectEntries(effectDatabase);
 
         EditorGUILayout.Space(2f);
         EditorGUILayout.LabelField("附加效果");
@@ -357,10 +359,18 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 string currentEffectId = effectIdProperty != null ? effectIdProperty.stringValue : string.Empty;
-                int selectedIndex = ResolveAttachedEffectIndex(effectEntries, currentEffectId);
-                string[] popupOptions = BuildAttachedEffectOptions(effectEntries);
-                int nextIndex = EditorGUILayout.Popup("效果 " + (i + 1), selectedIndex, popupOptions);
-                effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, nextIndex);
+                if (effectEntries == null || effectEntries.Count == 0)
+                {
+                    EditorGUILayout.LabelField("没有可用效果");
+                    effectIdProperty.stringValue = string.Empty;
+                }
+                else
+                {
+                    int selectedIndex = ResolveAttachedEffectIndex(effectEntries, currentEffectId);
+                    string[] popupOptions = BuildAttachedEffectOptions(effectEntries);
+                    int nextIndex = EditorGUILayout.Popup("效果 " + (i + 1), selectedIndex, popupOptions);
+                    effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, nextIndex);
+                }
 
                 if (GUILayout.Button("删除", GUILayout.Width(60f)))
                 {
@@ -373,29 +383,26 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         using (new EditorGUILayout.HorizontalScope())
         {
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("新增附加效果", GUILayout.Width(120f)))
+            using (new EditorGUI.DisabledScope(effectEntries == null || effectEntries.Count == 0))
             {
-                int index = attachedEffectIdsProperty.arraySize;
-                attachedEffectIdsProperty.InsertArrayElementAtIndex(index);
-                SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(index);
-                effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
+                if (GUILayout.Button("新增附加效果", GUILayout.Width(120f)))
+                {
+                    int index = attachedEffectIdsProperty.arraySize;
+                    attachedEffectIdsProperty.InsertArrayElementAtIndex(index);
+                    SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(index);
+                    effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
+                }
             }
         }
     }
 
     private static string[] BuildAttachedEffectOptions(List<EffectDatabase.EffectEntry> effectEntries)
     {
-        if (effectEntries == null || effectEntries.Count == 0)
-        {
-            return new[] { "<无可用效果>" };
-        }
-
         string[] options = new string[effectEntries.Count];
         for (int i = 0; i < effectEntries.Count; i++)
         {
             EffectDatabase.EffectEntry entry = effectEntries[i];
-            string effectId = entry != null ? entry.effectId : string.Empty;
-            options[i] = string.IsNullOrWhiteSpace(effectId) ? "<未命名效果>" : effectId;
+            options[i] = entry.effectId;
         }
 
         return options;
@@ -429,7 +436,29 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
         int safeIndex = Mathf.Clamp(index, 0, effectEntries.Count - 1);
         EffectDatabase.EffectEntry entry = effectEntries[safeIndex];
-        return entry != null && !string.IsNullOrWhiteSpace(entry.effectId) ? entry.effectId : string.Empty;
+        return entry.effectId;
+    }
+
+    private static List<EffectDatabase.EffectEntry> GetValidEffectEntries(EffectDatabase effectDatabase)
+    {
+        List<EffectDatabase.EffectEntry> result = new List<EffectDatabase.EffectEntry>();
+        if (effectDatabase == null || effectDatabase.Entries == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < effectDatabase.Entries.Count; i++)
+        {
+            EffectDatabase.EffectEntry entry = effectDatabase.Entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.effectId))
+            {
+                continue;
+            }
+
+            result.Add(entry);
+        }
+
+        return result;
     }
 
     private static void DrawRequiredWeaponCategories(SerializedProperty requiredCategoriesProperty)
@@ -566,6 +595,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             skillType = BattleSkillDatabase.SkillType.Area,
             castTarget = BattleSkillDatabase.CastTarget.Self,
             icon = null,
+            noDamage = true,
             damageMultiplier = 1f,
             actionPointCost = 1,
             manaCost = 0,

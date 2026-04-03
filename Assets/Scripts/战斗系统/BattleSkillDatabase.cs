@@ -84,6 +84,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public SkillType skillType = SkillType.Target;
         public CastTarget castTarget = CastTarget.Enemy;
         public Sprite icon;
+        public bool noDamage;
         public float damageMultiplier = 1f;
         public float attributeMultiplier = 1f;
         public int fixedDamage;

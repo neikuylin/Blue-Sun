@@ -84,14 +84,7 @@ public sealed class EffectDatabase : ScriptableObject
         public List<StatModifier> statModifiers = new List<StatModifier>();
     }
 
-    [SerializeField] private GameObject effectPopupTextObject;
     [SerializeField] private List<EffectEntry> entries = new List<EffectEntry>();
-
-    public GameObject EffectPopupTextObject
-    {
-        get { return effectPopupTextObject; }
-        set { effectPopupTextObject = value; }
-    }
 
     public List<EffectEntry> Entries => entries;
 

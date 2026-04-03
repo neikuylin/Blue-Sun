@@ -27,6 +27,7 @@ MonoBehaviour:
     skillType: 1
     castTarget: 0
     icon: {fileID: 0}
+    noDamage: 0
     damageMultiplier: 1
     attributeMultiplier: 1
     fixedDamage: 0
@@ -43,47 +44,8 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 3, y: 3}
     attachedEffectIds: []
-    requiredWeaponCategories: 010000000200000003000000
-    weaponActionOverrides:
-    - enabled: 1
-      weaponCategory: 1
-      raiseHandStateName: 
-      raiseHandYawOffset: 0
-      targetSelectionStateName: 
-      targetSelectionYawOffset: 0
-      actionStateName: "\u5355\u624B\u6B66\u5668\u79FB\u52A8\u52A8\u753B"
-      actionYawOffset: 0
-      postUseYawOffset: 0
-      actionSound: {fileID: 0}
-      actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
-      soundDelayFrame: 0
-      compensateActionMotion: 0
-    - enabled: 1
-      weaponCategory: 2
-      raiseHandStateName: 
-      raiseHandYawOffset: 0
-      targetSelectionStateName: 
-      targetSelectionYawOffset: 0
-      actionStateName: 
-      actionYawOffset: 0
-      postUseYawOffset: 0
-      actionSound: {fileID: 0}
-      actionSoundPrefab: {fileID: 0}
-      soundDelayFrame: 0
-      compensateActionMotion: 0
-    - enabled: 1
-      weaponCategory: 3
-      raiseHandStateName: 
-      raiseHandYawOffset: 0
-      targetSelectionStateName: 
-      targetSelectionYawOffset: 0
-      actionStateName: "\u5F13\u7BAD\u79FB\u52A8\u52A8\u753B"
-      actionYawOffset: 0
-      postUseYawOffset: 0
-      actionSound: {fileID: 0}
-      actionSoundPrefab: {fileID: 0}
-      soundDelayFrame: 0
-      compensateActionMotion: 0
+    requiredWeaponCategories: 
+    weaponActionOverrides: []
   - skillId: "\u666E\u901A\u653B\u51FB"
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: 
@@ -98,6 +60,7 @@ MonoBehaviour:
     skillType: 0
     castTarget: 1
     icon: {fileID: 21300000, guid: a8a1b3e337f09c643b91931fe1f7ef80, type: 3}
+    noDamage: 0
     damageMultiplier: 1
     attributeMultiplier: 1
     fixedDamage: 0
@@ -156,6 +119,7 @@ MonoBehaviour:
     skillType: 1
     castTarget: 1
     icon: {fileID: 21300000, guid: eac28855648d9b645a7140c5522bc961, type: 3}
+    noDamage: 0
     damageMultiplier: 0.8
     attributeMultiplier: 1
     fixedDamage: 0
@@ -214,6 +178,7 @@ MonoBehaviour:
     skillType: 0
     castTarget: 1
     icon: {fileID: 21300000, guid: e7e72f8fbed20d74dbcabc20d3f56a3a, type: 3}
+    noDamage: 0
     damageMultiplier: 0.9
     attributeMultiplier: 1
     fixedDamage: 0
@@ -259,6 +224,7 @@ MonoBehaviour:
     skillType: 0
     castTarget: 1
     icon: {fileID: 914947735, guid: 42771b41a34cc50438ae750d1c7bf85b, type: 3}
+    noDamage: 0
     damageMultiplier: 1
     attributeMultiplier: 0.8
     fixedDamage: 3
@@ -292,6 +258,7 @@ MonoBehaviour:
     skillType: 0
     castTarget: 0
     icon: {fileID: 21300000, guid: e8620ae0092410f4e9b3145b8941728d, type: 3}
+    noDamage: 0
     damageMultiplier: 1
     attributeMultiplier: 0
     fixedDamage: 0

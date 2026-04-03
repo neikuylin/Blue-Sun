@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea4a2740f3a6b44469e2f9ac6243027a, type: 3}
   m_Name: EffectDatabase
   m_EditorClassIdentifier: 
-  effectPopupTextObject: {fileID: 6657174922357475323, guid: 1e854f63acf007240aba007e5ff94e7d, type: 3}
   entries:
   - effectId: "\u71C3\u70E7"
     displayName: "\u71C3\u70E7"

@@ -7,6 +7,13 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class BattleDamageNumberPopup : MonoBehaviour
 {
+    public enum ConfiguredPopupKind
+    {
+        Damage,
+        Miss,
+        Effect
+    }
+
     public struct DamageSegment
     {
         public string text;
@@ -62,17 +69,39 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        instance.ShowInternal(target, amount.ToString(), instance.damageColor, worldCamera);
+        GameObject popupPrefab = GetConfiguredPopupPrefab(ConfiguredPopupKind.Damage);
+        if (popupPrefab == null)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, amount.ToString(), instance.damageColor, worldCamera, popupPrefab);
     }
 
     public static void ShowText(BattleUnit target, string content, Camera worldCamera = null, GameObject popupPrefab = null, Color? popupColor = null)
+    {
+        if (instance == null || target == null || string.IsNullOrWhiteSpace(content) || popupPrefab == null || !popupColor.HasValue)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, content, popupColor.Value, worldCamera, popupPrefab);
+    }
+
+    public static void ShowConfiguredText(BattleUnit target, string content, ConfiguredPopupKind popupKind, Color popupColor, Camera worldCamera = null)
     {
         if (instance == null || target == null || string.IsNullOrWhiteSpace(content))
         {
             return;
         }
 
-        instance.ShowInternal(target, content, popupColor ?? instance.damageColor, worldCamera, popupPrefab);
+        GameObject popupPrefab = GetConfiguredPopupPrefab(popupKind);
+        if (popupPrefab == null)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, content, popupColor, worldCamera, popupPrefab);
     }
 
     public static void ShowSegments(BattleUnit target, IList<DamageSegment> segments, Camera worldCamera = null)
@@ -88,7 +117,13 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        instance.ShowInternal(target, content, Color.white, worldCamera);
+        GameObject popupPrefab = GetConfiguredPopupPrefab(ConfiguredPopupKind.Damage);
+        if (popupPrefab == null)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, content, Color.white, worldCamera, popupPrefab);
     }
 
     public static void ShowMiss(BattleUnit target, Camera worldCamera = null)
@@ -98,7 +133,34 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        instance.ShowInternal(target, "MISS", instance.missColor, worldCamera);
+        GameObject popupPrefab = GetConfiguredPopupPrefab(ConfiguredPopupKind.Miss);
+        if (popupPrefab == null)
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, "MISS", instance.missColor, worldCamera, popupPrefab);
+    }
+
+    private static GameObject GetConfiguredPopupPrefab(ConfiguredPopupKind popupKind)
+    {
+        TextPopupDatabase database = TextPopupDatabase.LoadDefault();
+        if (database == null)
+        {
+            return null;
+        }
+
+        switch (popupKind)
+        {
+            case ConfiguredPopupKind.Damage:
+                return database.DamagePopupTextObject;
+            case ConfiguredPopupKind.Miss:
+                return database.MissPopupTextObject;
+            case ConfiguredPopupKind.Effect:
+                return database.EffectPopupTextObject;
+            default:
+                return null;
+        }
     }
 
     private void ShowInternal(BattleUnit target, string content, Color popupColor, Camera worldCamera, GameObject popupPrefab = null)
@@ -147,51 +209,28 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
         canvasGroup = null;
         popupOffset = Vector2.zero;
 
-        if (popupPrefab != null)
+        if (popupPrefab == null)
         {
-            GameObject popupObject = Instantiate(popupPrefab, templateRect.parent, false);
-            popupObject.name = popupPrefab.name + "_Runtime";
-            popupObject.SetActive(true);
-
-            popup = popupObject.GetComponent<RectTransform>();
-            text = popupObject.GetComponentInChildren<TMP_Text>(true);
-            if (popup == null || text == null)
-            {
-                Destroy(popupObject);
-                return false;
-            }
-
-            popupOffset = popup.anchoredPosition;
-            canvasGroup = popupObject.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-            {
-                canvasGroup = popupObject.AddComponent<CanvasGroup>();
-            }
-
-            return true;
+            return false;
         }
 
-        popup = Instantiate(templateRect, templateRect.parent, false);
-        popup.gameObject.name = templateRect.name + "_Runtime";
-        BattleDamageNumberPopup popupScript = popup.GetComponent<BattleDamageNumberPopup>();
-        if (popupScript != null)
-        {
-            Destroy(popupScript);
-        }
+        GameObject popupObject = Instantiate(popupPrefab, templateRect.parent, false);
+        popupObject.name = popupPrefab.name + "_Runtime";
+        popupObject.SetActive(true);
 
-        popup.gameObject.SetActive(true);
-        text = popup.GetComponent<TMP_Text>();
-        if (text == null)
+        popup = popupObject.GetComponent<RectTransform>();
+        text = popupObject.GetComponentInChildren<TMP_Text>(true);
+        if (popup == null || text == null)
         {
-            Destroy(popup.gameObject);
+            Destroy(popupObject);
             return false;
         }
 
         popupOffset = popup.anchoredPosition;
-        canvasGroup = popup.GetComponent<CanvasGroup>();
+        canvasGroup = popupObject.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
         {
-            canvasGroup = popup.gameObject.AddComponent<CanvasGroup>();
+            canvasGroup = popupObject.AddComponent<CanvasGroup>();
         }
 
         return true;

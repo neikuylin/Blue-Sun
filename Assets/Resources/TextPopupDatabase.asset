@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4ce0e15d745f51469bf38de89817292, type: 3}
+  m_Name: TextPopupDatabase
+  m_EditorClassIdentifier: 
+  damagePopupTextObject: {fileID: 2949162768046300704, guid: 326d65121b1483f44b90a77d53874c81, type: 3}
+  missPopupTextObject: {fileID: 2949162768046300704, guid: 326d65121b1483f44b90a77d53874c81, type: 3}
+  effectPopupTextObject: {fileID: 6657174922357475323, guid: 1e854f63acf007240aba007e5ff94e7d, type: 3}

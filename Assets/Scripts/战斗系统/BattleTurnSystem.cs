@@ -3531,6 +3531,8 @@ public class BattleTurnSystem : MonoBehaviour
         CombatDamageResult damageResult = CalculateCombatArtDamage(caster, target, skill);
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
+            ApplyAttachedEffectsToUnit(caster, target, skill);
+            ShowZeroDamagePopup(target, skill);
             return;
         }
 
@@ -3558,13 +3560,6 @@ public class BattleTurnSystem : MonoBehaviour
         string targetName = ResolveBattleInfoUnitName(target, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
 
-        bool isDamageSkill = IsSkillConfiguredForDamage(skill);
-        if (!isDamageSkill)
-        {
-            ApplyAttachedEffectsToUnit(caster, target, skill);
-            return $"{casterName}对{targetName}使用了{skillName}";
-        }
-
         if (!RollSkillHit(caster, target, skill))
         {
             PlayDodgeReaction(target);
@@ -3575,6 +3570,8 @@ public class BattleTurnSystem : MonoBehaviour
         CombatDamageResult damageResult = CalculateSkillDamage(caster, target, skill);
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
+            ApplyAttachedEffectsToUnit(caster, target, skill);
+            ShowZeroDamagePopup(target, skill);
             return $"{casterName}对{targetName}使用了{skillName}";
         }
 
@@ -3620,6 +3617,8 @@ public class BattleTurnSystem : MonoBehaviour
             CombatDamageResult damageResult = CalculateCombatArtDamage(caster, unit, skill);
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
+                ApplyAttachedEffectsToUnit(caster, unit, skill);
+                ShowZeroDamagePopup(unit, skill);
                 continue;
             }
 
@@ -3646,13 +3645,6 @@ public class BattleTurnSystem : MonoBehaviour
 
         string casterName = ResolveBattleInfoUnitName(caster, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
-        bool isDamageSkill = IsSkillConfiguredForDamage(skill);
-        if (!isDamageSkill)
-        {
-            ApplyAttachedEffectsToUnits(caster, CollectAreaSkillTargets(caster, targetCell, skill), skill);
-            return FormatAreaSkillMessage(caster, targetCell, skill);
-        }
-
         List<string> hitTargets = new List<string>();
         List<string> missedTargets = new List<string>();
         List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
@@ -3676,6 +3668,9 @@ public class BattleTurnSystem : MonoBehaviour
             CombatDamageResult damageResult = CalculateSkillDamage(caster, unit, skill);
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
+                ApplyAttachedEffectsToUnit(caster, unit, skill);
+                ShowZeroDamagePopup(unit, skill);
+                hitTargets.Add($"{unitName}获得了效果");
                 continue;
             }
 
@@ -3989,6 +3984,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
+    private void ShowZeroDamagePopup(BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (target == null || skill == null || skill.noDamage)
+        {
+            return;
+        }
+
+        BattleDamageNumberPopup.ShowConfiguredText(
+            target,
+            "0",
+            BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
+            physicalDamageColor,
+            battleCamera);
+    }
+
     private List<BattleDamageNumberPopup.DamageSegment> BuildDamageSegments(CombatDamageResult damageResult)
     {
         List<BattleDamageNumberPopup.DamageSegment> segments = new List<BattleDamageNumberPopup.DamageSegment>();
@@ -4135,24 +4145,6 @@ public class BattleTurnSystem : MonoBehaviour
         return Random.Range(0, MaxHitChancePercent) < hitChance;
     }
 
-    private static bool IsSkillConfiguredForDamage(BattleSkillDatabase.SkillEntry skill)
-    {
-        if (skill == null)
-        {
-            return false;
-        }
-
-        switch (skill.group)
-        {
-            case BattleSkillDatabase.SkillGroup.CombatArt:
-                return skill.damageMultiplier > 0f;
-            case BattleSkillDatabase.SkillGroup.Spell:
-                return skill.fixedDamage > 0 || skill.attributeMultiplier > 0f;
-            default:
-                return false;
-        }
-    }
-
     private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
         if (caster == null || target == null || skill == null || skill.attachedEffectIds == null || skill.attachedEffectIds.Count == 0)
@@ -4160,8 +4152,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
-        GameObject popupPrefab = effectDatabase != null ? effectDatabase.EffectPopupTextObject : null;
         for (int i = 0; i < skill.attachedEffectIds.Count; i++)
         {
             string effectId = skill.attachedEffectIds[i];
@@ -4176,10 +4166,17 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            string popupText = !string.IsNullOrWhiteSpace(appliedEffectEntry.effectId)
-                ? appliedEffectEntry.effectId
-                : effectId;
-            BattleDamageNumberPopup.ShowText(target, popupText, battleCamera, popupPrefab);
+            if (appliedEffectEntry == null || string.IsNullOrWhiteSpace(appliedEffectEntry.effectId))
+            {
+                continue;
+            }
+
+            BattleDamageNumberPopup.ShowConfiguredText(
+                target,
+                appliedEffectEntry.effectId,
+                BattleDamageNumberPopup.ConfiguredPopupKind.Effect,
+                physicalDamageColor,
+                battleCamera);
         }
     }
 
