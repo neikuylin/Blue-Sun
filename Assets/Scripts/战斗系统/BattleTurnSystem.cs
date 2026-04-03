@@ -3536,6 +3536,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         PlayHitReaction(target);
         target.ApplyDamage(damageResult.appliedDamage);
+        ApplyAttachedEffectsToUnit(caster, target, skill);
         ShowDamagePopup(target, damageResult);
         HandleUnitDefeat(target);
     }
@@ -3561,6 +3562,7 @@ public class BattleTurnSystem : MonoBehaviour
             skill.group == BattleSkillDatabase.SkillGroup.Spell;
         if (!isDamageSkill)
         {
+            ApplyAttachedEffectsToUnit(caster, target, skill);
             return $"{casterName}对{targetName}使用了{skillName}";
         }
 
@@ -3579,6 +3581,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         PlayHitReaction(target);
         target.ApplyDamage(damageResult.appliedDamage);
+        ApplyAttachedEffectsToUnit(caster, target, skill);
         ShowDamagePopup(target, damageResult);
         HandleUnitDefeat(target);
         string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发了暴击，", PhysicalInfoColorHex)}" : string.Empty;
@@ -3623,6 +3626,7 @@ public class BattleTurnSystem : MonoBehaviour
 
             PlayHitReaction(unit);
             unit.ApplyDamage(damageResult.appliedDamage);
+            ApplyAttachedEffectsToUnit(caster, unit, skill);
             ShowDamagePopup(unit, damageResult);
             HandleUnitDefeat(unit);
         }
@@ -3647,6 +3651,7 @@ public class BattleTurnSystem : MonoBehaviour
             skill.group == BattleSkillDatabase.SkillGroup.Spell;
         if (!isDamageSkill)
         {
+            ApplyAttachedEffectsToUnits(caster, CollectAreaSkillTargets(caster, targetCell, skill), skill);
             return FormatAreaSkillMessage(caster, targetCell, skill);
         }
 
@@ -3678,6 +3683,7 @@ public class BattleTurnSystem : MonoBehaviour
 
             PlayHitReaction(unit);
             unit.ApplyDamage(damageResult.appliedDamage);
+            ApplyAttachedEffectsToUnit(caster, unit, skill);
             ShowDamagePopup(unit, damageResult);
             HandleUnitDefeat(unit);
             string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发暴击，", PhysicalInfoColorHex)}" : string.Empty;
@@ -4129,6 +4135,53 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return Random.Range(0, MaxHitChancePercent) < hitChance;
+    }
+
+    private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null || skill.attachedEffectIds == null || skill.attachedEffectIds.Count == 0)
+        {
+            return;
+        }
+
+        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
+        GameObject popupPrefab = effectDatabase != null ? effectDatabase.EffectPopupTextObject : null;
+        for (int i = 0; i < skill.attachedEffectIds.Count; i++)
+        {
+            string effectId = skill.attachedEffectIds[i];
+            if (string.IsNullOrWhiteSpace(effectId))
+            {
+                continue;
+            }
+
+            EffectDatabase.EffectEntry appliedEffectEntry;
+            if (!target.ApplyAttachedEffect(effectId, caster.characterId, out appliedEffectEntry))
+            {
+                continue;
+            }
+
+            string popupText = !string.IsNullOrWhiteSpace(appliedEffectEntry.effectId)
+                ? appliedEffectEntry.effectId
+                : effectId;
+            BattleDamageNumberPopup.ShowText(target, popupText, battleCamera, popupPrefab);
+        }
+    }
+
+    private void ApplyAttachedEffectsToUnits(BattleUnit caster, List<BattleUnit> targets, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (targets == null || targets.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < targets.Count; i++)
+        {
+            BattleUnit target = targets[i];
+            if (target != null && target.IsAlive)
+            {
+                ApplyAttachedEffectsToUnit(caster, target, skill);
+            }
+        }
     }
 
     private void PlayHitReaction(BattleUnit target)

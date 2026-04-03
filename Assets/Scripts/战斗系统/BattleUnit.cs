@@ -10,6 +10,13 @@ public enum BattleTeam
 
 public class BattleUnit : MonoBehaviour
 {
+    public sealed class ActiveEffectState
+    {
+        public string effectId = string.Empty;
+        public string sourceCharacterId = string.Empty;
+        public int stackCount = 1;
+    }
+
     private const string OutlineObjectPrefix = "__Outline_";
     private static readonly Color DefaultOutlineColor = Color.black;
     private const float DefaultOutlineWidth = 0.025f;
@@ -80,10 +87,16 @@ public class BattleUnit : MonoBehaviour
     private Transform animationCompensationTarget;
     private Vector3 animationCompensationLocalPosition;
     private Vector3 animationCompensationWorldPosition;
+    private readonly List<ActiveEffectState> activeEffects = new List<ActiveEffectState>();
 
     public bool IsAlive
     {
         get { return currentHealth > 0; }
+    }
+
+    public IReadOnlyList<ActiveEffectState> ActiveEffects
+    {
+        get { return activeEffects; }
     }
 
     public int Agility
@@ -317,6 +330,62 @@ public class BattleUnit : MonoBehaviour
         {
             gameObject.SetActive(false);
         }
+    }
+
+    public bool ApplyAttachedEffect(string effectId, string sourceCharacterId, out EffectDatabase.EffectEntry appliedEffectEntry)
+    {
+        appliedEffectEntry = null;
+        if (string.IsNullOrWhiteSpace(effectId))
+        {
+            return false;
+        }
+
+        EffectDatabase database = EffectDatabase.LoadDefault();
+        EffectDatabase.EffectEntry effectEntry = database != null ? database.FindEntry(effectId) : null;
+        if (effectEntry == null)
+        {
+            return false;
+        }
+
+        ActiveEffectState existing = FindActiveEffect(effectId);
+        if (existing == null)
+        {
+            activeEffects.Add(new ActiveEffectState
+            {
+                effectId = effectId,
+                sourceCharacterId = string.IsNullOrWhiteSpace(sourceCharacterId) ? string.Empty : sourceCharacterId,
+                stackCount = 1
+            });
+        }
+        else
+        {
+            if (effectEntry.valueStackRule == EffectDatabase.ValueStackRule.Stackable)
+            {
+                existing.stackCount = Mathf.Max(1, existing.stackCount + 1);
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourceCharacterId))
+            {
+                existing.sourceCharacterId = sourceCharacterId;
+            }
+        }
+
+        appliedEffectEntry = effectEntry;
+        return true;
+    }
+
+    private ActiveEffectState FindActiveEffect(string effectId)
+    {
+        for (int i = 0; i < activeEffects.Count; i++)
+        {
+            ActiveEffectState activeEffect = activeEffects[i];
+            if (activeEffect != null && string.Equals(activeEffect.effectId, effectId, System.StringComparison.Ordinal))
+            {
+                return activeEffect;
+            }
+        }
+
+        return null;
     }
 
     public void PlayTimedAnimation(string stateName, float duration, string idleStateName = "", bool compensateMotion = false)

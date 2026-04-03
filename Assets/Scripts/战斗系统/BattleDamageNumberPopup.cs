@@ -65,6 +65,16 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
         instance.ShowInternal(target, amount.ToString(), instance.damageColor, worldCamera);
     }
 
+    public static void ShowText(BattleUnit target, string content, Camera worldCamera = null, GameObject popupPrefab = null, Color? popupColor = null)
+    {
+        if (instance == null || target == null || string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+
+        instance.ShowInternal(target, content, popupColor ?? instance.damageColor, worldCamera, popupPrefab);
+    }
+
     public static void ShowSegments(BattleUnit target, IList<DamageSegment> segments, Camera worldCamera = null)
     {
         if (instance == null || target == null || segments == null || segments.Count == 0)
@@ -91,39 +101,24 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
         instance.ShowInternal(target, "MISS", instance.missColor, worldCamera);
     }
 
-    private void ShowInternal(BattleUnit target, string content, Color popupColor, Camera worldCamera)
+    private void ShowInternal(BattleUnit target, string content, Color popupColor, Camera worldCamera, GameObject popupPrefab = null)
     {
         if (templateRect == null || templateText == null || string.IsNullOrWhiteSpace(content))
         {
             return;
         }
 
-        RectTransform popup = Instantiate(templateRect, templateRect.parent, false);
-        popup.gameObject.name = templateRect.name + "_Runtime";
-        BattleDamageNumberPopup popupScript = popup.GetComponent<BattleDamageNumberPopup>();
-        if (popupScript != null)
+        RectTransform popup;
+        TMP_Text text;
+        CanvasGroup canvasGroup;
+        if (!TryCreatePopupInstance(popupPrefab, out popup, out text, out canvasGroup))
         {
-            Destroy(popupScript);
-        }
-
-        popup.gameObject.SetActive(true);
-
-        TMP_Text text = popup.GetComponent<TMP_Text>();
-        if (text == null)
-        {
-            Destroy(popup.gameObject);
             return;
         }
 
         text.text = content;
         text.color = popupColor;
         text.richText = true;
-
-        CanvasGroup canvasGroup = popup.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-        {
-            canvasGroup = popup.gameObject.AddComponent<CanvasGroup>();
-        }
 
         canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = false;
@@ -140,6 +135,60 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
 
         popup.anchoredPosition = anchoredPosition + new Vector2(0f, startOffsetY);
         StartCoroutine(AnimatePopup(popup, canvasGroup, anchoredPosition));
+    }
+
+    private bool TryCreatePopupInstance(GameObject popupPrefab, out RectTransform popup, out TMP_Text text, out CanvasGroup canvasGroup)
+    {
+        popup = null;
+        text = null;
+        canvasGroup = null;
+
+        if (popupPrefab != null)
+        {
+            GameObject popupObject = Instantiate(popupPrefab, templateRect.parent, false);
+            popupObject.name = popupPrefab.name + "_Runtime";
+            popupObject.SetActive(true);
+
+            popup = popupObject.GetComponent<RectTransform>();
+            text = popupObject.GetComponentInChildren<TMP_Text>(true);
+            if (popup == null || text == null)
+            {
+                Destroy(popupObject);
+                return false;
+            }
+
+            canvasGroup = popupObject.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+            {
+                canvasGroup = popupObject.AddComponent<CanvasGroup>();
+            }
+
+            return true;
+        }
+
+        popup = Instantiate(templateRect, templateRect.parent, false);
+        popup.gameObject.name = templateRect.name + "_Runtime";
+        BattleDamageNumberPopup popupScript = popup.GetComponent<BattleDamageNumberPopup>();
+        if (popupScript != null)
+        {
+            Destroy(popupScript);
+        }
+
+        popup.gameObject.SetActive(true);
+        text = popup.GetComponent<TMP_Text>();
+        if (text == null)
+        {
+            Destroy(popup.gameObject);
+            return false;
+        }
+
+        canvasGroup = popup.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = popup.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        return true;
     }
 
     private void HideTemplateVisual()
