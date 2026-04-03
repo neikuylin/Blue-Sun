@@ -361,7 +361,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(widget.skillId) : null;
-        if (entry == null || entry.group != BattleSkillDatabase.SkillGroup.CombatArt)
+        if (entry == null ||
+            (entry.group != BattleSkillDatabase.SkillGroup.CombatArt &&
+             entry.group != BattleSkillDatabase.SkillGroup.Spell))
         {
             HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
             return;
@@ -375,6 +377,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             displayName = widget.skillId,
             description = entry.description ?? string.Empty,
             ownerCharacterId = currentCharacterId ?? string.Empty,
+            hitRate = ResolveDisplayedSkillHitRate(currentCharacterId, entry),
             damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
             icon = entry.icon,
             isEmpty = false
@@ -1097,6 +1100,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         return EnabledSkillColor;
+    }
+
+    private static int ResolveDisplayedSkillHitRate(string characterId, BattleSkillDatabase.SkillEntry skill)
+    {
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry =
+            statDatabase != null ? statDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
+        int baseHitRate = statEntry != null ? statEntry.ResolveHitRate() : 100;
+        return Mathf.Max(0, baseHitRate + (skill != null ? skill.ResolveHitRateModifier() : 0));
     }
 
     private void RefreshGrantedCornerMarker(SkillSlotWidget widget)

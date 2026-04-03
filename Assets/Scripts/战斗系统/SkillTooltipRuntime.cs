@@ -13,6 +13,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         public string displayName;
         public string description;
         public string ownerCharacterId;
+        public int hitRate;
         public int damage;
         public Sprite icon;
         public bool isEmpty;
@@ -23,6 +24,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
     private RectTransform tooltipRoot;
     private Image iconImage;
     private TMP_Text nameText;
+    private TMP_Text hitRateText;
     private TMP_Text damageText;
     private TMP_Text descriptionText;
     private TMP_Text ownerText;
@@ -122,6 +124,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         }
 
         nameText = FindTextInRoot(textRoot, "战技名字", "技能名字");
+        hitRateText = FindTextInRoot(textRoot, "命中率");
         damageText = FindTextInRoot(textRoot, "战技伤害", "技能伤害");
         descriptionText = FindTextInRoot(textRoot, "战技描述", "技能描述");
         ownerText = FindTextInRoot(textRoot, "使用者", "战技使用者", "技能使用者");
@@ -145,6 +148,11 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         if (nameText != null)
         {
             nameText.text = snapshot.displayName ?? string.Empty;
+        }
+
+        if (hitRateText != null)
+        {
+            hitRateText.text = $"命中率：{Mathf.Max(0, snapshot.hitRate)}%";
         }
 
         if (damageText != null)

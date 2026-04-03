@@ -28,6 +28,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         public string description;
         public string ownerCharacterId;
         public string source;
+        public int hitRate;
         public float damageMultiplier;
         public int damage;
         public bool isGranted;
@@ -543,7 +544,8 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         BattleSkillDatabase.SkillEntry entry = !string.IsNullOrWhiteSpace(skillId) && skillDatabase != null
             ? skillDatabase.FindEntry(skillId)
             : null;
-        bool isCombatArt = entry != null && entry.group == BattleSkillDatabase.SkillGroup.CombatArt;
+        bool isSkillWithTooltip = entry != null &&
+            (entry.group == BattleSkillDatabase.SkillGroup.CombatArt || entry.group == BattleSkillDatabase.SkillGroup.Spell);
         float multiplier = entry != null ? Mathf.Max(0f, entry.damageMultiplier) : 0f;
         float attackPower = string.IsNullOrWhiteSpace(ownerCharacterId)
             ? 0f
@@ -554,13 +556,14 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             index = index,
             skillId = skillId ?? string.Empty,
             displayName = skillId ?? string.Empty,
-            description = isCombatArt ? entry.description ?? string.Empty : string.Empty,
+            description = isSkillWithTooltip ? entry.description ?? string.Empty : string.Empty,
             ownerCharacterId = ownerCharacterId ?? string.Empty,
             source = ResolveSkillSourceDisplay(ownerCharacterId, skillId),
-            damageMultiplier = isCombatArt ? multiplier : 0f,
-            damage = isCombatArt ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
+            hitRate = ResolveDisplayedSkillHitRate(ownerCharacterId, entry),
+            damageMultiplier = isSkillWithTooltip ? multiplier : 0f,
+            damage = isSkillWithTooltip ? Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)) : 0,
             isGranted = isGranted,
-            isEmpty = string.IsNullOrWhiteSpace(skillId) || !isCombatArt
+            isEmpty = string.IsNullOrWhiteSpace(skillId) || !isSkillWithTooltip
         };
     }
 
@@ -612,6 +615,7 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             displayName = snapshot.displayName,
             description = snapshot.description,
             ownerCharacterId = snapshot.ownerCharacterId,
+            hitRate = snapshot.hitRate,
             damage = snapshot.damage,
             icon = ResolveSkillIcon(snapshot.skillId),
             isEmpty = snapshot.isEmpty
@@ -758,5 +762,14 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static int ResolveDisplayedSkillHitRate(string ownerCharacterId, BattleSkillDatabase.SkillEntry skill)
+    {
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry =
+            statDatabase != null ? statDatabase.FindEntry(string.IsNullOrWhiteSpace(ownerCharacterId) ? DefaultCharacterId : ownerCharacterId) : null;
+        int baseHitRate = statEntry != null ? statEntry.ResolveHitRate() : 100;
+        return Mathf.Max(0, baseHitRate + (skill != null ? skill.ResolveHitRateModifier() : 0));
     }
 }
