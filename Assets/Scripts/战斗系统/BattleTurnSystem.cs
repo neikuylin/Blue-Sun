@@ -4071,7 +4071,7 @@ public class BattleTurnSystem : MonoBehaviour
         return segments;
     }
 
-    private List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
+    private static List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
     {
         List<DamageDisplayAllocation> allocations = new List<DamageDisplayAllocation>();
         if (damageResult == null)
@@ -4190,17 +4190,18 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         List<string> parts = new List<string>();
-        for (int i = 0; i < damageResult.components.Count; i++)
+        List<DamageDisplayAllocation> allocations = BuildDamageDisplayAllocations(damageResult);
+        for (int i = 0; i < allocations.Count; i++)
         {
-            DamageComponent component = damageResult.components[i];
-            if (component.amount <= 0f)
+            DamageDisplayAllocation allocation = allocations[i];
+            if (allocation.displayAmount <= 0)
             {
                 continue;
             }
 
-            string attributeColorHex = GetDamageAttributeColorHex(component.attributeType);
-            string amountText = WrapBattleInfoColor(FormatDamageValue(component.amount), attributeColorHex);
-            string attributeText = WrapBattleInfoColor(GetDamageAttributeDisplayName(component.attributeType), attributeColorHex);
+            string attributeColorHex = GetDamageAttributeColorHex(allocation.attributeType);
+            string amountText = WrapBattleInfoColor(allocation.displayAmount.ToString(), attributeColorHex);
+            string attributeText = WrapBattleInfoColor(GetDamageAttributeDisplayName(allocation.attributeType), attributeColorHex);
             string suffixText = WrapBattleInfoColor("伤害", attributeColorHex);
             parts.Add($"{amountText}{attributeText}{suffixText}");
         }
@@ -4321,7 +4322,7 @@ public class BattleTurnSystem : MonoBehaviour
 
             BattleDamageNumberPopup.ShowConfiguredText(
                 target,
-                appliedEffectEntry.effectId,
+                "+" + ResolveEffectDebugName(appliedEffectEntry),
                 BattleDamageNumberPopup.ConfiguredPopupKind.Effect,
                 physicalDamageColor,
                 battleCamera);
