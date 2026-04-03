@@ -373,11 +373,7 @@ public class BattleUnit : MonoBehaviour
 
     public int GetEffectiveMaxHealth()
     {
-        return Mathf.Max(0, ResolveModifiedAttributeValue(
-            maxHealth,
-            EffectDatabase.CharacterStatField.MaxHealth,
-            usePercentScaling: true,
-            treatPercentAsPoints: false));
+        return Mathf.Max(0, maxHealth);
     }
 
     public int GetEffectiveHitRate()

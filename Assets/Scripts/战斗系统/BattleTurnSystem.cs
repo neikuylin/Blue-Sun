@@ -4411,7 +4411,9 @@ public class BattleTurnSystem : MonoBehaviour
         for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
         {
             EffectDatabase.StatModifier modifier = effectEntry.statModifiers[modifierIndex];
-            if (modifier == null || modifier.statField != EffectDatabase.CharacterStatField.TargetHealth)
+            if (modifier == null ||
+                (modifier.statField != EffectDatabase.CharacterStatField.TargetHealth &&
+                 modifier.statField != EffectDatabase.CharacterStatField.MaxHealth))
             {
                 continue;
             }
@@ -4425,6 +4427,16 @@ public class BattleTurnSystem : MonoBehaviour
                 }
 
                 target.ApplyCurrentHealthDelta(delta);
+                if (delta < 0)
+                {
+                    BattleDamageNumberPopup.ShowConfiguredText(
+                        target,
+                        Mathf.Abs(delta).ToString(),
+                        BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
+                        ResolveEffectDamagePopupColor(modifier.healthDamageType),
+                        battleCamera);
+                }
+
                 Debug.Log(
                     $"[EffectTick] {target.unitName} 受到效果 {ResolveEffectDebugName(effectEntry)} 影响 | " +
                     $"生命变化: {delta} | 当前生命: {target.currentHealth}/{target.GetEffectiveMaxHealth()}");
@@ -4439,8 +4451,11 @@ public class BattleTurnSystem : MonoBehaviour
             return 0;
         }
 
+        float percentBase = modifier.statField == EffectDatabase.CharacterStatField.MaxHealth
+            ? target.GetEffectiveMaxHealth()
+            : target.currentHealth;
         float rawDelta = modifier.amountMode == EffectDatabase.StatModifier.AmountMode.Percent
-            ? target.currentHealth * modifier.amount / 100f
+            ? percentBase * modifier.amount / 100f
             : modifier.amount;
         int roundedDelta = Mathf.RoundToInt(rawDelta);
         if (roundedDelta >= 0)
@@ -4468,6 +4483,21 @@ public class BattleTurnSystem : MonoBehaviour
                 return DamageAttributeType.Cold;
             default:
                 return DamageAttributeType.Physical;
+        }
+    }
+
+    private Color ResolveEffectDamagePopupColor(EffectDatabase.StatModifier.HealthDamageType damageType)
+    {
+        switch (damageType)
+        {
+            case EffectDatabase.StatModifier.HealthDamageType.Fire:
+                return fireDamageColor;
+            case EffectDatabase.StatModifier.HealthDamageType.Corruption:
+                return corruptionDamageColor;
+            case EffectDatabase.StatModifier.HealthDamageType.Cold:
+                return coldDamageColor;
+            default:
+                return physicalDamageColor;
         }
     }
 
