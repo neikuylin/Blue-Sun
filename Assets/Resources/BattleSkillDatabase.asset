@@ -98,6 +98,19 @@ MonoBehaviour:
       actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
       soundDelayFrame: 0
       compensateActionMotion: 0
+    - enabled: 1
+      weaponCategory: 4
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: "\u5F13\u7BAD\u79FB\u52A8\u52A8\u753B"
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 9033417534704865976, guid: 58897e93960946941921b9104118a681, type: 3}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u666E\u901A\u653B\u51FB"
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: 

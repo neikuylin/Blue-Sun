@@ -3640,17 +3640,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (weaponEntry == null)
         {
-            return rightMountPoint != null ? rightMountPoint : leftMountPoint;
+            return null;
         }
 
         switch (weaponEntry.weaponCategory)
         {
             case ItemDatabase.WeaponCategory.Bow:
-                return leftMountPoint != null ? leftMountPoint : rightMountPoint;
+            case ItemDatabase.WeaponCategory.Staff:
+                return leftMountPoint;
             case ItemDatabase.WeaponCategory.OneHanded:
             case ItemDatabase.WeaponCategory.TwoHanded:
             default:
-                return rightMountPoint != null ? rightMountPoint : leftMountPoint;
+                return rightMountPoint;
         }
     }
 
