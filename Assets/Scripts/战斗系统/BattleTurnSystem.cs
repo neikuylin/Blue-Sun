@@ -201,6 +201,14 @@ public class BattleTurnSystem : MonoBehaviour
         public Vector3 localScale;
     }
 
+    private struct DamageDisplayAllocation
+    {
+        public DamageAttributeType attributeType;
+        public float amount;
+        public int displayAmount;
+        public float fractionalPart;
+    }
+
     public BattleUnit ActiveUnit
     {
         get { return activeUnit; }
@@ -4044,6 +4052,34 @@ public class BattleTurnSystem : MonoBehaviour
             return segments;
         }
 
+        List<DamageDisplayAllocation> allocations = BuildDamageDisplayAllocations(damageResult);
+        for (int i = 0; i < allocations.Count; i++)
+        {
+            DamageDisplayAllocation allocation = allocations[i];
+            if (allocation.displayAmount <= 0)
+            {
+                continue;
+            }
+
+            segments.Add(new BattleDamageNumberPopup.DamageSegment
+            {
+                text = allocation.displayAmount.ToString(),
+                color = ResolveDamageColor(allocation.attributeType)
+            });
+        }
+
+        return segments;
+    }
+
+    private List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
+    {
+        List<DamageDisplayAllocation> allocations = new List<DamageDisplayAllocation>();
+        if (damageResult == null)
+        {
+            return allocations;
+        }
+
+        int totalAssigned = 0;
         for (int i = 0; i < damageResult.components.Count; i++)
         {
             DamageComponent component = damageResult.components[i];
@@ -4052,14 +4088,34 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            segments.Add(new BattleDamageNumberPopup.DamageSegment
+            int baseAmount = Mathf.FloorToInt(component.amount);
+            allocations.Add(new DamageDisplayAllocation
             {
-                text = FormatDamageValue(component.amount),
-                color = ResolveDamageColor(component.attributeType)
+                attributeType = component.attributeType,
+                amount = component.amount,
+                displayAmount = baseAmount,
+                fractionalPart = component.amount - baseAmount
             });
+            totalAssigned += baseAmount;
         }
 
-        return segments;
+        int delta = Mathf.Max(0, damageResult.appliedDamage) - totalAssigned;
+        if (delta <= 0 || allocations.Count == 0)
+        {
+            return allocations;
+        }
+
+        allocations.Sort(CompareDamageDisplayAllocationForIncrement);
+        for (int i = 0; i < delta; i++)
+        {
+            int index = i % allocations.Count;
+            DamageDisplayAllocation allocation = allocations[index];
+            allocation.displayAmount += 1;
+            allocations[index] = allocation;
+        }
+
+        allocations.Sort(CompareDamageDisplayAllocationForOutput);
+        return allocations;
     }
 
     private Color ResolveDamageColor(DamageAttributeType attributeType)
@@ -4074,6 +4130,45 @@ public class BattleTurnSystem : MonoBehaviour
                 return coldDamageColor;
             default:
                 return physicalDamageColor;
+        }
+    }
+
+    private static int CompareDamageDisplayAllocationForIncrement(DamageDisplayAllocation left, DamageDisplayAllocation right)
+    {
+        int fractionalComparison = right.fractionalPart.CompareTo(left.fractionalPart);
+        if (fractionalComparison != 0)
+        {
+            return fractionalComparison;
+        }
+
+        int priorityComparison = GetDamageAttributeDisplayPriority(left.attributeType).CompareTo(GetDamageAttributeDisplayPriority(right.attributeType));
+        if (priorityComparison != 0)
+        {
+            return priorityComparison;
+        }
+
+        return right.amount.CompareTo(left.amount);
+    }
+
+    private static int CompareDamageDisplayAllocationForOutput(DamageDisplayAllocation left, DamageDisplayAllocation right)
+    {
+        return GetDamageAttributeDisplayPriority(left.attributeType).CompareTo(GetDamageAttributeDisplayPriority(right.attributeType));
+    }
+
+    private static int GetDamageAttributeDisplayPriority(DamageAttributeType attributeType)
+    {
+        switch (attributeType)
+        {
+            case DamageAttributeType.Physical:
+                return 0;
+            case DamageAttributeType.Fire:
+                return 1;
+            case DamageAttributeType.Corruption:
+                return 2;
+            case DamageAttributeType.Cold:
+                return 3;
+            default:
+                return int.MaxValue;
         }
     }
 

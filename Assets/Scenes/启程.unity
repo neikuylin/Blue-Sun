@@ -15222,7 +15222,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!114 &989823226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15761,7 +15761,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1056154794
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15800,6 +15800,7 @@ MonoBehaviour:
   healthText: {fileID: 0}
   manaText: {fileID: 0}
   attackPowerText: {fileID: 0}
+  spellDamageText: {fileID: 0}
   strengthText: {fileID: 1365145140}
   agilityText: {fileID: 66360865}
   intelligenceText: {fileID: 433303075}
@@ -17150,7 +17151,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_IsOn: 0
+  m_IsOn: 1
 --- !u!114 &1246552051
 MonoBehaviour:
   m_ObjectHideFlags: 0
