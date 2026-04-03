@@ -1162,6 +1162,7 @@ public class BattleTurnSystem : MonoBehaviour
             if (candidate != null && candidate.IsAlive)
             {
                 activeUnit = candidate;
+                FocusCameraOnActiveUnit();
                 ProcessEffectTurnsForTurnOwner(activeUnit);
                 CleanupDeadUnits();
                 if (activeUnit == null || !activeUnit.IsAlive)
@@ -1170,7 +1171,6 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
                 activeUnit.BeginTurn();
-                FocusCameraOnActiveUnit();
                 ClearActiveSkillMode();
                 RefreshSelectionOutlines();
                 RefreshHighlights();
