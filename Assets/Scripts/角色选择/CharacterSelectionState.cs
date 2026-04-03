@@ -6,6 +6,8 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class CharacterSelectionState : MonoBehaviour
 {
+    private const bool EnableSkillLoadoutDebug = true;
+
     [Serializable]
     public struct PortraitLayout
     {
@@ -173,6 +175,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
         instance.CaptureGrantedSkills(orderedSlots);
         instance.CaptureWeaponAttackPower(orderedSlots);
         instance.CaptureBackgroundPortraits(orderedSlots);
+        instance.LogSelectionCaptureSummary();
     }
 
     public static void CaptureFromCurrentScene()
@@ -381,6 +384,62 @@ public sealed class CharacterSelectionState : MonoBehaviour
                 skillIds = grantedSkills != null ? new List<string>(grantedSkills) : new List<string>()
             });
         }
+    }
+
+    private void LogSelectionCaptureSummary()
+    {
+        if (!EnableSkillLoadoutDebug)
+        {
+            return;
+        }
+
+        List<string> slotParts = new List<string>(slotSelections.Count);
+        for (int i = 0; i < slotSelections.Count; i++)
+        {
+            SlotSelection selection = slotSelections[i];
+            string activeTag = selection.isActiveSlot ? "*" : string.Empty;
+            slotParts.Add($"{selection.slotName}:{selection.characterId}{activeTag}");
+        }
+
+        List<string> grantedParts = new List<string>(grantedSkillSnapshots.Count);
+        for (int i = 0; i < grantedSkillSnapshots.Count; i++)
+        {
+            GrantedSkillSnapshot snapshot = grantedSkillSnapshots[i];
+            grantedParts.Add($"{snapshot.characterId}=[{DescribeSkillList(snapshot.skillIds)}]");
+        }
+
+        List<string> memorizedParts = new List<string>(slotSelections.Count);
+        HashSet<string> seenCharacters = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < slotSelections.Count; i++)
+        {
+            string characterId = slotSelections[i].characterId;
+            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacters.Add(characterId))
+            {
+                continue;
+            }
+
+            List<string> memorizedSkills = CharacterSkillListUtility.BuildMemorizedSkillIds(characterId);
+            memorizedParts.Add($"{characterId}=[{DescribeSkillList(memorizedSkills)}]");
+        }
+
+        Debug.Log(
+            $"[SkillLoadoutDebug] CaptureFromCurrentScene. activeCharacter={activeCharacterId}, slots=[{string.Join(" | ", slotParts)}], granted=[{string.Join(" | ", grantedParts)}], memorized=[{string.Join(" | ", memorizedParts)}]");
+    }
+
+    private static string DescribeSkillList(List<string> skillIds)
+    {
+        if (skillIds == null || skillIds.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        List<string> parts = new List<string>(skillIds.Count);
+        for (int i = 0; i < skillIds.Count; i++)
+        {
+            parts.Add(string.IsNullOrWhiteSpace(skillIds[i]) ? "<empty>" : skillIds[i]);
+        }
+
+        return string.Join(", ", parts);
     }
 
     private void CaptureWeaponAttackPower(List<CharacterSlotView> orderedSlots)

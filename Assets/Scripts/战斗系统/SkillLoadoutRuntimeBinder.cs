@@ -8,6 +8,7 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
+    private const bool EnableSkillLoadoutDebug = true;
     private const float SkillTooltipDelaySeconds = 0.5f;
     private const float DragIconSize = 100f;
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
@@ -489,12 +490,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         if (!CanReorderWidget(widget))
         {
+            LogSkillLoadoutDebug($"RightClickMove rejected. widget invalid or not reorderable. character={currentCharacterId}");
             return false;
         }
 
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
         if (entry == null)
         {
+            LogSkillLoadoutDebug($"RightClickMove rejected. missing loadout entry. character={currentCharacterId}");
             return false;
         }
 
@@ -502,6 +505,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int sourceDataIndex = ResolveDataIndex(widget, memorySlotCount);
         if (sourceDataIndex < 0)
         {
+            LogSkillLoadoutDebug($"RightClickMove rejected. invalid source index. character={currentCharacterId}, widgetSlotIndex={widget.slotIndex}, surface={widget.surface}");
             return false;
         }
 
@@ -510,10 +514,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             : FindFirstEmptyWarehouseSlotIndex(entry, memorySlotCount);
         if (targetDataIndex < 0)
         {
+            LogSkillLoadoutDebug($"RightClickMove rejected. no target slot. character={currentCharacterId}, sourceDataIndex={sourceDataIndex}, memorySlots={memorySlotCount}, loadout={DescribeLoadout(entry)}");
             return false;
         }
 
-        return TryMoveSkillSlot(entry, sourceDataIndex, targetDataIndex);
+        bool moved = TryMoveSkillSlot(entry, sourceDataIndex, targetDataIndex);
+        LogSkillLoadoutDebug(
+            $"RightClickMove {(moved ? "applied" : "failed")}. character={currentCharacterId}, sourceDataIndex={sourceDataIndex}, targetDataIndex={targetDataIndex}, memorySlots={memorySlotCount}, loadout={DescribeLoadout(entry)}");
+        return moved;
     }
 
     private bool TrySwapSkillSlots(SkillSlotWidget sourceWidget, SkillSlotWidget targetWidget)
@@ -521,6 +529,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
         if (entry == null || entry.skillIds == null)
         {
+            LogSkillLoadoutDebug($"Swap rejected. missing loadout entry. character={currentCharacterId}");
             return false;
         }
 
@@ -529,6 +538,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int targetDataIndex = ResolveDataIndex(targetWidget, memorySlotCount);
         if (sourceDataIndex < 0 || targetDataIndex < 0 || sourceDataIndex >= entry.skillIds.Count)
         {
+            LogSkillLoadoutDebug(
+                $"Swap rejected. invalid indices. character={currentCharacterId}, sourceSurface={sourceWidget?.surface}, sourceSlot={sourceWidget?.slotIndex}, targetSurface={targetWidget?.surface}, targetSlot={targetWidget?.slotIndex}, sourceDataIndex={sourceDataIndex}, targetDataIndex={targetDataIndex}, loadout={DescribeLoadout(entry)}");
             return false;
         }
 
@@ -545,6 +556,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             entry.skillWeights[targetDataIndex] = tempWeight;
         }
 
+        LogSkillLoadoutDebug(
+            $"Swap applied. character={currentCharacterId}, sourceSurface={sourceWidget.surface}, targetSurface={targetWidget.surface}, sourceDataIndex={sourceDataIndex}, targetDataIndex={targetDataIndex}, memorySlots={memorySlotCount}, loadout={DescribeLoadout(entry)}");
         return true;
     }
 
@@ -714,6 +727,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
         if (database == null)
         {
+            LogSkillLoadoutDebug($"ResolveLoadoutEntry failed. database missing. requestedCharacter={characterId}");
             return null;
         }
 
@@ -721,6 +735,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
         int memorySlotCount = ResolveVisibleSkillMemorySlotCount(resolvedCharacterId);
         CharacterSkillLoadoutDatabase.EnsureSlotDataSize(entry, Mathf.Max(memorySlotCount, entry.skillIds != null ? entry.skillIds.Count : 0));
+        LogSkillLoadoutDebug($"ResolveLoadoutEntry. requestedCharacter={characterId}, resolvedCharacter={resolvedCharacterId}, memorySlots={memorySlotCount}, loadout={DescribeLoadout(entry)}");
         return entry;
     }
 
@@ -1060,6 +1075,33 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+    }
+
+    private static void LogSkillLoadoutDebug(string message)
+    {
+        if (!EnableSkillLoadoutDebug)
+        {
+            return;
+        }
+
+        Debug.Log($"[SkillLoadoutDebug] {message}");
+    }
+
+    private static string DescribeLoadout(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
+    {
+        if (entry == null || entry.skillIds == null)
+        {
+            return "<null>";
+        }
+
+        List<string> parts = new List<string>(entry.skillIds.Count);
+        for (int i = 0; i < entry.skillIds.Count; i++)
+        {
+            string skillId = string.IsNullOrWhiteSpace(entry.skillIds[i]) ? "<empty>" : entry.skillIds[i];
+            parts.Add($"{i}:{skillId}");
+        }
+
+        return string.Join(", ", parts);
     }
 
     private static int ResolveVisibleSkillMemorySlotCount(string characterId)
