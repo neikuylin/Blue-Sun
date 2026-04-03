@@ -309,7 +309,9 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
-    attachedEffects: []
+    attachedEffects:
+    - effectId: "\u71C3\u70E7"
+      durationTurns: 2
     attachedEffectIds:
     - "\u71C3\u70E7"
     requiredWeaponCategories: 
@@ -346,7 +348,7 @@ MonoBehaviour:
     effectSize: {x: 1, y: 1}
     attachedEffects:
     - effectId: "\u96C6\u4E2D"
-      durationTurns: 0
+      durationTurns: 2
     attachedEffectIds:
     - "\u96C6\u4E2D"
     requiredWeaponCategories: 

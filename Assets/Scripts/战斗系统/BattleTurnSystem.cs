@@ -3613,6 +3613,12 @@ public class BattleTurnSystem : MonoBehaviour
             return string.Empty;
         }
 
+        Debug.Log(
+            $"[SkillDebug] {caster.unitName} -> {target.unitName} using {skill.skillId} | " +
+            $"施法者效果: {FormatUnitEffectDebugText(caster)} | " +
+            $"目标效果: {FormatUnitEffectDebugText(target)} | " +
+            $"命中: {CalculateSkillHitChance(caster, target, skill)}%");
+
         string casterName = ResolveBattleInfoUnitName(caster, richText: true);
         string targetName = ResolveBattleInfoUnitName(target, richText: true);
         string skillName = ResolveBattleInfoSkillName(skill);
@@ -3714,6 +3720,11 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             string unitName = ResolveBattleInfoUnitName(unit, richText: true);
+            Debug.Log(
+                $"[SkillDebug] {caster.unitName} -> {unit.unitName} using {skill.skillId} | " +
+                $"施法者效果: {FormatUnitEffectDebugText(caster)} | " +
+                $"目标效果: {FormatUnitEffectDebugText(unit)} | " +
+                $"命中: {CalculateSkillHitChance(caster, unit, skill)}%");
             if (!RollSkillHit(caster, unit, skill))
             {
                 PlayDodgeReaction(unit);
@@ -4183,10 +4194,7 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        int hitChance = Mathf.Clamp(
-            caster.HitRate + skill.ResolveHitRateModifier() - target.DodgeRate,
-            MinHitChancePercent,
-            MaxHitChancePercent);
+        int hitChance = CalculateSkillHitChance(caster, target, skill);
         if (hitChance >= MaxHitChancePercent)
         {
             return true;
@@ -4198,6 +4206,19 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return Random.Range(0, MaxHitChancePercent) < hitChance;
+    }
+
+    private int CalculateSkillHitChance(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || target == null || skill == null)
+        {
+            return MinHitChancePercent;
+        }
+
+        return Mathf.Clamp(
+            caster.HitRate + skill.ResolveHitRateModifier() - target.DodgeRate,
+            MinHitChancePercent,
+            MaxHitChancePercent);
     }
 
     private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
@@ -4238,7 +4259,58 @@ public class BattleTurnSystem : MonoBehaviour
                 BattleDamageNumberPopup.ConfiguredPopupKind.Effect,
                 physicalDamageColor,
                 battleCamera);
+
+            Debug.Log(
+                $"[EffectApplied] {target.unitName} 获得效果 {ResolveEffectDebugName(appliedEffectEntry)} " +
+                $"(来源: {caster.unitName}, 持续: {attachedEffect.durationTurns}回合) | " +
+                $"当前效果: {FormatUnitEffectDebugText(target)}");
         }
+    }
+
+    private static string FormatUnitEffectDebugText(BattleUnit unit)
+    {
+        if (unit == null || unit.ActiveEffects == null || unit.ActiveEffects.Count == 0)
+        {
+            return "无";
+        }
+
+        EffectDatabase database = EffectDatabase.LoadDefault();
+        List<string> parts = new List<string>();
+        for (int i = 0; i < unit.ActiveEffects.Count; i++)
+        {
+            BattleUnit.ActiveEffectState activeEffect = unit.ActiveEffects[i];
+            if (activeEffect == null || string.IsNullOrWhiteSpace(activeEffect.effectId))
+            {
+                continue;
+            }
+
+            string effectName = activeEffect.effectId;
+            if (database != null)
+            {
+                EffectDatabase.EffectEntry effectEntry = database.FindEntry(activeEffect.effectId);
+                if (effectEntry != null)
+                {
+                    effectName = ResolveEffectDebugName(effectEntry);
+                }
+            }
+
+            string stackText = activeEffect.stackCount > 1 ? $" x{activeEffect.stackCount}" : string.Empty;
+            parts.Add($"{effectName}({Mathf.Max(0, activeEffect.remainingTurns)}回合{stackText})");
+        }
+
+        return parts.Count > 0 ? string.Join("，", parts) : "无";
+    }
+
+    private static string ResolveEffectDebugName(EffectDatabase.EffectEntry effectEntry)
+    {
+        if (effectEntry == null)
+        {
+            return string.Empty;
+        }
+
+        return !string.IsNullOrWhiteSpace(effectEntry.displayName)
+            ? effectEntry.displayName
+            : effectEntry.effectId;
     }
 
     private void ApplyAttachedEffectsToUnits(BattleUnit caster, List<BattleUnit> targets, BattleSkillDatabase.SkillEntry skill)
@@ -4271,6 +4343,8 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[EffectTurn] 进入回合: {turnOwner.unitName} | 当前效果: {FormatUnitEffectDebugText(turnOwner)}");
+
         for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
         {
             BattleUnit unit = units[unitIndex];
@@ -4299,10 +4373,21 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
+                int beforeTurns = activeEffect.remainingTurns;
+                int beforeHealth = unit.currentHealth;
+                string effectName = ResolveEffectDebugName(effectEntry);
                 ApplyEffectHealthModifiersOnTurn(unit, activeEffect, effectEntry);
                 unit.ConsumeEffectTurn(activeEffect);
+                int healthDelta = unit.currentHealth - beforeHealth;
+
+                Debug.Log(
+                    $"[EffectTurn] {turnOwner.unitName} 的回合推进了 {unit.unitName} 身上的 {effectName} | " +
+                    $"回合: {beforeTurns} -> {activeEffect.remainingTurns} | " +
+                    $"生命变化: {healthDelta} | 当前效果: {FormatUnitEffectDebugText(unit)}");
+
                 if (activeEffect.remainingTurns <= 0)
                 {
+                    Debug.Log($"[EffectExpired] {unit.unitName} 的效果 {effectName} 已移除");
                     unit.RemoveActiveEffect(activeEffect);
                 }
             }
@@ -4340,6 +4425,9 @@ public class BattleTurnSystem : MonoBehaviour
                 }
 
                 target.ApplyCurrentHealthDelta(delta);
+                Debug.Log(
+                    $"[EffectTick] {target.unitName} 受到效果 {ResolveEffectDebugName(effectEntry)} 影响 | " +
+                    $"生命变化: {delta} | 当前生命: {target.currentHealth}/{target.GetEffectiveMaxHealth()}");
             }
         }
     }
