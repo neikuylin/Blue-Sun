@@ -1792,8 +1792,11 @@ public class BattleTurnSystem : MonoBehaviour
         string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
         if (!string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
         {
+            BattleUnit displayedUnit = FindUnitByCharacterId(displayedEquipmentCharacterId);
             activeUnitIdText.enabled = true;
-            activeUnitIdText.text = displayedEquipmentCharacterId;
+            activeUnitIdText.text = BuildUnitDebugLabel(
+                displayedEquipmentCharacterId,
+                displayedUnit);
             return;
         }
 
@@ -1810,7 +1813,54 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        activeUnitIdText.text = string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId;
+        activeUnitIdText.text = BuildUnitDebugLabel(
+            string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId,
+            activeUnit);
+    }
+
+    private string BuildUnitDebugLabel(string header, BattleUnit unit)
+    {
+        string effectText = FormatUnitActiveEffectsDebugText(unit);
+        if (string.IsNullOrWhiteSpace(effectText))
+        {
+            return header;
+        }
+
+        return $"{header}\n效果：{effectText}";
+    }
+
+    private static string FormatUnitActiveEffectsDebugText(BattleUnit unit)
+    {
+        if (unit == null || unit.ActiveEffects == null || unit.ActiveEffects.Count == 0)
+        {
+            return "无";
+        }
+
+        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
+        List<string> effectParts = new List<string>();
+        for (int i = 0; i < unit.ActiveEffects.Count; i++)
+        {
+            BattleUnit.ActiveEffectState activeEffect = unit.ActiveEffects[i];
+            if (activeEffect == null || string.IsNullOrWhiteSpace(activeEffect.effectId))
+            {
+                continue;
+            }
+
+            string effectName = activeEffect.effectId;
+            if (effectDatabase != null)
+            {
+                EffectDatabase.EffectEntry effectEntry = effectDatabase.FindEntry(activeEffect.effectId);
+                if (effectEntry != null && !string.IsNullOrWhiteSpace(effectEntry.displayName))
+                {
+                    effectName = effectEntry.displayName;
+                }
+            }
+
+            string stackText = activeEffect.stackCount > 1 ? $" x{activeEffect.stackCount}" : string.Empty;
+            effectParts.Add($"{effectName}({Mathf.Max(0, activeEffect.remainingTurns)}回合{stackText})");
+        }
+
+        return effectParts.Count > 0 ? string.Join("，", effectParts) : "无";
     }
 
     private void RefreshActiveUnitIdForDisplayedEquipmentCharacter()

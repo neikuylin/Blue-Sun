@@ -362,31 +362,37 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(i);
             SerializedProperty effectIdProperty = attachedEffectProperty.FindPropertyRelative("effectId");
             SerializedProperty durationTurnsProperty = attachedEffectProperty.FindPropertyRelative("durationTurns");
-            using (new EditorGUILayout.HorizontalScope())
+            using (new EditorGUILayout.VerticalScope("box"))
             {
+                string label = "效果 " + (i + 1);
                 string currentEffectId = effectIdProperty != null ? effectIdProperty.stringValue : string.Empty;
+
                 if (effectEntries == null || effectEntries.Count == 0)
                 {
-                    EditorGUILayout.LabelField("没有可用效果");
+                    EditorGUILayout.LabelField(label, "没有可用效果");
                     effectIdProperty.stringValue = string.Empty;
                 }
                 else
                 {
                     int selectedIndex = ResolveAttachedEffectIndex(effectEntries, currentEffectId);
                     string[] popupOptions = BuildAttachedEffectOptions(effectEntries);
-                    int nextIndex = EditorGUILayout.Popup("效果 " + (i + 1), selectedIndex, popupOptions);
+                    int nextIndex = EditorGUILayout.Popup(label, selectedIndex, popupOptions);
                     effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, nextIndex);
                 }
 
-                if (durationTurnsProperty != null)
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    durationTurnsProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("持续回合", Mathf.Max(0, durationTurnsProperty.intValue), GUILayout.Width(150f)));
-                }
+                    if (durationTurnsProperty != null)
+                    {
+                        durationTurnsProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("持续回合", Mathf.Max(0, durationTurnsProperty.intValue)));
+                    }
 
-                if (GUILayout.Button("删除", GUILayout.Width(60f)))
-                {
-                    attachedEffectsProperty.DeleteArrayElementAtIndex(i);
-                    break;
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button("删除", GUILayout.Width(60f)))
+                    {
+                        attachedEffectsProperty.DeleteArrayElementAtIndex(i);
+                        break;
+                    }
                 }
             }
         }
