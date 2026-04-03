@@ -330,7 +330,7 @@ MonoBehaviour:
     skillType: 0
     castTarget: 0
     icon: {fileID: 21300000, guid: e8620ae0092410f4e9b3145b8941728d, type: 3}
-    noDamage: 0
+    noDamage: 1
     damageMultiplier: 1
     attributeMultiplier: 0
     fixedDamage: 0
