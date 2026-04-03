@@ -13,7 +13,8 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         ItemDatabase.WeaponCategory.None,
         ItemDatabase.WeaponCategory.OneHanded,
         ItemDatabase.WeaponCategory.TwoHanded,
-        ItemDatabase.WeaponCategory.Bow
+        ItemDatabase.WeaponCategory.Bow,
+        ItemDatabase.WeaponCategory.Staff
     };
 
     private SerializedObject settingsObject;
@@ -329,6 +330,8 @@ public sealed class GlobalActionBindingWindow : EditorWindow
                 return "双手武器";
             case ItemDatabase.WeaponCategory.Bow:
                 return "弓箭";
+            case ItemDatabase.WeaponCategory.Staff:
+                return "法杖";
             default:
                 return "无武器";
         }

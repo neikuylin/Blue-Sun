@@ -132,7 +132,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
             if (isMoveSkill)
             {
-                EditorGUILayout.HelpBox("移动技能固定按武器类别读取动作，包含无武器、单手、双手、弓箭。这里不依赖“必须武器”。", MessageType.Info);
+                EditorGUILayout.HelpBox("移动技能固定按武器类别读取动作，包含无武器、单手、双手、弓箭、法杖。这里不依赖“必须武器”。", MessageType.Info);
             }
             else
             {
@@ -316,7 +316,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
             ItemDatabase.WeaponCategory.None,
             ItemDatabase.WeaponCategory.OneHanded,
             ItemDatabase.WeaponCategory.TwoHanded,
-            ItemDatabase.WeaponCategory.Bow
+            ItemDatabase.WeaponCategory.Bow,
+            ItemDatabase.WeaponCategory.Staff
         };
     }
 
@@ -496,6 +497,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
                 return "双手武器";
             case ItemDatabase.WeaponCategory.Bow:
                 return "弓箭";
+            case ItemDatabase.WeaponCategory.Staff:
+                return "法杖";
             default:
                 return "无武器";
         }
