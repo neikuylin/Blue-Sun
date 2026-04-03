@@ -7,10 +7,17 @@ public sealed class EffectDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "EffectDatabase";
 
-    public enum StackRule
+    public enum ValueStackRule
     {
         NotStackable,
         Stackable
+    }
+
+    public enum DurationStackRule
+    {
+        NotStackable,
+        Stackable,
+        KeepHigher
     }
 
     public enum TurnOwner
@@ -21,11 +28,14 @@ public sealed class EffectDatabase : ScriptableObject
 
     public enum CharacterStatField
     {
+        TargetHealth,
+        MaxHealth,
         Strength,
         Agility,
         Intelligence,
         ActionPoints,
         HitRate,
+        DodgeRate,
         PhysicalResistance,
         FireResistance,
         CorruptionResistance,
@@ -41,7 +51,23 @@ public sealed class EffectDatabase : ScriptableObject
     [Serializable]
     public sealed class StatModifier
     {
+        public enum HealthDamageType
+        {
+            Physical,
+            Fire,
+            Corruption,
+            Cold
+        }
+
+        public enum AmountMode
+        {
+            Flat,
+            Percent
+        }
+
         public CharacterStatField statField;
+        public HealthDamageType healthDamageType;
+        public AmountMode amountMode;
         public int amount;
     }
 
@@ -52,15 +78,10 @@ public sealed class EffectDatabase : ScriptableObject
         public string displayName = string.Empty;
         public string description = string.Empty;
         public Sprite icon;
-        public StackRule stackRule = StackRule.NotStackable;
+        public ValueStackRule valueStackRule = ValueStackRule.NotStackable;
+        public DurationStackRule durationStackRule = DurationStackRule.NotStackable;
         public TurnOwner durationTurnOwner = TurnOwner.Target;
-        public int durationTurns = 1;
         public List<StatModifier> statModifiers = new List<StatModifier>();
-
-        public int ResolveDurationTurns()
-        {
-            return Mathf.Max(0, durationTurns);
-        }
     }
 
     [SerializeField] private List<EffectEntry> entries = new List<EffectEntry>();

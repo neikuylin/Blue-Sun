@@ -7,10 +7,17 @@ public sealed class EffectEditorWindow : EditorWindow
     private const string AssetFolder = "Assets/Resources";
     private const string AssetPath = AssetFolder + "/EffectDatabase.asset";
 
-    private static readonly string[] StackRuleLabels =
+    private static readonly string[] ValueStackRuleLabels =
     {
         "\u4e0d\u53ef\u53e0\u52a0",
         "\u53ef\u53e0\u52a0"
+    };
+
+    private static readonly string[] DurationStackRuleLabels =
+    {
+        "\u4e0d\u53ef\u53e0\u52a0",
+        "\u53ef\u53e0\u52a0",
+        "\u53d6\u66f4\u9ad8\u6301\u7eed\u56de\u5408"
     };
 
     private static readonly string[] TurnOwnerLabels =
@@ -21,11 +28,14 @@ public sealed class EffectEditorWindow : EditorWindow
 
     private static readonly EffectDatabase.CharacterStatField[] StatFieldValues =
     {
+        EffectDatabase.CharacterStatField.TargetHealth,
+        EffectDatabase.CharacterStatField.MaxHealth,
         EffectDatabase.CharacterStatField.Strength,
         EffectDatabase.CharacterStatField.Agility,
         EffectDatabase.CharacterStatField.Intelligence,
         EffectDatabase.CharacterStatField.ActionPoints,
         EffectDatabase.CharacterStatField.HitRate,
+        EffectDatabase.CharacterStatField.DodgeRate,
         EffectDatabase.CharacterStatField.PhysicalResistance,
         EffectDatabase.CharacterStatField.FireResistance,
         EffectDatabase.CharacterStatField.CorruptionResistance,
@@ -40,11 +50,14 @@ public sealed class EffectEditorWindow : EditorWindow
 
     private static readonly string[] StatFieldLabels =
     {
+        "\u5f53\u524d\u751f\u547d\u503c",
+        "\u6700\u5927\u751f\u547d\u503c",
         "\u529b\u91cf",
         "\u654f\u6377",
         "\u667a\u529b",
         "\u884c\u52a8\u529b",
         "\u547d\u4e2d",
+        "\u95ea\u907f",
         "\u7269\u7406\u6297\u6027",
         "\u706b\u7130\u6297\u6027",
         "\u8150\u8d25\u6297\u6027",
@@ -55,6 +68,20 @@ public sealed class EffectEditorWindow : EditorWindow
         "\u5bd2\u51b7\u6297\u6027\u7a7f\u900f",
         "\u66b4\u51fb\u7387",
         "\u66b4\u51fb\u4f24\u5bb3"
+    };
+
+    private static readonly string[] AmountModeLabels =
+    {
+        "\u7eaf\u6570\u503c",
+        "\u767e\u5206\u6bd4"
+    };
+
+    private static readonly string[] HealthDamageTypeLabels =
+    {
+        "\u7269\u7406",
+        "\u706b\u7130",
+        "\u8150\u8d25",
+        "\u5bd2\u51b7"
     };
 
     private Vector2 scroll;
@@ -147,13 +174,13 @@ public sealed class EffectEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u63cf\u8ff0"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u56fe\u6807"));
 
-                SerializedProperty stackRuleProperty = entry.FindPropertyRelative("stackRule");
+                SerializedProperty valueStackRuleProperty = entry.FindPropertyRelative("valueStackRule");
+                SerializedProperty durationStackRuleProperty = entry.FindPropertyRelative("durationStackRule");
                 SerializedProperty durationTurnOwnerProperty = entry.FindPropertyRelative("durationTurnOwner");
-                SerializedProperty durationTurnsProperty = entry.FindPropertyRelative("durationTurns");
 
-                stackRuleProperty.enumValueIndex = EditorGUILayout.Popup("\u53e0\u52a0\u89c4\u5219", stackRuleProperty.enumValueIndex, StackRuleLabels);
+                valueStackRuleProperty.enumValueIndex = EditorGUILayout.Popup("\u6570\u503c\u53e0\u52a0\u89c4\u5219", valueStackRuleProperty.enumValueIndex, ValueStackRuleLabels);
+                durationStackRuleProperty.enumValueIndex = EditorGUILayout.Popup("\u56de\u5408\u53e0\u52a0\u89c4\u5219", durationStackRuleProperty.enumValueIndex, DurationStackRuleLabels);
                 durationTurnOwnerProperty.enumValueIndex = EditorGUILayout.Popup("\u6301\u7eed\u56de\u5408\u5f52\u5c5e", durationTurnOwnerProperty.enumValueIndex, TurnOwnerLabels);
-                durationTurnsProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("\u6301\u7eed\u56de\u5408\u6570", Mathf.Max(0, durationTurnsProperty.intValue)));
 
                 EditorGUILayout.Space(4f);
                 DrawStatModifiers(entry.FindPropertyRelative("statModifiers"));
@@ -190,6 +217,7 @@ public sealed class EffectEditorWindow : EditorWindow
         {
             SerializedProperty modifier = modifiersProperty.GetArrayElementAtIndex(i);
             SerializedProperty statFieldProperty = modifier.FindPropertyRelative("statField");
+            SerializedProperty amountModeProperty = modifier.FindPropertyRelative("amountMode");
             SerializedProperty amountProperty = modifier.FindPropertyRelative("amount");
 
             using (new EditorGUILayout.HorizontalScope())
@@ -197,6 +225,26 @@ public sealed class EffectEditorWindow : EditorWindow
                 int selectedIndex = FindStatFieldIndex((EffectDatabase.CharacterStatField)statFieldProperty.enumValueIndex);
                 int nextIndex = EditorGUILayout.Popup(selectedIndex, StatFieldLabels);
                 statFieldProperty.enumValueIndex = (int)StatFieldValues[Mathf.Clamp(nextIndex, 0, StatFieldValues.Length - 1)];
+                EffectDatabase.CharacterStatField selectedField =
+                    (EffectDatabase.CharacterStatField)statFieldProperty.enumValueIndex;
+                if (selectedField == EffectDatabase.CharacterStatField.TargetHealth ||
+                    selectedField == EffectDatabase.CharacterStatField.MaxHealth)
+                {
+                    SerializedProperty healthDamageTypeProperty = modifier.FindPropertyRelative("healthDamageType");
+                    healthDamageTypeProperty.enumValueIndex = EditorGUILayout.Popup(
+                        healthDamageTypeProperty.enumValueIndex,
+                        HealthDamageTypeLabels,
+                        GUILayout.Width(70f));
+                }
+                if (ShouldForcePercentAmountMode(selectedField))
+                {
+                    amountModeProperty.enumValueIndex = (int)EffectDatabase.StatModifier.AmountMode.Percent;
+                    EditorGUILayout.LabelField("\u767e\u5206\u6bd4", GUILayout.Width(90f));
+                }
+                else
+                {
+                    amountModeProperty.enumValueIndex = EditorGUILayout.Popup(amountModeProperty.enumValueIndex, AmountModeLabels, GUILayout.Width(90f));
+                }
                 amountProperty.intValue = EditorGUILayout.IntField(amountProperty.intValue);
 
                 if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
@@ -216,6 +264,8 @@ public sealed class EffectEditorWindow : EditorWindow
                 modifiersProperty.InsertArrayElementAtIndex(index);
                 SerializedProperty modifier = modifiersProperty.GetArrayElementAtIndex(index);
                 modifier.FindPropertyRelative("statField").enumValueIndex = (int)EffectDatabase.CharacterStatField.Strength;
+                modifier.FindPropertyRelative("healthDamageType").enumValueIndex = (int)EffectDatabase.StatModifier.HealthDamageType.Physical;
+                modifier.FindPropertyRelative("amountMode").enumValueIndex = (int)EffectDatabase.StatModifier.AmountMode.Flat;
                 modifier.FindPropertyRelative("amount").intValue = 0;
             }
         }
@@ -232,6 +282,29 @@ public sealed class EffectEditorWindow : EditorWindow
         }
 
         return 0;
+    }
+
+    private static bool ShouldForcePercentAmountMode(EffectDatabase.CharacterStatField field)
+    {
+        switch (field)
+        {
+            case EffectDatabase.CharacterStatField.MaxHealth:
+            case EffectDatabase.CharacterStatField.HitRate:
+            case EffectDatabase.CharacterStatField.DodgeRate:
+            case EffectDatabase.CharacterStatField.PhysicalResistance:
+            case EffectDatabase.CharacterStatField.FireResistance:
+            case EffectDatabase.CharacterStatField.CorruptionResistance:
+            case EffectDatabase.CharacterStatField.ColdResistance:
+            case EffectDatabase.CharacterStatField.PhysicalResistancePenetration:
+            case EffectDatabase.CharacterStatField.FireResistancePenetration:
+            case EffectDatabase.CharacterStatField.CorruptionResistancePenetration:
+            case EffectDatabase.CharacterStatField.ColdResistancePenetration:
+            case EffectDatabase.CharacterStatField.CriticalChance:
+            case EffectDatabase.CharacterStatField.CriticalDamage:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private bool GetFoldoutState(string key)
@@ -252,7 +325,7 @@ public sealed class EffectEditorWindow : EditorWindow
 
     private static string GetEntryFoldoutKey(string effectId, int index)
     {
-        return $"effect_{index}_{effectId}";
+        return $"effect_{index}";
     }
 
     private static string BuildHeaderLabel(string effectId, int index)
@@ -266,9 +339,9 @@ public sealed class EffectEditorWindow : EditorWindow
         entry.FindPropertyRelative("displayName").stringValue = string.Empty;
         entry.FindPropertyRelative("description").stringValue = string.Empty;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
-        entry.FindPropertyRelative("stackRule").enumValueIndex = (int)EffectDatabase.StackRule.NotStackable;
+        entry.FindPropertyRelative("valueStackRule").enumValueIndex = (int)EffectDatabase.ValueStackRule.NotStackable;
+        entry.FindPropertyRelative("durationStackRule").enumValueIndex = (int)EffectDatabase.DurationStackRule.NotStackable;
         entry.FindPropertyRelative("durationTurnOwner").enumValueIndex = (int)EffectDatabase.TurnOwner.Target;
-        entry.FindPropertyRelative("durationTurns").intValue = 1;
         entry.FindPropertyRelative("statModifiers").ClearArray();
     }
 

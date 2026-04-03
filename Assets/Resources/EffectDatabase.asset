@@ -14,10 +14,62 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - effectId: "\u71C3\u70E7"
-    displayName: 
-    description: 
-    icon: {fileID: 0}
-    stackRule: 0
+    displayName: "\u71C3\u70E7"
+    description: "\u5BF9\u76EE\u6807\u6BCF\u56DE\u5408\u9020\u6210\u6700\u5927\u751F\u547D5%\u7684\u706B\u7130\u4F24\u5BB3"
+    icon: {fileID: 914947735, guid: 42771b41a34cc50438ae750d1c7bf85b, type: 3}
+    valueStackRule: 0
+    durationStackRule: 2
     durationTurnOwner: 1
-    durationTurns: 1
-    statModifiers: []
+    statModifiers:
+    - statField: 1
+      healthDamageType: 1
+      amountMode: 1
+      amount: -5
+  - effectId: "\u6D41\u8840"
+    displayName: "\u6D41\u8840"
+    description: "\u5BF9\u76EE\u6807\u6BCF\u56DE\u5408\u9020\u62102\u70B9\u7269\u7406\u4F24\u5BB3\uFF0C\u53EF\u53E0\u52A0"
+    icon: {fileID: 0}
+    valueStackRule: 1
+    durationStackRule: 1
+    durationTurnOwner: 1
+    statModifiers:
+    - statField: 0
+      healthDamageType: 0
+      amountMode: 0
+      amount: -2
+  - effectId: "\u4E2D\u6BD2"
+    displayName: "\u4E2D\u6BD2"
+    description: "\u76EE\u6807\u51CF\u5C1120%\u5168\u5C5E\u6027\u6297\u6027"
+    icon: {fileID: -2000164138, guid: 42771b41a34cc50438ae750d1c7bf85b, type: 3}
+    valueStackRule: 0
+    durationStackRule: 2
+    durationTurnOwner: 1
+    statModifiers:
+    - statField: 7
+      healthDamageType: 0
+      amountMode: 1
+      amount: 20
+    - statField: 8
+      healthDamageType: 0
+      amountMode: 1
+      amount: 20
+    - statField: 9
+      healthDamageType: 0
+      amountMode: 1
+      amount: 20
+    - statField: 10
+      healthDamageType: 0
+      amountMode: 1
+      amount: 20
+  - effectId: "\u96C6\u4E2D"
+    displayName: "\u96C6\u4E2D"
+    description: "\u5168\u8EAB\u8D2F\u6CE8 \u589E\u52A020%\u547D\u4E2D\u7387"
+    icon: {fileID: 0}
+    valueStackRule: 0
+    durationStackRule: 2
+    durationTurnOwner: 0
+    statModifiers:
+    - statField: 6
+      healthDamageType: 0
+      amountMode: 1
+      amount: 20
