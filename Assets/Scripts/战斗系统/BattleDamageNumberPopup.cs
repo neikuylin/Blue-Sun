@@ -111,7 +111,8 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
         RectTransform popup;
         TMP_Text text;
         CanvasGroup canvasGroup;
-        if (!TryCreatePopupInstance(popupPrefab, out popup, out text, out canvasGroup))
+        Vector2 popupOffset;
+        if (!TryCreatePopupInstance(popupPrefab, out popup, out text, out canvasGroup, out popupOffset))
         {
             return;
         }
@@ -133,15 +134,18 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        popup.anchoredPosition = anchoredPosition + new Vector2(0f, startOffsetY);
-        StartCoroutine(AnimatePopup(popup, canvasGroup, anchoredPosition));
+        Vector2 startPosition = anchoredPosition + popupOffset + new Vector2(0f, startOffsetY);
+        Vector2 targetPosition = anchoredPosition + popupOffset;
+        popup.anchoredPosition = startPosition;
+        StartCoroutine(AnimatePopup(popup, canvasGroup, targetPosition));
     }
 
-    private bool TryCreatePopupInstance(GameObject popupPrefab, out RectTransform popup, out TMP_Text text, out CanvasGroup canvasGroup)
+    private bool TryCreatePopupInstance(GameObject popupPrefab, out RectTransform popup, out TMP_Text text, out CanvasGroup canvasGroup, out Vector2 popupOffset)
     {
         popup = null;
         text = null;
         canvasGroup = null;
+        popupOffset = Vector2.zero;
 
         if (popupPrefab != null)
         {
@@ -157,6 +161,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
                 return false;
             }
 
+            popupOffset = popup.anchoredPosition;
             canvasGroup = popupObject.GetComponent<CanvasGroup>();
             if (canvasGroup == null)
             {
@@ -182,6 +187,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return false;
         }
 
+        popupOffset = popup.anchoredPosition;
         canvasGroup = popup.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
         {
