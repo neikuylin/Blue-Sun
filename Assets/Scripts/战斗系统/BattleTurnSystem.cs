@@ -242,6 +242,27 @@ public class BattleTurnSystem : MonoBehaviour
         return null;
     }
 
+    public BattleUnit FindUnitByInstanceId(int instanceId)
+    {
+        if (instanceId == 0)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || unit.GetInstanceID() != instanceId)
+            {
+                continue;
+            }
+
+            return unit;
+        }
+
+        return null;
+    }
+
     public void Initialize(BattleGrid battleGrid, Camera mainCamera, IEnumerable<BattleUnit> battleUnits)
     {
         grid = battleGrid;
@@ -4193,7 +4214,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             EffectDatabase.EffectEntry appliedEffectEntry;
-            if (!target.ApplyAttachedEffect(attachedEffect.effectId, attachedEffect.durationTurns, caster.characterId, out appliedEffectEntry))
+            if (!target.ApplyAttachedEffect(attachedEffect.effectId, attachedEffect.durationTurns, caster, out appliedEffectEntry))
             {
                 continue;
             }
@@ -4318,7 +4339,7 @@ public class BattleTurnSystem : MonoBehaviour
                     continue;
                 }
 
-                if (!unit.ShouldAdvanceEffectOnTurn(turnOwner.characterId, activeEffect))
+                if (!unit.ShouldAdvanceEffectOnTurn(turnOwner, activeEffect))
                 {
                     continue;
                 }
@@ -4356,7 +4377,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        BattleUnit sourceUnit = FindUnitByCharacterId(activeEffect.sourceCharacterId);
+        BattleUnit sourceUnit = FindUnitByInstanceId(activeEffect.sourceUnitInstanceId);
         int stackCount = Mathf.Max(1, activeEffect.stackCount);
         for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
         {

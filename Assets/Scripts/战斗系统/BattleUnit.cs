@@ -14,6 +14,7 @@ public class BattleUnit : MonoBehaviour
     {
         public string effectId = string.Empty;
         public string sourceCharacterId = string.Empty;
+        public int sourceUnitInstanceId;
         public int stackCount = 1;
         public int remainingTurns;
         public EffectDatabase.TurnOwner durationTurnOwner = EffectDatabase.TurnOwner.Target;
@@ -504,20 +505,20 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
-    public bool ShouldAdvanceEffectOnTurn(string actingCharacterId, ActiveEffectState effectState)
+    public bool ShouldAdvanceEffectOnTurn(BattleUnit actingUnit, ActiveEffectState effectState)
     {
-        if (effectState == null || string.IsNullOrWhiteSpace(actingCharacterId))
+        if (actingUnit == null || effectState == null)
         {
             return false;
         }
 
         if (effectState.durationTurnOwner == EffectDatabase.TurnOwner.Target)
         {
-            return string.Equals(characterId, actingCharacterId, System.StringComparison.Ordinal);
+            return ReferenceEquals(this, actingUnit);
         }
 
-        return !string.IsNullOrWhiteSpace(effectState.sourceCharacterId) &&
-            string.Equals(effectState.sourceCharacterId, actingCharacterId, System.StringComparison.Ordinal);
+        return effectState.sourceUnitInstanceId != 0 &&
+            effectState.sourceUnitInstanceId == actingUnit.GetInstanceID();
     }
 
     public void ConsumeEffectTurn(ActiveEffectState effectState)
@@ -541,7 +542,7 @@ public class BattleUnit : MonoBehaviour
         NormalizeRuntimeState();
     }
 
-    public bool ApplyAttachedEffect(string effectId, int durationTurns, string sourceCharacterId, out EffectDatabase.EffectEntry appliedEffectEntry)
+    public bool ApplyAttachedEffect(string effectId, int durationTurns, BattleUnit sourceUnit, out EffectDatabase.EffectEntry appliedEffectEntry)
     {
         appliedEffectEntry = null;
         if (string.IsNullOrWhiteSpace(effectId) || durationTurns <= 0)
@@ -562,7 +563,8 @@ public class BattleUnit : MonoBehaviour
             activeEffects.Add(new ActiveEffectState
             {
                 effectId = effectId,
-                sourceCharacterId = string.IsNullOrWhiteSpace(sourceCharacterId) ? string.Empty : sourceCharacterId,
+                sourceCharacterId = sourceUnit != null && !string.IsNullOrWhiteSpace(sourceUnit.characterId) ? sourceUnit.characterId : string.Empty,
+                sourceUnitInstanceId = sourceUnit != null ? sourceUnit.GetInstanceID() : 0,
                 stackCount = 1,
                 remainingTurns = durationTurns,
                 durationTurnOwner = effectEntry.durationTurnOwner
@@ -575,9 +577,10 @@ public class BattleUnit : MonoBehaviour
                 existing.stackCount = Mathf.Max(1, existing.stackCount + 1);
             }
 
-            if (!string.IsNullOrWhiteSpace(sourceCharacterId))
+            if (sourceUnit != null)
             {
-                existing.sourceCharacterId = sourceCharacterId;
+                existing.sourceCharacterId = string.IsNullOrWhiteSpace(sourceUnit.characterId) ? string.Empty : sourceUnit.characterId;
+                existing.sourceUnitInstanceId = sourceUnit.GetInstanceID();
             }
 
             existing.durationTurnOwner = effectEntry.durationTurnOwner;
