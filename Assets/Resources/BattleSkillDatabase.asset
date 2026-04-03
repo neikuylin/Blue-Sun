@@ -30,6 +30,7 @@ MonoBehaviour:
     damageMultiplier: 1
     attributeMultiplier: 1
     fixedDamage: 0
+    hitRateModifier: 0
     damageType: 0
     actionPointCost: 1
     manaCost: 0
@@ -99,6 +100,7 @@ MonoBehaviour:
     damageMultiplier: 1
     attributeMultiplier: 1
     fixedDamage: 0
+    hitRateModifier: 0
     damageType: 0
     actionPointCost: 2
     manaCost: 0
@@ -155,6 +157,7 @@ MonoBehaviour:
     damageMultiplier: 0.8
     attributeMultiplier: 1
     fixedDamage: 0
+    hitRateModifier: 0
     damageType: 0
     actionPointCost: 2
     manaCost: 0
@@ -211,6 +214,7 @@ MonoBehaviour:
     damageMultiplier: 0.9
     attributeMultiplier: 1
     fixedDamage: 0
+    hitRateModifier: -10
     damageType: 0
     actionPointCost: 2
     manaCost: 0
@@ -254,6 +258,7 @@ MonoBehaviour:
     damageMultiplier: 1
     attributeMultiplier: 0.8
     fixedDamage: 3
+    hitRateModifier: 0
     damageType: 1
     actionPointCost: 2
     manaCost: 1

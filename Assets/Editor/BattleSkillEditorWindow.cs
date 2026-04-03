@@ -165,15 +165,25 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 {
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("attributeMultiplier"), new GUIContent("\u5c5e\u6027\u500d\u7387"));
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("fixedDamage"), new GUIContent("\u56fa\u5b9a\u4f24\u5bb3"));
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitRateModifier"), new GUIContent("\u547D\u4E2D\u7387\u4FEE\u6B63\uff08%\uff09"));
                     SerializedProperty damageType = entry.FindPropertyRelative("damageType");
                     damageType.enumValueIndex = EditorGUILayout.Popup("\u4f24\u5bb3\u7c7b\u578b", damageType.enumValueIndex, DamageTypeLabels);
                     entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
                 }
-                else
+                else if (currentGroup == BattleSkillDatabase.SkillGroup.CombatArt)
                 {
                     EditorGUILayout.PropertyField(entry.FindPropertyRelative("damageMultiplier"), new GUIContent("\u4f24\u5bb3\u500d\u7387"));
+                    EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitRateModifier"), new GUIContent("\u547D\u4E2D\u7387\u4FEE\u6B63\uff08%\uff09"));
                     entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
                     entry.FindPropertyRelative("fixedDamage").intValue = 0;
+                    entry.FindPropertyRelative("damageType").enumValueIndex = (int)BattleSkillDatabase.DamageType.Physical;
+                }
+                else
+                {
+                    entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
+                    entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
+                    entry.FindPropertyRelative("fixedDamage").intValue = 0;
+                    entry.FindPropertyRelative("hitRateModifier").intValue = 0;
                     entry.FindPropertyRelative("damageType").enumValueIndex = (int)BattleSkillDatabase.DamageType.Physical;
                 }
 
@@ -264,6 +274,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("fixedDamage").intValue = 0;
+        entry.FindPropertyRelative("hitRateModifier").intValue = 0;
         entry.FindPropertyRelative("damageType").enumValueIndex = (int)BattleSkillDatabase.DamageType.Physical;
         entry.FindPropertyRelative("actionPointCost").intValue = 1;
         entry.FindPropertyRelative("manaCost").intValue = 0;

@@ -3521,7 +3521,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!RollSkillHit(caster, target))
+        if (!RollSkillHit(caster, target, skill))
         {
             PlayDodgeReaction(target);
             BattleDamageNumberPopup.ShowMiss(target, battleCamera);
@@ -3564,7 +3564,7 @@ public class BattleTurnSystem : MonoBehaviour
             return $"{casterName}对{targetName}使用了{skillName}";
         }
 
-        if (!RollSkillHit(caster, target))
+        if (!RollSkillHit(caster, target, skill))
         {
             PlayDodgeReaction(target);
             BattleDamageNumberPopup.ShowMiss(target, battleCamera);
@@ -3608,7 +3608,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            if (!RollSkillHit(caster, unit))
+            if (!RollSkillHit(caster, unit, skill))
             {
                 PlayDodgeReaction(unit);
                 BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
@@ -3662,7 +3662,7 @@ public class BattleTurnSystem : MonoBehaviour
             }
 
             string unitName = ResolveBattleInfoUnitName(unit, richText: true);
-            if (!RollSkillHit(caster, unit))
+            if (!RollSkillHit(caster, unit, skill))
             {
                 PlayDodgeReaction(unit);
                 BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
@@ -4107,14 +4107,17 @@ public class BattleTurnSystem : MonoBehaviour
         return WrapBattleInfoColor($"，{ResolveBattleInfoUnitName(unit, richText: true)}死亡", NeutralInfoColorHex);
     }
 
-    private bool RollSkillHit(BattleUnit caster, BattleUnit target)
+    private bool RollSkillHit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null)
+        if (caster == null || target == null || skill == null)
         {
             return false;
         }
 
-        int hitChance = Mathf.Clamp(caster.HitRate - target.DodgeRate, MinHitChancePercent, MaxHitChancePercent);
+        int hitChance = Mathf.Clamp(
+            caster.HitRate + skill.ResolveHitRateModifier() - target.DodgeRate,
+            MinHitChancePercent,
+            MaxHitChancePercent);
         if (hitChance >= MaxHitChancePercent)
         {
             return true;

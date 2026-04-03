@@ -87,6 +87,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float damageMultiplier = 1f;
         public float attributeMultiplier = 1f;
         public int fixedDamage;
+        public int hitRateModifier;
         public DamageType damageType = DamageType.Physical;
         public int actionPointCost = 1;
         public int manaCost;
@@ -109,6 +110,13 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int ResolveManaCost()
         {
             return Mathf.Max(0, manaCost);
+        }
+
+        public int ResolveHitRateModifier()
+        {
+            return group == SkillGroup.CombatArt || group == SkillGroup.Spell
+                ? hitRateModifier
+                : 0;
         }
 
         public int ResolveRange(int moveDistance)
