@@ -274,7 +274,8 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
-    attachedEffectIds: []
+    attachedEffectIds:
+    - "\u71C3\u70E7"
     requiredWeaponCategories: 
     weaponActionOverrides: []
   - skillId: "\u96C6\u4E2D"
@@ -287,14 +288,14 @@ MonoBehaviour:
     enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 0
-    group: 1
+    group: 2
     skillType: 0
     castTarget: 0
     icon: {fileID: 21300000, guid: e8620ae0092410f4e9b3145b8941728d, type: 3}
     damageMultiplier: 1
-    attributeMultiplier: 1
+    attributeMultiplier: 0
     fixedDamage: 0
-    hitRateModifier: 0
+    hitRateModifier: 100
     damageType: 0
     actionPointCost: 1
     manaCost: 0

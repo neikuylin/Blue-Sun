@@ -135,6 +135,8 @@ public sealed class EffectEditorWindow : EditorWindow
         }
 
         databaseObject.Update();
+        DrawGlobalBindings(databaseObject);
+        EditorGUILayout.Space(8f);
         SerializedProperty entries = databaseObject.FindProperty("entries");
 
         for (int i = 0; i < entries.arraySize; i++)
@@ -197,6 +199,26 @@ public sealed class EffectEditorWindow : EditorWindow
         {
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
+        }
+    }
+
+    private static void DrawGlobalBindings(SerializedObject serializedDatabase)
+    {
+        if (serializedDatabase == null)
+        {
+            return;
+        }
+
+        SerializedProperty effectPopupTextObjectProperty = serializedDatabase.FindProperty("effectPopupTextObject");
+        if (effectPopupTextObjectProperty == null)
+        {
+            return;
+        }
+
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("全局绑定", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(effectPopupTextObjectProperty, new GUIContent("效果弹字GameObject"));
         }
     }
 
