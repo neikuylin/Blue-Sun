@@ -202,7 +202,9 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51b7\u5374\u65f6\u95f4\uff08\u56de\u5408\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("\u9b54\u6cd5\u6d88\u8017\uff08MP\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("\u884c\u52a8\u529b\u6d88\u8017\uff08AP\uff09"));
-                DrawAttachedEffects(entry.FindPropertyRelative("attachedEffectIds"));
+                DrawAttachedEffects(
+                    entry.FindPropertyRelative("attachedEffects"),
+                    entry.FindPropertyRelative("attachedEffectIds"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.CombatArt)
                 {
                     DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
@@ -289,6 +291,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("axisWidth").intValue = 3;
         entry.FindPropertyRelative("axisAngle").floatValue = 180f;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
+        entry.FindPropertyRelative("attachedEffects").ClearArray();
         entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
@@ -335,27 +338,30 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         return string.IsNullOrWhiteSpace(skillId) ? $"未命名技能 {index + 1}" : skillId;
     }
 
-    private static void DrawAttachedEffects(SerializedProperty attachedEffectIdsProperty)
+    private static void DrawAttachedEffects(SerializedProperty attachedEffectsProperty, SerializedProperty legacyAttachedEffectIdsProperty)
     {
-        if (attachedEffectIdsProperty == null)
+        if (attachedEffectsProperty == null)
         {
             return;
         }
 
         EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
         List<EffectDatabase.EffectEntry> effectEntries = GetValidEffectEntries(effectDatabase);
+        MigrateLegacyAttachedEffects(attachedEffectsProperty, legacyAttachedEffectIdsProperty);
 
         EditorGUILayout.Space(2f);
         EditorGUILayout.LabelField("附加效果");
 
-        if (attachedEffectIdsProperty.arraySize == 0)
+        if (attachedEffectsProperty.arraySize == 0)
         {
             EditorGUILayout.HelpBox("当前没有附加效果。可从效果编辑器中配置好的效果里选择。", MessageType.None);
         }
 
-        for (int i = 0; i < attachedEffectIdsProperty.arraySize; i++)
+        for (int i = 0; i < attachedEffectsProperty.arraySize; i++)
         {
-            SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(i);
+            SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(i);
+            SerializedProperty effectIdProperty = attachedEffectProperty.FindPropertyRelative("effectId");
+            SerializedProperty durationTurnsProperty = attachedEffectProperty.FindPropertyRelative("durationTurns");
             using (new EditorGUILayout.HorizontalScope())
             {
                 string currentEffectId = effectIdProperty != null ? effectIdProperty.stringValue : string.Empty;
@@ -372,9 +378,14 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, nextIndex);
                 }
 
+                if (durationTurnsProperty != null)
+                {
+                    durationTurnsProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("持续回合", Mathf.Max(0, durationTurnsProperty.intValue), GUILayout.Width(150f)));
+                }
+
                 if (GUILayout.Button("删除", GUILayout.Width(60f)))
                 {
-                    attachedEffectIdsProperty.DeleteArrayElementAtIndex(i);
+                    attachedEffectsProperty.DeleteArrayElementAtIndex(i);
                     break;
                 }
             }
@@ -387,12 +398,37 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             {
                 if (GUILayout.Button("新增附加效果", GUILayout.Width(120f)))
                 {
-                    int index = attachedEffectIdsProperty.arraySize;
-                    attachedEffectIdsProperty.InsertArrayElementAtIndex(index);
-                    SerializedProperty effectIdProperty = attachedEffectIdsProperty.GetArrayElementAtIndex(index);
-                    effectIdProperty.stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
+                    int index = attachedEffectsProperty.arraySize;
+                    attachedEffectsProperty.InsertArrayElementAtIndex(index);
+                    SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(index);
+                    attachedEffectProperty.FindPropertyRelative("effectId").stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
+                    attachedEffectProperty.FindPropertyRelative("durationTurns").intValue = 1;
                 }
             }
+        }
+    }
+
+    private static void MigrateLegacyAttachedEffects(SerializedProperty attachedEffectsProperty, SerializedProperty legacyAttachedEffectIdsProperty)
+    {
+        if (attachedEffectsProperty == null || legacyAttachedEffectIdsProperty == null || attachedEffectsProperty.arraySize > 0 || legacyAttachedEffectIdsProperty.arraySize == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < legacyAttachedEffectIdsProperty.arraySize; i++)
+        {
+            SerializedProperty legacyEffectIdProperty = legacyAttachedEffectIdsProperty.GetArrayElementAtIndex(i);
+            string effectId = legacyEffectIdProperty != null ? legacyEffectIdProperty.stringValue : string.Empty;
+            if (string.IsNullOrWhiteSpace(effectId))
+            {
+                continue;
+            }
+
+            int index = attachedEffectsProperty.arraySize;
+            attachedEffectsProperty.InsertArrayElementAtIndex(index);
+            SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(index);
+            attachedEffectProperty.FindPropertyRelative("effectId").stringValue = effectId;
+            attachedEffectProperty.FindPropertyRelative("durationTurns").intValue = 1;
         }
     }
 

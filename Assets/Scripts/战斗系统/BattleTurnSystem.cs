@@ -1141,6 +1141,13 @@ public class BattleTurnSystem : MonoBehaviour
             if (candidate != null && candidate.IsAlive)
             {
                 activeUnit = candidate;
+                ProcessEffectTurnsForTurnOwner(activeUnit);
+                CleanupDeadUnits();
+                if (activeUnit == null || !activeUnit.IsAlive)
+                {
+                    currentRoundIndex++;
+                    continue;
+                }
                 activeUnit.BeginTurn();
                 FocusCameraOnActiveUnit();
                 ClearActiveSkillMode();
@@ -1287,7 +1294,7 @@ public class BattleTurnSystem : MonoBehaviour
             ? (string.IsNullOrWhiteSpace(targetUnit.characterId) ? targetUnit.unitName : targetUnit.characterId)
             : string.Empty;
         int currentHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.currentHealth) : 0;
-        int maxHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.maxHealth) : 0;
+        int maxHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.GetEffectiveMaxHealth()) : 0;
         string signature = string.Concat(targetId, "|", currentHealth, "/", maxHealth);
         if (string.Equals(signature, lastTargetUiSignature, System.StringComparison.Ordinal))
         {
@@ -3767,9 +3774,7 @@ public class BattleTurnSystem : MonoBehaviour
             return null;
         }
 
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(caster.characterId) : null;
-        float intelligence = statEntry != null ? Mathf.Max(0, statEntry.intelligence) : 0f;
+        float intelligence = Mathf.Max(0, caster.GetEffectiveIntelligence());
         float baseDamage = Mathf.Max(0, skill.fixedDamage) +
             (Mathf.Max(0f, skill.attributeMultiplier) * intelligence);
         float damage = baseDamage * InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(caster.characterId);
@@ -4147,21 +4152,27 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null || skill.attachedEffectIds == null || skill.attachedEffectIds.Count == 0)
+        if (caster == null || target == null || skill == null)
         {
             return;
         }
 
-        for (int i = 0; i < skill.attachedEffectIds.Count; i++)
+        skill.EnsureAttachedEffectsMigrated();
+        if (skill.attachedEffects == null || skill.attachedEffects.Count == 0)
         {
-            string effectId = skill.attachedEffectIds[i];
-            if (string.IsNullOrWhiteSpace(effectId))
+            return;
+        }
+
+        for (int i = 0; i < skill.attachedEffects.Count; i++)
+        {
+            BattleSkillDatabase.SkillEntry.AttachedEffectEntry attachedEffect = skill.attachedEffects[i];
+            if (attachedEffect == null || string.IsNullOrWhiteSpace(attachedEffect.effectId) || attachedEffect.durationTurns <= 0)
             {
                 continue;
             }
 
             EffectDatabase.EffectEntry appliedEffectEntry;
-            if (!target.ApplyAttachedEffect(effectId, caster.characterId, out appliedEffectEntry))
+            if (!target.ApplyAttachedEffect(attachedEffect.effectId, attachedEffect.durationTurns, caster.characterId, out appliedEffectEntry))
             {
                 continue;
             }
@@ -4194,6 +4205,131 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 ApplyAttachedEffectsToUnit(caster, target, skill);
             }
+        }
+    }
+
+    private void ProcessEffectTurnsForTurnOwner(BattleUnit turnOwner)
+    {
+        if (turnOwner == null)
+        {
+            return;
+        }
+
+        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
+        if (effectDatabase == null)
+        {
+            return;
+        }
+
+        for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
+        {
+            BattleUnit unit = units[unitIndex];
+            if (unit == null || !unit.IsAlive || unit.ActiveEffects == null || unit.ActiveEffects.Count == 0)
+            {
+                continue;
+            }
+
+            for (int effectIndex = unit.ActiveEffects.Count - 1; effectIndex >= 0; effectIndex--)
+            {
+                BattleUnit.ActiveEffectState activeEffect = unit.ActiveEffects[effectIndex];
+                if (activeEffect == null)
+                {
+                    continue;
+                }
+
+                EffectDatabase.EffectEntry effectEntry = effectDatabase.FindEntry(activeEffect.effectId);
+                if (effectEntry == null)
+                {
+                    unit.RemoveActiveEffect(activeEffect);
+                    continue;
+                }
+
+                if (!unit.ShouldAdvanceEffectOnTurn(turnOwner.characterId, activeEffect))
+                {
+                    continue;
+                }
+
+                ApplyEffectHealthModifiersOnTurn(unit, activeEffect, effectEntry);
+                unit.ConsumeEffectTurn(activeEffect);
+                if (activeEffect.remainingTurns <= 0)
+                {
+                    unit.RemoveActiveEffect(activeEffect);
+                }
+            }
+
+            unit.NormalizeRuntimeState();
+        }
+    }
+
+    private void ApplyEffectHealthModifiersOnTurn(
+        BattleUnit target,
+        BattleUnit.ActiveEffectState activeEffect,
+        EffectDatabase.EffectEntry effectEntry)
+    {
+        if (target == null || activeEffect == null || effectEntry == null || effectEntry.statModifiers == null || effectEntry.statModifiers.Count == 0)
+        {
+            return;
+        }
+
+        BattleUnit sourceUnit = FindUnitByCharacterId(activeEffect.sourceCharacterId);
+        int stackCount = Mathf.Max(1, activeEffect.stackCount);
+        for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
+        {
+            EffectDatabase.StatModifier modifier = effectEntry.statModifiers[modifierIndex];
+            if (modifier == null || modifier.statField != EffectDatabase.CharacterStatField.TargetHealth)
+            {
+                continue;
+            }
+
+            for (int stackIndex = 0; stackIndex < stackCount; stackIndex++)
+            {
+                int delta = ResolveEffectCurrentHealthDelta(target, sourceUnit, modifier);
+                if (delta == 0)
+                {
+                    continue;
+                }
+
+                target.ApplyCurrentHealthDelta(delta);
+            }
+        }
+    }
+
+    private int ResolveEffectCurrentHealthDelta(BattleUnit target, BattleUnit sourceUnit, EffectDatabase.StatModifier modifier)
+    {
+        if (target == null || modifier == null)
+        {
+            return 0;
+        }
+
+        float rawDelta = modifier.amountMode == EffectDatabase.StatModifier.AmountMode.Percent
+            ? target.currentHealth * modifier.amount / 100f
+            : modifier.amount;
+        int roundedDelta = Mathf.RoundToInt(rawDelta);
+        if (roundedDelta >= 0)
+        {
+            return roundedDelta;
+        }
+
+        float mitigatedDamage = ApplyResistance(
+            Mathf.Abs(roundedDelta),
+            sourceUnit,
+            target,
+            ResolveEffectDamageAttributeType(modifier.healthDamageType));
+        return -Mathf.RoundToInt(mitigatedDamage);
+    }
+
+    private static DamageAttributeType ResolveEffectDamageAttributeType(EffectDatabase.StatModifier.HealthDamageType damageType)
+    {
+        switch (damageType)
+        {
+            case EffectDatabase.StatModifier.HealthDamageType.Fire:
+                return DamageAttributeType.Fire;
+            case EffectDatabase.StatModifier.HealthDamageType.Corruption:
+                return DamageAttributeType.Corruption;
+            case EffectDatabase.StatModifier.HealthDamageType.Cold:
+                return DamageAttributeType.Cold;
+            default:
+                return DamageAttributeType.Physical;
         }
     }
 

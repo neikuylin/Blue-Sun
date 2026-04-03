@@ -43,6 +43,7 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 3, y: 3}
+    attachedEffects: []
     attachedEffectIds: []
     requiredWeaponCategories: 
     weaponActionOverrides:
@@ -141,6 +142,7 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
+    attachedEffects: []
     attachedEffectIds: []
     requiredWeaponCategories: 0100000002000000
     weaponActionOverrides:
@@ -200,6 +202,7 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 240
     effectSize: {x: 3, y: 3}
+    attachedEffects: []
     attachedEffectIds: []
     requiredWeaponCategories: 0100000002000000
     weaponActionOverrides:
@@ -259,6 +262,7 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
+    attachedEffects: []
     attachedEffectIds: []
     requiredWeaponCategories: 03000000
     weaponActionOverrides:
@@ -305,6 +309,7 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
+    attachedEffects: []
     attachedEffectIds:
     - "\u71C3\u70E7"
     requiredWeaponCategories: 
@@ -339,6 +344,9 @@ MonoBehaviour:
     axisWidth: 3
     axisAngle: 180
     effectSize: {x: 1, y: 1}
+    attachedEffects:
+    - effectId: "\u96C6\u4E2D"
+      durationTurns: 0
     attachedEffectIds:
     - "\u96C6\u4E2D"
     requiredWeaponCategories: 

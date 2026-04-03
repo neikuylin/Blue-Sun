@@ -15,6 +15,8 @@ public class BattleUnit : MonoBehaviour
         public string effectId = string.Empty;
         public string sourceCharacterId = string.Empty;
         public int stackCount = 1;
+        public int remainingTurns;
+        public EffectDatabase.TurnOwner durationTurnOwner = EffectDatabase.TurnOwner.Target;
     }
 
     private const string OutlineObjectPrefix = "__Outline_";
@@ -101,29 +103,29 @@ public class BattleUnit : MonoBehaviour
 
     public int Agility
     {
-        get { return agility; }
+        get { return GetEffectiveAgility(); }
     }
 
     public int DodgeRate
     {
-        get { return CharacterStatDatabase.ResolveDodgeRateFromAgility(agility); }
+        get { return GetEffectiveDodgeRate(); }
     }
 
     public int HitRate
     {
-        get { return CharacterStatDatabase.ResolveHitRateValue(hitRate); }
+        get { return GetEffectiveHitRate(); }
     }
 
-    public int PhysicalResistance => CharacterStatDatabase.ResolveResistanceValue(physicalResistance);
-    public int FireResistance => CharacterStatDatabase.ResolveResistanceValue(fireResistance);
-    public int CorruptionResistance => CharacterStatDatabase.ResolveResistanceValue(corruptionResistance);
-    public int ColdResistance => CharacterStatDatabase.ResolveResistanceValue(coldResistance);
-    public int PhysicalResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration);
-    public int FireResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration);
-    public int CorruptionResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration);
-    public int ColdResistancePenetration => CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration);
-    public int CriticalChance => CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance);
-    public int CriticalDamage => CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage);
+    public int PhysicalResistance => GetEffectivePhysicalResistance();
+    public int FireResistance => GetEffectiveFireResistance();
+    public int CorruptionResistance => GetEffectiveCorruptionResistance();
+    public int ColdResistance => GetEffectiveColdResistance();
+    public int PhysicalResistancePenetration => GetEffectivePhysicalResistancePenetration();
+    public int FireResistancePenetration => GetEffectiveFireResistancePenetration();
+    public int CorruptionResistancePenetration => GetEffectiveCorruptionResistancePenetration();
+    public int ColdResistancePenetration => GetEffectiveColdResistancePenetration();
+    public int CriticalChance => GetEffectiveCriticalChance();
+    public int CriticalDamage => GetEffectiveCriticalDamage();
 
     public bool IsMoving { get; private set; }
 
@@ -211,7 +213,8 @@ public class BattleUnit : MonoBehaviour
 
     public void BeginTurn()
     {
-        currentActionPoints = maxActionPoints;
+        currentActionPoints = GetEffectiveMaxActionPoints();
+        NormalizeRuntimeState();
     }
 
     public bool CanSpendActionPoints(int amount)
@@ -332,10 +335,220 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
-    public bool ApplyAttachedEffect(string effectId, string sourceCharacterId, out EffectDatabase.EffectEntry appliedEffectEntry)
+    public int GetEffectiveStrength()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            strength,
+            EffectDatabase.CharacterStatField.Strength,
+            usePercentScaling: true,
+            treatPercentAsPoints: false));
+    }
+
+    public int GetEffectiveAgility()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            agility,
+            EffectDatabase.CharacterStatField.Agility,
+            usePercentScaling: true,
+            treatPercentAsPoints: false));
+    }
+
+    public int GetEffectiveIntelligence()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            intelligence,
+            EffectDatabase.CharacterStatField.Intelligence,
+            usePercentScaling: true,
+            treatPercentAsPoints: false));
+    }
+
+    public int GetEffectiveMaxActionPoints()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            maxActionPoints,
+            EffectDatabase.CharacterStatField.ActionPoints,
+            usePercentScaling: true,
+            treatPercentAsPoints: false));
+    }
+
+    public int GetEffectiveMaxHealth()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            maxHealth,
+            EffectDatabase.CharacterStatField.MaxHealth,
+            usePercentScaling: true,
+            treatPercentAsPoints: false));
+    }
+
+    public int GetEffectiveHitRate()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveHitRateValue(hitRate),
+            EffectDatabase.CharacterStatField.HitRate,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveDodgeRate()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveDodgeRateFromAgility(agility),
+            EffectDatabase.CharacterStatField.DodgeRate,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectivePhysicalResistance()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistanceValue(physicalResistance),
+            EffectDatabase.CharacterStatField.PhysicalResistance,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveFireResistance()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistanceValue(fireResistance),
+            EffectDatabase.CharacterStatField.FireResistance,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveCorruptionResistance()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistanceValue(corruptionResistance),
+            EffectDatabase.CharacterStatField.CorruptionResistance,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveColdResistance()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistanceValue(coldResistance),
+            EffectDatabase.CharacterStatField.ColdResistance,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectivePhysicalResistancePenetration()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistancePenetrationValue(physicalResistancePenetration),
+            EffectDatabase.CharacterStatField.PhysicalResistancePenetration,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveFireResistancePenetration()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistancePenetrationValue(fireResistancePenetration),
+            EffectDatabase.CharacterStatField.FireResistancePenetration,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveCorruptionResistancePenetration()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistancePenetrationValue(corruptionResistancePenetration),
+            EffectDatabase.CharacterStatField.CorruptionResistancePenetration,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveColdResistancePenetration()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveResistancePenetrationValue(coldResistancePenetration),
+            EffectDatabase.CharacterStatField.ColdResistancePenetration,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveCriticalChance()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveCriticalChanceValue(criticalChance),
+            EffectDatabase.CharacterStatField.CriticalChance,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public int GetEffectiveCriticalDamage()
+    {
+        return Mathf.Max(0, ResolveModifiedAttributeValue(
+            CharacterStatDatabase.ResolveCriticalDamageValue(criticalDamage),
+            EffectDatabase.CharacterStatField.CriticalDamage,
+            usePercentScaling: false,
+            treatPercentAsPoints: true));
+    }
+
+    public void NormalizeRuntimeState()
+    {
+        currentHealth = Mathf.Clamp(currentHealth, 0, GetEffectiveMaxHealth());
+        currentActionPoints = Mathf.Clamp(currentActionPoints, 0, GetEffectiveMaxActionPoints());
+        currentMana = Mathf.Clamp(currentMana, 0, maxMana);
+        if (currentHealth <= 0 && gameObject.activeSelf)
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
+    public void ApplyCurrentHealthDelta(int delta)
+    {
+        currentHealth = Mathf.Clamp(currentHealth + delta, 0, GetEffectiveMaxHealth());
+        if (currentHealth <= 0)
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
+    public bool ShouldAdvanceEffectOnTurn(string actingCharacterId, ActiveEffectState effectState)
+    {
+        if (effectState == null || string.IsNullOrWhiteSpace(actingCharacterId))
+        {
+            return false;
+        }
+
+        if (effectState.durationTurnOwner == EffectDatabase.TurnOwner.Target)
+        {
+            return string.Equals(characterId, actingCharacterId, System.StringComparison.Ordinal);
+        }
+
+        return !string.IsNullOrWhiteSpace(effectState.sourceCharacterId) &&
+            string.Equals(effectState.sourceCharacterId, actingCharacterId, System.StringComparison.Ordinal);
+    }
+
+    public void ConsumeEffectTurn(ActiveEffectState effectState)
+    {
+        if (effectState == null || effectState.remainingTurns <= 0)
+        {
+            return;
+        }
+
+        effectState.remainingTurns = Mathf.Max(0, effectState.remainingTurns - 1);
+    }
+
+    public void RemoveActiveEffect(ActiveEffectState effectState)
+    {
+        if (effectState == null)
+        {
+            return;
+        }
+
+        activeEffects.Remove(effectState);
+        NormalizeRuntimeState();
+    }
+
+    public bool ApplyAttachedEffect(string effectId, int durationTurns, string sourceCharacterId, out EffectDatabase.EffectEntry appliedEffectEntry)
     {
         appliedEffectEntry = null;
-        if (string.IsNullOrWhiteSpace(effectId))
+        if (string.IsNullOrWhiteSpace(effectId) || durationTurns <= 0)
         {
             return false;
         }
@@ -354,7 +567,9 @@ public class BattleUnit : MonoBehaviour
             {
                 effectId = effectId,
                 sourceCharacterId = string.IsNullOrWhiteSpace(sourceCharacterId) ? string.Empty : sourceCharacterId,
-                stackCount = 1
+                stackCount = 1,
+                remainingTurns = durationTurns,
+                durationTurnOwner = effectEntry.durationTurnOwner
             });
         }
         else
@@ -368,9 +583,24 @@ public class BattleUnit : MonoBehaviour
             {
                 existing.sourceCharacterId = sourceCharacterId;
             }
+
+            existing.durationTurnOwner = effectEntry.durationTurnOwner;
+            switch (effectEntry.durationStackRule)
+            {
+                case EffectDatabase.DurationStackRule.Stackable:
+                    existing.remainingTurns = Mathf.Max(0, existing.remainingTurns) + durationTurns;
+                    break;
+                case EffectDatabase.DurationStackRule.KeepHigher:
+                    existing.remainingTurns = Mathf.Max(existing.remainingTurns, durationTurns);
+                    break;
+                case EffectDatabase.DurationStackRule.NotStackable:
+                default:
+                    break;
+            }
         }
 
         appliedEffectEntry = effectEntry;
+        NormalizeRuntimeState();
         return true;
     }
 
@@ -386,6 +616,76 @@ public class BattleUnit : MonoBehaviour
         }
 
         return null;
+    }
+
+    private int ResolveModifiedAttributeValue(
+        int baseValue,
+        EffectDatabase.CharacterStatField targetField,
+        bool usePercentScaling,
+        bool treatPercentAsPoints)
+    {
+        float value = baseValue;
+        EffectDatabase database = EffectDatabase.LoadDefault();
+        if (database == null || activeEffects.Count == 0)
+        {
+            return Mathf.RoundToInt(value);
+        }
+
+        for (int effectIndex = 0; effectIndex < activeEffects.Count; effectIndex++)
+        {
+            ActiveEffectState activeEffect = activeEffects[effectIndex];
+            if (activeEffect == null || activeEffect.remainingTurns <= 0 || string.IsNullOrWhiteSpace(activeEffect.effectId))
+            {
+                continue;
+            }
+
+            EffectDatabase.EffectEntry effectEntry = database.FindEntry(activeEffect.effectId);
+            if (effectEntry == null || effectEntry.statModifiers == null || effectEntry.statModifiers.Count == 0)
+            {
+                continue;
+            }
+
+            int stackCount = Mathf.Max(1, activeEffect.stackCount);
+            for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
+            {
+                EffectDatabase.StatModifier modifier = effectEntry.statModifiers[modifierIndex];
+                if (modifier == null || modifier.statField != targetField || targetField == EffectDatabase.CharacterStatField.TargetHealth)
+                {
+                    continue;
+                }
+
+                for (int stackIndex = 0; stackIndex < stackCount; stackIndex++)
+                {
+                    value = ApplyModifierToValue(value, modifier, usePercentScaling, treatPercentAsPoints);
+                }
+            }
+        }
+
+        return Mathf.RoundToInt(value);
+    }
+
+    private static float ApplyModifierToValue(
+        float currentValue,
+        EffectDatabase.StatModifier modifier,
+        bool usePercentScaling,
+        bool treatPercentAsPoints)
+    {
+        if (modifier == null)
+        {
+            return currentValue;
+        }
+
+        if (modifier.amountMode == EffectDatabase.StatModifier.AmountMode.Flat)
+        {
+            return currentValue + modifier.amount;
+        }
+
+        if (treatPercentAsPoints || !usePercentScaling)
+        {
+            return currentValue + modifier.amount;
+        }
+
+        return currentValue + (currentValue * modifier.amount / 100f);
     }
 
     public void PlayTimedAnimation(string stateName, float duration, string idleStateName = "", bool compensateMotion = false)
