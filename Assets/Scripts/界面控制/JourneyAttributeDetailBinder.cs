@@ -9,6 +9,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     private const string HealthPath = "\u6587\u672c\u533a\u57df/\u751f\u547d\u503c";
     private const string ManaPath = "\u6587\u672c\u533a\u57df/\u9b54\u6cd5\u503c";
     private const string AttackPowerPath = "\u6587\u672c\u533a\u57df/\u653b\u51fb\u529b";
+    private const string SpellDamagePath = "\u6587\u672c\u533a\u57df/\u6cd5\u672f\u4f24\u5bb3";
     private const string StrengthPath = "\u6587\u672c\u533a\u57df/\u529b\u91cf";
     private const string AgilityPath = "\u6587\u672c\u533a\u57df/\u654f\u6377";
     private const string IntelligencePath = "\u6587\u672c\u533a\u57df/\u667a\u529b";
@@ -27,6 +28,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
     [SerializeField] private Component healthText;
     [SerializeField] private Component manaText;
     [SerializeField] private Component attackPowerText;
+    [SerializeField] private Component spellDamageText;
     [SerializeField] private Component strengthText;
     [SerializeField] private Component agilityText;
     [SerializeField] private Component intelligenceText;
@@ -43,6 +45,9 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
 
     [SerializeField] private CharacterStatDatabase statDatabase;
     [SerializeField] private BattleCharacterBindingDatabase characterBindingDatabase;
+
+    private const string FireballSkillId = "\u706b\u7403";
+    private const float DefaultFireballAttributeMultiplier = 0.8f;
 
     private string lastSignature = string.Empty;
 
@@ -74,6 +79,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         healthText = FindTextByPath(HealthPath);
         manaText = FindTextByPath(ManaPath);
         attackPowerText = FindTextByPath(AttackPowerPath);
+        spellDamageText = FindTextByPath(SpellDamagePath);
         strengthText = FindTextByPath(StrengthPath);
         agilityText = FindTextByPath(AgilityPath);
         intelligenceText = FindTextByPath(IntelligencePath);
@@ -115,6 +121,11 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         if (attackPowerText == null)
         {
             attackPowerText = FindTextByPath(AttackPowerPath);
+        }
+
+        if (spellDamageText == null)
+        {
+            spellDamageText = FindTextByPath(SpellDamagePath);
         }
 
         if (agilityText == null)
@@ -199,20 +210,21 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         BattleUnit battleUnit = ResolveDisplayedBattleUnit(characterId);
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
         float attackPower = string.IsNullOrWhiteSpace(characterId) ? 0f : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
+        int spellDamage = CalculateDisplayedSpellDamage(characterId, battleUnit, statEntry);
         int criticalChance = statEntry != null
             ? statEntry.ResolveCriticalChance() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(characterId)
             : -1;
         int criticalDamage = statEntry != null
             ? statEntry.ResolveCriticalDamage() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(characterId)
             : -1;
-        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower, criticalChance, criticalDamage);
+        string signature = BuildSignature(characterId, battleUnit, statEntry, attackPower, spellDamage, criticalChance, criticalDamage);
         if (!force && string.Equals(lastSignature, signature, System.StringComparison.Ordinal))
         {
             return;
         }
 
         lastSignature = signature;
-        ApplyCharacter(characterId, battleUnit, statEntry, attackPower, criticalChance, criticalDamage);
+        ApplyCharacter(characterId, battleUnit, statEntry, attackPower, spellDamage, criticalChance, criticalDamage);
     }
 
     private static string ResolveCurrentCharacterId()
@@ -306,6 +318,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         BattleUnit battleUnit,
         CharacterStatDatabase.StatEntry statEntry,
         float attackPower,
+        int spellDamage,
         int criticalChance,
         int criticalDamage)
     {
@@ -321,6 +334,8 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
             battleUnit != null ? battleUnit.maxMana : -1,
             "|",
             battleUnit != null ? battleUnit.currentActionPoints : -1,
+            "|",
+            spellDamage,
             "|",
             statEntry != null ? statEntry.strength : -1,
             "|",
@@ -356,6 +371,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         BattleUnit battleUnit,
         CharacterStatDatabase.StatEntry statEntry,
         float attackPower,
+        int spellDamage,
         int criticalChance,
         int criticalDamage)
     {
@@ -375,6 +391,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         SetText(healthText, healthValue);
         SetText(manaText, manaValue);
         SetText(attackPowerText, attackPower > 0f ? "\u653b\u51fb\u529b:" + Mathf.RoundToInt(attackPower) : "\u653b\u51fb\u529b:\u65e0\u6b66\u5668");
+        SetText(spellDamageText, statEntry != null ? "\u6cd5\u672f\u4f24\u5bb3:" + spellDamage : "\u6cd5\u672f\u4f24\u5bb3:");
         SetText(strengthText, statEntry != null ? "\u529b\u91cf:" + statEntry.strength : "\u529b\u91cf:");
         SetText(agilityText, statEntry != null ? "\u654f\u6377:" + statEntry.agility : "\u654f\u6377:");
         SetText(intelligenceText, statEntry != null ? "\u667a\u529b:" + statEntry.intelligence : "\u667a\u529b:");
@@ -402,6 +419,30 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
         }
 
         return string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
+    }
+
+    private static int CalculateDisplayedSpellDamage(
+        string characterId,
+        BattleUnit battleUnit,
+        CharacterStatDatabase.StatEntry statEntry)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || statEntry == null)
+        {
+            return 0;
+        }
+
+        BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
+        BattleSkillDatabase.SkillEntry fireballSkill = skillDatabase != null ? skillDatabase.FindEntry(FireballSkillId) : null;
+        float intelligence = battleUnit != null
+            ? Mathf.Max(0, battleUnit.GetEffectiveIntelligence())
+            : Mathf.Max(0, statEntry.intelligence);
+        float fixedDamage = fireballSkill != null ? Mathf.Max(0, fireballSkill.fixedDamage) : 0f;
+        float attributeMultiplier = fireballSkill != null
+            ? Mathf.Max(0f, fireballSkill.attributeMultiplier)
+            : DefaultFireballAttributeMultiplier;
+        float staffMultiplier = InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(characterId);
+        float damage = (fixedDamage + (attributeMultiplier * intelligence)) * Mathf.Max(0f, staffMultiplier);
+        return Mathf.Max(0, Mathf.RoundToInt(damage));
     }
 
     private Component FindTextByPath(string path)
