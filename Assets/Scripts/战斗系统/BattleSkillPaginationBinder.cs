@@ -112,6 +112,16 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
             : new List<SkillInstanceSnapshot>();
     }
 
+    public static List<SkillInstanceSnapshot> GetSkillSnapshotsForCharacter(string characterId)
+    {
+        if (instance == null)
+        {
+            return new List<SkillInstanceSnapshot>();
+        }
+
+        return instance.BuildSkillSnapshotsForCharacter(characterId);
+    }
+
     private void LateUpdate()
     {
         if (!Application.isPlaying || turnSystem == null)
@@ -481,6 +491,20 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
         return CharacterSkillListUtility.BuildDisplaySkillEntries(
             string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId);
+    }
+
+    private List<SkillInstanceSnapshot> BuildSkillSnapshotsForCharacter(string characterId)
+    {
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        List<CharacterSkillListUtility.DisplaySkillEntry> allSkills = GetSkillsForCharacter(resolvedCharacterId);
+        List<SkillInstanceSnapshot> result = new List<SkillInstanceSnapshot>(allSkills.Count);
+        for (int i = 0; i < allSkills.Count; i++)
+        {
+            CharacterSkillListUtility.DisplaySkillEntry displayEntry = allSkills[i];
+            result.Add(BuildSkillSnapshot(i, resolvedCharacterId, displayEntry.SkillId, displayEntry.IsGranted));
+        }
+
+        return result;
     }
 
     private Sprite ResolveSkillIcon(string skillId)
