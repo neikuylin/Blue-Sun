@@ -4301,6 +4301,17 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
+            int applyChancePercent = Mathf.Clamp(attachedEffect.applyChancePercent, 0, 100);
+            if (applyChancePercent <= 0)
+            {
+                continue;
+            }
+
+            if (applyChancePercent < 100 && Random.Range(0, 100) >= applyChancePercent)
+            {
+                continue;
+            }
+
             EffectDatabase.EffectEntry appliedEffectEntry;
             if (!target.ApplyAttachedEffect(attachedEffect.effectId, attachedEffect.durationTurns, caster, out appliedEffectEntry))
             {

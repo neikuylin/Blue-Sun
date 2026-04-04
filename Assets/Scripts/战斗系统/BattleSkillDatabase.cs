@@ -57,6 +57,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         {
             public string effectId = string.Empty;
             public int durationTurns = 1;
+            public int applyChancePercent = 100;
         }
 
         [Serializable]
@@ -224,7 +225,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
                 attachedEffects.Add(new AttachedEffectEntry
                 {
                     effectId = effectId,
-                    durationTurns = 1
+                    durationTurns = 1,
+                    applyChancePercent = 100
                 });
             }
         }

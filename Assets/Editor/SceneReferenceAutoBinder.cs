@@ -13,6 +13,7 @@ public static class SceneReferenceAutoBinder
 
     private const string AutoBindMenu = "Tools/UI References/Auto Bind Active Scene";
     private const string AutoBindJourneyMenu = "Tools/UI References/Auto Bind Journey Scene";
+    private const string AutoBindBattleSceneMenu = "Tools/UI References/Auto Bind 战斗副本 Scene";
     private const string AutoBindBattleMenu = "Tools/UI References/Auto Bind 战斗副本 Scene";
 
     private const string DialogTitle = "\u81ea\u52a8\u7ed1\u5b9a";
@@ -87,7 +88,7 @@ public static class SceneReferenceAutoBinder
         }
     }
 
-    [MenuItem(AutoBindBattleMenu)]
+    [MenuItem(AutoBindBattleSceneMenu)]
     private static void AutoBindBattleOnly()
     {
         Scene scene = SceneManager.GetActiveScene();
