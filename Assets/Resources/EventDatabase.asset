@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7a3ec2a2ba19094b99f270b59df1ad6, type: 3}
+  m_Name: EventDatabase
+  m_EditorClassIdentifier: 
+  entries:
+  - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u7D22\u62C9\u5A1C"
+    displayName: "\u89E3\u9501\u7D22\u62C9\u5A1C"
+    enabled: 1
+    description: 
+  - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u5E93\u9C81\u65AF"
+    displayName: "\u89E3\u9501\u5E93\u9C81\u65AF"
+    enabled: 1
+    description: 
+  - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u745F\u838E"
+    displayName: "\u89E3\u9501\u745F\u838E"
+    enabled: 1
+    description: 
