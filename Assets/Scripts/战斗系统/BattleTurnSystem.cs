@@ -1818,14 +1818,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
-        {
-            activeUnitIdText.enabled = true;
-            activeUnitIdText.text = displayedEquipmentCharacterId;
-            return;
-        }
-
         bool shouldShow = activeUnit != null &&
             activeUnit.IsAlive &&
             activeUnit.isPlayerControlled &&
