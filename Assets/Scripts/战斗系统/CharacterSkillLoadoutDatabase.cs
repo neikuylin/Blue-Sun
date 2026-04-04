@@ -6,6 +6,7 @@ using UnityEngine;
 public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "CharacterSkillLoadoutDatabase";
+    private const bool EnableSkillLoadoutDebug = true;
 
     [Serializable]
     public sealed class CharacterSkillEntry
@@ -24,6 +25,29 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         if (string.IsNullOrWhiteSpace(characterId))
         {
             return null;
+        }
+
+        List<string> duplicateMatches = null;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            CharacterSkillEntry entry = entries[i];
+            if (entry == null || !string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (duplicateMatches == null)
+            {
+                duplicateMatches = new List<string>();
+            }
+
+            duplicateMatches.Add($"index={i}, loadout=[{DescribeLoadout(entry)}]");
+        }
+
+        if (EnableSkillLoadoutDebug && duplicateMatches != null && duplicateMatches.Count > 1)
+        {
+            UnityEngine.Debug.Log(
+                $"[SkillLoadoutDebug] FindEntry duplicateMatches. requestedCharacter={characterId}, matches={string.Join(" | ", duplicateMatches)}");
         }
 
         for (int i = 0; i < entries.Count; i++)
@@ -116,5 +140,21 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
     public static CharacterSkillLoadoutDatabase LoadDefault()
     {
         return Resources.Load<CharacterSkillLoadoutDatabase>(DefaultResourcePath);
+    }
+
+    private static string DescribeLoadout(CharacterSkillEntry entry)
+    {
+        if (entry == null || entry.skillIds == null)
+        {
+            return "<null>";
+        }
+
+        List<string> parts = new List<string>(entry.skillIds.Count);
+        for (int i = 0; i < entry.skillIds.Count; i++)
+        {
+            parts.Add($"{i}:{(string.IsNullOrWhiteSpace(entry.skillIds[i]) ? "<empty>" : entry.skillIds[i])}");
+        }
+
+        return string.Join(", ", parts);
     }
 }

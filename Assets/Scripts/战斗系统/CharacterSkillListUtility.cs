@@ -4,7 +4,6 @@ using System.Collections.Generic;
 public static class CharacterSkillListUtility
 {
     private const string DefaultCharacterId = "\u73A9\u5BB6";
-    private const bool EnableSkillLoadoutDebug = true;
 
     public readonly struct DisplaySkillEntry
     {
@@ -52,8 +51,6 @@ public static class CharacterSkillListUtility
             }
         }
 
-        LogSkillLoadoutRead("BuildMemorizedSkillIds", resolvedCharacterId, result, entry, memorySlotCount);
-
         return result;
     }
 
@@ -79,17 +76,6 @@ public static class CharacterSkillListUtility
         for (int i = 0; i < memorizedSkills.Count; i++)
         {
             TryAddDisplaySkill(result, seen, memorizedSkills[i], false);
-        }
-
-        if (EnableSkillLoadoutDebug)
-        {
-            List<string> displayParts = new List<string>(result.Count);
-            for (int i = 0; i < result.Count; i++)
-            {
-                displayParts.Add($"{result[i].SkillId}({(result[i].IsGranted ? "Granted" : "Memorized")})");
-            }
-
-            ConsoleLog($"BuildDisplaySkillEntries. character={resolvedCharacterId}, entries=[{string.Join(", ", displayParts)}]");
         }
 
         return result;
@@ -118,43 +104,5 @@ public static class CharacterSkillListUtility
         }
 
         target.Add(new DisplaySkillEntry(skillId, isGranted));
-    }
-
-    private static void LogSkillLoadoutRead(
-        string context,
-        string characterId,
-        List<string> result,
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
-        int memorySlotCount)
-    {
-        if (!EnableSkillLoadoutDebug)
-        {
-            return;
-        }
-
-        string loadout = "<null>";
-        if (entry != null && entry.skillIds != null)
-        {
-            List<string> loadoutParts = new List<string>(entry.skillIds.Count);
-            for (int i = 0; i < entry.skillIds.Count; i++)
-            {
-                loadoutParts.Add($"{i}:{(string.IsNullOrWhiteSpace(entry.skillIds[i]) ? "<empty>" : entry.skillIds[i])}");
-            }
-
-            loadout = string.Join(", ", loadoutParts);
-        }
-
-        ConsoleLog(
-            $"{context}. character={characterId}, memorySlots={memorySlotCount}, memorized=[{string.Join(", ", result)}], loadout=[{loadout}]");
-    }
-
-    private static void ConsoleLog(string message)
-    {
-        if (!EnableSkillLoadoutDebug)
-        {
-            return;
-        }
-
-        UnityEngine.Debug.Log($"[SkillLoadoutDebug] {message}");
     }
 }
