@@ -10,6 +10,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 {
     private static readonly Color AvailableEntryColor = Color.white;
     private static readonly Color OccupiedEntryColor = new Color32(100, 100, 100, 255);
+    private const string OptionalTeammateEventPrefix = "可选队友：";
 
     [SerializeField] private string playerCharacterId = "玩家";
 
@@ -21,6 +22,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private CharacterSlotView currentSlot;
     private bool modalSelectionActive;
     private GameObject currentCharacterPanel;
+    private EventDatabase eventDatabase;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -77,6 +79,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     {
         ExitModalSelection(false);
         UnbindAll();
+        eventDatabase = EventDatabase.LoadDefault();
         CollectComponents();
 
         if (slots.Count == 0 && entries.Count == 0)
@@ -555,6 +558,17 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                 continue;
             }
 
+            bool isVisible = IsCharacterEntryVisible(entry.characterId);
+            if (entry.gameObject.activeSelf != isVisible)
+            {
+                entry.gameObject.SetActive(isVisible);
+            }
+
+            if (!isVisible)
+            {
+                continue;
+            }
+
             bool occupiedByAnySlot = IsCharacterUsedInAnySlot(entry.characterId);
             ApplyEntryDisplayColor(entry, occupiedByAnySlot ? OccupiedEntryColor : AvailableEntryColor);
         }
@@ -649,13 +663,32 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         for (int i = 0; i < entries.Count; i++)
         {
             CharacterSelectEntry entry = entries[i];
-            if (entry != null && string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
+            if (entry != null &&
+                entry.gameObject.activeInHierarchy &&
+                string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
             {
                 return entry;
             }
         }
 
         return null;
+    }
+
+    private bool IsCharacterEntryVisible(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return false;
+        }
+
+        if (eventDatabase == null)
+        {
+            return true;
+        }
+
+        string eventId = OptionalTeammateEventPrefix + characterId;
+        EventDatabase.EventEntry entry = eventDatabase.FindEntry(eventId);
+        return entry == null || entry.enabled;
     }
 }
 

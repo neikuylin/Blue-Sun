@@ -15804,6 +15804,8 @@ MonoBehaviour:
   strengthText: {fileID: 1365145140}
   agilityText: {fileID: 66360865}
   intelligenceText: {fileID: 433303075}
+  hitRateText: {fileID: 0}
+  dodgeRateText: {fileID: 0}
   physicalResistanceText: {fileID: 0}
   fireResistanceText: {fileID: 0}
   corruptionResistanceText: {fileID: 0}
