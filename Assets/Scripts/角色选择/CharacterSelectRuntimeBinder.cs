@@ -664,7 +664,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         {
             CharacterSelectEntry entry = entries[i];
             if (entry != null &&
-                entry.gameObject.activeInHierarchy &&
                 string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
             {
                 return entry;
