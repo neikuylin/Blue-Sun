@@ -558,6 +558,8 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                 continue;
             }
 
+            ApplyEntryRectAnchor(entry);
+
             bool isVisible = IsCharacterEntryVisible(entry.characterId);
             if (entry.gameObject.activeSelf != isVisible)
             {
@@ -625,6 +627,24 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
                 image.color = color;
             }
         }
+    }
+
+    private static void ApplyEntryRectAnchor(CharacterSelectEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        RectTransform rectTransform = entry.transform as RectTransform;
+        if (rectTransform == null)
+        {
+            return;
+        }
+
+        rectTransform.anchorMin = new Vector2(0f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0f, 0.5f);
+        rectTransform.pivot = new Vector2(0f, 0.5f);
     }
 
     private static void ResetSlotToInitialState(CharacterSlotView slot)
