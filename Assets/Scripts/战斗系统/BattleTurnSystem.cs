@@ -4014,9 +4014,10 @@ public class BattleTurnSystem : MonoBehaviour
             string criticalDamageText = BuildPopupDamageText(segments, damageResult.appliedDamage);
             if (!string.IsNullOrWhiteSpace(criticalDamageText))
             {
+                Color criticalLabelColor = ResolveCriticalPopupColor(segments, damageResult);
                 BattleDamageNumberPopup.ShowConfiguredText(
                     target,
-                    "暴击\n" + criticalDamageText,
+                    $"<color=#{ColorUtility.ToHtmlStringRGB(criticalLabelColor)}>暴击</color>\n" + criticalDamageText,
                     BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
                     Color.white,
                     battleCamera);
@@ -4110,6 +4111,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return appliedDamage > 0 ? appliedDamage.ToString() : string.Empty;
+    }
+
+    private Color ResolveCriticalPopupColor(IList<BattleDamageNumberPopup.DamageSegment> segments, CombatDamageResult damageResult)
+    {
+        if (segments != null && segments.Count > 0)
+        {
+            return segments[0].color;
+        }
+
+        if (damageResult != null && damageResult.components != null && damageResult.components.Count > 0)
+        {
+            return ResolveDamageColor(damageResult.components[0].attributeType);
+        }
+
+        return physicalDamageColor;
     }
 
     private static List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
