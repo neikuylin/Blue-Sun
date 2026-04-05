@@ -139,7 +139,7 @@ public sealed class BattleDamageNumberPopup : MonoBehaviour
             return;
         }
 
-        instance.ShowInternal(target, "MISS", instance.missColor, worldCamera, popupPrefab);
+        instance.ShowInternal(target, "闪避", instance.missColor, worldCamera, popupPrefab);
     }
 
     private static GameObject GetConfiguredPopupPrefab(ConfiguredPopupKind popupKind)

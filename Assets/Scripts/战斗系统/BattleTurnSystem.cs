@@ -4009,6 +4009,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         List<BattleDamageNumberPopup.DamageSegment> segments = BuildDamageSegments(damageResult);
+        if (damageResult.isCritical)
+        {
+            string criticalDamageText = BuildPopupDamageText(segments, damageResult.appliedDamage);
+            if (!string.IsNullOrWhiteSpace(criticalDamageText))
+            {
+                BattleDamageNumberPopup.ShowConfiguredText(
+                    target,
+                    "暴击\n" + criticalDamageText,
+                    BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
+                    Color.white,
+                    battleCamera);
+                return;
+            }
+        }
+
         if (segments.Count > 0)
         {
             BattleDamageNumberPopup.ShowSegments(target, segments, battleCamera);
@@ -4061,6 +4076,40 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return segments;
+    }
+
+    private string BuildPopupDamageText(IList<BattleDamageNumberPopup.DamageSegment> segments, int appliedDamage)
+    {
+        if (segments != null && segments.Count > 0)
+        {
+            System.Text.StringBuilder builder = new System.Text.StringBuilder();
+            for (int i = 0; i < segments.Count; i++)
+            {
+                BattleDamageNumberPopup.DamageSegment segment = segments[i];
+                if (string.IsNullOrWhiteSpace(segment.text))
+                {
+                    continue;
+                }
+
+                if (builder.Length > 0)
+                {
+                    builder.Append("<color=#FFFFFF>+</color>");
+                }
+
+                builder.Append("<color=#");
+                builder.Append(ColorUtility.ToHtmlStringRGB(segment.color));
+                builder.Append(">");
+                builder.Append(segment.text);
+                builder.Append("</color>");
+            }
+
+            if (builder.Length > 0)
+            {
+                return builder.ToString();
+            }
+        }
+
+        return appliedDamage > 0 ? appliedDamage.ToString() : string.Empty;
     }
 
     private static List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
