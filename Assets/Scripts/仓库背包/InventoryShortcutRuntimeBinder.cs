@@ -4144,14 +4144,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(ownerCharacterId))
         {
-            return "攻击力：无装备者";
+            return "攻击力：无";
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
         if (statEntry == null)
         {
-            return "攻击力：无装备者";
+            return "攻击力：无";
         }
 
         segments = BuildAttackPowerSegments(entry, statEntry);
@@ -4391,12 +4391,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
         if (string.IsNullOrWhiteSpace(ownerCharacterId))
         {
-            return "装备者：\n无装备者";
+            return "装备者：\n无";
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
-        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无装备者";
+        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无";
     }
 
     private static float GetCharacterAttributeValue(
