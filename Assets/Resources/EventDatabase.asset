@@ -23,7 +23,7 @@ MonoBehaviour:
     description: 
   - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u745F\u838E"
     displayName: "\u89E3\u9501\u745F\u838E"
-    enabled: 0
+    enabled: 1
     description: 
   - eventId: "\u80CC\u5305lv1"
     displayName: "\u89E3\u950114\u4E2A\u683C\u5B50"
