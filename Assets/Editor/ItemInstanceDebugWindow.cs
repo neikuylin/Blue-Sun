@@ -115,8 +115,12 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             int slotCountDraft = GetSlotCountDraft(ownerCharacterId, snapshots != null ? snapshots.Count : 0);
+            EditorGUI.BeginChangeCheck();
             slotCountDraft = EditorGUILayout.IntField("\u66F4\u6539\u69FD\u4F4D\u6570\u91CF", slotCountDraft);
-            SetSlotCountDraft(ownerCharacterId, Mathf.Max(0, slotCountDraft));
+            if (EditorGUI.EndChangeCheck())
+            {
+                SetSlotCountDraft(ownerCharacterId, Mathf.Max(0, slotCountDraft));
+            }
         }
 
         EditorGUILayout.Space(6f);
@@ -166,15 +170,16 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         {
             if (selectedSection == 0)
             {
-                if (warehouseSlotCountDraft <= 0)
+                warehouseSlotCountDraft = InventoryShortcutRuntimeBinder.GetWarehouseUsableSlotCount();
+                if (warehouseSlotCountDraft < 0 && fallbackValue > 0)
                 {
                     warehouseSlotCountDraft = fallbackValue;
                 }
-
                 return warehouseSlotCountDraft;
             }
 
-            if (backpackSlotCountDraft <= 0)
+            backpackSlotCountDraft = InventoryShortcutRuntimeBinder.GetBackpackUsableSlotCount();
+            if (backpackSlotCountDraft < 0 && fallbackValue > 0)
             {
                 backpackSlotCountDraft = fallbackValue;
             }
@@ -182,12 +187,13 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             return backpackSlotCountDraft;
         }
 
-        if (!equipmentSlotCountDrafts.TryGetValue(ownerCharacterId, out int value) || value <= 0)
+        int value = InventoryShortcutRuntimeBinder.GetEquipmentUsableSlotCount(ownerCharacterId);
+        if (value < 0 && fallbackValue > 0)
         {
             value = fallbackValue;
-            equipmentSlotCountDrafts[ownerCharacterId] = value;
         }
 
+        equipmentSlotCountDrafts[ownerCharacterId] = value;
         return value;
     }
 
@@ -198,13 +204,16 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             if (selectedSection == 0)
             {
                 warehouseSlotCountDraft = value;
+                InventoryShortcutRuntimeBinder.SetWarehouseUsableSlotCount(value);
                 return;
             }
 
             backpackSlotCountDraft = value;
+            InventoryShortcutRuntimeBinder.SetBackpackUsableSlotCount(value);
             return;
         }
 
         equipmentSlotCountDrafts[ownerCharacterId] = value;
+        InventoryShortcutRuntimeBinder.SetEquipmentUsableSlotCount(ownerCharacterId, value);
     }
 }

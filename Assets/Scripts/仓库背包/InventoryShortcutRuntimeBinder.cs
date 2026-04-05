@@ -70,6 +70,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public bool iconIsRoot;
         public Color iconOriginalColor;
         public Sprite iconOriginalSprite;
+        public Graphic[] graphics;
+        public Color[] graphicOriginalColors;
         public GameObject runtimeBackgroundVisual;
         public GameObject runtimeIconVisual;
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
@@ -148,6 +150,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
+    private static readonly Color DisabledSlotColor = new Color32(100, 100, 100, 255);
     private static readonly string[] EquipmentSlotNames =
     {
         "主手",
@@ -196,6 +199,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int cachedBackpackConstraintCount;
     private string currentEquipmentCharacterId = string.Empty;
     private string manualEquipmentCharacterId = string.Empty;
+    private int warehouseUsableSlotCount = -1;
+    private int backpackUsableSlotCount = -1;
+    private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
     private int equipmentSkillRevision;
     private JourneySceneBindings journeyBindings;
     private BattleSceneBindings battleBindings;
@@ -235,6 +241,36 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
     public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
+
+    public static int GetWarehouseUsableSlotCount()
+    {
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Warehouse, null) : 0;
+    }
+
+    public static void SetWarehouseUsableSlotCount(int count)
+    {
+        instance?.SetUsableSlotCount(SlotKind.Warehouse, null, count);
+    }
+
+    public static int GetBackpackUsableSlotCount()
+    {
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Backpack, null) : 0;
+    }
+
+    public static void SetBackpackUsableSlotCount(int count)
+    {
+        instance?.SetUsableSlotCount(SlotKind.Backpack, null, count);
+    }
+
+    public static int GetEquipmentUsableSlotCount(string characterId)
+    {
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Equipment, characterId) : 0;
+    }
+
+    public static void SetEquipmentUsableSlotCount(string characterId, int count)
+    {
+        instance?.SetUsableSlotCount(SlotKind.Equipment, characterId, count);
+    }
 
     public static void SetDisplayedEquipmentCharacter(string characterId)
     {
@@ -1231,7 +1267,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 icon = icon,
                 iconIsRoot = icon.transform == child,
                 iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite
+                iconOriginalSprite = icon.sprite,
+                graphics = child.GetComponentsInChildren<Graphic>(true),
+                graphicOriginalColors = CaptureGraphicColors(child.GetComponentsInChildren<Graphic>(true))
             });
         }
     }
@@ -1273,6 +1311,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 iconIsRoot = icon.transform == slotRoot,
                 iconOriginalColor = icon.color,
                 iconOriginalSprite = icon.sprite,
+                graphics = slotRoot.GetComponentsInChildren<Graphic>(true),
+                graphicOriginalColors = CaptureGraphicColors(slotRoot.GetComponentsInChildren<Graphic>(true)),
                 equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
             });
         }
@@ -1318,6 +1358,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             default:
                 return ItemDatabase.EquipmentSlotType.None;
         }
+    }
+
+    private static Color[] CaptureGraphicColors(Graphic[] graphics)
+    {
+        if (graphics == null)
+        {
+            return System.Array.Empty<Color>();
+        }
+
+        Color[] colors = new Color[graphics.Length];
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            colors[i] = graphics[i] != null ? graphics[i].color : Color.white;
+        }
+
+        return colors;
     }
 
     private static Image FindBestIconImage(RectTransform slotRoot)
@@ -1591,6 +1647,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!IsSlotUsable(kind, index))
+        {
+            return;
+        }
+
         int rawIndex = index;
         SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty)
@@ -1640,6 +1701,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!IsSlotUsable(kind, index))
+        {
+            return;
+        }
+
         SlotRef rawTarget = new SlotRef { kind = kind, index = index };
         if (!TryGetSlotData(rawTarget, out _))
         {
@@ -1665,6 +1731,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (isDragging)
         {
+            return;
+        }
+
+        if (!IsSlotUsable(kind, index))
+        {
+            HideItemTooltip();
             return;
         }
 
@@ -1716,6 +1788,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void HandlePointerClick(SlotKind kind, SlotSurface surface, int index, PointerEventData eventData)
     {
         if (eventData == null || eventData.button != PointerEventData.InputButton.Right || isDragging)
+        {
+            return;
+        }
+
+        if (!IsSlotUsable(kind, index))
         {
             return;
         }
@@ -1828,7 +1905,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         List<ItemSlotData> dataList = GetDataList(kind);
         for (int i = dataList.Count - 1; i >= 0; i--)
         {
-            if (dataList[i].IsEmpty)
+            if (IsSlotUsable(kind, i) && dataList[i].IsEmpty)
             {
                 return i;
             }
@@ -2951,7 +3028,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
     {
         dataList = dataList ?? GetDataList(kind);
-        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !dataList[primaryIndex].IsEmpty)
+        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !IsSlotUsable(kind, primaryIndex) || !dataList[primaryIndex].IsEmpty)
         {
             return false;
         }
@@ -2963,6 +3040,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
         return extensionIndex >= 0 &&
+            IsSlotUsable(kind, extensionIndex) &&
             extensionIndex < dataList.Count &&
             dataList[extensionIndex].IsEmpty;
     }
@@ -3469,6 +3547,103 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void SetUsableSlotCount(SlotKind kind, string characterId, int count)
+    {
+        int normalized = Mathf.Max(0, count);
+        switch (kind)
+        {
+            case SlotKind.Warehouse:
+                warehouseUsableSlotCount = normalized;
+                break;
+            case SlotKind.Backpack:
+                backpackUsableSlotCount = normalized;
+                break;
+            case SlotKind.Equipment:
+                equipmentUsableSlotCounts[ResolveEquipmentCountCharacterKey(characterId)] = normalized;
+                break;
+        }
+
+        RefreshAll();
+    }
+
+    private int GetResolvedUsableSlotCount(SlotKind kind, string characterId)
+    {
+        int totalCount = GetSlotCountForKind(kind);
+        if (totalCount <= 0)
+        {
+            return 0;
+        }
+
+        int configuredCount;
+        switch (kind)
+        {
+            case SlotKind.Warehouse:
+                configuredCount = warehouseUsableSlotCount;
+                break;
+            case SlotKind.Backpack:
+                configuredCount = backpackUsableSlotCount;
+                break;
+            case SlotKind.Equipment:
+                if (!equipmentUsableSlotCounts.TryGetValue(ResolveEquipmentCountCharacterKey(characterId), out configuredCount))
+                {
+                    configuredCount = totalCount;
+                }
+                break;
+            default:
+                configuredCount = totalCount;
+                break;
+        }
+
+        if (configuredCount < 0)
+        {
+            configuredCount = totalCount;
+        }
+
+        return Mathf.Clamp(configuredCount, 0, totalCount);
+    }
+
+    private int GetSlotCountForKind(SlotKind kind)
+    {
+        switch (kind)
+        {
+            case SlotKind.Warehouse:
+                return Mathf.Max(warehouseSlots.Count, warehouseData.Count);
+            case SlotKind.Backpack:
+                return Mathf.Max(backpackSlots.Count, backpackData.Count);
+            case SlotKind.Equipment:
+                return equipmentSlots.Count;
+            default:
+                return 0;
+        }
+    }
+
+    private bool IsSlotUsable(SlotKind kind, int index)
+    {
+        int totalCount = GetSlotCountForKind(kind);
+        if (index < 0 || index >= totalCount)
+        {
+            return false;
+        }
+
+        int usableCount = GetResolvedUsableSlotCount(kind, kind == SlotKind.Equipment ? currentEquipmentCharacterId : null);
+        if (usableCount <= 0)
+        {
+            return false;
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            return index < usableCount;
+        }
+
+        return index >= totalCount - usableCount;
+    }
+
+    private static string ResolveEquipmentCountCharacterKey(string characterId)
+    {
+        return string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId.Trim();
+    }
+
     private void RefreshWarehouseSlot(int index)
     {
         if (index < 0 || index >= warehouseSlots.Count || index >= warehouseData.Count)
@@ -3479,6 +3654,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ApplyItemToWidget(
             warehouseSlots[index],
             ShouldDisplayItem(warehouseFilter, warehouseData[index]) ? warehouseData[index] : default);
+        ApplyWidgetAvailability(warehouseSlots[index], IsSlotUsable(SlotKind.Warehouse, index));
     }
 
     private void RefreshBackpackSlot(int index)
@@ -3491,6 +3667,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ApplyItemToWidget(
             backpackSlots[index],
             ShouldDisplayItem(backpackFilter, backpackData[index]) ? backpackData[index] : default);
+        ApplyWidgetAvailability(backpackSlots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private void RefreshEquipmentSlot(int index)
@@ -3504,10 +3681,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (equipmentData == null || index >= equipmentData.Count)
         {
             ApplyItemToWidget(equipmentSlots[index], default);
+            ApplyWidgetAvailability(equipmentSlots[index], IsSlotUsable(SlotKind.Equipment, index));
             return;
         }
 
         ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
+        ApplyWidgetAvailability(equipmentSlots[index], IsSlotUsable(SlotKind.Equipment, index));
         RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
     }
 
@@ -3519,10 +3698,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             if (equipmentData == null || i >= equipmentData.Count)
             {
                 ApplyItemToWidget(equipmentSlots[i], default);
+                ApplyWidgetAvailability(equipmentSlots[i], IsSlotUsable(SlotKind.Equipment, i));
                 continue;
             }
 
             ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
+            ApplyWidgetAvailability(equipmentSlots[i], IsSlotUsable(SlotKind.Equipment, i));
         }
 
         RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
@@ -3702,6 +3883,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ApplyItemToWidget(quickSlots[index], backpackData[index]);
+        ApplyWidgetAvailability(quickSlots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private void RefreshBattleBackpackSlot(int index)
@@ -3712,6 +3894,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ApplyItemToWidget(battleBackpackSlots[index], backpackData[index]);
+        ApplyWidgetAvailability(battleBackpackSlots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
@@ -3721,16 +3904,69 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        bool hasItem = !string.IsNullOrWhiteSpace(data.itemId);
-        if (widget.button != null)
+        RebuildItemVisual(widget, data);
+    }
+
+    private void ApplyWidgetAvailability(SlotWidget widget, bool isUsable)
+    {
+        if (widget == null)
         {
-            ColorBlock colors = widget.button.colors;
-            colors.disabledColor = colors.normalColor;
-            widget.button.colors = colors;
-            widget.button.interactable = true;
+            return;
         }
 
-        RebuildItemVisual(widget, data);
+        if (widget.button != null)
+        {
+            widget.button.interactable = isUsable;
+        }
+
+        ApplyGraphicAvailability(widget.graphics, widget.graphicOriginalColors, isUsable);
+        ApplyRuntimeGraphicAvailability(widget.runtimeBackgroundVisual, isUsable);
+        ApplyRuntimeGraphicAvailability(widget.runtimeIconVisual, isUsable);
+    }
+
+    private static void ApplyGraphicAvailability(Graphic[] graphics, Color[] originalColors, bool isUsable)
+    {
+        if (graphics == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            Graphic graphic = graphics[i];
+            if (graphic == null)
+            {
+                continue;
+            }
+
+            Color original = originalColors != null && i < originalColors.Length ? originalColors[i] : graphic.color;
+            graphic.color = isUsable
+                ? original
+                : new Color(DisabledSlotColor.r, DisabledSlotColor.g, DisabledSlotColor.b, original.a);
+        }
+    }
+
+    private static void ApplyRuntimeGraphicAvailability(GameObject root, bool isUsable)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < graphics.Length; i++)
+        {
+            Graphic graphic = graphics[i];
+            if (graphic == null)
+            {
+                continue;
+            }
+
+            Color color = graphic.color;
+            graphic.color = isUsable
+                ? new Color(1f, 1f, 1f, color.a)
+                : new Color(DisabledSlotColor.r, DisabledSlotColor.g, DisabledSlotColor.b, color.a);
+        }
     }
 
     private void CacheItemTooltip(ItemDatabase.WeaponCategory weaponCategory, bool resetTooltipState)
