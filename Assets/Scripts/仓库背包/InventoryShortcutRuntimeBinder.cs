@@ -70,8 +70,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public bool iconIsRoot;
         public Color iconOriginalColor;
         public Sprite iconOriginalSprite;
-        public Graphic[] graphics;
-        public Color[] graphicOriginalColors;
         public GameObject runtimeBackgroundVisual;
         public GameObject runtimeIconVisual;
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
@@ -1267,9 +1265,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 icon = icon,
                 iconIsRoot = icon.transform == child,
                 iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite,
-                graphics = child.GetComponentsInChildren<Graphic>(true),
-                graphicOriginalColors = CaptureGraphicColors(child.GetComponentsInChildren<Graphic>(true))
+                iconOriginalSprite = icon.sprite
             });
         }
     }
@@ -1311,8 +1307,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 iconIsRoot = icon.transform == slotRoot,
                 iconOriginalColor = icon.color,
                 iconOriginalSprite = icon.sprite,
-                graphics = slotRoot.GetComponentsInChildren<Graphic>(true),
-                graphicOriginalColors = CaptureGraphicColors(slotRoot.GetComponentsInChildren<Graphic>(true)),
                 equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
             });
         }
@@ -1358,22 +1352,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             default:
                 return ItemDatabase.EquipmentSlotType.None;
         }
-    }
-
-    private static Color[] CaptureGraphicColors(Graphic[] graphics)
-    {
-        if (graphics == null)
-        {
-            return System.Array.Empty<Color>();
-        }
-
-        Color[] colors = new Color[graphics.Length];
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            colors[i] = graphics[i] != null ? graphics[i].color : Color.white;
-        }
-
-        return colors;
     }
 
     private static Image FindBestIconImage(RectTransform slotRoot)
@@ -3916,56 +3894,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (widget.button != null)
         {
+            ColorBlock colors = widget.button.colors;
+            colors.disabledColor = DisabledSlotColor;
+            widget.button.colors = colors;
             widget.button.interactable = isUsable;
-        }
-
-        ApplyGraphicAvailability(widget.graphics, widget.graphicOriginalColors, isUsable);
-        ApplyRuntimeGraphicAvailability(widget.runtimeBackgroundVisual, isUsable);
-        ApplyRuntimeGraphicAvailability(widget.runtimeIconVisual, isUsable);
-    }
-
-    private static void ApplyGraphicAvailability(Graphic[] graphics, Color[] originalColors, bool isUsable)
-    {
-        if (graphics == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            Graphic graphic = graphics[i];
-            if (graphic == null)
-            {
-                continue;
-            }
-
-            Color original = originalColors != null && i < originalColors.Length ? originalColors[i] : graphic.color;
-            graphic.color = isUsable
-                ? original
-                : new Color(DisabledSlotColor.r, DisabledSlotColor.g, DisabledSlotColor.b, original.a);
-        }
-    }
-
-    private static void ApplyRuntimeGraphicAvailability(GameObject root, bool isUsable)
-    {
-        if (root == null)
-        {
-            return;
-        }
-
-        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            Graphic graphic = graphics[i];
-            if (graphic == null)
-            {
-                continue;
-            }
-
-            Color color = graphic.color;
-            graphic.color = isUsable
-                ? new Color(1f, 1f, 1f, color.a)
-                : new Color(DisabledSlotColor.r, DisabledSlotColor.g, DisabledSlotColor.b, color.a);
         }
     }
 
