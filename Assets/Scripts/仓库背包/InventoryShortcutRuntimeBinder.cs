@@ -149,6 +149,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
     private static readonly Color DisabledSlotColor = new Color32(100, 100, 100, 255);
+    private static readonly string[] BackpackLevelEventIds =
+    {
+        "背包lv1",
+        "背包lv2",
+        "背包lv3",
+        "背包lv4",
+        "背包lv5"
+    };
+    private static readonly int[] BackpackLevelSlotCounts = { 14, 21, 28, 35, 42 };
     private static readonly string[] EquipmentSlotNames =
     {
         "主手",
@@ -3559,7 +3568,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 configuredCount = warehouseUsableSlotCount;
                 break;
             case SlotKind.Backpack:
-                configuredCount = backpackUsableSlotCount;
+                configuredCount = ResolveBackpackUsableSlotCountFromEvents(totalCount);
                 break;
             case SlotKind.Equipment:
                 if (!equipmentUsableSlotCounts.TryGetValue(ResolveEquipmentCountCharacterKey(characterId), out configuredCount))
@@ -3578,6 +3587,44 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return Mathf.Clamp(configuredCount, 0, totalCount);
+    }
+
+    private int ResolveBackpackUsableSlotCountFromEvents(int totalCount)
+    {
+        EventDatabase eventDatabase = EventDatabase.LoadDefault();
+        if (eventDatabase == null)
+        {
+            return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
+        }
+
+        bool foundAnyMatchingEvent = false;
+        int resolvedCount = -1;
+        for (int i = 0; i < BackpackLevelEventIds.Length && i < BackpackLevelSlotCounts.Length; i++)
+        {
+            EventDatabase.EventEntry entry = eventDatabase.FindEntry(BackpackLevelEventIds[i]);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            foundAnyMatchingEvent = true;
+            if (entry.enabled)
+            {
+                resolvedCount = BackpackLevelSlotCounts[i];
+            }
+        }
+
+        if (resolvedCount >= 0)
+        {
+            return resolvedCount;
+        }
+
+        if (foundAnyMatchingEvent)
+        {
+            return 0;
+        }
+
+        return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
     }
 
     private int GetSlotCountForKind(SlotKind kind)

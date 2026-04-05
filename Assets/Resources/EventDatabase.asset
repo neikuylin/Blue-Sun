@@ -25,3 +25,23 @@ MonoBehaviour:
     displayName: "\u89E3\u9501\u745F\u838E"
     enabled: 0
     description: 
+  - eventId: "\u80CC\u5305lv1"
+    displayName: "\u89E3\u950114\u4E2A\u683C\u5B50"
+    enabled: 1
+    description: 
+  - eventId: "\u80CC\u5305lv2"
+    displayName: "\u89E3\u950121\u4E2A\u683C\u5B50"
+    enabled: 0
+    description: 
+  - eventId: "\u80CC\u5305lv3"
+    displayName: "\u89E3\u950128\u4E2A\u683C\u5B50"
+    enabled: 0
+    description: 
+  - eventId: "\u80CC\u5305lv4"
+    displayName: 35
+    enabled: 0
+    description: 
+  - eventId: "\u80CC\u5305lv5"
+    displayName: 42
+    enabled: 0
+    description: 

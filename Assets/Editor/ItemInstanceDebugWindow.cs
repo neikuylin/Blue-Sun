@@ -115,11 +115,20 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             int slotCountDraft = GetSlotCountDraft(ownerCharacterId, snapshots != null ? snapshots.Count : 0);
-            EditorGUI.BeginChangeCheck();
-            slotCountDraft = EditorGUILayout.IntField("\u66F4\u6539\u69FD\u4F4D\u6570\u91CF", slotCountDraft);
-            if (EditorGUI.EndChangeCheck())
+            bool isBackpackSection = string.IsNullOrWhiteSpace(ownerCharacterId) && selectedSection == 1;
+            using (new EditorGUI.DisabledScope(isBackpackSection))
             {
-                SetSlotCountDraft(ownerCharacterId, Mathf.Max(0, slotCountDraft));
+                EditorGUI.BeginChangeCheck();
+                slotCountDraft = EditorGUILayout.IntField("\u66F4\u6539\u69FD\u4F4D\u6570\u91CF", slotCountDraft);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SetSlotCountDraft(ownerCharacterId, Mathf.Max(0, slotCountDraft));
+                }
+            }
+
+            if (isBackpackSection)
+            {
+                EditorGUILayout.HelpBox("\u80cc\u5305\u69FD\u4F4D\u6570\u91CF\u7531 Tools/\u4E8B\u4EF6/\u4E8B\u4EF6\u7F16\u8F91\u5668 \u4E2D\u7684\u80CC\u5305lv1~lv5 \u4E8B\u4EF6\u51B3\u5B9A\u3002", MessageType.Info);
             }
         }
 
