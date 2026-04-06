@@ -581,7 +581,7 @@ MonoBehaviour:
     moveSpeed: {x: 60, y: 100}
   - name: "\u4ED3\u5E93"
     target: {fileID: 1087997781}
-    moveSpeed: {x: 4, y: 2}
+    moveSpeed: {x: 4, y: 100}
 --- !u!1 &1238977793
 GameObject:
   m_ObjectHideFlags: 0
