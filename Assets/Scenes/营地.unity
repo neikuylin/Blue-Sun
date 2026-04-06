@@ -574,14 +574,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   viewportRoot: {fileID: 1184170722}
-  background: {fileID: 1238977794}
-  backgroundMoveMultiplier: {x: 1, y: 1}
   followSpeed: 6
-  foregroundBindings:
+  images:
+  - name: "\u8425\u5730\u80CC\u666F"
+    target: {fileID: 1238977794}
+    moveSpeed: {x: 60, y: 100}
   - name: "\u4ED3\u5E93"
     target: {fileID: 1087997781}
-    axisUnlockMode: 1
-    freeAxisMultiplier: {x: 2, y: 1}
+    moveSpeed: {x: 4, y: 2}
 --- !u!1 &1238977793
 GameObject:
   m_ObjectHideFlags: 0
