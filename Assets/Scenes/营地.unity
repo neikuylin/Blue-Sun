@@ -157,7 +157,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 269.77, y: -417.98}
+  m_AnchoredPosition: {x: 164, y: -417.98}
   m_SizeDelta: {x: 539.5472, y: 489.0333}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &208100007
@@ -371,7 +371,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 648.8093, y: -428.4406}
+  m_AnchoredPosition: {x: 899, y: -428.44}
   m_SizeDelta: {x: 750.3886, y: 468.1216}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1087997782
@@ -468,6 +468,7 @@ GameObject:
   - component: {fileID: 1184170721}
   - component: {fileID: 1184170720}
   - component: {fileID: 1184170719}
+  - component: {fileID: 1184170723}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -560,6 +561,36 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1184170723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1184170718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82b43f8ab839a9344af57897dfba079f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  viewportRoot: {fileID: 1184170722}
+  boundsBackground: {fileID: 1238977794}
+  followSpeed: 6
+  autoPopulateCanvasChildren: 1
+  includeBackgroundInAutoPopulate: 1
+  layers:
+  - name: "\u8425\u5730\u80CC\u666F"
+    target: {fileID: 1238977794}
+    moveMultiplier: {x: 1, y: 1}
+    clampToBackground: 1
+  - name: "\u4ED3\u5E93"
+    target: {fileID: 1087997781}
+    moveMultiplier: {x: 0.1, y: 0}
+    clampToBackground: 1
+  - name: "\u73A9\u5BB6"
+    target: {fileID: 208100006}
+    moveMultiplier: {x: 0.1, y: 0}
+    clampToBackground: 1
 --- !u!1 &1238977793
 GameObject:
   m_ObjectHideFlags: 0
