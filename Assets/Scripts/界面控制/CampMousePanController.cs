@@ -11,28 +11,41 @@ public sealed class CampMousePanController : MonoBehaviour
     private const string CanvasPath = "Canvas";
     private const string BackgroundPath = "Canvas/营地背景";
 
-    [Serializable]
-    private sealed class ParallaxLayer
+    public enum AxisUnlockMode
     {
-        public string name = "Layer";
+        LockedToBackground,
+        FreeXOnly,
+        FreeYOnly,
+        FreeBoth
+    }
+
+    [Serializable]
+    public sealed class ForegroundBinding
+    {
+        public string name = "Binding";
         public RectTransform target;
-        public Vector2 moveMultiplier = Vector2.one;
-        public bool clampToBackground = true;
+        public AxisUnlockMode axisUnlockMode = AxisUnlockMode.LockedToBackground;
+        public Vector2 freeAxisMultiplier = Vector2.one;
+        public float followSpeed = 6f;
+        public bool allowExceedCanvas = false;
 
         [NonSerialized] public Vector2 initialAnchoredPosition;
+        [NonSerialized] public Vector2 backgroundRelativeOffset;
     }
 
     [Header("References")]
     [SerializeField] private RectTransform viewportRoot;
-    [SerializeField] private RectTransform boundsBackground;
+    [SerializeField] private RectTransform background;
 
-    [Header("Motion")]
+    [Header("Background Motion")]
+    [SerializeField] private Vector2 backgroundMoveMultiplier = new Vector2(0.35f, 0.35f);
     [SerializeField] private float followSpeed = 6f;
-    [SerializeField] private bool autoPopulateCanvasChildren = true;
-    [SerializeField] private bool includeBackgroundInAutoPopulate = true;
+    [SerializeField] private bool backgroundAllowExceedCanvas = false;
 
-    [Header("Parallax Layers")]
-    [SerializeField] private List<ParallaxLayer> layers = new List<ParallaxLayer>();
+    [Header("Foreground Bindings")]
+    [SerializeField] private List<ForegroundBinding> foregroundBindings = new List<ForegroundBinding>();
+
+    private Vector2 backgroundInitialAnchoredPosition;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AutoCreate()
@@ -57,24 +70,24 @@ public sealed class CampMousePanController : MonoBehaviour
 
         CampMousePanController controller = canvasTransform.gameObject.AddComponent<CampMousePanController>();
         controller.viewportRoot = canvasTransform as RectTransform;
-        controller.boundsBackground = SceneHierarchyPathUtility.Find(activeScene, BackgroundPath) as RectTransform;
-        controller.RefreshConfiguredLayers();
+        controller.background = SceneHierarchyPathUtility.Find(activeScene, BackgroundPath) as RectTransform;
+        controller.RefreshBindings();
     }
 
     private void Awake()
     {
-        RefreshConfiguredLayers();
+        RefreshBindings();
     }
 
     private void OnEnable()
     {
-        RefreshConfiguredLayers();
+        RefreshBindings();
     }
 
     private void OnValidate()
     {
         followSpeed = Mathf.Max(0.01f, followSpeed);
-        RefreshConfiguredLayers();
+        RefreshBindings();
     }
 
     private void Update()
@@ -90,57 +103,77 @@ public sealed class CampMousePanController : MonoBehaviour
         }
 
         Vector2 mouseNormalized = ResolveMouseNormalizedPosition();
+        Vector2 backgroundMaxOffset = ResolveBackgroundMaxOffset();
+        Vector2 backgroundVirtualOffset = new Vector2(
+            Mathf.Lerp(-backgroundMaxOffset.x, backgroundMaxOffset.x, mouseNormalized.x),
+            Mathf.Lerp(-backgroundMaxOffset.y, backgroundMaxOffset.y, mouseNormalized.y));
+        Vector2 backgroundTarget = backgroundInitialAnchoredPosition - backgroundVirtualOffset;
 
-        for (int i = 0; i < layers.Count; i++)
+        float t = 1f - Mathf.Exp(-followSpeed * Time.unscaledDeltaTime);
+        background.anchoredPosition = Vector2.Lerp(background.anchoredPosition, backgroundTarget, t);
+
+        Vector2 backgroundDelta = background.anchoredPosition - backgroundInitialAnchoredPosition;
+        for (int i = 0; i < foregroundBindings.Count; i++)
         {
-            ParallaxLayer layer = layers[i];
-            if (layer == null || layer.target == null)
+            ForegroundBinding binding = foregroundBindings[i];
+            if (binding == null || binding.target == null)
             {
                 continue;
             }
 
-            Vector2 maxOffset = ResolveLayerMaxOffset(layer);
-            Vector2 virtualCameraOffset = new Vector2(
-                Mathf.Lerp(-maxOffset.x, maxOffset.x, mouseNormalized.x),
-                Mathf.Lerp(-maxOffset.y, maxOffset.y, mouseNormalized.y));
-
-            Vector2 targetPosition = layer.initialAnchoredPosition - virtualCameraOffset;
-            float t = 1f - Mathf.Exp(-followSpeed * Time.unscaledDeltaTime);
-            layer.target.anchoredPosition = Vector2.Lerp(layer.target.anchoredPosition, targetPosition, t);
+            Vector2 freeAxisTarget = ResolveFreeAxisTarget(binding, mouseNormalized);
+            Vector2 targetPosition = ResolveForegroundTarget(binding, backgroundDelta, freeAxisTarget);
+            float bindingT = 1f - Mathf.Exp(-Mathf.Max(0.01f, binding.followSpeed) * Time.unscaledDeltaTime);
+            binding.target.anchoredPosition = ResolveSmoothedForegroundPosition(
+                binding,
+                binding.target.anchoredPosition,
+                targetPosition,
+                bindingT);
         }
     }
 
-    [ContextMenu("Refresh Configured Layers")]
-    public void RefreshConfiguredLayers()
+    [ContextMenu("Refresh Bindings")]
+    public void RefreshBindings()
     {
         if (viewportRoot == null)
         {
             viewportRoot = SceneHierarchyPathUtility.FindInActiveScene(CanvasPath) as RectTransform;
         }
 
-        if (boundsBackground == null)
+        if (background == null)
         {
-            boundsBackground = SceneHierarchyPathUtility.FindInActiveScene(BackgroundPath) as RectTransform;
+            background = SceneHierarchyPathUtility.FindInActiveScene(BackgroundPath) as RectTransform;
         }
 
-        if (autoPopulateCanvasChildren)
+        if (background != null)
         {
-            AutoPopulateLayers();
+            backgroundInitialAnchoredPosition = background.anchoredPosition;
         }
 
-        for (int i = layers.Count - 1; i >= 0; i--)
+        for (int i = foregroundBindings.Count - 1; i >= 0; i--)
         {
-            ParallaxLayer layer = layers[i];
-            if (layer == null || layer.target == null)
+            ForegroundBinding binding = foregroundBindings[i];
+            if (binding == null)
             {
-                layers.RemoveAt(i);
+                foregroundBindings.RemoveAt(i);
                 continue;
             }
 
-            layer.initialAnchoredPosition = layer.target.anchoredPosition;
-            if (string.IsNullOrWhiteSpace(layer.name))
+            if (binding.target == null)
             {
-                layer.name = layer.target.name;
+                continue;
+            }
+
+            binding.followSpeed = Mathf.Max(0.01f, binding.followSpeed);
+
+            binding.initialAnchoredPosition = binding.target.anchoredPosition;
+            binding.backgroundRelativeOffset = background != null
+                ? binding.initialAnchoredPosition - backgroundInitialAnchoredPosition
+                : binding.initialAnchoredPosition;
+
+            if (string.IsNullOrWhiteSpace(binding.name))
+            {
+                binding.name = binding.target.name;
             }
         }
     }
@@ -152,101 +185,131 @@ public sealed class CampMousePanController : MonoBehaviour
             viewportRoot = SceneHierarchyPathUtility.FindInActiveScene(CanvasPath) as RectTransform;
         }
 
-        if (boundsBackground == null)
+        if (background == null)
         {
-            boundsBackground = SceneHierarchyPathUtility.FindInActiveScene(BackgroundPath) as RectTransform;
+            background = SceneHierarchyPathUtility.FindInActiveScene(BackgroundPath) as RectTransform;
         }
 
-        if (viewportRoot == null || boundsBackground == null)
+        if (viewportRoot == null || background == null)
         {
             return false;
         }
 
-        if (layers.Count == 0)
-        {
-            RefreshConfiguredLayers();
-        }
-
-        return layers.Count > 0;
+        return true;
     }
 
-    private void AutoPopulateLayers()
+    private Vector2 ResolveBackgroundMaxOffset()
     {
-        if (viewportRoot == null)
-        {
-            return;
-        }
-
-        List<ParallaxLayer> rebuiltLayers = new List<ParallaxLayer>();
-        for (int i = 0; i < viewportRoot.childCount; i++)
-        {
-            RectTransform child = viewportRoot.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            bool isBackground = child == boundsBackground;
-            if (!includeBackgroundInAutoPopulate && isBackground)
-            {
-                continue;
-            }
-
-            ParallaxLayer existing = FindLayerByTarget(child);
-            if (existing == null)
-            {
-                existing = new ParallaxLayer
-                {
-                    name = child.name,
-                    target = child,
-                    moveMultiplier = isBackground ? new Vector2(0.35f, 0.35f) : Vector2.one,
-                    clampToBackground = true
-                };
-            }
-
-            rebuiltLayers.Add(existing);
-        }
-
-        layers = rebuiltLayers;
-    }
-
-    private ParallaxLayer FindLayerByTarget(RectTransform target)
-    {
-        for (int i = 0; i < layers.Count; i++)
-        {
-            ParallaxLayer layer = layers[i];
-            if (layer != null && layer.target == target)
-            {
-                return layer;
-            }
-        }
-
-        return null;
-    }
-
-    private Vector2 ResolveLayerMaxOffset(ParallaxLayer layer)
-    {
-        if (layer == null || layer.target == null || viewportRoot == null)
+        if (viewportRoot == null || background == null)
         {
             return Vector2.zero;
         }
 
-        if (!layer.clampToBackground)
+        if (backgroundAllowExceedCanvas)
         {
             return new Vector2(
-                Mathf.Abs(layer.moveMultiplier.x) * 10000f,
-                Mathf.Abs(layer.moveMultiplier.y) * 10000f);
+                Mathf.Abs(backgroundMoveMultiplier.x) * 10000f,
+                Mathf.Abs(backgroundMoveMultiplier.y) * 10000f);
         }
 
         Vector2 viewportSize = viewportRoot.rect.size;
-        Vector2 layerSize = layer.target.rect.size;
+        Vector2 backgroundSize = background.rect.size;
         Vector2 baseMaxOffset = new Vector2(
-            Mathf.Max(0f, (layerSize.x - viewportSize.x) * 0.5f),
-            Mathf.Max(0f, (layerSize.y - viewportSize.y) * 0.5f));
+            Mathf.Max(0f, (backgroundSize.x - viewportSize.x) * 0.5f),
+            Mathf.Max(0f, (backgroundSize.y - viewportSize.y) * 0.5f));
 
         return new Vector2(
-            Mathf.Abs(layer.moveMultiplier.x) <= 0.0001f ? 0f : baseMaxOffset.x / Mathf.Abs(layer.moveMultiplier.x),
-            Mathf.Abs(layer.moveMultiplier.y) <= 0.0001f ? 0f : baseMaxOffset.y / Mathf.Abs(layer.moveMultiplier.y));
+            Mathf.Abs(backgroundMoveMultiplier.x) <= 0.0001f ? 0f : baseMaxOffset.x / Mathf.Abs(backgroundMoveMultiplier.x),
+            Mathf.Abs(backgroundMoveMultiplier.y) <= 0.0001f ? 0f : baseMaxOffset.y / Mathf.Abs(backgroundMoveMultiplier.y));
+    }
+
+    private Vector2 ResolveFreeAxisTarget(ForegroundBinding binding, Vector2 mouseNormalized)
+    {
+        if (binding == null || binding.target == null)
+        {
+            return Vector2.zero;
+        }
+
+        if (binding.allowExceedCanvas)
+        {
+            float freeUnlimitedX = Mathf.Abs(binding.freeAxisMultiplier.x) <= 0.0001f
+                ? 0f
+                : Mathf.Lerp(-10000f, 10000f, mouseNormalized.x) * binding.freeAxisMultiplier.x;
+            float freeUnlimitedY = Mathf.Abs(binding.freeAxisMultiplier.y) <= 0.0001f
+                ? 0f
+                : Mathf.Lerp(-10000f, 10000f, mouseNormalized.y) * binding.freeAxisMultiplier.y;
+
+            return new Vector2(freeUnlimitedX, freeUnlimitedY);
+        }
+
+        Vector2 viewportSize = viewportRoot != null ? viewportRoot.rect.size : Vector2.zero;
+        Vector2 targetSize = binding.target.rect.size;
+        Vector2 baseMaxOffset = new Vector2(
+            Mathf.Max(0f, (targetSize.x - viewportSize.x) * 0.5f),
+            Mathf.Max(0f, (targetSize.y - viewportSize.y) * 0.5f));
+
+        float freeX = Mathf.Abs(binding.freeAxisMultiplier.x) <= 0.0001f
+            ? 0f
+            : Mathf.Lerp(-baseMaxOffset.x, baseMaxOffset.x, mouseNormalized.x) * binding.freeAxisMultiplier.x;
+        float freeY = Mathf.Abs(binding.freeAxisMultiplier.y) <= 0.0001f
+            ? 0f
+            : Mathf.Lerp(-baseMaxOffset.y, baseMaxOffset.y, mouseNormalized.y) * binding.freeAxisMultiplier.y;
+
+        return new Vector2(freeX, freeY);
+    }
+
+    private Vector2 ResolveForegroundTarget(ForegroundBinding binding, Vector2 backgroundDelta, Vector2 freeAxisTarget)
+    {
+        Vector2 lockedBase = backgroundInitialAnchoredPosition + binding.backgroundRelativeOffset + backgroundDelta;
+        switch (binding.axisUnlockMode)
+        {
+            case AxisUnlockMode.FreeXOnly:
+                return new Vector2(binding.initialAnchoredPosition.x - freeAxisTarget.x, lockedBase.y);
+
+            case AxisUnlockMode.FreeYOnly:
+                return new Vector2(lockedBase.x, binding.initialAnchoredPosition.y - freeAxisTarget.y);
+
+            case AxisUnlockMode.FreeBoth:
+                return new Vector2(
+                    binding.initialAnchoredPosition.x - freeAxisTarget.x,
+                    binding.initialAnchoredPosition.y - freeAxisTarget.y);
+
+            case AxisUnlockMode.LockedToBackground:
+            default:
+                return lockedBase;
+        }
+    }
+
+    private static Vector2 ResolveSmoothedForegroundPosition(
+        ForegroundBinding binding,
+        Vector2 currentPosition,
+        Vector2 targetPosition,
+        float smoothing)
+    {
+        if (binding == null)
+        {
+            return targetPosition;
+        }
+
+        switch (binding.axisUnlockMode)
+        {
+            case AxisUnlockMode.FreeXOnly:
+                return new Vector2(
+                    Mathf.Lerp(currentPosition.x, targetPosition.x, smoothing),
+                    targetPosition.y);
+
+            case AxisUnlockMode.FreeYOnly:
+                return new Vector2(
+                    targetPosition.x,
+                    Mathf.Lerp(currentPosition.y, targetPosition.y, smoothing));
+
+            case AxisUnlockMode.FreeBoth:
+                return Vector2.Lerp(currentPosition, targetPosition, smoothing);
+
+            case AxisUnlockMode.LockedToBackground:
+            default:
+                return targetPosition;
+        }
     }
 
     private static Vector2 ResolveMouseNormalizedPosition()

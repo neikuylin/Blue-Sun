@@ -371,7 +371,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 899, y: -428.44}
+  m_AnchoredPosition: {x: 652, y: -428.44}
   m_SizeDelta: {x: 750.3886, y: 468.1216}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1087997782
@@ -574,23 +574,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   viewportRoot: {fileID: 1184170722}
-  boundsBackground: {fileID: 1238977794}
+  background: {fileID: 1238977794}
+  backgroundMoveMultiplier: {x: 1, y: 1}
   followSpeed: 6
-  autoPopulateCanvasChildren: 1
-  includeBackgroundInAutoPopulate: 1
-  layers:
-  - name: "\u8425\u5730\u80CC\u666F"
-    target: {fileID: 1238977794}
-    moveMultiplier: {x: 1, y: 1}
-    clampToBackground: 1
+  foregroundBindings:
   - name: "\u4ED3\u5E93"
     target: {fileID: 1087997781}
-    moveMultiplier: {x: 0.1, y: 0}
-    clampToBackground: 1
-  - name: "\u73A9\u5BB6"
-    target: {fileID: 208100006}
-    moveMultiplier: {x: 0.1, y: 0}
-    clampToBackground: 1
+    axisUnlockMode: 1
+    freeAxisMultiplier: {x: 2, y: 1}
 --- !u!1 &1238977793
 GameObject:
   m_ObjectHideFlags: 0
