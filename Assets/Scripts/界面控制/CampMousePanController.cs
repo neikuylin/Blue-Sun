@@ -139,9 +139,19 @@ public sealed class CampMousePanController : MonoBehaviour
 
     private Vector2 ResolveMouseOffset()
     {
+        if (!Application.isFocused)
+        {
+            return Vector2.zero;
+        }
+
+        Vector3 mousePosition = Input.mousePosition;
+        if (mousePosition.x < 0f || mousePosition.y < 0f || mousePosition.x > Screen.width || mousePosition.y > Screen.height)
+        {
+            return Vector2.zero;
+        }
+
         float width = Mathf.Max(1f, Screen.width);
         float height = Mathf.Max(1f, Screen.height);
-        Vector3 mousePosition = Input.mousePosition;
 
         return new Vector2(
             (mousePosition.x / width - 0.5f) * 2f,
