@@ -251,61 +251,7 @@ public sealed class JourneyAttributeDetailBinder : MonoBehaviour
 
     private static string ResolveCurrentCharacterId()
     {
-        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
-        {
-            Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=equipment value='{equipmentCharacterId}'");
-            return equipmentCharacterId;
-        }
-
-        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
-        if (battleTurnSystem != null)
-        {
-            if (battleTurnSystem.ActiveUnit != null)
-            {
-                string activeUnitCharacterId = battleTurnSystem.ActiveUnit.characterId;
-                if (!string.IsNullOrWhiteSpace(activeUnitCharacterId))
-                {
-                    Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=active-turn value='{activeUnitCharacterId}'");
-                    return activeUnitCharacterId;
-                }
-            }
-
-            Debug.Log("[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=active-turn value=''");
-            return string.Empty;
-        }
-
-        string journeyCharacterId = ResolveJourneySelectedCharacterId();
-        Debug.Log($"[JourneyAttributeDetailBinder] ResolveCurrentCharacterId source=journey-selection value='{journeyCharacterId}'");
-        return journeyCharacterId;
-    }
-
-    private static string ResolveJourneySelectedCharacterId()
-    {
-        CharacterSlotView[] slots = FindObjectsOfType<CharacterSlotView>(true);
-        for (int i = 0; i < slots.Length; i++)
-        {
-            CharacterSlotView slot = slots[i];
-            if (slot == null)
-            {
-                continue;
-            }
-
-            for (int j = 0; j < slot.selectToggles.Count; j++)
-            {
-                Toggle toggle = slot.selectToggles[j];
-                if (toggle != null && toggle.isOn)
-                {
-                    string resolvedId = CharacterSelectionState.ResolveCharacterId(slot);
-                    if (!string.IsNullOrWhiteSpace(resolvedId))
-                    {
-                        return resolvedId;
-                    }
-                }
-            }
-        }
-
-        return string.Empty;
+        return 界面ID列表.当前ID;
     }
 
     private static BattleUnit ResolveDisplayedBattleUnit(string characterId)
