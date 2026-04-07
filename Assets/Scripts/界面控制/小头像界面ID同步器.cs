@@ -143,7 +143,7 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
 
         if (string.Equals(SceneManager.GetActiveScene().name, "营地", StringComparison.Ordinal))
         {
-            InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+            界面ID列表.设置营地当前ID(characterId);
             return;
         }
 

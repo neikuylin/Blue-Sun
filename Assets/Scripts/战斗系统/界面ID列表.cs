@@ -9,6 +9,7 @@ public static class 界面ID列表
     private const string PlayerCharacterId = "玩家";
     private const string OptionalTeammateEventPrefix = "可选队友：";
     private static BattleTurnSystem cachedBattleTurnSystem;
+    private static string campCurrentCharacterId = string.Empty;
 
     public static string 当前ID => 解析当前ID();
 
@@ -38,6 +39,7 @@ public static class 界面ID列表
     private static void 处理场景加载(Scene scene, LoadSceneMode mode)
     {
         cachedBattleTurnSystem = 查找战斗回合系统();
+        campCurrentCharacterId = string.Empty;
     }
 
     public static string 解析当前ID()
@@ -93,13 +95,24 @@ public static class 界面ID列表
 
     private static string 解析营地当前ID()
     {
-        string displayedCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(displayedCharacterId))
+        List<string> selectableIds = 获取营地可选ID();
+        if (!string.IsNullOrWhiteSpace(campCurrentCharacterId) &&
+            selectableIds.Contains(campCurrentCharacterId))
         {
-            return displayedCharacterId;
+            return campCurrentCharacterId;
         }
 
         return string.Empty;
+    }
+
+    public static void 设置营地当前ID(string characterId)
+    {
+        campCurrentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId.Trim();
+    }
+
+    public static void 清空营地当前ID()
+    {
+        campCurrentCharacterId = string.Empty;
     }
 
     private static List<string> 获取营地可选ID()
