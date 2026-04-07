@@ -5038,7 +5038,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        rect.localRotation = rotated ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
+        if (rotated)
+        {
+            RectTransform parentRect = rect.parent as RectTransform;
+            float halfCellWidth = parentRect != null ? parentRect.rect.width * 0.5f : 0f;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(halfCellWidth, 0f);
+            rect.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            return;
+        }
+
+        rect.localRotation = Quaternion.identity;
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
