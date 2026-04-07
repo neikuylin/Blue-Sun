@@ -3296,7 +3296,31 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SetFootprintDataAt(source.kind, source.index, rotatedData);
+        int oldExtensionIndex = GetExtensionIndexForData(source.kind, source.index, data);
+        int newExtensionIndex = GetExtensionIndexForData(source.kind, source.index, rotatedData);
+        List<ItemSlotData> liveData = GetDataList(source.kind);
+        if (liveData == null || source.index < 0 || source.index >= liveData.Count)
+        {
+            return;
+        }
+
+        liveData[source.index] = NormalizeItemSlotData(rotatedData);
+        if (newExtensionIndex >= 0 && newExtensionIndex < liveData.Count)
+        {
+            liveData[newExtensionIndex] = NormalizeItemSlotData(new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = source.index
+            });
+        }
+
+        if (oldExtensionIndex >= 0 &&
+            oldExtensionIndex < liveData.Count &&
+            oldExtensionIndex != newExtensionIndex)
+        {
+            liveData[oldExtensionIndex] = default;
+        }
+
         RefreshFootprintSlots(source.kind, source.index, rotatedData);
         ItemSoundUtility.PlayForItem(rotatedData.itemId);
     }
