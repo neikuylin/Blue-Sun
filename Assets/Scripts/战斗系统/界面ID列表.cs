@@ -47,12 +47,6 @@ public static class 界面ID列表
             return 解析营地当前ID();
         }
 
-        string displayedCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(displayedCharacterId))
-        {
-            return displayedCharacterId;
-        }
-
         BattleTurnSystem turnSystem = 获取战斗回合系统();
         BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
         if (activeUnit != null &&
@@ -99,13 +93,6 @@ public static class 界面ID列表
 
     private static string 解析营地当前ID()
     {
-        List<string> selectableIds = 获取营地可选ID();
-        string displayedCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(displayedCharacterId) && selectableIds.Contains(displayedCharacterId))
-        {
-            return displayedCharacterId;
-        }
-
         return PlayerCharacterId;
     }
 
