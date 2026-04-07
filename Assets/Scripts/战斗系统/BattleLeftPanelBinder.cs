@@ -711,19 +711,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return string.Empty;
         }
 
-        string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-
-        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
-        if (battleTurnSystem != null)
-        {
-            return string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        }
-
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            characterId = CharacterSelectionState.ActiveCharacterId;
-        }
-        return characterId;
+        return 界面ID列表.当前ID;
     }
 
     private bool IsEquipmentPanelVisible()

@@ -467,15 +467,10 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
 
     private string ResolveActiveCharacterId()
     {
-        BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
-        if (activeUnit != null && activeUnit.isPlayerControlled && !string.IsNullOrWhiteSpace(activeUnit.characterId))
-        {
-            return activeUnit.characterId;
-        }
-
-        return string.IsNullOrWhiteSpace(CharacterSelectionState.ActiveCharacterId)
+        string currentCharacterId = 界面ID列表.当前ID;
+        return string.IsNullOrWhiteSpace(currentCharacterId)
             ? DefaultCharacterId
-            : CharacterSelectionState.ActiveCharacterId;
+            : currentCharacterId;
     }
 
     private List<CharacterSkillListUtility.DisplaySkillEntry> GetSkillsForCharacter(string characterId)

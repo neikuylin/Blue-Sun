@@ -4722,7 +4722,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return currentEquipmentCharacterId;
         }
 
-        string activeCharacterId = CharacterSelectionState.ActiveCharacterId;
+        string activeCharacterId = 界面ID列表.当前ID;
         return string.IsNullOrWhiteSpace(activeCharacterId) ? string.Empty : activeCharacterId;
     }
 

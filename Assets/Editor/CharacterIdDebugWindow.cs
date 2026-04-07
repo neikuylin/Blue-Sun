@@ -52,6 +52,8 @@ public sealed class CharacterIdDebugWindow : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawRuntimeState();
         EditorGUILayout.Space(8f);
+        DrawInterfaceIdState();
+        EditorGUILayout.Space(8f);
         DrawCharacterSlots();
         EditorGUILayout.Space(8f);
         DrawTimelineBindingTable(timelineDatabase);
@@ -83,6 +85,20 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             }
 
             EditorGUILayout.LabelField(label, string.IsNullOrEmpty(slot.characterId) ? "（空）" : slot.characterId);
+        }
+    }
+
+    private static void DrawInterfaceIdState()
+    {
+        EditorGUILayout.LabelField("界面ID列表", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("当前ID", string.IsNullOrEmpty(界面ID列表.当前ID) ? "（空）" : 界面ID列表.当前ID);
+
+        List<string> selectableIds = 界面ID列表.可选ID;
+        EditorGUILayout.LabelField("可选ID数量", selectableIds.Count.ToString());
+        for (int i = 0; i < selectableIds.Count; i++)
+        {
+            string selectableId = selectableIds[i];
+            EditorGUILayout.LabelField($"可选ID {i + 1}", string.IsNullOrWhiteSpace(selectableId) ? "（空）" : selectableId);
         }
     }
 

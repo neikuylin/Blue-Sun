@@ -144,7 +144,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        string targetCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        string targetCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
@@ -171,7 +171,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
-        currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         RefreshAll();
     }
@@ -183,7 +183,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        instance.currentCharacterId = instance.ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
+        instance.currentCharacterId = instance.ResolveCharacterId(界面ID列表.当前ID);
         instance.lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         instance.RefreshAll();
     }
