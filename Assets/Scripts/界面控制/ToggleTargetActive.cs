@@ -8,6 +8,8 @@ public sealed class ToggleTargetActive : MonoBehaviour
     [SerializeField] private Toggle toggle;
     [SerializeField] private GameObject target;
     [SerializeField] private List<GameObject> extraTargets = new List<GameObject>();
+    [SerializeField] private GameObject reverseTarget;
+    [SerializeField] private List<GameObject> extraReverseTargets = new List<GameObject>();
 
     private void Awake()
     {
@@ -47,6 +49,20 @@ public sealed class ToggleTargetActive : MonoBehaviour
             if (extraTarget != null)
             {
                 extraTarget.SetActive(isOn);
+            }
+        }
+
+        if (reverseTarget != null)
+        {
+            reverseTarget.SetActive(!isOn);
+        }
+
+        for (int i = 0; i < extraReverseTargets.Count; i++)
+        {
+            GameObject extraReverseTarget = extraReverseTargets[i];
+            if (extraReverseTarget != null)
+            {
+                extraReverseTarget.SetActive(!isOn);
             }
         }
     }
