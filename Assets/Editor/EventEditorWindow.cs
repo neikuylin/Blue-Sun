@@ -1,10 +1,15 @@
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class EventEditorWindow : EditorWindow
 {
     private const string ResourceFolder = "Assets/Resources";
     private const string AssetPath = ResourceFolder + "/EventDatabase.asset";
+    private const string CampSceneName = "\u8425\u5730";
+    private const string CampCanvasName = "Canvas";
+    private const string CampCharacterEventPrefix = "\u8425\u5730\u89d2\u8272\uff1a";
 
     private Vector2 scroll;
     private string newEventId = string.Empty;
@@ -38,6 +43,7 @@ public sealed class EventEditorWindow : EditorWindow
 
         EditorGUILayout.LabelField("事件编辑器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox("这里维护事件表。勾选表示启用，取消勾选表示禁用；后续运行时可按 eventId 读取这些状态。", MessageType.Info);
+        EditorGUILayout.HelpBox("营地角色事件格式：营地角色：xx。运行到营地场景时，会自动控制 Canvas/xx 的 true/false。", MessageType.None);
         EditorGUILayout.Space(6f);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -62,6 +68,7 @@ public sealed class EventEditorWindow : EditorWindow
 
         EditorGUILayout.EndScrollView();
         databaseObject.ApplyModifiedProperties();
+        ApplyCampCharacterVisibilityInEditor(database);
     }
 
     private void DrawAddPanel(EventDatabase database)
@@ -171,5 +178,69 @@ public sealed class EventEditorWindow : EditorWindow
 
         EditorUtility.SetDirty(asset);
         AssetDatabase.SaveAssets();
+    }
+
+    private static void ApplyCampCharacterVisibilityInEditor(EventDatabase database)
+    {
+        if (Application.isPlaying || database == null || database.Entries == null)
+        {
+            return;
+        }
+
+        bool changed = false;
+        int loadedSceneCount = SceneManager.sceneCount;
+        for (int sceneIndex = 0; sceneIndex < loadedSceneCount; sceneIndex++)
+        {
+            Scene scene = SceneManager.GetSceneAt(sceneIndex);
+            if (!scene.IsValid() || !scene.isLoaded || scene.name != CampSceneName)
+            {
+                continue;
+            }
+
+            Transform canvas = SceneHierarchyPathUtility.Find(scene, CampCanvasName);
+            if (canvas == null)
+            {
+                continue;
+            }
+
+            for (int i = 0; i < database.Entries.Count; i++)
+            {
+                EventDatabase.EventEntry entry = database.Entries[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.eventId))
+                {
+                    continue;
+                }
+
+                if (!entry.eventId.StartsWith(CampCharacterEventPrefix, System.StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string characterName = entry.eventId.Substring(CampCharacterEventPrefix.Length).Trim();
+                if (string.IsNullOrWhiteSpace(characterName))
+                {
+                    continue;
+                }
+
+                Transform target = SceneHierarchyPathUtility.Find(scene, CampCanvasName + "/" + characterName);
+                if (target == null)
+                {
+                    continue;
+                }
+
+                if (target.gameObject.activeSelf == entry.enabled)
+                {
+                    continue;
+                }
+
+                target.gameObject.SetActive(entry.enabled);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+            }
+        }
     }
 }

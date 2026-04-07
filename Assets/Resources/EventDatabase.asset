@@ -23,7 +23,7 @@ MonoBehaviour:
     description: 
   - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u745F\u838E"
     displayName: "\u89E3\u9501\u745F\u838E"
-    enabled: 1
+    enabled: 0
     description: 
   - eventId: "\u80CC\u5305lv1"
     displayName: "\u89E3\u950114\u4E2A\u683C\u5B50"
@@ -44,4 +44,16 @@ MonoBehaviour:
   - eventId: "\u80CC\u5305lv5"
     displayName: 42
     enabled: 0
+    description: 
+  - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u7D22\u62C9\u5A1C"
+    displayName: "\u8425\u5730\u89D2\u8272\u7D22\u62C9\u5A1C"
+    enabled: 1
+    description: 
+  - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u5E93\u9C81\u65AF"
+    displayName: "\u8425\u5730\u89D2\u8272\u5E93\u9C81\u65AF"
+    enabled: 1
+    description: 
+  - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u745F\u838E"
+    displayName: "\u8425\u5730\u89D2\u8272\u745F\u838E"
+    enabled: 1
     description: 
