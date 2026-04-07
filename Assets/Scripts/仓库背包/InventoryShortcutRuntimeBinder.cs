@@ -184,6 +184,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
+    private readonly List<List<SlotWidget>> extraEquipmentSlots = new List<List<SlotWidget>>();
     private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> battleBackpackSlots = new List<SlotWidget>();
     private readonly List<Action> categoryFilterUnbindActions = new List<Action>();
@@ -453,7 +454,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: true);
-        EnsureDataSize(equipment, Mathf.Max(instance.equipmentSlots.Count, index + 1));
+        EnsureDataSize(equipment, Mathf.Max(instance.GetExpectedEquipmentSlotCount(), index + 1));
         if (index >= equipment.Count)
         {
             return false;
@@ -902,15 +903,62 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
-        Transform container = battleBindings != null && battleBindings.equipmentContainer != null
-            ? battleBindings.equipmentContainer
-            : journeyBindings != null && journeyBindings.equipmentContainer != null
-                ? journeyBindings.equipmentContainer
-                : FindTransformByPath(BattleEquipmentContainerPath) ?? FindTransformByPath(EquipmentContainerPath);
-        if (container != null)
+        extraEquipmentSlots.Clear();
+
+        List<Transform> containers = new List<Transform>();
+        AddUniqueEquipmentContainer(containers, battleBindings != null ? battleBindings.equipmentContainer : null);
+        AddUniqueEquipmentContainer(containers, journeyBindings != null ? journeyBindings.equipmentContainer : null);
+
+        EquipmentPanelBinding[] panelBindings = FindObjectsOfType<EquipmentPanelBinding>(true);
+        for (int i = 0; i < panelBindings.Length; i++)
         {
-            CollectEquipmentSlotsFromNamedChildren(container, equipmentSlots);
+            AddUniqueEquipmentContainer(containers, panelBindings[i] != null ? panelBindings[i].EquipmentContainer : null);
         }
+
+        AddUniqueEquipmentContainer(containers, FindTransformByPath(BattleEquipmentContainerPath));
+        AddUniqueEquipmentContainer(containers, FindTransformByPath(EquipmentContainerPath));
+
+        for (int i = 0; i < containers.Count; i++)
+        {
+            Transform container = containers[i];
+            if (container == null)
+            {
+                continue;
+            }
+
+            List<SlotWidget> collected = new List<SlotWidget>();
+            CollectEquipmentSlotsFromNamedChildren(container, collected);
+            if (collected.Count == 0)
+            {
+                continue;
+            }
+
+            if (equipmentSlots.Count == 0)
+            {
+                equipmentSlots.AddRange(collected);
+                continue;
+            }
+
+            extraEquipmentSlots.Add(collected);
+        }
+    }
+
+    private static void AddUniqueEquipmentContainer(List<Transform> containers, Transform container)
+    {
+        if (containers == null || container == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < containers.Count; i++)
+        {
+            if (containers[i] == container)
+            {
+                return;
+            }
+        }
+
+        containers.Add(container);
     }
 
     private void CollectBattleBackpackSlots()
@@ -1475,6 +1523,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return manualEquipmentCharacterId;
         }
 
+        string currentId = 界面ID列表.当前ID;
+        if (!string.IsNullOrWhiteSpace(currentId))
+        {
+            return currentId;
+        }
+
         if (FindObjectOfType<BattleTurnSystem>(true) == null)
         {
             string characterId = CharacterSelectionState.ActiveCharacterId;
@@ -1578,7 +1632,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private int GetExpectedEquipmentSlotCount()
     {
-        return equipmentSlots.Count > 0 ? equipmentSlots.Count : EquipmentSlotNames.Length;
+        if (equipmentSlots.Count > 0)
+        {
+            return equipmentSlots.Count;
+        }
+
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            List<SlotWidget> slotGroup = extraEquipmentSlots[i];
+            if (slotGroup != null && slotGroup.Count > 0)
+            {
+                return slotGroup.Count;
+            }
+        }
+
+        return EquipmentSlotNames.Length;
     }
 
     private static List<ItemSlotData> CloneItemSlotDataList(List<ItemSlotData> source)
@@ -1602,7 +1670,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         List<ItemSlotData> currentData = GetCurrentEquipmentData(true);
         if (currentData != null)
         {
-            EnsureDataSize(currentData, equipmentSlots.Count);
+            EnsureDataSize(currentData, GetExpectedEquipmentSlotCount());
         }
 
         RefreshEquipmentSlots();
@@ -1624,6 +1692,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         BindDragRelaysForList(quickSlots, SlotKind.Backpack, SlotSurface.QuickBackpack);
         BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack, SlotSurface.BattleBackpack);
         BindDragRelaysForList(equipmentSlots, SlotKind.Equipment, SlotSurface.Equipment);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            BindDragRelaysForList(extraEquipmentSlots[i], SlotKind.Equipment, SlotSurface.Equipment);
+        }
     }
 
     private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind, SlotSurface surface)
@@ -2372,7 +2444,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return FindWidgetByTransform(warehouseSlots, target);
         }
 
-        return FindWidgetByTransform(equipmentSlots, target);
+        SlotWidget equipmentWidget = FindWidgetByTransform(equipmentSlots, target);
+        if (equipmentWidget != null)
+        {
+            return equipmentWidget;
+        }
+
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            equipmentWidget = FindWidgetByTransform(extraEquipmentSlots[i], target);
+            if (equipmentWidget != null)
+            {
+                return equipmentWidget;
+            }
+        }
+
+        return null;
     }
 
     private static SlotWidget FindWidgetByTransform(List<SlotWidget> widgets, Transform target)
@@ -3770,7 +3857,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             case SlotKind.Backpack:
                 return Mathf.Max(backpackSlots.Count, backpackData.Count);
             case SlotKind.Equipment:
-                return equipmentSlots.Count;
+                return GetExpectedEquipmentSlotCount();
             default:
                 return 0;
         }
@@ -3832,41 +3919,49 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void RefreshEquipmentSlot(int index)
     {
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (index < 0 || index >= equipmentSlots.Count)
+        if (index < 0 || index >= GetExpectedEquipmentSlotCount())
         {
             return;
         }
 
-        if (equipmentData == null || index >= equipmentData.Count)
-        {
-            ApplyItemToWidget(equipmentSlots[index], default);
-            ApplyWidgetAvailability(equipmentSlots[index], IsSlotUsable(SlotKind.Equipment, index));
-            return;
-        }
-
-        ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
-        ApplyWidgetAvailability(equipmentSlots[index], IsSlotUsable(SlotKind.Equipment, index));
+        bool isUsable = IsSlotUsable(SlotKind.Equipment, index);
+        ItemSlotData data = equipmentData != null && index < equipmentData.Count ? equipmentData[index] : default;
+        ApplyEquipmentSlotData(index, data, isUsable);
         RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
     }
 
     private void RefreshEquipmentSlots()
     {
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        for (int i = 0; i < equipmentSlots.Count; i++)
+        int slotCount = GetExpectedEquipmentSlotCount();
+        for (int i = 0; i < slotCount; i++)
         {
-            if (equipmentData == null || i >= equipmentData.Count)
-            {
-                ApplyItemToWidget(equipmentSlots[i], default);
-                ApplyWidgetAvailability(equipmentSlots[i], IsSlotUsable(SlotKind.Equipment, i));
-                continue;
-            }
-
-            ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
-            ApplyWidgetAvailability(equipmentSlots[i], IsSlotUsable(SlotKind.Equipment, i));
+            ItemSlotData data = equipmentData != null && i < equipmentData.Count ? equipmentData[i] : default;
+            ApplyEquipmentSlotData(i, data, IsSlotUsable(SlotKind.Equipment, i));
         }
 
         RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
         SkillLoadoutRuntimeBinder.ForceRefresh();
+    }
+
+    private void ApplyEquipmentSlotData(int index, ItemSlotData data, bool isUsable)
+    {
+        ApplyEquipmentSlotDataToList(equipmentSlots, index, data, isUsable);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            ApplyEquipmentSlotDataToList(extraEquipmentSlots[i], index, data, isUsable);
+        }
+    }
+
+    private void ApplyEquipmentSlotDataToList(List<SlotWidget> slots, int index, ItemSlotData data, bool isUsable)
+    {
+        if (slots == null || index < 0 || index >= slots.Count)
+        {
+            return;
+        }
+
+        ApplyItemToWidget(slots[index], data);
+        ApplyWidgetAvailability(slots[index], isUsable);
     }
 
     private void RefreshAllRuntimeWeaponModelsInternal()
@@ -5638,11 +5733,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ClearRuntimeVisuals(warehouseSlots);
         ClearRuntimeVisuals(backpackSlots);
         ClearRuntimeVisuals(equipmentSlots);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            ClearRuntimeVisuals(extraEquipmentSlots[i]);
+        }
         ClearRuntimeVisuals(quickSlots);
         ClearRuntimeVisuals(battleBackpackSlots);
         warehouseSlots.Clear();
         backpackSlots.Clear();
         equipmentSlots.Clear();
+        extraEquipmentSlots.Clear();
         quickSlots.Clear();
         battleBackpackSlots.Clear();
     }
