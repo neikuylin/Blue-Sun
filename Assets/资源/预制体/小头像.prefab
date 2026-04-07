@@ -127,6 +127,7 @@ GameObject:
   - component: {fileID: 4351234125935801349}
   - component: {fileID: 805926419797502135}
   - component: {fileID: 3404653643342832202}
+  - component: {fileID: 3367152591201618288}
   m_Layer: 5
   m_Name: "\u7231\u4E3D\u4E1D\u5C0F\u5934\u50CF"
   m_TagString: Untagged
@@ -237,7 +238,19 @@ MonoBehaviour:
   m_Group: {fileID: 2007619754409431969}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 3367152591201618288}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!114 &805926419797502135
 MonoBehaviour:
@@ -270,6 +283,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   volume: 1
+--- !u!114 &3367152591201618288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 620544404520789792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a083b56ead99a8644b442baea8c29fae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5F53\u524DID": "\u7231\u4E3D\u4E1D"
 --- !u!1 &1277920612239752164
 GameObject:
   m_ObjectHideFlags: 0
@@ -397,6 +423,7 @@ GameObject:
   - component: {fileID: 2763585922905501400}
   - component: {fileID: 6488616031967622049}
   - component: {fileID: 2207634563635511710}
+  - component: {fileID: 7983960472802509382}
   m_Layer: 5
   m_Name: "\u5E93\u9C81\u65AF\u5C0F\u5934\u50CF"
   m_TagString: Untagged
@@ -507,7 +534,19 @@ MonoBehaviour:
   m_Group: {fileID: 2007619754409431969}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7983960472802509382}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!114 &6488616031967622049
 MonoBehaviour:
@@ -540,6 +579,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   volume: 1
+--- !u!114 &7983960472802509382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1514817194840836112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a083b56ead99a8644b442baea8c29fae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5F53\u524DID": "\u5E93\u9C81\u65AF"
 --- !u!1 &1802353647726737317
 GameObject:
   m_ObjectHideFlags: 0
@@ -554,6 +606,7 @@ GameObject:
   - component: {fileID: 7194398057031891528}
   - component: {fileID: 7651725718872759331}
   - component: {fileID: 4766255880372476798}
+  - component: {fileID: 6595529730088695249}
   m_Layer: 5
   m_Name: "\u7D22\u62C9\u5A1C\u5C0F\u5934\u50CF"
   m_TagString: Untagged
@@ -664,7 +717,19 @@ MonoBehaviour:
   m_Group: {fileID: 2007619754409431969}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 6595529730088695249}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!114 &7651725718872759331
 MonoBehaviour:
@@ -697,6 +762,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   volume: 1
+--- !u!114 &6595529730088695249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1802353647726737317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a083b56ead99a8644b442baea8c29fae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5F53\u524DID": "\u7D22\u62C9\u5A1C"
 --- !u!1 &2100273510108495286
 GameObject:
   m_ObjectHideFlags: 0
@@ -1028,6 +1106,7 @@ GameObject:
   - component: {fileID: 4145522656267039869}
   - component: {fileID: 8613302284716890816}
   - component: {fileID: 2102941496761482212}
+  - component: {fileID: 1466670180550154579}
   m_Layer: 5
   m_Name: "\u73A9\u5BB6\u5C0F\u5934\u50CF"
   m_TagString: Untagged
@@ -1138,7 +1217,19 @@ MonoBehaviour:
   m_Group: {fileID: 2007619754409431969}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1466670180550154579}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 1
 --- !u!114 &8613302284716890816
 MonoBehaviour:
@@ -1171,6 +1262,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   volume: 1
+--- !u!114 &1466670180550154579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4713991983920584384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a083b56ead99a8644b442baea8c29fae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5F53\u524DID": "\u73A9\u5BB6"
 --- !u!1 &4998503082048988404
 GameObject:
   m_ObjectHideFlags: 0
@@ -1448,6 +1552,7 @@ GameObject:
   - component: {fileID: 2748491710125045411}
   - component: {fileID: 8018437857949865055}
   - component: {fileID: 8600251840314020256}
+  - component: {fileID: 7949425509026331972}
   m_Layer: 5
   m_Name: "\u745F\u838E\u5C0F\u5934\u50CF"
   m_TagString: Untagged
@@ -1558,7 +1663,19 @@ MonoBehaviour:
   m_Group: {fileID: 2007619754409431969}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7949425509026331972}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!114 &8018437857949865055
 MonoBehaviour:
@@ -1591,6 +1708,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clickClip: {fileID: 8300000, guid: b1180560bb6bfea4196fb47bfa01f642, type: 3}
   volume: 1
+--- !u!114 &7949425509026331972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7546663576273707131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a083b56ead99a8644b442baea8c29fae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5F53\u524DID": "\u745F\u838E"
 --- !u!1 &7551389980767416021
 GameObject:
   m_ObjectHideFlags: 0
