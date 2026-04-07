@@ -19,7 +19,7 @@ public sealed class EventEditorWindow : EditorWindow
     private string newEventName = string.Empty;
     private bool showCampCharacterEvents = true;
     private bool showOptionalTeammateEvents = true;
-    private bool showOtherEvents = true;
+    private bool showBackpackLevelEvents = true;
     private SerializedObject databaseObject;
 
     [MenuItem("Tools/事件/事件编辑器")]
@@ -138,8 +138,8 @@ public sealed class EventEditorWindow : EditorWindow
         }
 
         EditorGUILayout.Space(4f);
-        showOtherEvents = EditorGUILayout.Foldout(showOtherEvents, $"其他事件 ({otherIndices.Count})", true);
-        if (showOtherEvents)
+        showBackpackLevelEvents = EditorGUILayout.Foldout(showBackpackLevelEvents, $"背包等级 ({otherIndices.Count})", true);
+        if (showBackpackLevelEvents)
         {
             DrawEntryGroup(entriesProperty, otherIndices);
         }
