@@ -10,6 +10,8 @@ public sealed class ToggleTargetActive : MonoBehaviour
     [SerializeField] private List<GameObject> extraTargets = new List<GameObject>();
     [SerializeField] private GameObject reverseTarget;
     [SerializeField] private List<GameObject> extraReverseTargets = new List<GameObject>();
+    private bool hasLastAppliedState;
+    private bool lastAppliedState;
 
     private void Awake()
     {
@@ -24,8 +26,9 @@ public sealed class ToggleTargetActive : MonoBehaviour
         if (toggle != null)
         {
             toggle.onValueChanged.AddListener(ApplyState);
-            ApplyState(toggle.isOn);
         }
+
+        RefreshVisualState();
     }
 
     private void OnDisable()
@@ -36,8 +39,37 @@ public sealed class ToggleTargetActive : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        RefreshVisualState();
+    }
+
+    private void RefreshVisualState()
+    {
+        if (toggle == null)
+        {
+            toggle = GetComponent<Toggle>();
+        }
+
+        if (toggle == null)
+        {
+            return;
+        }
+
+        bool isOn = toggle.isOn;
+        if (hasLastAppliedState && lastAppliedState == isOn)
+        {
+            return;
+        }
+
+        ApplyState(isOn);
+    }
+
     private void ApplyState(bool isOn)
     {
+        hasLastAppliedState = true;
+        lastAppliedState = isOn;
+
         if (target != null)
         {
             target.SetActive(isOn);
