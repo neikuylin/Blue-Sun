@@ -1726,7 +1726,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        TryTransferItem(draggingSource, rawTarget, sourceData);
+        if (TryTransferItem(draggingSource, rawTarget, sourceData))
+        {
+            hoveredRotateSlot = ResolvePrimarySlotRef(rawTarget);
+            hasHoveredRotateSlot = true;
+        }
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
