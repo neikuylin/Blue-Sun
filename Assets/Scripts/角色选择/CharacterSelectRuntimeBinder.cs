@@ -448,12 +448,10 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         CharacterSlotView activeSlot = FindToggleOnSlot();
         if (activeSlot == null)
         {
-            ShowBackgroundPortrait(string.Empty);
             SyncSelectionState();
             return;
         }
 
-        UpdateBackgroundPortraitForSlot(activeSlot);
         SyncSelectionState();
     }
 
@@ -475,18 +473,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return currentSlot;
     }
 
-    private void UpdateBackgroundPortraitForSlot(CharacterSlotView slot)
-    {
-        if (slot == null)
-        {
-            ShowBackgroundPortrait(string.Empty);
-            return;
-        }
-
-        string characterId = ResolveCharacterIdForSlot(slot);
-        ShowBackgroundPortrait(characterId);
-    }
-
     private string ResolveCharacterIdForSlot(CharacterSlotView slot)
     {
         if (!string.IsNullOrEmpty(slot.selectedCharacterId))
@@ -505,28 +491,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         return string.Empty;
-    }
-
-    private void ShowBackgroundPortrait(string characterId)
-    {
-        for (int i = 0; i < entries.Count; i++)
-        {
-            CharacterSelectEntry entry = entries[i];
-            if (entry == null)
-            {
-                continue;
-            }
-
-            bool shouldShow = !string.IsNullOrEmpty(characterId) && string.Equals(entry.characterId, characterId, StringComparison.Ordinal);
-            for (int j = 0; j < entry.backgroundPortraits.Count; j++)
-            {
-                GameObject go = entry.backgroundPortraits[j];
-                if (go != null)
-                {
-                    go.SetActive(shouldShow);
-                }
-            }
-        }
     }
 
     private CharacterSlotView FindOtherSlotByCharacter(string characterId, CharacterSlotView targetSlot)
