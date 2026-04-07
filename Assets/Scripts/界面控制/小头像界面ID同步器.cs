@@ -190,6 +190,12 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
             return;
         }
 
+        if (string.Equals(SceneManager.GetActiveScene().name, "营地", StringComparison.Ordinal))
+        {
+            InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+            return;
+        }
+
         CharacterSlotView[] slots = UnityEngine.Object.FindObjectsOfType<CharacterSlotView>(true);
         for (int i = 0; i < slots.Length; i++)
         {

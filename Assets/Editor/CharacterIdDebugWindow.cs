@@ -109,13 +109,7 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
     private static void PrintInterfaceIdsToConsole()
     {
-        List<string> selectableIds = 界面ID列表.可选ID;
-        string currentId = string.IsNullOrWhiteSpace(界面ID列表.当前ID) ? "（空）" : 界面ID列表.当前ID;
-        string selectableText = selectableIds.Count == 0
-            ? "（空）"
-            : string.Join(", ", selectableIds);
-
-        Debug.Log($"界面ID列表 当前ID: {currentId}\n可选ID: {selectableText}");
+        Debug.Log("界面ID列表调试\n" + 界面ID列表.构建调试文本());
     }
 
     private static void DrawCharacterSlots()
