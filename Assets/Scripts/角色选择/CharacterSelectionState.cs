@@ -122,6 +122,10 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
         instance.slotSelections.Clear();
         instance.activeCharacterId = ResolveCharacterId(activeSlot);
+        if (!string.IsNullOrWhiteSpace(instance.activeCharacterId))
+        {
+            界面ID列表.设置当前ID(instance.activeCharacterId);
+        }
 
         List<CharacterSlotView> orderedSlots = OrderSlots(slots);
         for (int i = 0; i < orderedSlots.Count; i++)

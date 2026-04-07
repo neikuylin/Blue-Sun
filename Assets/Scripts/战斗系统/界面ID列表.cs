@@ -45,13 +45,13 @@ public static class 界面ID列表
 
     public static string 解析当前ID()
     {
-        if (!string.IsNullOrWhiteSpace(currentCharacterIdOverride))
-        {
-            return currentCharacterIdOverride;
-        }
-
         if (IsCampScene())
         {
+            if (!string.IsNullOrWhiteSpace(currentCharacterIdOverride))
+            {
+                return currentCharacterIdOverride;
+            }
+
             return 解析营地当前ID();
         }
 
@@ -60,6 +60,11 @@ public static class 界面ID列表
         if (turnSystem != null && !string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
         {
             return displayedEquipmentCharacterId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentCharacterIdOverride))
+        {
+            return currentCharacterIdOverride;
         }
 
         BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
@@ -71,14 +76,7 @@ public static class 界面ID列表
             return activeUnit.characterId;
         }
 
-        string activeCharacterId = CharacterSelectionState.ActiveCharacterId;
-        if (!string.IsNullOrWhiteSpace(activeCharacterId))
-        {
-            return activeCharacterId;
-        }
-
-        List<string> selectableIds = 获取可选ID();
-        return selectableIds.Count > 0 ? selectableIds[0] : string.Empty;
+        return string.Empty;
     }
 
     public static void 设置当前ID(string characterId)

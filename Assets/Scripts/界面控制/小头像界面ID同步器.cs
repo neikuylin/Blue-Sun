@@ -12,10 +12,10 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
         public GameObject root;
         public Toggle toggle;
         public Button button;
-        public 当前ID选择器 selector;
     }
 
     private readonly List<Entry> entries = new List<Entry>();
+    private readonly List<Action> unbindActions = new List<Action>();
     private string lastCurrentId = string.Empty;
     private string lastSelectableSignature = string.Empty;
 
@@ -23,6 +23,11 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
     {
         RebindEntries();
         RefreshState(force: true);
+    }
+
+    private void OnDisable()
+    {
+        UnbindAll();
     }
 
     private void OnTransformChildrenChanged()
@@ -38,6 +43,7 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
 
     private void RebindEntries()
     {
+        UnbindAll();
         entries.Clear();
 
         for (int i = 0; i < transform.childCount; i++)
@@ -53,18 +59,32 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
                 characterId = child.name,
                 root = child.gameObject,
                 toggle = child.GetComponent<Toggle>() ?? child.GetComponentInChildren<Toggle>(true),
-                button = child.GetComponent<Button>() ?? child.GetComponentInChildren<Button>(true),
-                selector = child.GetComponent<当前ID选择器>() ?? child.GetComponentInChildren<当前ID选择器>(true)
+                button = child.GetComponent<Button>() ?? child.GetComponentInChildren<Button>(true)
             };
 
-            if (entry.toggle != null && entry.selector != null)
+            if (entry.toggle != null)
             {
-                当前ID选择器 capturedSelector = entry.selector;
-                entry.toggle.onValueChanged.AddListener(isOn =>
+                string capturedId = entry.characterId;
+                Toggle capturedToggle = entry.toggle;
+                UnityEngine.Events.UnityAction<bool> onChanged = isOn =>
                 {
-                    if (isOn)
+                    if (!isOn)
                     {
-                        capturedSelector.设置当前ID();
+                        return;
+                    }
+
+                    // 战斗副本的小头像除了写当前ID，还需要切换装备查看角色。
+                    if (UnityEngine.Object.FindObjectOfType<BattleTurnSystem>(true) != null)
+                    {
+                        InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(capturedId);
+                    }
+                };
+                capturedToggle.onValueChanged.AddListener(onChanged);
+                unbindActions.Add(() =>
+                {
+                    if (capturedToggle != null)
+                    {
+                        capturedToggle.onValueChanged.RemoveListener(onChanged);
                     }
                 });
             }
@@ -74,6 +94,16 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
 
         lastCurrentId = string.Empty;
         lastSelectableSignature = string.Empty;
+    }
+
+    private void UnbindAll()
+    {
+        for (int i = 0; i < unbindActions.Count; i++)
+        {
+            unbindActions[i]?.Invoke();
+        }
+
+        unbindActions.Clear();
     }
 
     private void RefreshState(bool force = false)
