@@ -93,7 +93,13 @@ public static class 界面ID列表
 
     private static string 解析营地当前ID()
     {
-        return PlayerCharacterId;
+        string displayedCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(displayedCharacterId))
+        {
+            return displayedCharacterId;
+        }
+
+        return string.Empty;
     }
 
     private static List<string> 获取营地可选ID()
