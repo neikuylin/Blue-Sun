@@ -25,6 +25,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Sprite icon;
         public int count;
         public int maxStack;
+        public bool isRotated;
         public bool isFootprintExtension;
         public int primarySlotIndex;
 
@@ -238,6 +239,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private ItemDatabase.ItemEntry pendingTooltipEntry;
     private SlotRef pendingTooltipSlot;
     private SlotRef hoveredTooltipSlot;
+    private SlotRef hoveredRotateSlot;
+    private bool hasHoveredRotateSlot;
     private float pendingTooltipShownAt;
     private GameObject runtimeTooltipRootInstance;
     private GameObject runtimeTooltipSourcePrefab;
@@ -610,6 +613,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             data.icon = null;
             data.count = 0;
             data.maxStack = 0;
+            data.isRotated = false;
             data.primarySlotIndex = Mathf.Max(0, data.primarySlotIndex);
             return data;
         }
@@ -719,8 +723,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             SetCurrentEquipmentCharacter(targetCharacterId);
         }
 
+        HandleHoveredItemRotation();
         UpdatePendingTooltip();
         UpdateTooltipLowerBackgroundState();
+    }
+
+    private void HandleHoveredItemRotation()
+    {
+        if (isDragging || !Input.GetKeyDown(KeyCode.R) || !hasHoveredRotateSlot)
+        {
+            return;
+        }
+
+        TryRotateHoveredOneByTwoItem();
     }
 
     private void UpdatePendingTooltip()
@@ -1723,6 +1738,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (!IsSlotUsable(kind, index))
         {
+            ClearHoveredRotateSlot();
             HideItemTooltip();
             return;
         }
@@ -1730,9 +1746,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
         {
+            ClearHoveredRotateSlot();
             HideItemTooltip();
             return;
         }
+
+        hoveredRotateSlot = slot;
+        hasHoveredRotateSlot = true;
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
         if (!ShouldShowWeaponTooltip(entry))
@@ -1762,6 +1782,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
     {
+        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
+        if (hasHoveredRotateSlot &&
+            hoveredRotateSlot.kind == slot.kind &&
+            hoveredRotateSlot.index == slot.index)
+        {
+            ClearHoveredRotateSlot();
+        }
+
         SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(new SlotRef { kind = kind, index = index });
         if (widget == null || widget.root == null)
         {
@@ -1820,7 +1848,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         source = ResolvePrimarySlotRef(source);
         sourceData = GetResolvedSlotData(source);
-        int targetIndex = FindFirstAvailableSlotIndex(targetKind, ResolveItemEntry(sourceData.itemId));
+        int targetIndex = FindFirstAvailableSlotIndex(targetKind, sourceData);
         if (targetIndex < 0)
         {
             return false;
@@ -1907,6 +1935,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         for (int i = dataList.Count - 1; i >= 0; i--)
         {
             if (CanPlaceItemAtIndex(kind, i, entry, dataList))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindFirstAvailableSlotIndex(SlotKind kind, ItemSlotData data)
+    {
+        List<ItemSlotData> dataList = GetDataList(kind);
+        for (int i = dataList.Count - 1; i >= 0; i--)
+        {
+            if (CanPlaceDataAt(kind, i, data, dataList))
             {
                 return i;
             }
@@ -2675,7 +2717,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return CanUseEquipmentSlotIndex(index, widget.equipmentSlotType, requireEmpty: false, entry, list);
         }
 
-        return CanPlaceItemAtIndex(kind, index, ResolveItemEntry(data.itemId), list);
+        if (index < 0 || index >= list.Count || !IsSlotUsable(kind, index) || !list[index].IsEmpty)
+        {
+            return false;
+        }
+
+        ItemDatabase.ItemEntry storageEntry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(storageEntry))
+        {
+            return true;
+        }
+
+        int extensionIndex = GetExtensionIndexForData(kind, index, data);
+        return extensionIndex >= 0 &&
+            extensionIndex < list.Count &&
+            IsSlotUsable(kind, extensionIndex) &&
+            list[extensionIndex].IsEmpty;
     }
 
     private void PlaceDataAt(SlotRef target, ItemSlotData data)
@@ -2688,6 +2745,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (target.kind == SlotKind.Equipment)
         {
+            data.isRotated = false;
             SetFootprintDataAt(target.kind, target.index, data);
             return;
         }
@@ -2778,7 +2836,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex) : -1;
+        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated) : -1;
     }
 
     private List<int> GetFootprintCellIndices(SlotKind kind, int primaryIndex, ItemSlotData data)
@@ -2837,8 +2895,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
-        if (!CanPlaceItemAtIndex(target.kind, target.index, entry, targetList))
+        if (!CanPlaceDataAt(target.kind, target.index, sourceData, targetList))
         {
             return false;
         }
@@ -2877,6 +2934,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             SetSlotData(source, targetData);
         }
 
+        sourceData.isRotated = false;
         SetSlotData(target, sourceData);
         RefreshFootprintSlots(source.kind, source.index, sourceData);
         RefreshByRef(target);
@@ -3025,7 +3083,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, false);
         return extensionIndex >= 0 &&
             IsSlotUsable(kind, extensionIndex) &&
             extensionIndex < dataList.Count &&
@@ -3049,7 +3107,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, normalizedPrimary.isRotated);
         if (extensionIndex < 0 || extensionIndex >= list.Count)
         {
             return;
@@ -3077,7 +3135,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated);
         if (extensionIndex >= 0 && extensionIndex < list.Count)
         {
             list[extensionIndex] = default;
@@ -3087,20 +3145,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void RefreshFootprintSlots(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
         RefreshByRef(new SlotRef { kind = kind, index = primaryIndex });
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (!IsOneByTwoItem(entry))
+        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
+        if (extensionIndex < 0)
         {
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
-        if (extensionIndex >= 0)
-        {
-            RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
-        }
+        RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
     }
 
-    private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex)
+    private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex, bool isRotated)
     {
         if (kind == SlotKind.Equipment)
         {
@@ -3111,6 +3165,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (columnCount <= 0)
         {
             return -1;
+        }
+
+        if (isRotated)
+        {
+            int rowStart = primaryIndex - (primaryIndex % columnCount);
+            int horizontalExtensionIndex = primaryIndex - 1;
+            return horizontalExtensionIndex >= rowStart ? horizontalExtensionIndex : -1;
         }
 
         int verticalStep = UsesLowerStartCorner(kind) ? -columnCount : columnCount;
@@ -3197,6 +3258,47 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return IsOneByTwoItem(ResolveItemEntry(data.itemId));
+    }
+
+    private void ClearHoveredRotateSlot()
+    {
+        hasHoveredRotateSlot = false;
+        hoveredRotateSlot = default;
+    }
+
+    private void TryRotateHoveredOneByTwoItem()
+    {
+        SlotRef source = ResolvePrimarySlotRef(hoveredRotateSlot);
+        if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty || source.kind == SlotKind.Equipment)
+        {
+            return;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(entry))
+        {
+            return;
+        }
+
+        List<ItemSlotData> list = GetDataList(source.kind);
+        if (list == null)
+        {
+            return;
+        }
+
+        ItemSlotData rotatedData = data;
+        rotatedData.isRotated = !rotatedData.isRotated;
+
+        List<ItemSlotData> working = CloneItemSlotDataList(list);
+        ClearPlacement(source.kind, source.index, data, working);
+        if (!CanPlaceDataAt(source.kind, source.index, rotatedData, working))
+        {
+            return;
+        }
+
+        SetFootprintDataAt(source.kind, source.index, rotatedData);
+        RefreshFootprintSlots(source.kind, source.index, rotatedData);
+        ItemSoundUtility.PlayForItem(rotatedData.itemId);
     }
 
     private List<SlotWidget> GetWidgetList(SlotKind kind)
@@ -4923,6 +5025,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry) : null;
         widget.runtimeBackgroundVisual = TryCreateRuntimePrefabVisual(qualityBackgroundPrefab, widget.backgroundAnchor ?? widget.root);
         widget.runtimeIconVisual = TryCreateRuntimeVisual(entry.prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
+        bool shouldRotate = data.isRotated && instance != null && instance.IsOneByTwoItem(entry);
+        ApplyRuntimeVisualRotation(widget.runtimeBackgroundVisual, shouldRotate);
+        ApplyRuntimeVisualRotation(widget.runtimeIconVisual, shouldRotate);
+    }
+
+    private static void ApplyRuntimeVisualRotation(GameObject target, bool rotated)
+    {
+        RectTransform rect = target != null ? target.transform as RectTransform : null;
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.localRotation = rotated ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
