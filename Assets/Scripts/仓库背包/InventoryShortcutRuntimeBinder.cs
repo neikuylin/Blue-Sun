@@ -712,6 +712,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // Cross-scene manual selections from camp/battle should not override
+        // the next scene's own current-character logic.
+        manualEquipmentCharacterId = string.Empty;
+        currentEquipmentCharacterId = string.Empty;
         BindScene();
     }
 
