@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
@@ -13,6 +12,7 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
         public GameObject root;
         public Toggle toggle;
         public Button button;
+        public 当前ID选择器 selector;
     }
 
     private readonly List<Entry> entries = new List<Entry>();
@@ -53,25 +53,20 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
                 characterId = child.name,
                 root = child.gameObject,
                 toggle = child.GetComponent<Toggle>() ?? child.GetComponentInChildren<Toggle>(true),
-                button = child.GetComponent<Button>() ?? child.GetComponentInChildren<Button>(true)
+                button = child.GetComponent<Button>() ?? child.GetComponentInChildren<Button>(true),
+                selector = child.GetComponent<当前ID选择器>() ?? child.GetComponentInChildren<当前ID选择器>(true)
             };
 
-            if (entry.toggle != null)
+            if (entry.toggle != null && entry.selector != null)
             {
-                string capturedId = entry.characterId;
+                当前ID选择器 capturedSelector = entry.selector;
                 entry.toggle.onValueChanged.AddListener(isOn =>
                 {
                     if (isOn)
                     {
-                        TrySelectCharacter(capturedId);
+                        capturedSelector.设置当前ID();
                     }
                 });
-            }
-
-            if (entry.button != null)
-            {
-                string capturedId = entry.characterId;
-                entry.button.onClick.AddListener(() => TrySelectCharacter(capturedId));
             }
 
             entries.Add(entry);
@@ -123,63 +118,6 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
                 {
                     entry.toggle.SetIsOnWithoutNotify(shouldBeOn);
                 }
-            }
-        }
-    }
-
-    private static void TrySelectCharacter(string characterId)
-    {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return;
-        }
-
-        BattleTurnSystem battleTurnSystem = UnityEngine.Object.FindObjectOfType<BattleTurnSystem>(true);
-        if (battleTurnSystem != null)
-        {
-            InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
-            return;
-        }
-
-        if (string.Equals(SceneManager.GetActiveScene().name, "营地", StringComparison.Ordinal))
-        {
-            界面ID列表.设置营地当前ID(characterId);
-            return;
-        }
-
-        CharacterSlotView[] slots = UnityEngine.Object.FindObjectsOfType<CharacterSlotView>(true);
-        for (int i = 0; i < slots.Length; i++)
-        {
-            CharacterSlotView slot = slots[i];
-            if (slot == null)
-            {
-                continue;
-            }
-
-            string resolvedCharacterId = CharacterSelectionState.ResolveCharacterId(slot);
-            if (!string.Equals(resolvedCharacterId, characterId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            for (int j = 0; j < slot.selectToggles.Count; j++)
-            {
-                Toggle toggle = slot.selectToggles[j];
-                if (toggle == null)
-                {
-                    continue;
-                }
-
-                if (!toggle.isOn)
-                {
-                    toggle.isOn = true;
-                }
-                else
-                {
-                    toggle.onValueChanged.Invoke(true);
-                }
-
-                return;
             }
         }
     }

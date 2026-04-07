@@ -7,6 +7,6 @@ public sealed class 当前ID选择器 : MonoBehaviour
 
     public void 设置当前ID()
     {
-        界面ID列表.设置营地当前ID(当前ID);
+        界面ID列表.设置当前ID(当前ID);
     }
 }
