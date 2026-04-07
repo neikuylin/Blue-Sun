@@ -4,18 +4,20 @@ using UnityEngine.SceneManagement;
 using UnityEditor;
 #endif
 
-public sealed class JourneySceneLoader : MonoBehaviour
+public sealed class 场景切换器 : MonoBehaviour
 {
+    [Header("目标场景")]
     [SerializeField] private string targetSceneName = "\u6218\u6597\u526F\u672C";
 #if UNITY_EDITOR
+    [Header("拖入场景资源")]
     [SerializeField] private SceneAsset targetScene;
 #endif
 
-    public void LoadBattleScene()
+    public void 切换场景()
     {
         if (string.IsNullOrWhiteSpace(targetSceneName))
         {
-            Debug.LogWarning("JourneySceneLoader: targetSceneName is empty.");
+            Debug.LogWarning("场景切换器：targetSceneName 为空。");
             return;
         }
 

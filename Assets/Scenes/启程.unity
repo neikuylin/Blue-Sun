@@ -21746,20 +21746,20 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1741831352}
-        m_TargetAssemblyTypeName: JourneySelectionCommitter, Assembly-CSharp
-        m_MethodName: CaptureCurrentSelection
-        m_Mode: 1
+        m_TargetAssemblyTypeName: "\u542F\u7A0B\u9009\u62E9\u63D0\u4EA4\u5668, Assembly-CSharp"
+        m_MethodName: "\u63D0\u4EA4\u5F53\u524D\u9009\u62E9"
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_ObjectArgumentAssemblyTypeName: 
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
       - m_Target: {fileID: 1741831351}
-        m_TargetAssemblyTypeName: JourneySceneLoader, Assembly-CSharp
-        m_MethodName: LoadBattleScene
+        m_TargetAssemblyTypeName: "\u573A\u666F\u5207\u6362\u5668, Assembly-CSharp"
+        m_MethodName: "\u5207\u6362\u573A\u666F"
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -23114,6 +23114,7 @@ GameObject:
   - component: {fileID: 1866140796}
   - component: {fileID: 1866140795}
   - component: {fileID: 1866140794}
+  - component: {fileID: 1866140797}
   m_Layer: 5
   m_Name: "\u8FD4\u56DE\u6309\u94AE"
   m_TagString: Untagged
@@ -23184,7 +23185,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1866140795}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1866140797}
+        m_TargetAssemblyTypeName: "\u573A\u666F\u5207\u6362\u5668, Assembly-CSharp"
+        m_MethodName: "\u5207\u6362\u573A\u666F"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1866140795
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23223,6 +23236,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1866140792}
   m_CullTransparentMesh: 1
+--- !u!114 &1866140797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1866140792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetSceneName: "\u526F\u672C\u9009\u62E9"
+  targetScene: {fileID: 102900000, guid: 57fa5489b9022d846b93438faf52b4fe, type: 3}
 --- !u!224 &1874312024 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
