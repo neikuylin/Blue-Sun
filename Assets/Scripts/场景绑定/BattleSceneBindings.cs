@@ -39,7 +39,6 @@ public sealed class BattleSceneBindings : MonoBehaviour
 
     [Header("Equipment")]
     public RectTransform equipmentContainer;
-    public Image leftPanelPortraitImage;
     public RectTransform leftPanelSkillSlotContainer;
 
     [Header("Overlay")]
