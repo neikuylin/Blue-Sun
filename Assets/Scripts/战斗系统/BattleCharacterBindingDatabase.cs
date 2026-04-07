@@ -12,7 +12,6 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
     {
         public string characterId;
         public string displayName;
-        public GameObject smallPortraitPrefab;
         public Sprite backgroundPortraitSprite;
         public GameObject backgroundPortraitPrefab;
         public GameObject modelPrefab;
