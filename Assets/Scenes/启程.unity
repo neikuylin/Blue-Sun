@@ -21673,6 +21673,7 @@ GameObject:
   - component: {fileID: 1741831349}
   - component: {fileID: 1741831348}
   - component: {fileID: 1741831351}
+  - component: {fileID: 1741831352}
   m_Layer: 5
   m_Name: "\u542F\u7A0B\u6309\u94AE"
   m_TagString: Untagged
@@ -21744,6 +21745,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 1741831352}
+        m_TargetAssemblyTypeName: JourneySelectionCommitter, Assembly-CSharp
+        m_MethodName: CaptureCurrentSelection
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1741831351}
         m_TargetAssemblyTypeName: JourneySceneLoader, Assembly-CSharp
         m_MethodName: LoadBattleScene
@@ -21804,6 +21817,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetSceneName: "\u6218\u6597\u526F\u672C"
+--- !u!114 &1741831352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1741831346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4c01a66b2aa4cd0b84d0b26288bc153, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1001 &1746743853

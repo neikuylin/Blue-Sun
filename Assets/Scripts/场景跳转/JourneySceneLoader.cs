@@ -3,11 +3,16 @@ using UnityEngine.SceneManagement;
 
 public sealed class JourneySceneLoader : MonoBehaviour
 {
-    private const string BattleSceneName = "\u6218\u6597\u526F\u672C";
+    [SerializeField] private string targetSceneName = "\u6218\u6597\u526F\u672C";
 
     public void LoadBattleScene()
     {
-        CharacterSelectionState.CaptureFromCurrentScene();
-        SceneManager.LoadScene(BattleSceneName);
+        if (string.IsNullOrWhiteSpace(targetSceneName))
+        {
+            Debug.LogWarning("JourneySceneLoader: targetSceneName is empty.");
+            return;
+        }
+
+        SceneManager.LoadScene(targetSceneName);
     }
 }
