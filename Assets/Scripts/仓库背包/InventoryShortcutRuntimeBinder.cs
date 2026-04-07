@@ -1529,6 +1529,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return currentId;
         }
 
+        if (FindObjectOfType<BattleTurnSystem>(true) != null &&
+            !string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        {
+            return currentEquipmentCharacterId;
+        }
+
         return string.Empty;
     }
 

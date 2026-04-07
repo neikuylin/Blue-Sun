@@ -49,6 +49,12 @@ public static class 界面ID列表
             return 解析营地当前ID();
         }
 
+        string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
+        if (!string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
+        {
+            return displayedEquipmentCharacterId;
+        }
+
         BattleTurnSystem turnSystem = 获取战斗回合系统();
         BattleUnit activeUnit = turnSystem != null ? turnSystem.ActiveUnit : null;
         if (activeUnit != null &&
