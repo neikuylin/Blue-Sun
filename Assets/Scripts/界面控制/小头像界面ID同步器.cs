@@ -7,9 +7,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class 小头像界面ID同步器 : MonoBehaviour
 {
-    private const string JourneySmallPortraitPath = "Canvas/UI控制器/目录/角色页面/左边栏位/角色背景框左/小头像";
-    private const string BattleSmallPortraitPath = "Canvas/弹窗/左边栏位/角色背景框左/小头像";
-
     private sealed class Entry
     {
         public string characterId;
@@ -18,36 +15,20 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
         public Button button;
     }
 
-    private static 小头像界面ID同步器 instance;
-
     private readonly List<Entry> entries = new List<Entry>();
-    private Transform container;
     private string lastCurrentId = string.Empty;
     private string lastSelectableSignature = string.Empty;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void Bootstrap()
-    {
-        if (instance != null)
-        {
-            return;
-        }
-
-        GameObject go = new GameObject(nameof(小头像界面ID同步器));
-        DontDestroyOnLoad(go);
-        instance = go.AddComponent<小头像界面ID同步器>();
-    }
-
     private void OnEnable()
     {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        RebindScene();
+        RebindEntries();
+        RefreshState(force: true);
     }
 
-    private void OnDisable()
+    private void OnTransformChildrenChanged()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-        UnbindEntries();
+        RebindEntries();
+        RefreshState(force: true);
     }
 
     private void LateUpdate()
@@ -55,23 +36,13 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
         RefreshState();
     }
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    private void RebindEntries()
     {
-        RebindScene();
-    }
+        entries.Clear();
 
-    private void RebindScene()
-    {
-        UnbindEntries();
-        container = ResolveContainer();
-        if (container == null)
+        for (int i = 0; i < transform.childCount; i++)
         {
-            return;
-        }
-
-        for (int i = 0; i < container.childCount; i++)
-        {
-            Transform child = container.GetChild(i);
+            Transform child = transform.GetChild(i);
             if (child == null)
             {
                 continue;
@@ -106,15 +77,6 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
             entries.Add(entry);
         }
 
-        lastCurrentId = string.Empty;
-        lastSelectableSignature = string.Empty;
-        RefreshState(force: true);
-    }
-
-    private void UnbindEntries()
-    {
-        entries.Clear();
-        container = null;
         lastCurrentId = string.Empty;
         lastSelectableSignature = string.Empty;
     }
@@ -163,17 +125,6 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
                 }
             }
         }
-    }
-
-    private static Transform ResolveContainer()
-    {
-        Transform target = SceneHierarchyPathUtility.FindInActiveScene(JourneySmallPortraitPath);
-        if (target != null)
-        {
-            return target;
-        }
-
-        return SceneHierarchyPathUtility.FindInActiveScene(BattleSmallPortraitPath);
     }
 
     private static void TrySelectCharacter(string characterId)
