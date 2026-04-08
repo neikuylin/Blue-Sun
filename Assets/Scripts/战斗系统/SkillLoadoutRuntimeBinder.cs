@@ -314,7 +314,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int warehouseCount = entry != null && entry.warehouseSkillIds != null
             ? entry.warehouseSkillIds.Count
             : 0;
-        int visibleSlotCount = warehouseCount;
+        int visibleSlotCount = Mathf.Max(1, warehouseCount + 1);
 
         EnsureWarehouseSlotCapacity(visibleSlotCount);
         CollectWarehouseSkillSlots();
