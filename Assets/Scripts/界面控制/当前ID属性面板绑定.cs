@@ -1,55 +1,98 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class 当前ID属性面板绑定 : MonoBehaviour
 {
     [Header("角色属性文本")]
+    [FormerlySerializedAs("当前ID文本")]
     [SerializeField] private Component currentIdText;
+    [FormerlySerializedAs("角色名文本")]
     [SerializeField] private Component displayNameText;
+    [FormerlySerializedAs("生命值文本")]
     [SerializeField] private Component healthText;
+    [FormerlySerializedAs("魔法值文本")]
     [SerializeField] private Component manaText;
+    [FormerlySerializedAs("攻击力文本")]
     [SerializeField] private Component attackPowerText;
+    [FormerlySerializedAs("法术伤害文本")]
     [SerializeField] private Component spellDamageText;
+    [FormerlySerializedAs("力量文本")]
     [SerializeField] private Component strengthText;
+    [FormerlySerializedAs("敏捷文本")]
     [SerializeField] private Component agilityText;
+    [FormerlySerializedAs("智力文本")]
     [SerializeField] private Component intelligenceText;
+    [FormerlySerializedAs("命中率文本")]
     [SerializeField] private Component hitRateText;
+    [FormerlySerializedAs("闪避率文本")]
     [SerializeField] private Component dodgeRateText;
+    [FormerlySerializedAs("物理抗性文本")]
     [SerializeField] private Component physicalResistanceText;
+    [FormerlySerializedAs("火焰抗性文本")]
     [SerializeField] private Component fireResistanceText;
+    [FormerlySerializedAs("腐败抗性文本")]
     [SerializeField] private Component corruptionResistanceText;
+    [FormerlySerializedAs("寒冷抗性文本")]
     [SerializeField] private Component coldResistanceText;
+    [FormerlySerializedAs("物理穿透文本")]
     [SerializeField] private Component physicalPenetrationText;
+    [FormerlySerializedAs("火焰穿透文本")]
     [SerializeField] private Component firePenetrationText;
+    [FormerlySerializedAs("腐败穿透文本")]
     [SerializeField] private Component corruptionPenetrationText;
+    [FormerlySerializedAs("寒冷穿透文本")]
     [SerializeField] private Component coldPenetrationText;
+    [FormerlySerializedAs("暴击率文本")]
     [SerializeField] private Component criticalChanceText;
+    [FormerlySerializedAs("暴击伤害文本")]
     [SerializeField] private Component criticalDamageText;
 
     [Header("文本前缀")]
+    [FormerlySerializedAs("当前ID前缀")]
     [SerializeField] private string currentIdPrefix = string.Empty;
+    [FormerlySerializedAs("角色名前缀")]
     [SerializeField] private string displayNamePrefix = string.Empty;
+    [FormerlySerializedAs("生命值前缀")]
     [SerializeField] private string healthPrefix = "生命值:";
+    [FormerlySerializedAs("魔法值前缀")]
     [SerializeField] private string manaPrefix = "魔法值:";
+    [FormerlySerializedAs("攻击力前缀")]
     [SerializeField] private string attackPowerPrefix = "攻击力:";
+    [FormerlySerializedAs("法术伤害前缀")]
     [SerializeField] private string spellDamagePrefix = "法术伤害:";
+    [FormerlySerializedAs("力量前缀")]
     [SerializeField] private string strengthPrefix = "力量:";
+    [FormerlySerializedAs("敏捷前缀")]
     [SerializeField] private string agilityPrefix = "敏捷:";
+    [FormerlySerializedAs("智力前缀")]
     [SerializeField] private string intelligencePrefix = "智力:";
+    [FormerlySerializedAs("命中率前缀")]
     [SerializeField] private string hitRatePrefix = "命中率:";
+    [FormerlySerializedAs("闪避率前缀")]
     [SerializeField] private string dodgeRatePrefix = "闪避率:";
+    [FormerlySerializedAs("物理抗性前缀")]
     [SerializeField] private string physicalResistancePrefix = "物理抗性:";
+    [FormerlySerializedAs("火焰抗性前缀")]
     [SerializeField] private string fireResistancePrefix = "火焰抗性:";
+    [FormerlySerializedAs("腐败抗性前缀")]
     [SerializeField] private string corruptionResistancePrefix = "腐败抗性:";
+    [FormerlySerializedAs("寒冷抗性前缀")]
     [SerializeField] private string coldResistancePrefix = "寒冷抗性:";
+    [FormerlySerializedAs("物理穿透前缀")]
     [SerializeField] private string physicalPenetrationPrefix = "物理穿透:";
+    [FormerlySerializedAs("火焰穿透前缀")]
     [SerializeField] private string firePenetrationPrefix = "火焰穿透:";
+    [FormerlySerializedAs("腐败穿透前缀")]
     [SerializeField] private string corruptionPenetrationPrefix = "腐败穿透:";
+    [FormerlySerializedAs("寒冷穿透前缀")]
     [SerializeField] private string coldPenetrationPrefix = "寒冷穿透:";
+    [FormerlySerializedAs("暴击率前缀")]
     [SerializeField] private string criticalChancePrefix = "暴击率:";
+    [FormerlySerializedAs("暴击伤害前缀")]
     [SerializeField] private string criticalDamagePrefix = "暴击伤害:";
 
     [Header("数据源")]
