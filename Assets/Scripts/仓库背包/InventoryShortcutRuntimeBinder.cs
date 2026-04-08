@@ -1906,7 +1906,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotWidget widget = GetWidget(source);
+        SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(source);
         if (!TryHandleRightClickMove(source, surface, widget != null ? widget.rightClickTarget : StorageRightClickTarget.Warehouse, sourceData))
         {
             return;
