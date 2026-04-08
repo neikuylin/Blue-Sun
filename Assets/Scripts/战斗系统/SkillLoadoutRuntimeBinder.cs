@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -105,7 +106,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private RectTransform dragIconRoot;
     private Image dragIconImage;
     private bool isDragging;
-    private int pendingDeferredRefreshFrames;
+    private Coroutine deferredRefreshCoroutine;
     private DragRef dragSource;
     private SkillSlotWidget dragSourceWidget;
 
@@ -131,6 +132,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (deferredRefreshCoroutine != null)
+        {
+            StopCoroutine(deferredRefreshCoroutine);
+            deferredRefreshCoroutine = null;
+        }
         HandleEndDrag();
         journeySkillSlots.Clear();
         warehouseSkillSlots.Clear();
@@ -138,14 +144,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void Update()
     {
         string targetCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        if (pendingDeferredRefreshFrames > 0)
-        {
-            pendingDeferredRefreshFrames--;
-            currentCharacterId = targetCharacterId;
-            lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-            RefreshAll();
-        }
-
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
@@ -174,8 +172,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CollectWarehouseSkillSlots();
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        RefreshAll();
-        pendingDeferredRefreshFrames = 2;
+        if (deferredRefreshCoroutine != null)
+        {
+            StopCoroutine(deferredRefreshCoroutine);
+        }
+        deferredRefreshCoroutine = StartCoroutine(DeferredRefreshAfterBinding());
     }
 
     public static void ForceRefresh()
@@ -188,6 +189,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         instance.currentCharacterId = instance.ResolveCharacterId(界面ID列表.当前ID);
         instance.lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         instance.RefreshAll();
+    }
+
+    private IEnumerator DeferredRefreshAfterBinding()
+    {
+        yield return null;
+        deferredRefreshCoroutine = null;
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        RefreshAll();
     }
 
     private void RefreshAll()
