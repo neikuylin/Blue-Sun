@@ -593,7 +593,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
         bool isSameCharacter = string.Equals(
-            InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId,
+            界面ID列表.当前ID,
             characterId,
             StringComparison.Ordinal);
 
@@ -605,15 +605,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
 
-        if (!equipmentPanelVisible)
-        {
-            界面ID列表.设置当前ID(characterId);
-        }
-        else
-        {
-            InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
-        }
-
+        界面ID列表.设置当前ID(characterId);
         SetEquipmentPanelVisible(true);
     }
 
