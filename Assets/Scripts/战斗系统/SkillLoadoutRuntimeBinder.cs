@@ -13,6 +13,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const float DragIconSize = 100f;
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
+    private const string GrantedSlotNamePrefix = "__GrantedSkillSlot_";
+    private const string MemorizedSlotNamePrefix = "__MemorizedSkillSlot_";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
 
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
@@ -272,11 +274,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void RefreshJourneySkillSlots()
     {
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
-        List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
-        int grantedSkillCount = CountGrantedSkills(displayEntries);
+        List<string> grantedSkillIds = CharacterSkillListUtility.BuildGrantedSkillIds(currentCharacterId);
+        int grantedSkillCount = grantedSkillIds.Count;
         int memorizedSlotCapacity = entry != null && entry.memorizedSkillIds != null ? entry.memorizedSkillIds.Count : 0;
         int visibleSlotCount = grantedSkillCount + memorizedSlotCapacity;
-        EnsureJourneySkillSlotCapacity(visibleSlotCount);
+        EnsureJourneySkillSlotCapacity(grantedSkillCount, memorizedSlotCapacity);
         CollectJourneySkillSlots();
         if (journeySkillSlots.Count == 0)
         {
@@ -292,18 +294,24 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 widget.root.gameObject.SetActive(shouldDisplay);
             }
 
-            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
-                shouldDisplay && i < displayEntries.Count ? displayEntries[i] : default;
-            string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
+            bool isGrantedSlot = shouldDisplay && i < grantedSkillCount;
+            int memorizedIndex = i - grantedSkillCount;
+            string skillId = string.Empty;
+            if (isGrantedSlot)
+            {
+                skillId = i < grantedSkillIds.Count ? grantedSkillIds[i] : string.Empty;
+            }
+            else if (shouldDisplay && memorizedIndex >= 0 && entry != null && entry.memorizedSkillIds != null && memorizedIndex < entry.memorizedSkillIds.Count)
+            {
+                skillId = entry.memorizedSkillIds[memorizedIndex];
+            }
+
             widget.skillId = skillId;
-            widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
-            int memorizedDisplayIndex = i - grantedSkillCount;
-            widget.slotIndex = widget.isGranted
-                ? -1
-                : memorizedDisplayIndex;
+            widget.isGranted = isGrantedSlot;
+            widget.slotIndex = isGrantedSlot ? -1 : memorizedIndex;
 
             EnsureRelay(widget, SlotSurface.Loadout, i);
-            RefreshSlotVisual(widget, shouldDisplay, skillId, widget.isGranted);
+            RefreshSlotVisual(widget, shouldDisplay, skillId, isGrantedSlot);
             RefreshGrantedCornerMarker(widget);
         }
     }
@@ -810,24 +818,86 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private void EnsureJourneySkillSlotCapacity(int requiredCount)
+    private void EnsureJourneySkillSlotCapacity(int grantedCount, int memorizedCount)
     {
         if (journeySkillContainer == null)
         {
             return;
         }
 
-        RectTransform template = skillBarBinding != null ? skillBarBinding.ResolveSkillSlotTemplate() : null;
-        if (template == null)
+        RectTransform memorizedTemplate = skillBarBinding != null ? skillBarBinding.ResolveSkillSlotTemplate() : null;
+        RectTransform grantedTemplate = skillBarBinding != null ? skillBarBinding.ResolveGrantedSkillSlotTemplate() : null;
+        if (memorizedTemplate == null || grantedTemplate == null)
         {
             return;
         }
 
-        while (journeySkillContainer.childCount < requiredCount)
+        int requiredCount = grantedCount + memorizedCount;
+        bool requiresRebuild = journeySkillContainer.childCount != requiredCount;
+        if (!requiresRebuild)
         {
-            RectTransform clone = Instantiate(template, journeySkillContainer, false);
-            clone.name = template.name;
+            for (int i = 0; i < grantedCount; i++)
+            {
+                Transform child = journeySkillContainer.GetChild(i);
+                if (child == null || !child.name.StartsWith(GrantedSlotNamePrefix, StringComparison.Ordinal))
+                {
+                    requiresRebuild = true;
+                    break;
+                }
+            }
+
+            if (!requiresRebuild)
+            {
+                for (int i = 0; i < memorizedCount; i++)
+                {
+                    int childIndex = grantedCount + i;
+                    Transform child = journeySkillContainer.GetChild(childIndex);
+                    if (child == null || !child.name.StartsWith(MemorizedSlotNamePrefix, StringComparison.Ordinal))
+                    {
+                        requiresRebuild = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!requiresRebuild)
+        {
+            return;
+        }
+
+        for (int i = journeySkillContainer.childCount - 1; i >= 0; i--)
+        {
+            Transform child = journeySkillContainer.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(child.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(child.gameObject);
+            }
+        }
+
+        for (int i = 0; i < grantedCount; i++)
+        {
+            RectTransform clone = Instantiate(grantedTemplate, journeySkillContainer, false);
+            clone.name = GrantedSlotNamePrefix + i;
             clone.gameObject.SetActive(true);
+            clone.SetSiblingIndex(i);
+        }
+
+        for (int i = 0; i < memorizedCount; i++)
+        {
+            RectTransform clone = Instantiate(memorizedTemplate, journeySkillContainer, false);
+            clone.name = MemorizedSlotNamePrefix + i;
+            clone.gameObject.SetActive(true);
+            clone.SetSiblingIndex(grantedCount + i);
         }
     }
 

@@ -13,6 +13,9 @@ public class SkillBarBinding : MonoBehaviour
     private RectTransform slotTemplate;
 
     [SerializeField]
+    private RectTransform grantedSlotTemplate;
+
+    [SerializeField]
     private Sprite grantedMarkerSprite;
 
     [SerializeField]
@@ -31,6 +34,11 @@ public class SkillBarBinding : MonoBehaviour
     public RectTransform ResolveSkillSlotTemplate()
     {
         return slotTemplate;
+    }
+
+    public RectTransform ResolveGrantedSkillSlotTemplate()
+    {
+        return grantedSlotTemplate;
     }
 
     public Sprite GrantedMarkerSprite => grantedMarkerSprite;

@@ -9,7 +9,8 @@ public sealed class SkillBarBindingEditor : Editor
         serializedObject.Update();
         Draw("skillPanel", "技能栏位");
         Draw("skillSlotArea", "技能格子区域");
-        Draw("slotTemplate", "预设空格子");
+        Draw("slotTemplate", "记忆格模板");
+        Draw("grantedSlotTemplate", "装备附带技能格子");
         Draw("grantedMarkerSprite", "锁定图片");
         Draw("grantedMarkerPosition", "锁定图片位置");
         serializedObject.ApplyModifiedProperties();

@@ -2546,6 +2546,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: "\u6280\u80FD\u680F\u4F4D"
       objectReference: {fileID: 0}
+    - target: {fileID: 7570920283522981963, guid: 879fa1d0f5938f64ebe6e2c7be0248cc, type: 3}
+      propertyPath: grantedSlotTemplate
+      value: 
+      objectReference: {fileID: 4526217543549537654, guid: 4c47e9ce5530d7d4eade69909c82ad49, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

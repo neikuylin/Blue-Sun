@@ -16,7 +16,7 @@ MonoBehaviour:
   - characterId: "\u73A9\u5BB6"
     strength: 4
     agility: 4
-    intelligence: 4
+    intelligence: 10
     actionPoints: 4
     hitRate: 100
     physicalResistance: 0
