@@ -14,13 +14,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
 
-    private static readonly string[] JourneySkillContainerChain =
-    {
-        "\u89d2\u8272\u9875\u9762",
-        "\u6280\u80fd\u680f\u4f4d",
-        "\u6280\u80fd\u683c\u5b50\u533a\u57df"
-    };
-
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
 
@@ -105,8 +98,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
-    private JourneySkillGridBinding journeySkillGridBinding;
-    private JourneySkillWarehouseBinding warehouseBinding;
+    private 技能栏位绑定 skillBarBinding;
+    private 技能仓库绑定 skillWarehouseBinding;
     private RectTransform warehouseContainer;
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
@@ -165,8 +158,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        journeySkillGridBinding = JourneySkillGridBinding.FindBindingInActiveScene();
-        warehouseBinding = JourneySkillWarehouseBinding.FindBindingInActiveScene();
+        skillBarBinding = 技能栏位绑定.FindBindingInActiveScene();
+        skillWarehouseBinding = 技能仓库绑定.FindBindingInActiveScene();
         journeySkillContainer = ResolveJourneySkillContainer();
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
@@ -263,16 +256,18 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void RefreshJourneySkillSlots()
     {
-        if (journeySkillSlots.Count == 0)
-        {
-            return;
-        }
-
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
         List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
         int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int grantedSkillCount = CountGrantedSkills(displayEntries);
         int visibleSlotCount = grantedSkillCount + memorySlotCount;
+        EnsureJourneySkillSlotCapacity(visibleSlotCount);
+        CollectJourneySkillSlots();
+        if (journeySkillSlots.Count == 0)
+        {
+            return;
+        }
+
         List<int> memorizedDataIndices = BuildDisplayedMemorizedDataIndices(entry, memorySlotCount);
 
         for (int i = 0; i < journeySkillSlots.Count; i++)
@@ -729,12 +724,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        RectTransform template = warehouseBinding != null ? warehouseBinding.ResolveWarehouseSlotTemplate() : null;
-        if (template == null && warehouseContainer.childCount > 0)
-        {
-            template = warehouseContainer.GetChild(0) as RectTransform;
-        }
-
+        RectTransform template = skillWarehouseBinding != null ? skillWarehouseBinding.ResolveWarehouseSlotTemplate() : null;
         if (template == null)
         {
             return;
@@ -746,38 +736,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             clone.name = template.name;
             clone.gameObject.SetActive(true);
         }
-    }
-
-    private static RectTransform CreateFallbackWarehouseSlot(RectTransform parent)
-    {
-        if (parent == null)
-        {
-            return null;
-        }
-
-        GameObject rootObject = new GameObject("技能仓库格子", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        rootObject.transform.SetParent(parent, false);
-
-        RectTransform root = rootObject.GetComponent<RectTransform>();
-        root.sizeDelta = new Vector2(96f, 96f);
-
-        Image background = rootObject.GetComponent<Image>();
-        background.color = Color.white;
-        background.raycastTarget = true;
-
-        GameObject iconObject = new GameObject(OverlayIconName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-        iconRect.SetParent(root, false);
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.pivot = new Vector2(0.5f, 0.5f);
-        iconRect.sizeDelta = new Vector2(72f, 72f);
-
-        Image icon = iconObject.GetComponent<Image>();
-        icon.preserveAspect = true;
-        icon.raycastTarget = false;
-        icon.enabled = false;
-        return root;
     }
 
     private static void EnsureSkillDataCapacity(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int requiredCount)
@@ -808,83 +766,35 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void EnsureJourneySkillSlotCapacity(int requiredCount)
+    {
+        if (journeySkillContainer == null)
+        {
+            return;
+        }
+
+        RectTransform template = skillBarBinding != null ? skillBarBinding.ResolveSkillSlotTemplate() : null;
+        if (template == null)
+        {
+            return;
+        }
+
+        while (journeySkillContainer.childCount < requiredCount)
+        {
+            RectTransform clone = Instantiate(template, journeySkillContainer, false);
+            clone.name = template.name;
+            clone.gameObject.SetActive(true);
+        }
+    }
+
     private RectTransform ResolveJourneySkillContainer()
     {
-        RectTransform explicitContainer = warehouseBinding != null ? warehouseBinding.ResolveSkillSlotContainer() : null;
-        if (explicitContainer != null)
-        {
-            return explicitContainer;
-        }
-
-        RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
-        if (boundContainer != null)
-        {
-            return boundContainer;
-        }
-
-        return FindJourneySkillContainer();
+        return skillBarBinding != null ? skillBarBinding.ResolveSkillSlotContainer() : null;
     }
 
     private RectTransform ResolveWarehouseContainer()
     {
-        return warehouseBinding != null ? warehouseBinding.ResolveWarehouseContainer() : null;
-    }
-
-    private static RectTransform FindJourneySkillContainer()
-    {
-        Scene activeScene = SceneManager.GetActiveScene();
-        if (!activeScene.IsValid())
-        {
-            return null;
-        }
-
-        GameObject[] roots = activeScene.GetRootGameObjects();
-        for (int i = 0; i < roots.Length; i++)
-        {
-            RectTransform found = FindContainerRecursive(roots[i] != null ? roots[i].transform : null, 0);
-            if (found != null)
-            {
-                return found;
-            }
-        }
-
-        return null;
-    }
-
-    private static RectTransform FindContainerRecursive(Transform current, int matchedDepth)
-    {
-        if (current == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], StringComparison.Ordinal))
-        {
-            if (matchedDepth == JourneySkillContainerChain.Length - 1)
-            {
-                return current as RectTransform;
-            }
-
-            for (int i = 0; i < current.childCount; i++)
-            {
-                RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth + 1);
-                if (nested != null)
-                {
-                    return nested;
-                }
-            }
-        }
-
-        for (int i = 0; i < current.childCount; i++)
-        {
-            RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth);
-            if (nested != null)
-            {
-                return nested;
-            }
-        }
-
-        return null;
+        return skillWarehouseBinding != null ? skillWarehouseBinding.ResolveWarehouseContainer() : null;
     }
 
     private static void EnsureGridLayout(RectTransform container)
@@ -1116,7 +1026,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Sprite cornerSprite = journeySkillGridBinding != null ? journeySkillGridBinding.grantedSkillCornerSprite : null;
+        Sprite cornerSprite = skillBarBinding != null ? skillBarBinding.装备附带技能角标 : null;
         bool shouldShow = widget.isGranted && cornerSprite != null && !string.IsNullOrWhiteSpace(widget.skillId);
 
         widget.grantedCornerMarker.sprite = cornerSprite;
@@ -1129,8 +1039,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Vector2 anchoredPosition = journeySkillGridBinding != null
-            ? journeySkillGridBinding.grantedSkillCornerAnchoredPosition
+        Vector2 anchoredPosition = skillBarBinding != null
+            ? skillBarBinding.装备附带技能角标位置
             : new Vector2(-6f, -6f);
 
         markerRect.sizeDelta = cornerSprite != null ? cornerSprite.rect.size : Vector2.zero;
