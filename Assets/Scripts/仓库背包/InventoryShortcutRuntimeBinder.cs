@@ -752,7 +752,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         CollectStorageSlots();
         CollectEquipmentSlots();
 
-        EnsureDataSize(warehouseData, warehouseSlots.Count);
+        EnsureWarehouseDataSize();
         SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
 
         int backpackWidgetCount = backpackSlots.Count;
@@ -1688,6 +1688,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         while (backpackData.Count < size)
         {
             backpackData.Add(default);
+        }
+    }
+
+    private void EnsureWarehouseDataSize()
+    {
+        while (warehouseData.Count < FixedStorageSlotCount)
+        {
+            warehouseData.Add(default);
         }
     }
 
