@@ -109,8 +109,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11d44fd519ee30f43baab1c166e9c5d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slotTemplate: {fileID: 0}
-  skillPanel: {fileID: 0}
-  skillSlotArea: {fileID: 0}
-  grantedSkillCornerSprite: {fileID: 0}
-  grantedSkillCornerAnchoredPosition: {x: -6, y: -6}
+  skillSlotArea: {fileID: 1603244275796387039}
+  skillPanel: {fileID: 4576142693653919579}
+  slotTemplate: {fileID: 4526217543549537654, guid: 4c47e9ce5530d7d4eade69909c82ad49, type: 3}
+  grantedMarkerSprite: {fileID: 21300000, guid: 1d818ce7b08e36245bc3c3086b07de05, type: 3}
+  grantedMarkerPosition: {x: -6, y: -6}

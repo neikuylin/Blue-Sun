@@ -124,7 +124,7 @@ public static class SceneReferenceAutoBinder
         {
             JourneySkillGridBinding skillBinding = GetOrCreateRootComponent<JourneySkillGridBinding>(scene, nameof(JourneySkillGridBinding));
             Undo.RecordObject(skillBinding, "Auto Bind Journey Skill Grid");
-            skillBinding.skillSlotContainer = skill;
+            skillBinding.SetAutoBindReferences(skill.parent as RectTransform, skill);
             EditorUtility.SetDirty(skillBinding);
         }
 

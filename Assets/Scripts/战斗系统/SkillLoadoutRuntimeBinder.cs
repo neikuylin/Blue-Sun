@@ -98,8 +98,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string currentCharacterId = string.Empty;
     private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
-    private 技能栏位绑定 skillBarBinding;
-    private 技能仓库绑定 skillWarehouseBinding;
+    private SkillBarBinding skillBarBinding;
+    private SkillWarehouseBinding skillWarehouseBinding;
     private RectTransform warehouseContainer;
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
@@ -158,8 +158,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        skillBarBinding = 技能栏位绑定.FindBindingInActiveScene();
-        skillWarehouseBinding = 技能仓库绑定.FindBindingInActiveScene();
+        skillBarBinding = SkillBarBinding.FindBindingInActiveScene();
+        skillWarehouseBinding = SkillWarehouseBinding.FindBindingInActiveScene();
         journeySkillContainer = ResolveJourneySkillContainer();
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
@@ -1026,7 +1026,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Sprite cornerSprite = skillBarBinding != null ? skillBarBinding.装备附带技能角标 : null;
+        Sprite cornerSprite = skillBarBinding != null ? skillBarBinding.GrantedMarkerSprite : null;
         bool shouldShow = widget.isGranted && cornerSprite != null && !string.IsNullOrWhiteSpace(widget.skillId);
 
         widget.grantedCornerMarker.sprite = cornerSprite;
@@ -1040,7 +1040,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         Vector2 anchoredPosition = skillBarBinding != null
-            ? skillBarBinding.装备附带技能角标位置
+            ? skillBarBinding.GrantedMarkerPosition
             : new Vector2(-6f, -6f);
 
         markerRect.sizeDelta = cornerSprite != null ? cornerSprite.rect.size : Vector2.zero;
