@@ -8469,10 +8469,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u6570\u636E\u6765\u6E90": 0
+  "\u53F3\u952E\u62D6\u62FD\u76EE\u6807": 2
   "\u683C\u5B50\u533A\u57DF": {fileID: 1394108267}
   "\u683C\u5B50\u5BB9\u5668": {fileID: 1486290593}
   "\u683C\u5B50\u6A21\u677F": {fileID: 7459018655969567533, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
-  "\u683C\u5B50\u6570\u91CF": 42
 --- !u!224 &1428733586 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
