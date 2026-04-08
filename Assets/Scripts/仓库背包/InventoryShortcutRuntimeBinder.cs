@@ -909,7 +909,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         AddUniqueEquipmentContainer(containers, battleBindings != null ? battleBindings.equipmentContainer : null);
         AddUniqueEquipmentContainer(containers, journeyBindings != null ? journeyBindings.equipmentContainer : null);
 
-        EquipmentPanelBinding[] panelBindings = FindObjectsOfType<EquipmentPanelBinding>(true);
+        装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
         for (int i = 0; i < panelBindings.Length; i++)
         {
             AddUniqueEquipmentContainer(containers, panelBindings[i] != null ? panelBindings[i].EquipmentContainer : null);

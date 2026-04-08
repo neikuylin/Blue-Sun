@@ -11,7 +11,6 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
         public string characterId;
         public GameObject root;
         public Toggle toggle;
-        public Button button;
     }
 
     private readonly List<Entry> entries = new List<Entry>();
@@ -58,8 +57,7 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
             {
                 characterId = child.name,
                 root = child.gameObject,
-                toggle = child.GetComponent<Toggle>() ?? child.GetComponentInChildren<Toggle>(true),
-                button = child.GetComponent<Button>() ?? child.GetComponentInChildren<Button>(true)
+                toggle = child.GetComponent<Toggle>() ?? child.GetComponentInChildren<Toggle>(true)
             };
 
             if (entry.toggle != null)

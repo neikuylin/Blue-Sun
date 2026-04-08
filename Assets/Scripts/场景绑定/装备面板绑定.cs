@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class EquipmentPanelBinding : MonoBehaviour
+public sealed class 装备面板绑定 : MonoBehaviour
 {
     [SerializeField] private RectTransform equipmentContainer;
 
