@@ -72,6 +72,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         instance.SetEquipmentPanelVisible(false);
         InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        界面ID列表.清空当前ID();
     }
 
     public static string GetDisplayedCharacterIdAtSlot(int slotIndex)
@@ -95,6 +96,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             equipmentPanelVisible = false;
             InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
         }
 
         RefreshPortraits(force: false);
@@ -587,6 +589,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             SetEquipmentPanelVisible(false);
             InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
             return;
         }
         bool isSameCharacter = string.Equals(
@@ -598,6 +601,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             SetEquipmentPanelVisible(false);
             InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
             return;
         }
 
