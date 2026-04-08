@@ -189,8 +189,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TextAnchor cachedBackpackChildAlignment;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
-    private string currentEquipmentCharacterId = string.Empty;
-    private string manualEquipmentCharacterId = string.Empty;
+    private string lastEquipmentRefreshCharacterId = string.Empty;
     private int warehouseUsableSlotCount = -1;
     private int backpackUsableSlotCount = -1;
     private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -232,8 +231,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
     public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
 
-    public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
-
     public static int GetWarehouseUsableSlotCount()
     {
         return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Warehouse, null) : 0;
@@ -262,39 +259,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static void SetEquipmentUsableSlotCount(string characterId, int count)
     {
         instance?.SetUsableSlotCount(SlotKind.Equipment, characterId, count);
-    }
-
-    public static void SetDisplayedEquipmentCharacter(string characterId)
-    {
-        if (instance == null)
-        {
-            return;
-        }
-
-        instance.manualEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
-    }
-
-    public static void ClearDisplayedEquipmentCharacter()
-    {
-        if (instance == null)
-        {
-            return;
-        }
-
-        instance.manualEquipmentCharacterId = string.Empty;
-        instance.SetCurrentEquipmentCharacter(string.Empty);
-    }
-
-    public static void ClearDisplayedEquipmentCharacterForBattle()
-    {
-        if (instance == null)
-        {
-            return;
-        }
-
-        instance.manualEquipmentCharacterId = string.Empty;
-        instance.SetCurrentEquipmentCharacter(string.Empty);
     }
 
     public static void RefreshRuntimeWeaponModels()
@@ -443,7 +407,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         equipment[index] = NormalizeItemSlotData(data);
         instance.RebuildEquipmentFootprintOccupancy(equipment);
         instance.MarkEquipmentSkillsDirty();
-        if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
+        if (string.Equals(instance.ResolveEquipmentCharacterId(), characterId, StringComparison.Ordinal))
         {
             instance.RefreshEquipmentSlots();
         }
@@ -693,17 +657,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         // Cross-scene manual selections from camp/battle should not override
         // the next scene's own current-character logic.
-        manualEquipmentCharacterId = string.Empty;
-        currentEquipmentCharacterId = string.Empty;
+        lastEquipmentRefreshCharacterId = string.Empty;
         BindScene();
     }
 
     private void Update()
     {
         string targetCharacterId = ResolveEquipmentCharacterId();
-        if (!string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        if (!string.Equals(lastEquipmentRefreshCharacterId, targetCharacterId, StringComparison.Ordinal))
         {
-            SetCurrentEquipmentCharacter(targetCharacterId);
+            RefreshEquipmentSlots();
         }
 
         HandleHoveredItemRotation();
@@ -734,8 +697,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         CollectEquipmentSlots();
 
         EnsureWarehouseDataSize();
-        SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
-
         int backpackWidgetCount = backpackSlots.Count;
         for (int i = 0; i < extraBackpackSlots.Count; i++)
         {
@@ -1456,21 +1417,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string ResolveEquipmentCharacterId()
     {
-        if (!string.IsNullOrWhiteSpace(manualEquipmentCharacterId))
-        {
-            return manualEquipmentCharacterId;
-        }
-
         string currentId = 界面ID列表.当前ID;
         if (!string.IsNullOrWhiteSpace(currentId))
         {
             return currentId;
-        }
-
-        if (FindObjectOfType<BattleTurnSystem>(true) != null &&
-            !string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
-        {
-            return currentEquipmentCharacterId;
         }
 
         return string.Empty;
@@ -1586,25 +1536,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
     {
-        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        string equipmentCharacterId = ResolveEquipmentCharacterId();
+        if (string.IsNullOrWhiteSpace(equipmentCharacterId))
         {
             return null;
         }
 
-        return GetEquipmentDataForCharacter(currentEquipmentCharacterId, createIfMissing);
-    }
-
-    private void SetCurrentEquipmentCharacter(string characterId)
-    {
-        currentEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        List<ItemSlotData> currentData = GetCurrentEquipmentData(true);
-        if (currentData != null)
-        {
-            EnsureDataSize(currentData, GetExpectedEquipmentSlotCount());
-        }
-
-        RefreshEquipmentSlots();
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        return GetEquipmentDataForCharacter(equipmentCharacterId, createIfMissing);
     }
 
     private void EnsureBackpackDataSize(int size)
@@ -1892,11 +1830,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (string.IsNullOrWhiteSpace(targetCharacterId))
         {
             return false;
-        }
-
-        if (!string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
-        {
-            SetCurrentEquipmentCharacter(targetCharacterId);
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
@@ -3825,7 +3758,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        int usableCount = GetResolvedUsableSlotCount(kind, kind == SlotKind.Equipment ? currentEquipmentCharacterId : null);
+        int usableCount = GetResolvedUsableSlotCount(kind, kind == SlotKind.Equipment ? ResolveEquipmentCharacterId() : null);
         if (usableCount <= 0)
         {
             return false;
@@ -3881,11 +3814,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         bool isUsable = IsSlotUsable(SlotKind.Equipment, index);
         ItemSlotData data = equipmentData != null && index < equipmentData.Count ? equipmentData[index] : default;
         ApplyEquipmentSlotData(index, data, isUsable);
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        RefreshRuntimeWeaponModelForCharacter(ResolveEquipmentCharacterId());
     }
 
     private void RefreshEquipmentSlots()
     {
+        string equipmentCharacterId = ResolveEquipmentCharacterId();
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
         int slotCount = GetExpectedEquipmentSlotCount();
         for (int i = 0; i < slotCount; i++)
@@ -3894,7 +3828,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ApplyEquipmentSlotData(i, data, IsSlotUsable(SlotKind.Equipment, i));
         }
 
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        lastEquipmentRefreshCharacterId = equipmentCharacterId;
+        RefreshRuntimeWeaponModelForCharacter(equipmentCharacterId);
         SkillLoadoutRuntimeBinder.ForceRefresh();
     }
 
@@ -4767,12 +4702,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string ResolveTooltipEquipmentOwnerCharacterId()
     {
-        if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
-        {
-            return currentEquipmentCharacterId;
-        }
-
-        string activeCharacterId = 界面ID列表.当前ID;
+        string activeCharacterId = ResolveEquipmentCharacterId();
         return string.IsNullOrWhiteSpace(activeCharacterId) ? string.Empty : activeCharacterId;
     }
 

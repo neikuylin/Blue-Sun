@@ -59,7 +59,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         CachePortraitButtons();
         RefreshPortraits(force: true);
         HookPortraitButtons();
-        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        界面ID列表.清空当前ID();
         SetEquipmentPanelVisible(false);
     }
 
@@ -71,7 +71,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         instance.SetEquipmentPanelVisible(false);
-        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
         界面ID列表.清空当前ID();
     }
 
@@ -95,7 +94,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (equipmentPanelVisible && equipmentPanel != null && !equipmentPanel.gameObject.activeInHierarchy)
         {
             equipmentPanelVisible = false;
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
             界面ID列表.清空当前ID();
         }
 
@@ -588,7 +586,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (string.IsNullOrWhiteSpace(characterId))
         {
             SetEquipmentPanelVisible(false);
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
             界面ID列表.清空当前ID();
             return;
         }
@@ -600,7 +597,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (equipmentPanelVisible && isSameCharacter)
         {
             SetEquipmentPanelVisible(false);
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
             界面ID列表.清空当前ID();
             return;
         }
@@ -612,11 +608,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
     private void SetEquipmentPanelVisible(bool visible)
     {
         equipmentPanelVisible = visible;
-        if (!visible)
-        {
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
-        }
-
         SyncEquipmentPanelVisibility();
     }
 
