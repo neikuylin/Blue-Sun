@@ -82,6 +82,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public StorageRightClickTarget rightClickTarget;
     }
 
+    private sealed class EquipmentPanelBindingInfo
+    {
+        public Transform container;
+        public StorageRightClickTarget rightClickTarget;
+    }
+
     private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         private InventoryShortcutRuntimeBinder owner;
@@ -912,33 +918,39 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         equipmentSlots.Clear();
         extraEquipmentSlots.Clear();
 
-        List<Transform> containers = new List<Transform>();
-        AddUniqueEquipmentContainer(containers, battleBindings != null ? battleBindings.equipmentContainer : null);
-        AddUniqueEquipmentContainer(containers, journeyBindings != null ? journeyBindings.equipmentContainer : null);
+        List<EquipmentPanelBindingInfo> containers = new List<EquipmentPanelBindingInfo>();
+        AddUniqueEquipmentContainer(containers, battleBindings != null ? battleBindings.equipmentContainer : null, StorageRightClickTarget.Backpack);
+        AddUniqueEquipmentContainer(containers, journeyBindings != null ? journeyBindings.equipmentContainer : null, StorageRightClickTarget.Backpack);
 
         装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
         for (int i = 0; i < panelBindings.Length; i++)
         {
-            AddUniqueEquipmentContainer(containers, panelBindings[i] != null ? panelBindings[i].EquipmentContainer : null);
+            装备面板绑定 binding = panelBindings[i];
+            AddUniqueEquipmentContainer(
+                containers,
+                binding != null ? binding.EquipmentContainer : null,
+                MapEquipmentReturnTarget(binding != null ? binding.ReturnTarget : 装备面板绑定.回流目标类型.背包));
         }
 
-        AddUniqueEquipmentContainer(containers, FindTransformByPath(BattleEquipmentContainerPath));
-        AddUniqueEquipmentContainer(containers, FindTransformByPath(EquipmentContainerPath));
+        AddUniqueEquipmentContainer(containers, FindTransformByPath(BattleEquipmentContainerPath), StorageRightClickTarget.Backpack);
+        AddUniqueEquipmentContainer(containers, FindTransformByPath(EquipmentContainerPath), StorageRightClickTarget.Backpack);
 
         for (int i = 0; i < containers.Count; i++)
         {
-            Transform container = containers[i];
-            if (container == null)
+            EquipmentPanelBindingInfo info = containers[i];
+            if (info == null || info.container == null)
             {
                 continue;
             }
 
             List<SlotWidget> collected = new List<SlotWidget>();
-            CollectEquipmentSlotsFromNamedChildren(container, collected);
+            CollectEquipmentSlotsFromNamedChildren(info.container, collected);
             if (collected.Count == 0)
             {
                 continue;
             }
+
+            ApplyStorageRightClickTarget(collected, info.rightClickTarget);
 
             if (equipmentSlots.Count == 0)
             {
@@ -950,7 +962,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private static void AddUniqueEquipmentContainer(List<Transform> containers, Transform container)
+    private static StorageRightClickTarget MapEquipmentReturnTarget(装备面板绑定.回流目标类型 target)
+    {
+        return target == 装备面板绑定.回流目标类型.仓库
+            ? StorageRightClickTarget.Warehouse
+            : StorageRightClickTarget.Backpack;
+    }
+
+    private static void AddUniqueEquipmentContainer(List<EquipmentPanelBindingInfo> containers, Transform container, StorageRightClickTarget target)
     {
         if (containers == null || container == null)
         {
@@ -959,13 +978,18 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         for (int i = 0; i < containers.Count; i++)
         {
-            if (containers[i] == container)
+            if (containers[i] != null && containers[i].container == container)
             {
+                containers[i].rightClickTarget = target;
                 return;
             }
         }
 
-        containers.Add(container);
+        containers.Add(new EquipmentPanelBindingInfo
+        {
+            container = container,
+            rightClickTarget = target
+        });
     }
 
     private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
@@ -1940,7 +1964,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                         return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
                 }
             case SlotSurface.Equipment:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+                return target == StorageRightClickTarget.Warehouse
+                    ? TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData)
+                    : TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
             default:
                 return false;
         }
