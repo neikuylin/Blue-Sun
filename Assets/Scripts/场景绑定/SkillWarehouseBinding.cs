@@ -1,28 +1,25 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class SkillWarehouseBinding : MonoBehaviour
 {
-    [FormerlySerializedAs("warehouseContainer")]
     [SerializeField]
     private RectTransform warehousePanel;
 
     [SerializeField]
     private RectTransform warehouseSlotArea;
 
-    [FormerlySerializedAs("warehouseSlotTemplate")]
     [SerializeField]
     private RectTransform slotTemplate;
 
     public RectTransform ResolveWarehousePanel()
     {
-        return warehousePanel != null ? warehousePanel : transform as RectTransform;
+        return warehousePanel;
     }
 
     public RectTransform ResolveWarehouseContainer()
     {
-        return warehouseSlotArea != null ? warehouseSlotArea : ResolveWarehousePanel();
+        return warehouseSlotArea;
     }
 
     public RectTransform ResolveWarehouseSlotTemplate()

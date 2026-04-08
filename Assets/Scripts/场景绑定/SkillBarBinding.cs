@@ -1,10 +1,8 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class SkillBarBinding : MonoBehaviour
 {
-    [FormerlySerializedAs("skillSlotContainer")]
     [SerializeField]
     private RectTransform skillSlotArea;
 
@@ -22,12 +20,12 @@ public class SkillBarBinding : MonoBehaviour
 
     public RectTransform ResolveSkillPanel()
     {
-        return skillPanel != null ? skillPanel : transform as RectTransform;
+        return skillPanel;
     }
 
     public RectTransform ResolveSkillSlotContainer()
     {
-        return skillSlotArea != null ? skillSlotArea : ResolveSkillPanel();
+        return skillSlotArea;
     }
 
     public RectTransform ResolveSkillSlotTemplate()

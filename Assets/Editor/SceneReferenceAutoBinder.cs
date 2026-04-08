@@ -122,7 +122,7 @@ public static class SceneReferenceAutoBinder
 
         if (skill != null)
         {
-            JourneySkillGridBinding skillBinding = GetOrCreateRootComponent<JourneySkillGridBinding>(scene, nameof(JourneySkillGridBinding));
+            技能栏位绑定 skillBinding = GetOrCreateRootComponent<技能栏位绑定>(scene, nameof(技能栏位绑定));
             Undo.RecordObject(skillBinding, "Auto Bind Journey Skill Grid");
             skillBinding.SetAutoBindReferences(skill.parent as RectTransform, skill);
             EditorUtility.SetDirty(skillBinding);

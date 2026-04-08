@@ -190,13 +190,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void CollectJourneySkillSlots()
     {
         journeySkillSlots.Clear();
-        RectTransform container = journeySkillContainer != null ? journeySkillContainer : ResolveJourneySkillContainer();
+        RectTransform container = journeySkillContainer;
         if (container == null)
         {
             return;
         }
-
-        EnsureGridLayout(container);
         for (int i = 0; i < container.childCount; i++)
         {
             RectTransform child = container.GetChild(i) as RectTransform;
@@ -224,13 +222,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void CollectWarehouseSkillSlots()
     {
         warehouseSkillSlots.Clear();
-        warehouseContainer = warehouseContainer != null ? warehouseContainer : ResolveWarehouseContainer();
+        warehouseContainer = ResolveWarehouseContainer();
         if (warehouseContainer == null)
         {
             return;
         }
-
-        EnsureGridLayout(warehouseContainer);
         for (int i = 0; i < warehouseContainer.childCount; i++)
         {
             RectTransform child = warehouseContainer.GetChild(i) as RectTransform;
@@ -795,26 +791,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private RectTransform ResolveWarehouseContainer()
     {
         return skillWarehouseBinding != null ? skillWarehouseBinding.ResolveWarehouseContainer() : null;
-    }
-
-    private static void EnsureGridLayout(RectTransform container)
-    {
-        if (container == null)
-        {
-            return;
-        }
-
-        GridLayoutGroup grid = container.GetComponent<GridLayoutGroup>();
-        if (grid == null)
-        {
-            grid = container.gameObject.AddComponent<GridLayoutGroup>();
-            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
-            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-            grid.childAlignment = TextAnchor.UpperLeft;
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            int childCount = Mathf.Max(1, container.childCount);
-            grid.constraintCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
-        }
     }
 
     private void EnsureDragVisual(RectTransform fromRoot)
