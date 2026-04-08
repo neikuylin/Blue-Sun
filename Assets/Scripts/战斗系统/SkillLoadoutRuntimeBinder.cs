@@ -541,10 +541,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         if (sourceWidget.surface == SlotSurface.Warehouse)
         {
-            return TrySwapBetweenWarehouseAndMemorized(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
+            return TryMoveWarehouseIntoMemorizedSlot(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
         }
 
-        return TrySwapBetweenWarehouseAndMemorized(entry, targetWidget.slotIndex, sourceWidget.slotIndex);
+        return TryMoveMemorizedIntoWarehouseSlot(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
     }
 
     private static int FindFirstEmptyMemorizedSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
@@ -706,7 +706,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return true;
     }
 
-    private static bool TrySwapBetweenWarehouseAndMemorized(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int warehouseIndex, int memorizedIndex)
+    private static bool TryMoveWarehouseIntoMemorizedSlot(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int warehouseIndex, int memorizedIndex)
     {
         if (entry == null || warehouseIndex < 0 || memorizedIndex < 0)
         {
@@ -724,12 +724,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         string warehouseSkillId = entry.warehouseSkillIds[warehouseIndex];
-        string memorizedSkillId = entry.memorizedSkillIds[memorizedIndex];
-        int warehouseWeight = CharacterSkillLoadoutDatabase.GetWarehouseSkillWeightAt(entry, warehouseIndex);
-        int memorizedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
+        if (string.IsNullOrWhiteSpace(warehouseSkillId) ||
+            !string.IsNullOrWhiteSpace(entry.memorizedSkillIds[memorizedIndex]))
+        {
+            return false;
+        }
 
+        int warehouseWeight = CharacterSkillLoadoutDatabase.GetWarehouseSkillWeightAt(entry, warehouseIndex);
         entry.memorizedSkillIds[memorizedIndex] = warehouseSkillId;
-        entry.warehouseSkillIds[warehouseIndex] = memorizedSkillId;
+        entry.warehouseSkillIds[warehouseIndex] = string.Empty;
         if (entry.memorizedSkillWeights != null && memorizedIndex < entry.memorizedSkillWeights.Count)
         {
             entry.memorizedSkillWeights[memorizedIndex] = warehouseWeight;
@@ -737,10 +740,50 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
         {
-            entry.warehouseSkillWeights[warehouseIndex] = memorizedWeight;
+            entry.warehouseSkillWeights[warehouseIndex] = 0;
         }
 
         CharacterSkillLoadoutDatabase.TrimTrailingWarehouseEmptySlots(entry);
+        return true;
+    }
+
+    private static bool TryMoveMemorizedIntoWarehouseSlot(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorizedIndex, int warehouseIndex)
+    {
+        if (entry == null || warehouseIndex < 0 || memorizedIndex < 0)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
+        if (entry.warehouseSkillIds == null ||
+            entry.memorizedSkillIds == null ||
+            warehouseIndex >= entry.warehouseSkillIds.Count ||
+            memorizedIndex >= entry.memorizedSkillIds.Count)
+        {
+            return false;
+        }
+
+        string memorizedSkillId = entry.memorizedSkillIds[memorizedIndex];
+        if (string.IsNullOrWhiteSpace(memorizedSkillId) ||
+            !string.IsNullOrWhiteSpace(entry.warehouseSkillIds[warehouseIndex]))
+        {
+            return false;
+        }
+
+        int memorizedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
+        entry.warehouseSkillIds[warehouseIndex] = memorizedSkillId;
+        entry.memorizedSkillIds[memorizedIndex] = string.Empty;
+        if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
+        {
+            entry.warehouseSkillWeights[warehouseIndex] = memorizedWeight;
+        }
+
+        if (entry.memorizedSkillWeights != null && memorizedIndex < entry.memorizedSkillWeights.Count)
+        {
+            entry.memorizedSkillWeights[memorizedIndex] = 0;
+        }
+
         return true;
     }
 
