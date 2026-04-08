@@ -589,6 +589,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
         string movedSkillId = entry.warehouseSkillIds[warehouseIndex];
         if (string.IsNullOrWhiteSpace(movedSkillId))
         {
@@ -622,6 +623,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         int warehouseIndex = FindFirstEmptyWarehouseSlotIndex(entry);
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
         int movedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
         entry.warehouseSkillIds[warehouseIndex] = movedSkillId;
         entry.warehouseSkillWeights[warehouseIndex] = movedWeight;
