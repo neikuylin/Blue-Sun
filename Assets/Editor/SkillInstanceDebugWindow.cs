@@ -5,6 +5,8 @@ using UnityEngine;
 
 public sealed class SkillInstanceDebugWindow : EditorWindow
 {
+    private const string DefaultCharacterId = "玩家";
+
     private Vector2 scroll;
     private int selectedCharacterIndex;
     private string manualCharacterId = string.Empty;
@@ -15,7 +17,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
     {
         SkillInstanceDebugWindow window = GetWindow<SkillInstanceDebugWindow>();
         window.titleContent = new GUIContent("现有技能实例");
-        window.minSize = new Vector2(520f, 420f);
+        window.minSize = new Vector2(640f, 480f);
         window.Show();
     }
 
@@ -33,14 +35,8 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
     {
         EditorGUILayout.LabelField("现有技能实例", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "这里读取的是运行时当前角色技能栏的技能快照，不是 BattleSkillDatabase 里的定义本体。",
+            "这里直接读取 CharacterSkillLoadoutDatabase 里的真实数据，不再依赖战斗运行时快照。",
             MessageType.Info);
-
-        if (!Application.isPlaying)
-        {
-            EditorGUILayout.HelpBox("请先进入 Play 模式后再查看当前技能实例。", MessageType.Info);
-            return;
-        }
 
         DrawCharacterSelector();
 
@@ -54,42 +50,58 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
             }
         }
 
-        List<BattleSkillPaginationBinder.SkillInstanceSnapshot> snapshots =
-            BattleSkillPaginationBinder.GetSkillSnapshotsForCharacter(GetSelectedCharacterId());
+        string characterId = GetSelectedCharacterId();
+        CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
+            database != null ? database.FindEntry(characterId) : null;
 
         EditorGUILayout.Space(8f);
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
-        if (snapshots == null || snapshots.Count == 0)
+        if (database == null)
         {
-            EditorGUILayout.HelpBox("当前没有可读取的技能实例。", MessageType.Info);
+            EditorGUILayout.HelpBox("没有读取到 CharacterSkillLoadoutDatabase。", MessageType.Warning);
+            EditorGUILayout.EndScrollView();
+            return;
         }
-        else
-        {
-            for (int i = 0; i < snapshots.Count; i++)
-            {
-                BattleSkillPaginationBinder.SkillInstanceSnapshot snapshot = snapshots[i];
-                using (new EditorGUILayout.VerticalScope("box"))
-                {
-                    EditorGUILayout.LabelField($"槽位 {snapshot.index}");
-                    if (snapshot.isEmpty)
-                    {
-                        EditorGUILayout.LabelField("状态", "空");
-                        continue;
-                    }
 
-                    EditorGUILayout.LabelField("技能ID", snapshot.skillId);
-                    EditorGUILayout.LabelField("技能名字", snapshot.displayName);
-                    EditorGUILayout.LabelField("技能描述", snapshot.description);
-                    EditorGUILayout.LabelField("使用者", snapshot.ownerCharacterId);
-                    EditorGUILayout.LabelField("来源", snapshot.source);
-                    EditorGUILayout.LabelField("技能倍率", snapshot.damageMultiplier.ToString("0.##"));
-                    EditorGUILayout.LabelField("技能伤害", snapshot.damage.ToString());
-                }
-            }
+        if (entry == null)
+        {
+            EditorGUILayout.HelpBox("这个角色当前没有技能实例数据。", MessageType.Info);
+            EditorGUILayout.EndScrollView();
+            return;
         }
+
+        DrawSection("技能栏位", entry.memorizedSkillIds, entry.memorizedSkillWeights);
+        EditorGUILayout.Space(10f);
+        DrawSection("技能仓库", entry.warehouseSkillIds, entry.warehouseSkillWeights);
 
         EditorGUILayout.EndScrollView();
+    }
+
+    private static void DrawSection(string title, List<string> skillIds, List<int> skillWeights)
+    {
+        EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+
+        int count = skillIds != null ? skillIds.Count : 0;
+        if (count == 0)
+        {
+            EditorGUILayout.HelpBox($"{title} 当前没有任何格子数据。", MessageType.Info);
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            string skillId = skillIds[i];
+            int weight = skillWeights != null && i < skillWeights.Count ? skillWeights[i] : 0;
+
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                EditorGUILayout.LabelField($"索引 {i}");
+                EditorGUILayout.LabelField("技能ID", string.IsNullOrWhiteSpace(skillId) ? "（空）" : skillId);
+                EditorGUILayout.LabelField("权重", weight.ToString());
+            }
+        }
     }
 
     private void DrawCharacterSelector()
@@ -114,9 +126,10 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
             manualCharacterId = characterIds[selectedCharacterIndex];
         }
 
-        string nextManualId = EditorGUILayout.TextField("手动输入", string.IsNullOrWhiteSpace(manualCharacterId)
-            ? characterIds[selectedCharacterIndex]
-            : manualCharacterId);
+        string nextManualId = EditorGUILayout.TextField(
+            "手动输入",
+            string.IsNullOrWhiteSpace(manualCharacterId) ? characterIds[selectedCharacterIndex] : manualCharacterId);
+
         if (!string.Equals(nextManualId, manualCharacterId, StringComparison.Ordinal))
         {
             manualCharacterId = nextManualId;
@@ -137,7 +150,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         if (characterIds.Count == 0)
         {
-            return string.Empty;
+            return DefaultCharacterId;
         }
 
         selectedCharacterIndex = Mathf.Clamp(selectedCharacterIndex, 0, characterIds.Count - 1);
@@ -163,16 +176,32 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
             }
         }
 
+        CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
+        if (database != null && database.Entries != null)
+        {
+            for (int i = 0; i < database.Entries.Count; i++)
+            {
+                CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.Entries[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.characterId) || characterIds.Contains(entry.characterId))
+                {
+                    continue;
+                }
+
+                characterIds.Add(entry.characterId);
+            }
+        }
+
         if (characterIds.Count == 0)
         {
-            manualCharacterId = string.Empty;
-            selectedCharacterIndex = 0;
-            return;
+            characterIds.Add(DefaultCharacterId);
         }
+
+        characterIds.Sort(StringComparer.Ordinal);
 
         int manualIndex = !string.IsNullOrWhiteSpace(manualCharacterId)
             ? characterIds.FindIndex(id => string.Equals(id, manualCharacterId, StringComparison.Ordinal))
             : -1;
+
         if (manualIndex >= 0)
         {
             selectedCharacterIndex = manualIndex;
