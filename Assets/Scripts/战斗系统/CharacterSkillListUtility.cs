@@ -34,20 +34,31 @@ public static class CharacterSkillListUtility
         string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
         List<string> result = new List<string>();
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry =
-            statDatabase != null ? statDatabase.FindEntry(resolvedCharacterId) : null;
-        int memorySlotCount = statEntry != null
-            ? statEntry.ResolveSkillMemorySlots()
-            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
-        if (entry != null && entry.skillIds != null)
+        if (entry != null && entry.memorizedSkillIds != null)
         {
-            int slotCount = System.Math.Min(memorySlotCount, entry.skillIds.Count);
-            for (int i = 0; i < slotCount; i++)
+            for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
             {
-                TryAddSkill(result, null, entry.skillIds[i]);
+                TryAddSkill(result, null, entry.memorizedSkillIds[i]);
+            }
+        }
+
+        return result;
+    }
+
+    public static List<string> BuildWarehouseSkillIds(string characterId)
+    {
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        List<string> result = new List<string>();
+        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
+        if (entry != null && entry.warehouseSkillIds != null)
+        {
+            for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+            {
+                TryAddSkill(result, null, entry.warehouseSkillIds[i]);
             }
         }
 

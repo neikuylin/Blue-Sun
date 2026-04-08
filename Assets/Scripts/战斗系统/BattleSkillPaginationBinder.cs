@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -612,13 +612,13 @@ public sealed class BattleSkillPaginationBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(ownerCharacterId) : null;
-        if (entry != null && entry.skillIds != null)
+        if (entry != null && entry.memorizedSkillIds != null)
         {
-            for (int i = 0; i < entry.skillIds.Count; i++)
+            for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
             {
-                if (string.Equals(entry.skillIds[i], skillId, StringComparison.Ordinal))
+                if (string.Equals(entry.memorizedSkillIds[i], skillId, StringComparison.Ordinal))
                 {
-                    return "角色技能栏";
+                    return "瑙掕壊鎶€鑳芥爮";
                 }
             }
         }

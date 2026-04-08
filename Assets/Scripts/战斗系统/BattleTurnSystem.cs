@@ -5292,16 +5292,16 @@ public class BattleTurnSystem : MonoBehaviour
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(caster.characterId) : null;
 
-        if (skillEntry != null && skillEntry.skillIds != null)
+        if (skillEntry != null && skillEntry.memorizedSkillIds != null)
         {
-            CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, skillEntry.skillIds.Count);
-            for (int i = 0; i < skillEntry.skillIds.Count; i++)
+            CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(skillEntry, skillEntry.memorizedSkillIds.Count);
+            for (int i = 0; i < skillEntry.memorizedSkillIds.Count; i++)
             {
                 TryAddEnemySkillChoice(
                     result,
                     seenSkillIds,
-                    skillEntry.skillIds[i],
-                    CharacterSkillLoadoutDatabase.GetSkillWeightAt(skillEntry, i),
+                    skillEntry.memorizedSkillIds[i],
+                    CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(skillEntry, i),
                     i);
             }
         }

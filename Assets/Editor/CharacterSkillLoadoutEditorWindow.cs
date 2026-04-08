@@ -46,7 +46,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
         EditorGUILayout.HelpBox(
             string.Format(
-                "\u8FD9\u4E2A\u7A97\u53E3\u73B0\u5728\u7F16\u8F91\u7684\u662F\u6280\u80FD\u4ED3\u5E93\u3002\u524D {0} \u4E2A `skillIds` \u4FDD\u7559\u7ED9\u8BB0\u5FC6\u683C\uFF0C\u540E\u9762\u624D\u662F\u4ED3\u5E93\u6280\u80FD\u3002",
+                "\u8FD9\u4E2A\u7A97\u53E3\u73B0\u5728\u7F16\u8F91\u7684\u662F\u72EC\u7ACB\u7684\u6280\u80FD\u4ED3\u5E93\u5217\u8868\u3002\u8BB0\u5FC6\u683C\u6570\u4E3A {0}\u3002",
                 memorySlotCount),
             MessageType.Info);
 
@@ -69,11 +69,10 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
             skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
         string[] options = BuildSkillOptions(skills);
 
-        int warehouseCount = Mathf.Max(0, entry.skillIds.Count - memorySlotCount);
+        int warehouseCount = entry.warehouseSkillIds != null ? entry.warehouseSkillIds.Count : 0;
         for (int i = 0; i < warehouseCount; i++)
         {
-            int skillIndex = memorySlotCount + i;
-            int selectedIndex = FindSkillOptionIndex(entry.skillIds[skillIndex], skills);
+            int selectedIndex = FindSkillOptionIndex(entry.warehouseSkillIds[i], skills);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -81,14 +80,14 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     string.Format("\u4ED3\u5E93\u683C {0}", i + 1),
                     selectedIndex,
                     options);
-                entry.skillIds[skillIndex] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
+                entry.warehouseSkillIds[i] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
 
                 if (GUILayout.Button("\u5220\u9664", GUILayout.Width(60f)))
                 {
-                    entry.skillIds.RemoveAt(skillIndex);
-                    if (skillIndex < entry.skillWeights.Count)
+                    entry.warehouseSkillIds.RemoveAt(i);
+                    if (entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count)
                     {
-                        entry.skillWeights.RemoveAt(skillIndex);
+                        entry.warehouseSkillWeights.RemoveAt(i);
                     }
                     GUI.enabled = true;
                     GUIUtility.ExitGUI();
@@ -101,10 +100,20 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         EditorGUILayout.Space(8f);
         if (GUILayout.Button("\u6DFB\u52A0\u4ED3\u5E93\u6280\u80FD", GUILayout.Height(28f)))
         {
-            entry.skillIds.Add(string.Empty);
-            if (entry.skillWeights != null)
+            if (entry.warehouseSkillIds == null)
             {
-                entry.skillWeights.Add(0);
+                entry.warehouseSkillIds = new List<string>();
+            }
+
+            if (entry.warehouseSkillWeights == null)
+            {
+                entry.warehouseSkillWeights = new List<int>();
+            }
+
+            entry.warehouseSkillIds.Add(string.Empty);
+            if (entry.warehouseSkillWeights != null)
+            {
+                entry.warehouseSkillWeights.Add(0);
             }
         }
     }
@@ -116,25 +125,8 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
             return;
         }
 
-        if (entry.skillIds == null)
-        {
-            entry.skillIds = new List<string>();
-        }
-
-        if (entry.skillWeights == null)
-        {
-            entry.skillWeights = new List<int>();
-        }
-
-        while (entry.skillIds.Count < memorySlotCount)
-        {
-            entry.skillIds.Add(string.Empty);
-        }
-
-        while (entry.skillWeights.Count < entry.skillIds.Count)
-        {
-            entry.skillWeights.Add(0);
-        }
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorySlotCount);
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, entry.warehouseSkillIds != null ? entry.warehouseSkillIds.Count : 0);
     }
 
     private static string[] BuildSkillOptions(List<BattleSkillDatabase.SkillEntry> skills)
