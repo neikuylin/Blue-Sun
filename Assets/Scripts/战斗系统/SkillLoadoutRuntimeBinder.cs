@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -105,6 +105,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private RectTransform dragIconRoot;
     private Image dragIconImage;
     private bool isDragging;
+    private int pendingDeferredRefreshFrames;
     private DragRef dragSource;
     private SkillSlotWidget dragSourceWidget;
 
@@ -134,10 +135,17 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         journeySkillSlots.Clear();
         warehouseSkillSlots.Clear();
     }
-
     private void Update()
     {
         string targetCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        if (pendingDeferredRefreshFrames > 0)
+        {
+            pendingDeferredRefreshFrames--;
+            currentCharacterId = targetCharacterId;
+            lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+            RefreshAll();
+        }
+
         int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
             lastEquipmentSkillRevision == equipmentSkillRevision)
@@ -167,6 +175,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         RefreshAll();
+        pendingDeferredRefreshFrames = 2;
     }
 
     public static void ForceRefresh()
@@ -685,7 +694,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private static bool CanReorderWidget(SkillSlotWidget widget)
     {
-        // 技能能不能在战斗中使用，和能不能在启程界面里整理位置是两回事。
+        // 鎶€鑳借兘涓嶈兘鍦ㄦ垬鏂椾腑浣跨敤锛屽拰鑳戒笉鑳藉湪鍚▼鐣岄潰閲屾暣鐞嗕綅缃槸涓ゅ洖浜嬨€?
         return widget != null &&
                !string.IsNullOrWhiteSpace(widget.skillId) &&
                !widget.isGranted &&
