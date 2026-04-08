@@ -133,6 +133,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string RightWeaponMountPointName = "武器挂载点（右）";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
     private const float DefaultOutlineWidth = 0.025f;
+    private const int FixedStorageSlotCount = 42;
     private const string SlotNameKeyword = "格子";
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
@@ -783,7 +784,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            int targetCount = Mathf.Max(binding.格子数量, binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库 ? warehouseData.Count : backpackData.Count);
+            int targetCount = Mathf.Max(FixedStorageSlotCount, binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库 ? warehouseData.Count : backpackData.Count);
             EnsureBoundSlots(binding, container, targetCount);
 
             if (binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库)

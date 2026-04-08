@@ -18,7 +18,6 @@ public sealed class 物品格子区域绑定 : MonoBehaviour
 
     [Header("生成")]
     public GameObject 格子模板;
-    public int 格子数量 = 1;
 
     public RectTransform 区域根 => 格子区域 != null ? 格子区域 : transform as RectTransform;
 
