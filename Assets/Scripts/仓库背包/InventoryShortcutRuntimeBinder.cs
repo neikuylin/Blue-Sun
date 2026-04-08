@@ -919,36 +919,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         containers.Add(container);
     }
 
-    private static RectTransform EnsureSlotContainer(RectTransform anchor)
-    {
-        if (anchor == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(anchor.name, SlotContainerName, StringComparison.Ordinal))
-        {
-            return anchor;
-        }
-
-        Transform existing = FindChildByName(anchor, SlotContainerName);
-        if (existing is RectTransform existingRect)
-        {
-            return existingRect;
-        }
-
-        GameObject go = new GameObject(SlotContainerName, typeof(RectTransform));
-        RectTransform container = go.GetComponent<RectTransform>();
-        container.SetParent(anchor, false);
-        container.anchorMin = Vector2.zero;
-        container.anchorMax = Vector2.one;
-        container.pivot = new Vector2(0.5f, 0.5f);
-        container.anchoredPosition = Vector2.zero;
-        container.sizeDelta = Vector2.zero;
-        container.localScale = Vector3.one;
-        return container;
-    }
-
     private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
     {
         if (binding == null)
@@ -956,7 +926,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        return EnsureSlotContainer(binding.已绑定格子容器);
+        return binding.已绑定格子容器;
     }
 
     private void EnsureBoundSlots(物品格子区域绑定 binding, RectTransform container, int desiredCount)

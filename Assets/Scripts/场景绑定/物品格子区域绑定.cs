@@ -22,5 +22,5 @@ public sealed class 物品格子区域绑定 : MonoBehaviour
 
     public RectTransform 区域根 => 格子区域 != null ? 格子区域 : transform as RectTransform;
 
-    public RectTransform 已绑定格子容器 => 格子容器 != null ? 格子容器 : 区域根;
+    public RectTransform 已绑定格子容器 => 格子容器;
 }
