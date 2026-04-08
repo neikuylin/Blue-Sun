@@ -7,304 +7,314 @@ using UnityEngine.UI;
 public sealed class 当前ID属性面板绑定 : MonoBehaviour
 {
     [Header("角色属性文本")]
-    [SerializeField] private Component 当前ID文本;
-    [SerializeField] private Component 角色名文本;
-    [SerializeField] private Component 生命值文本;
-    [SerializeField] private Component 魔法值文本;
-    [SerializeField] private Component 攻击力文本;
-    [SerializeField] private Component 法术伤害文本;
-    [SerializeField] private Component 力量文本;
-    [SerializeField] private Component 敏捷文本;
-    [SerializeField] private Component 智力文本;
-    [SerializeField] private Component 命中率文本;
-    [SerializeField] private Component 闪避率文本;
-    [SerializeField] private Component 物理抗性文本;
-    [SerializeField] private Component 火焰抗性文本;
-    [SerializeField] private Component 腐败抗性文本;
-    [SerializeField] private Component 寒冷抗性文本;
-    [SerializeField] private Component 物理穿透文本;
-    [SerializeField] private Component 火焰穿透文本;
-    [SerializeField] private Component 腐败穿透文本;
-    [SerializeField] private Component 寒冷穿透文本;
-    [SerializeField] private Component 暴击率文本;
-    [SerializeField] private Component 暴击伤害文本;
+    [SerializeField] private Component currentIdText;
+    [SerializeField] private Component displayNameText;
+    [SerializeField] private Component healthText;
+    [SerializeField] private Component manaText;
+    [SerializeField] private Component attackPowerText;
+    [SerializeField] private Component spellDamageText;
+    [SerializeField] private Component strengthText;
+    [SerializeField] private Component agilityText;
+    [SerializeField] private Component intelligenceText;
+    [SerializeField] private Component hitRateText;
+    [SerializeField] private Component dodgeRateText;
+    [SerializeField] private Component physicalResistanceText;
+    [SerializeField] private Component fireResistanceText;
+    [SerializeField] private Component corruptionResistanceText;
+    [SerializeField] private Component coldResistanceText;
+    [SerializeField] private Component physicalPenetrationText;
+    [SerializeField] private Component firePenetrationText;
+    [SerializeField] private Component corruptionPenetrationText;
+    [SerializeField] private Component coldPenetrationText;
+    [SerializeField] private Component criticalChanceText;
+    [SerializeField] private Component criticalDamageText;
 
-    [Header("文本格式")]
-    [SerializeField] private string 当前ID前缀 = string.Empty;
-    [SerializeField] private string 角色名前缀 = string.Empty;
-    [SerializeField] private string 生命值前缀 = "生命值:";
-    [SerializeField] private string 魔法值前缀 = "魔法值:";
-    [SerializeField] private string 攻击力前缀 = "攻击力:";
-    [SerializeField] private string 法术伤害前缀 = "法术伤害:";
-    [SerializeField] private string 力量前缀 = "力量:";
-    [SerializeField] private string 敏捷前缀 = "敏捷:";
-    [SerializeField] private string 智力前缀 = "智力:";
-    [SerializeField] private string 命中率前缀 = "命中率:";
-    [SerializeField] private string 闪避率前缀 = "闪避率:";
-    [SerializeField] private string 物理抗性前缀 = "物理抗性:";
-    [SerializeField] private string 火焰抗性前缀 = "火焰抗性:";
-    [SerializeField] private string 腐败抗性前缀 = "腐败抗性:";
-    [SerializeField] private string 寒冷抗性前缀 = "寒冷抗性:";
-    [SerializeField] private string 物理穿透前缀 = "物理穿透:";
-    [SerializeField] private string 火焰穿透前缀 = "火焰穿透:";
-    [SerializeField] private string 腐败穿透前缀 = "腐败穿透:";
-    [SerializeField] private string 寒冷穿透前缀 = "寒冷穿透:";
-    [SerializeField] private string 暴击率前缀 = "暴击率:";
-    [SerializeField] private string 暴击伤害前缀 = "暴击伤害:";
+    [Header("文本前缀")]
+    [SerializeField] private string currentIdPrefix = string.Empty;
+    [SerializeField] private string displayNamePrefix = string.Empty;
+    [SerializeField] private string healthPrefix = "生命值:";
+    [SerializeField] private string manaPrefix = "魔法值:";
+    [SerializeField] private string attackPowerPrefix = "攻击力:";
+    [SerializeField] private string spellDamagePrefix = "法术伤害:";
+    [SerializeField] private string strengthPrefix = "力量:";
+    [SerializeField] private string agilityPrefix = "敏捷:";
+    [SerializeField] private string intelligencePrefix = "智力:";
+    [SerializeField] private string hitRatePrefix = "命中率:";
+    [SerializeField] private string dodgeRatePrefix = "闪避率:";
+    [SerializeField] private string physicalResistancePrefix = "物理抗性:";
+    [SerializeField] private string fireResistancePrefix = "火焰抗性:";
+    [SerializeField] private string corruptionResistancePrefix = "腐败抗性:";
+    [SerializeField] private string coldResistancePrefix = "寒冷抗性:";
+    [SerializeField] private string physicalPenetrationPrefix = "物理穿透:";
+    [SerializeField] private string firePenetrationPrefix = "火焰穿透:";
+    [SerializeField] private string corruptionPenetrationPrefix = "腐败穿透:";
+    [SerializeField] private string coldPenetrationPrefix = "寒冷穿透:";
+    [SerializeField] private string criticalChancePrefix = "暴击率:";
+    [SerializeField] private string criticalDamagePrefix = "暴击伤害:";
 
-    [SerializeField] private CharacterStatDatabase 属性库;
-    [SerializeField] private BattleCharacterBindingDatabase 角色显示库;
+    [Header("数据源")]
+    [SerializeField] private CharacterStatDatabase statDatabase;
+    [SerializeField] private BattleCharacterBindingDatabase characterBindingDatabase;
 
-    private string 上次签名 = string.Empty;
+    private const string FireballSkillId = "火球";
+    private const float DefaultFireballAttributeMultiplier = 0.8f;
 
-    private const string 火球技能ID = "火球";
-    private const float 默认火球属性倍率 = 0.8f;
+    private string lastSignature = string.Empty;
 
     private void Awake()
     {
-        读取数据库();
+        EnsureDatabases();
     }
 
     private void OnEnable()
     {
-        读取数据库();
-        刷新(true);
+        EnsureDatabases();
+        Refresh(force: true);
     }
 
     private void LateUpdate()
     {
-        刷新(false);
+        Refresh(force: false);
     }
 
-    private void 读取数据库()
+    private void EnsureDatabases()
     {
-        if (属性库 == null)
+        if (statDatabase == null)
         {
-            属性库 = CharacterStatDatabase.LoadDefault();
+            statDatabase = CharacterStatDatabase.LoadDefault();
         }
 
-        if (角色显示库 == null)
+        if (characterBindingDatabase == null)
         {
-            角色显示库 = BattleCharacterBindingDatabase.LoadDefault();
+            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         }
     }
 
-    private void 刷新(bool 强制刷新)
+    private void Refresh(bool force)
     {
-        string 当前ID = 界面ID列表.当前ID ?? string.Empty;
-        CharacterStatDatabase.StatEntry 属性 = 属性库 != null ? 属性库.FindEntry(当前ID) : null;
-        BattleUnit 战斗单位 = 读取战斗单位(当前ID);
+        string characterId = 界面ID列表.当前ID ?? string.Empty;
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        BattleUnit unit = FindBattleUnitByCharacterId(characterId);
 
-        float 攻击力 = !string.IsNullOrWhiteSpace(当前ID)
-            ? InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(当前ID)
-            : 0f;
-        int 法术伤害 = 计算法术伤害(当前ID, 属性);
-        int 暴击率 = 属性 != null
-            ? 属性.ResolveCriticalChance() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(当前ID)
+        float attackPower = string.IsNullOrWhiteSpace(characterId)
+            ? 0f
+            : InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId);
+
+        int spellDamage = CalculateSpellDamage(characterId, unit, statEntry);
+        int criticalChance = statEntry != null
+            ? statEntry.ResolveCriticalChance() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(characterId)
             : -1;
-        int 暴击伤害 = 属性 != null
-            ? 属性.ResolveCriticalDamage() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(当前ID)
+        int criticalDamage = statEntry != null
+            ? statEntry.ResolveCriticalDamage() + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(characterId)
             : -1;
 
-        string 签名 = string.Concat(
-            当前ID, "|",
-            读取当前生命值(战斗单位, 属性), "/",
-            读取最大生命值(战斗单位, 属性), "|",
-            读取当前魔法值(战斗单位, 属性), "/",
-            读取最大魔法值(战斗单位, 属性), "|",
-            属性 != null ? 属性.strength : -1, "|",
-            属性 != null ? 属性.agility : -1, "|",
-            属性 != null ? 属性.intelligence : -1, "|",
-            属性 != null ? 属性.ResolveHitRate() : -1, "|",
-            属性 != null ? 属性.ResolveDodgeRate() : -1, "|",
-            属性 != null ? 属性.ResolvePhysicalResistance() : -1, "|",
-            属性 != null ? 属性.ResolveFireResistance() : -1, "|",
-            属性 != null ? 属性.ResolveCorruptionResistance() : -1, "|",
-            属性 != null ? 属性.ResolveColdResistance() : -1, "|",
-            属性 != null ? 属性.ResolvePhysicalResistancePenetration() : -1, "|",
-            属性 != null ? 属性.ResolveFireResistancePenetration() : -1, "|",
-            属性 != null ? 属性.ResolveCorruptionResistancePenetration() : -1, "|",
-            属性 != null ? 属性.ResolveColdResistancePenetration() : -1, "|",
-            暴击率, "|",
-            暴击伤害, "|",
-            Mathf.RoundToInt(攻击力 * 100f), "|",
-            法术伤害);
+        string signature = string.Concat(
+            characterId, "|",
+            GetCurrentHealth(unit, statEntry), "/", GetMaxHealth(unit, statEntry), "|",
+            GetCurrentMana(unit, statEntry), "/", GetMaxMana(unit, statEntry), "|",
+            statEntry != null ? statEntry.strength : -1, "|",
+            statEntry != null ? statEntry.agility : -1, "|",
+            statEntry != null ? statEntry.intelligence : -1, "|",
+            statEntry != null ? statEntry.ResolveHitRate() : -1, "|",
+            statEntry != null ? statEntry.ResolveDodgeRate() : -1, "|",
+            statEntry != null ? statEntry.ResolvePhysicalResistance() : -1, "|",
+            statEntry != null ? statEntry.ResolveFireResistance() : -1, "|",
+            statEntry != null ? statEntry.ResolveCorruptionResistance() : -1, "|",
+            statEntry != null ? statEntry.ResolveColdResistance() : -1, "|",
+            statEntry != null ? statEntry.ResolvePhysicalResistancePenetration() : -1, "|",
+            statEntry != null ? statEntry.ResolveFireResistancePenetration() : -1, "|",
+            statEntry != null ? statEntry.ResolveCorruptionResistancePenetration() : -1, "|",
+            statEntry != null ? statEntry.ResolveColdResistancePenetration() : -1, "|",
+            criticalChance, "|",
+            criticalDamage, "|",
+            Mathf.RoundToInt(attackPower * 100f), "|",
+            spellDamage);
 
-        if (!强制刷新 && string.Equals(上次签名, 签名, StringComparison.Ordinal))
+        if (!force && string.Equals(lastSignature, signature, StringComparison.Ordinal))
         {
             return;
         }
 
-        上次签名 = 签名;
-        写入角色属性(当前ID, 战斗单位, 属性, 攻击力, 法术伤害, 暴击率, 暴击伤害);
+        lastSignature = signature;
+        ApplyTexts(characterId, unit, statEntry, attackPower, spellDamage, criticalChance, criticalDamage);
     }
 
-    private void 写入角色属性(
-        string 当前ID,
-        BattleUnit 战斗单位,
-        CharacterStatDatabase.StatEntry 属性,
-        float 攻击力,
-        int 法术伤害,
-        int 暴击率,
-        int 暴击伤害)
+    private void ApplyTexts(
+        string characterId,
+        BattleUnit unit,
+        CharacterStatDatabase.StatEntry statEntry,
+        float attackPower,
+        int spellDamage,
+        int criticalChance,
+        int criticalDamage)
     {
-        写文本(当前ID文本, 拼文本(当前ID前缀, 当前ID));
-        写文本(角色名文本, 拼文本(角色名前缀, 读取角色显示名(当前ID)));
-        写文本(生命值文本, 拼文本(生命值前缀, 读取生命值文本(战斗单位, 属性)));
-        写文本(魔法值文本, 拼文本(魔法值前缀, 读取魔法值文本(战斗单位, 属性)));
-        写文本(攻击力文本, 拼文本(攻击力前缀, !string.IsNullOrWhiteSpace(当前ID) ? Mathf.RoundToInt(攻击力).ToString() : string.Empty));
-        写文本(法术伤害文本, 拼文本(法术伤害前缀, 属性 != null ? 法术伤害.ToString() : string.Empty));
-        写文本(力量文本, 拼文本(力量前缀, 属性 != null ? 属性.strength.ToString() : string.Empty));
-        写文本(敏捷文本, 拼文本(敏捷前缀, 属性 != null ? 属性.agility.ToString() : string.Empty));
-        写文本(智力文本, 拼文本(智力前缀, 属性 != null ? 属性.intelligence.ToString() : string.Empty));
-        写文本(命中率文本, 拼文本(命中率前缀, 属性 != null ? 属性.ResolveHitRate() + "%" : string.Empty));
-        写文本(闪避率文本, 拼文本(闪避率前缀, 属性 != null ? 属性.ResolveDodgeRate() + "%" : string.Empty));
-        写文本(物理抗性文本, 拼文本(物理抗性前缀, 属性 != null ? 属性.ResolvePhysicalResistance() + "%" : string.Empty));
-        写文本(火焰抗性文本, 拼文本(火焰抗性前缀, 属性 != null ? 属性.ResolveFireResistance() + "%" : string.Empty));
-        写文本(腐败抗性文本, 拼文本(腐败抗性前缀, 属性 != null ? 属性.ResolveCorruptionResistance() + "%" : string.Empty));
-        写文本(寒冷抗性文本, 拼文本(寒冷抗性前缀, 属性 != null ? 属性.ResolveColdResistance() + "%" : string.Empty));
-        写文本(物理穿透文本, 拼文本(物理穿透前缀, 属性 != null ? 属性.ResolvePhysicalResistancePenetration() + "%" : string.Empty));
-        写文本(火焰穿透文本, 拼文本(火焰穿透前缀, 属性 != null ? 属性.ResolveFireResistancePenetration() + "%" : string.Empty));
-        写文本(腐败穿透文本, 拼文本(腐败穿透前缀, 属性 != null ? 属性.ResolveCorruptionResistancePenetration() + "%" : string.Empty));
-        写文本(寒冷穿透文本, 拼文本(寒冷穿透前缀, 属性 != null ? 属性.ResolveColdResistancePenetration() + "%" : string.Empty));
-        写文本(暴击率文本, 拼文本(暴击率前缀, 属性 != null ? 暴击率 + "%" : string.Empty));
-        写文本(暴击伤害文本, 拼文本(暴击伤害前缀, 属性 != null ? 暴击伤害 + "%" : string.Empty));
+        SetText(currentIdText, Join(currentIdPrefix, characterId));
+        SetText(displayNameText, Join(displayNamePrefix, ResolveDisplayName(characterId)));
+        SetText(healthText, Join(healthPrefix, BuildHealthText(unit, statEntry)));
+        SetText(manaText, Join(manaPrefix, BuildManaText(unit, statEntry)));
+        SetText(attackPowerText, Join(attackPowerPrefix, string.IsNullOrWhiteSpace(characterId) ? string.Empty : Mathf.RoundToInt(attackPower).ToString()));
+        SetText(spellDamageText, Join(spellDamagePrefix, statEntry != null ? spellDamage.ToString() : string.Empty));
+        SetText(strengthText, Join(strengthPrefix, statEntry != null ? statEntry.strength.ToString() : string.Empty));
+        SetText(agilityText, Join(agilityPrefix, statEntry != null ? statEntry.agility.ToString() : string.Empty));
+        SetText(intelligenceText, Join(intelligencePrefix, statEntry != null ? statEntry.intelligence.ToString() : string.Empty));
+        SetText(hitRateText, Join(hitRatePrefix, statEntry != null ? statEntry.ResolveHitRate() + "%" : string.Empty));
+        SetText(dodgeRateText, Join(dodgeRatePrefix, statEntry != null ? statEntry.ResolveDodgeRate() + "%" : string.Empty));
+        SetText(physicalResistanceText, Join(physicalResistancePrefix, statEntry != null ? statEntry.ResolvePhysicalResistance() + "%" : string.Empty));
+        SetText(fireResistanceText, Join(fireResistancePrefix, statEntry != null ? statEntry.ResolveFireResistance() + "%" : string.Empty));
+        SetText(corruptionResistanceText, Join(corruptionResistancePrefix, statEntry != null ? statEntry.ResolveCorruptionResistance() + "%" : string.Empty));
+        SetText(coldResistanceText, Join(coldResistancePrefix, statEntry != null ? statEntry.ResolveColdResistance() + "%" : string.Empty));
+        SetText(physicalPenetrationText, Join(physicalPenetrationPrefix, statEntry != null ? statEntry.ResolvePhysicalResistancePenetration() + "%" : string.Empty));
+        SetText(firePenetrationText, Join(firePenetrationPrefix, statEntry != null ? statEntry.ResolveFireResistancePenetration() + "%" : string.Empty));
+        SetText(corruptionPenetrationText, Join(corruptionPenetrationPrefix, statEntry != null ? statEntry.ResolveCorruptionResistancePenetration() + "%" : string.Empty));
+        SetText(coldPenetrationText, Join(coldPenetrationPrefix, statEntry != null ? statEntry.ResolveColdResistancePenetration() + "%" : string.Empty));
+        SetText(criticalChanceText, Join(criticalChancePrefix, statEntry != null ? criticalChance + "%" : string.Empty));
+        SetText(criticalDamageText, Join(criticalDamagePrefix, statEntry != null ? criticalDamage + "%" : string.Empty));
     }
 
-    private string 读取角色显示名(string 当前ID)
+    private string ResolveDisplayName(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(当前ID))
+        if (string.IsNullOrWhiteSpace(characterId))
         {
             return string.Empty;
         }
 
-        BattleCharacterBindingDatabase.BindingEntry 绑定 = 角色显示库 != null ? 角色显示库.FindBinding(当前ID) : null;
-        return 绑定 != null && !string.IsNullOrWhiteSpace(绑定.displayName) ? 绑定.displayName : 当前ID;
+        BattleCharacterBindingDatabase.BindingEntry binding =
+            characterBindingDatabase != null ? characterBindingDatabase.FindBinding(characterId) : null;
+        return binding != null && !string.IsNullOrWhiteSpace(binding.displayName) ? binding.displayName : characterId;
     }
 
-    private static string 拼文本(string 前缀, string 值)
+    private static string Join(string prefix, string value)
     {
-        return string.Concat(前缀 ?? string.Empty, 值 ?? string.Empty);
+        return string.Concat(prefix ?? string.Empty, value ?? string.Empty);
     }
 
-    private static void 写文本(Component 文本组件, string 内容)
+    private static void SetText(Component target, string value)
     {
-        if (文本组件 is TMP_Text tmp)
+        if (target is TMP_Text tmp)
         {
-            tmp.text = 内容 ?? string.Empty;
+            tmp.text = value ?? string.Empty;
             return;
         }
 
-        if (文本组件 is Text legacy)
+        if (target is Text legacy)
         {
-            legacy.text = 内容 ?? string.Empty;
+            legacy.text = value ?? string.Empty;
         }
     }
 
-    private static int 计算法术伤害(string 当前ID, CharacterStatDatabase.StatEntry 属性)
+    private static int CalculateSpellDamage(
+        string characterId,
+        BattleUnit unit,
+        CharacterStatDatabase.StatEntry statEntry)
     {
-        if (string.IsNullOrWhiteSpace(当前ID) || 属性 == null)
+        if (string.IsNullOrWhiteSpace(characterId) || statEntry == null)
         {
             return 0;
         }
 
-        BattleSkillDatabase 技能库 = BattleSkillDatabase.LoadDefault();
-        BattleSkillDatabase.SkillEntry 火球技能 = 技能库 != null ? 技能库.FindEntry(火球技能ID) : null;
-        float 固定伤害 = 火球技能 != null ? Mathf.Max(0, 火球技能.fixedDamage) : 0f;
-        float 属性倍率 = 火球技能 != null ? Mathf.Max(0f, 火球技能.attributeMultiplier) : 默认火球属性倍率;
-        float 法杖倍率 = InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(当前ID);
-        float 结果 = (固定伤害 + (属性倍率 * Mathf.Max(0, 属性.intelligence))) * Mathf.Max(0f, 法杖倍率);
-        return Mathf.Max(0, Mathf.RoundToInt(结果));
+        BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
+        BattleSkillDatabase.SkillEntry fireballSkill =
+            skillDatabase != null ? skillDatabase.FindEntry(FireballSkillId) : null;
+        float intelligence = unit != null
+            ? Mathf.Max(0, unit.GetEffectiveIntelligence())
+            : Mathf.Max(0, statEntry.intelligence);
+        float fixedDamage = fireballSkill != null ? Mathf.Max(0, fireballSkill.fixedDamage) : 0f;
+        float attributeMultiplier = fireballSkill != null
+            ? Mathf.Max(0f, fireballSkill.attributeMultiplier)
+            : DefaultFireballAttributeMultiplier;
+        float staffMultiplier = InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(characterId);
+        float damage = (fixedDamage + (attributeMultiplier * intelligence)) * Mathf.Max(0f, staffMultiplier);
+        return Mathf.Max(0, Mathf.RoundToInt(damage));
     }
 
-    private static BattleUnit 读取战斗单位(string 当前ID)
+    private static BattleUnit FindBattleUnitByCharacterId(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(当前ID))
+        if (string.IsNullOrWhiteSpace(characterId))
         {
             return null;
         }
 
-        BattleUnit[] 单位列表 = FindObjectsOfType<BattleUnit>(true);
-        BattleUnit 后备单位 = null;
-        for (int i = 0; i < 单位列表.Length; i++)
+        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
+        BattleUnit fallback = null;
+        for (int i = 0; i < units.Length; i++)
         {
-            BattleUnit 单位 = 单位列表[i];
-            if (单位 == null || !string.Equals(单位.characterId, 当前ID, StringComparison.Ordinal))
+            BattleUnit unit = units[i];
+            if (unit == null || !string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            if (单位.gameObject.activeInHierarchy && 单位.IsAlive)
+            if (unit.gameObject.activeInHierarchy && unit.IsAlive)
             {
-                return 单位;
+                return unit;
             }
 
-            if (后备单位 == null)
+            if (fallback == null)
             {
-                后备单位 = 单位;
+                fallback = unit;
             }
         }
 
-        return 后备单位;
+        return fallback;
     }
 
-    private static int 读取当前生命值(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static int GetCurrentHealth(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 != null)
+        if (unit != null)
         {
-            return Mathf.Max(0, 战斗单位.currentHealth);
+            return Mathf.Max(0, unit.currentHealth);
         }
 
-        return 属性 != null ? Mathf.Max(0, 属性.ResolveMaxHealth()) : 0;
+        return statEntry != null ? Mathf.Max(0, statEntry.ResolveMaxHealth()) : 0;
     }
 
-    private static int 读取最大生命值(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static int GetMaxHealth(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 != null)
+        if (unit != null)
         {
-            return Mathf.Max(0, 战斗单位.maxHealth);
+            return Mathf.Max(0, unit.maxHealth);
         }
 
-        return 属性 != null ? Mathf.Max(0, 属性.ResolveMaxHealth()) : 0;
+        return statEntry != null ? Mathf.Max(0, statEntry.ResolveMaxHealth()) : 0;
     }
 
-    private static int 读取当前魔法值(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static int GetCurrentMana(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 != null)
+        if (unit != null)
         {
-            return Mathf.Max(0, 战斗单位.currentMana);
+            return Mathf.Max(0, unit.currentMana);
         }
 
-        return 属性 != null ? Mathf.Max(0, 属性.ResolveMaxMana()) : 0;
+        return statEntry != null ? Mathf.Max(0, statEntry.ResolveMaxMana()) : 0;
     }
 
-    private static int 读取最大魔法值(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static int GetMaxMana(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 != null)
+        if (unit != null)
         {
-            return Mathf.Max(0, 战斗单位.maxMana);
+            return Mathf.Max(0, unit.maxMana);
         }
 
-        return 属性 != null ? Mathf.Max(0, 属性.ResolveMaxMana()) : 0;
+        return statEntry != null ? Mathf.Max(0, statEntry.ResolveMaxMana()) : 0;
     }
 
-    private static string 读取生命值文本(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static string BuildHealthText(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 == null && 属性 == null)
+        if (unit == null && statEntry == null)
         {
             return string.Empty;
         }
 
-        return 读取当前生命值(战斗单位, 属性) + "/" + 读取最大生命值(战斗单位, 属性);
+        return GetCurrentHealth(unit, statEntry) + "/" + GetMaxHealth(unit, statEntry);
     }
 
-    private static string 读取魔法值文本(BattleUnit 战斗单位, CharacterStatDatabase.StatEntry 属性)
+    private static string BuildManaText(BattleUnit unit, CharacterStatDatabase.StatEntry statEntry)
     {
-        if (战斗单位 == null && 属性 == null)
+        if (unit == null && statEntry == null)
         {
             return string.Empty;
         }
 
-        return 读取当前魔法值(战斗单位, 属性) + "/" + 读取最大魔法值(战斗单位, 属性);
+        return GetCurrentMana(unit, statEntry) + "/" + GetMaxMana(unit, statEntry);
     }
 }
