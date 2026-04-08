@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    displayName: "\u73A9\u5BB6"
+    displayName: "\u65E0\u540D"
     modelPrefab: {fileID: 0}
     animatorController: {fileID: 9100000, guid: c309a5bf0fab12248965ac32a969e9b3, type: 2}
     modelScale: {x: 1, y: 1, z: 1}
