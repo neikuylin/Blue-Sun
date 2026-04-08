@@ -73,10 +73,9 @@ public sealed class 小头像界面ID同步器 : MonoBehaviour
                         return;
                     }
 
-                    // 战斗副本的小头像除了写当前ID，还需要切换装备查看角色。
                     if (UnityEngine.Object.FindObjectOfType<BattleTurnSystem>(true) != null)
                     {
-                        InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(capturedId);
+                        界面ID列表.设置当前ID(capturedId);
                     }
                 };
                 capturedToggle.onValueChanged.AddListener(onChanged);

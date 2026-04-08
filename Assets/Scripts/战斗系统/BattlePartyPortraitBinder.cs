@@ -601,7 +601,15 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
 
-        InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+        if (!equipmentPanelVisible)
+        {
+            界面ID列表.设置当前ID(characterId);
+        }
+        else
+        {
+            InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+        }
+
         SetEquipmentPanelVisible(true);
     }
 
