@@ -9,8 +9,16 @@ public sealed class 物品格子区域绑定 : MonoBehaviour
         背包
     }
 
+    public enum 右键拖拽目标类型
+    {
+        背包,
+        仓库,
+        目标ID装备栏
+    }
+
     [Header("基础")]
     public 数据来源类型 数据来源 = 数据来源类型.仓库;
+    public 右键拖拽目标类型 右键拖拽目标 = 右键拖拽目标类型.背包;
 
     [Header("区域")]
     public RectTransform 格子区域;

@@ -43,9 +43,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         Warehouse,
         WarehouseBackpack,
-        QuickBackpack,
-        BattleBackpack,
         Equipment
+    }
+
+    private enum StorageRightClickTarget
+    {
+        Backpack,
+        Warehouse,
+        TargetIdEquipment
     }
 
     private struct SlotRef
@@ -74,6 +79,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public GameObject runtimeBackgroundVisual;
         public GameObject runtimeIconVisual;
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
+        public StorageRightClickTarget rightClickTarget;
     }
 
     private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
@@ -176,10 +182,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
+    private readonly List<List<SlotWidget>> extraBackpackSlots = new List<List<SlotWidget>>();
     private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
     private readonly List<List<SlotWidget>> extraEquipmentSlots = new List<List<SlotWidget>>();
-    private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
-    private readonly List<SlotWidget> battleBackpackSlots = new List<SlotWidget>();
     private readonly List<Action> categoryFilterUnbindActions = new List<Action>();
 
     private bool isDragging;
@@ -404,8 +409,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         instance.backpackData[index] = NormalizeItemSlotData(data);
         instance.RefreshBackpackSlot(index);
-        instance.RefreshQuickSlot(index);
-        instance.RefreshBattleBackpackSlot(index);
+        instance.RefreshExtraBackpackSlots(index);
         return true;
     }
 
@@ -519,8 +523,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             instance.backpackData[i] = slot;
             remain -= add;
             instance.RefreshBackpackSlot(i);
-            instance.RefreshQuickSlot(i);
-            instance.RefreshBattleBackpackSlot(i);
+            instance.RefreshExtraBackpackSlots(i);
         }
 
         while (remain > 0)
@@ -662,8 +665,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         instance.backpackData[slotIndex] = slot;
         instance.RefreshBackpackSlot(slotIndex);
-        instance.RefreshQuickSlot(slotIndex);
-        instance.RefreshBattleBackpackSlot(slotIndex);
+        instance.RefreshExtraBackpackSlots(slotIndex);
         return true;
     }
 
@@ -754,6 +756,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
 
         int backpackWidgetCount = backpackSlots.Count;
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            backpackWidgetCount = Mathf.Max(backpackWidgetCount, extraBackpackSlots[i].Count);
+        }
         EnsureBackpackDataSize(backpackWidgetCount);
         BindCategoryFilters();
 
@@ -766,8 +772,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         warehouseSlots.Clear();
         backpackSlots.Clear();
-        quickSlots.Clear();
-        battleBackpackSlots.Clear();
+        extraBackpackSlots.Clear();
 
         物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
         for (int i = 0; i < bindings.Length; i++)
@@ -792,6 +797,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 if (warehouseSlots.Count == 0)
                 {
                     CollectSlotsFromContainer(container, warehouseSlots);
+                    ApplyStorageRightClickTarget(warehouseSlots, MapRightClickTarget(binding.右键拖拽目标));
                 }
 
                 continue;
@@ -800,8 +806,50 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             if (backpackSlots.Count == 0)
             {
                 CollectSlotsFromContainer(container, backpackSlots);
+                ApplyStorageRightClickTarget(backpackSlots, MapRightClickTarget(binding.右键拖拽目标));
                 CacheBackpackSlotTemplate();
+                continue;
             }
+
+            List<SlotWidget> extraGroup = new List<SlotWidget>();
+            CollectSlotsFromContainer(container, extraGroup);
+            if (extraGroup.Count > 0)
+            {
+                ApplyStorageRightClickTarget(extraGroup, MapRightClickTarget(binding.右键拖拽目标));
+                extraBackpackSlots.Add(extraGroup);
+            }
+        }
+    }
+
+    private static StorageRightClickTarget MapRightClickTarget(物品格子区域绑定.右键拖拽目标类型 target)
+    {
+        switch (target)
+        {
+            case 物品格子区域绑定.右键拖拽目标类型.背包:
+                return StorageRightClickTarget.Backpack;
+            case 物品格子区域绑定.右键拖拽目标类型.目标ID装备栏:
+                return StorageRightClickTarget.TargetIdEquipment;
+            case 物品格子区域绑定.右键拖拽目标类型.仓库:
+            default:
+                return StorageRightClickTarget.Warehouse;
+        }
+    }
+
+    private static void ApplyStorageRightClickTarget(List<SlotWidget> slots, StorageRightClickTarget target)
+    {
+        if (slots == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i] == null)
+            {
+                continue;
+            }
+
+            slots[i].rightClickTarget = target;
         }
     }
 
@@ -1647,8 +1695,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse, SlotSurface.Warehouse);
         BindDragRelaysForList(backpackSlots, SlotKind.Backpack, SlotSurface.WarehouseBackpack);
-        BindDragRelaysForList(quickSlots, SlotKind.Backpack, SlotSurface.QuickBackpack);
-        BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack, SlotSurface.BattleBackpack);
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            BindDragRelaysForList(extraBackpackSlots[i], SlotKind.Backpack, SlotSurface.WarehouseBackpack);
+        }
         BindDragRelaysForList(equipmentSlots, SlotKind.Equipment, SlotSurface.Equipment);
         for (int i = 0; i < extraEquipmentSlots.Count; i++)
         {
@@ -1856,7 +1906,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        if (!TryHandleRightClickMove(source, surface, sourceData))
+        SlotWidget widget = GetWidget(source);
+        if (!TryHandleRightClickMove(source, surface, widget != null ? widget.rightClickTarget : StorageRightClickTarget.Warehouse, sourceData))
         {
             return;
         }
@@ -1864,17 +1915,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         eventData.Use();
     }
 
-    private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, ItemSlotData sourceData)
+    private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, StorageRightClickTarget target, ItemSlotData sourceData)
     {
         switch (surface)
         {
             case SlotSurface.Warehouse:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
             case SlotSurface.WarehouseBackpack:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
-            case SlotSurface.QuickBackpack:
-            case SlotSurface.BattleBackpack:
-                return TryAutoEquipFromBackpack(source, sourceData);
+                switch (target)
+                {
+                    case StorageRightClickTarget.Backpack:
+                        return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+                    case StorageRightClickTarget.TargetIdEquipment:
+                        return TryAutoEquipToTargetEquipment(source, sourceData);
+                    case StorageRightClickTarget.Warehouse:
+                    default:
+                        return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
+                }
             case SlotSurface.Equipment:
                 return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
             default:
@@ -1896,11 +1952,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return TryTransferItem(source, target, sourceData);
     }
 
-    private bool TryAutoEquipFromBackpack(SlotRef source, ItemSlotData sourceData)
+    private bool TryAutoEquipToTargetEquipment(SlotRef source, ItemSlotData sourceData)
     {
-        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        string targetCharacterId = ResolveEquipmentCharacterId();
+        if (string.IsNullOrWhiteSpace(targetCharacterId))
         {
             return false;
+        }
+
+        if (!string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
+        {
+            SetCurrentEquipmentCharacter(targetCharacterId);
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
@@ -2388,13 +2450,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return matched;
             }
 
-            matched = FindWidgetByTransform(quickSlots, target);
-            if (matched != null)
+            for (int i = 0; i < extraBackpackSlots.Count; i++)
             {
-                return matched;
+                matched = FindWidgetByTransform(extraBackpackSlots[i], target);
+                if (matched != null)
+                {
+                    return matched;
+                }
             }
 
-            return FindWidgetByTransform(battleBackpackSlots, target);
+            return null;
         }
 
         if (kind == SlotKind.Warehouse)
@@ -3392,12 +3457,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return backpackSlots;
             }
 
-            if (quickSlots.Count > 0)
+            if (extraBackpackSlots.Count > 0)
             {
-                return quickSlots;
+                return extraBackpackSlots[0];
             }
 
-            return battleBackpackSlots;
+            return backpackSlots;
         }
 
         return equipmentSlots;
@@ -3678,8 +3743,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (slot.kind == SlotKind.Backpack)
         {
             RefreshBackpackSlot(slot.index);
-            RefreshQuickSlot(slot.index);
-            RefreshBattleBackpackSlot(slot.index);
+            RefreshExtraBackpackSlots(slot.index);
             return;
         }
 
@@ -3698,19 +3762,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshBackpackSlot(i);
         }
 
+        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
+        {
+            List<SlotWidget> group = extraBackpackSlots[groupIndex];
+            int count = Mathf.Min(group.Count, backpackData.Count);
+            for (int i = 0; i < count; i++)
+            {
+                RefreshExtraBackpackSlot(group, i);
+            }
+        }
+
         RefreshEquipmentSlots();
-
-        int mirrorCount = Mathf.Min(quickSlots.Count, backpackData.Count);
-        for (int i = 0; i < mirrorCount; i++)
-        {
-            RefreshQuickSlot(i);
-        }
-
-        int battleMirrorCount = Mathf.Min(battleBackpackSlots.Count, backpackData.Count);
-        for (int i = 0; i < battleMirrorCount; i++)
-        {
-            RefreshBattleBackpackSlot(i);
-        }
     }
 
     private void SetUsableSlotCount(SlotKind kind, string characterId, int count)
@@ -4087,26 +4149,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return bestEntry;
     }
 
-    private void RefreshQuickSlot(int index)
+    private void RefreshExtraBackpackSlots(int index)
     {
-        if (index < 0 || index >= quickSlots.Count || index >= backpackData.Count)
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
         {
-            return;
+            RefreshExtraBackpackSlot(extraBackpackSlots[i], index);
         }
-
-        ApplyItemToWidget(quickSlots[index], backpackData[index]);
-        ApplyWidgetAvailability(quickSlots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
-    private void RefreshBattleBackpackSlot(int index)
+    private void RefreshExtraBackpackSlot(List<SlotWidget> slots, int index)
     {
-        if (index < 0 || index >= battleBackpackSlots.Count || index >= backpackData.Count)
+        if (slots == null || index < 0 || index >= slots.Count || index >= backpackData.Count)
         {
             return;
         }
 
-        ApplyItemToWidget(battleBackpackSlots[index], backpackData[index]);
-        ApplyWidgetAvailability(battleBackpackSlots[index], IsSlotUsable(SlotKind.Backpack, index));
+        ApplyItemToWidget(slots[index], backpackData[index]);
+        ApplyWidgetAvailability(slots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
@@ -5676,6 +5735,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             RefreshBackpackSlot(i);
         }
+
+        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
+        {
+            List<SlotWidget> group = extraBackpackSlots[groupIndex];
+            int count = Mathf.Min(group.Count, backpackData.Count);
+            for (int i = 0; i < count; i++)
+            {
+                RefreshExtraBackpackSlot(group, i);
+            }
+        }
     }
 
     private void UnbindAll()
@@ -5697,19 +5766,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         HideItemTooltip();
         ClearRuntimeVisuals(warehouseSlots);
         ClearRuntimeVisuals(backpackSlots);
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            ClearRuntimeVisuals(extraBackpackSlots[i]);
+        }
         ClearRuntimeVisuals(equipmentSlots);
         for (int i = 0; i < extraEquipmentSlots.Count; i++)
         {
             ClearRuntimeVisuals(extraEquipmentSlots[i]);
         }
-        ClearRuntimeVisuals(quickSlots);
-        ClearRuntimeVisuals(battleBackpackSlots);
         warehouseSlots.Clear();
         backpackSlots.Clear();
+        extraBackpackSlots.Clear();
         equipmentSlots.Clear();
         extraEquipmentSlots.Clear();
-        quickSlots.Clear();
-        battleBackpackSlots.Clear();
     }
 
     private static void ClearRuntimeVisuals(List<SlotWidget> widgets)

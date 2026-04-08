@@ -4775,6 +4775,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u6570\u636E\u6765\u6E90": 1
+  "\u53F3\u952E\u62D6\u62FD\u76EE\u6807": 1
   "\u683C\u5B50\u533A\u57DF": {fileID: 704311063}
   "\u683C\u5B50\u5BB9\u5668": {fileID: 479657529}
   "\u683C\u5B50\u6A21\u677F": {fileID: 7459018655969567533, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -12151,6 +12152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u6570\u636E\u6765\u6E90": 1
+  "\u53F3\u952E\u62D6\u62FD\u76EE\u6807": 2
   "\u683C\u5B50\u533A\u57DF": {fileID: 1610025614}
   "\u683C\u5B50\u5BB9\u5668": {fileID: 1821178576}
   "\u683C\u5B50\u6A21\u677F": {fileID: 7459018655969567533, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -16285,6 +16287,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u6570\u636E\u6765\u6E90": 0
+  "\u53F3\u952E\u62D6\u62FD\u76EE\u6807": 0
   "\u683C\u5B50\u533A\u57DF": {fileID: 2103025429}
   "\u683C\u5B50\u5BB9\u5668": {fileID: 885244482}
   "\u683C\u5B50\u6A21\u677F": {fileID: 7459018655969567533, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
