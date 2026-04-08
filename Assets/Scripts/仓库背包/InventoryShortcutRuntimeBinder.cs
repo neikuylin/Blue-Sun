@@ -82,12 +82,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public StorageRightClickTarget rightClickTarget;
     }
 
-    private sealed class EquipmentPanelBindingInfo
-    {
-        public Transform container;
-        public StorageRightClickTarget rightClickTarget;
-    }
-
     private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         private InventoryShortcutRuntimeBinder owner;
@@ -162,19 +156,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         "背包lv5"
     };
     private static readonly int[] BackpackLevelSlotCounts = { 14, 21, 28, 35, 42 };
-    private static readonly string[] EquipmentSlotNames =
-    {
-        "主手",
-        "副手",
-        "主副手",
-        "头盔",
-        "胸甲",
-        "手套",
-        "鞋子",
-        "腿甲",
-        "饰品"
-    };
-
     private static InventoryShortcutRuntimeBinder instance;
     private static Material itemTooltipIconFadeMaterial;
 
@@ -912,38 +893,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         equipmentSlots.Clear();
         extraEquipmentSlots.Clear();
 
-        List<EquipmentPanelBindingInfo> containers = new List<EquipmentPanelBindingInfo>();
         装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
         for (int i = 0; i < panelBindings.Length; i++)
         {
             装备面板绑定 binding = panelBindings[i];
-            if (binding == null || binding.EquipmentContainer == null)
-            {
-                continue;
-            }
-
-            AddUniqueEquipmentContainer(
-                containers,
-                binding.EquipmentContainer,
-                MapEquipmentReturnTarget(binding.ReturnTarget));
-        }
-
-        for (int i = 0; i < containers.Count; i++)
-        {
-            EquipmentPanelBindingInfo info = containers[i];
-            if (info == null || info.container == null)
+            if (binding == null)
             {
                 continue;
             }
 
             List<SlotWidget> collected = new List<SlotWidget>();
-            CollectEquipmentSlotsFromNamedChildren(info.container, collected);
+            CollectEquipmentSlotsFromBinding(binding, collected);
             if (collected.Count == 0)
             {
                 continue;
             }
 
-            ApplyStorageRightClickTarget(collected, info.rightClickTarget);
+            ApplyStorageRightClickTarget(collected, MapEquipmentReturnTarget(binding.ReturnTarget));
 
             if (equipmentSlots.Count == 0)
             {
@@ -960,29 +926,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return target == 装备面板绑定.回流目标类型.仓库
             ? StorageRightClickTarget.Warehouse
             : StorageRightClickTarget.Backpack;
-    }
-
-    private static void AddUniqueEquipmentContainer(List<EquipmentPanelBindingInfo> containers, Transform container, StorageRightClickTarget target)
-    {
-        if (containers == null || container == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < containers.Count; i++)
-        {
-            if (containers[i] != null && containers[i].container == container)
-            {
-                containers[i].rightClickTarget = target;
-                return;
-            }
-        }
-
-        containers.Add(new EquipmentPanelBindingInfo
-        {
-            container = container,
-            rightClickTarget = target
-        });
     }
 
     private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
@@ -1377,88 +1320,52 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private static void CollectEquipmentSlotsFromNamedChildren(Transform container, List<SlotWidget> target)
+    private static void CollectEquipmentSlotsFromBinding(装备面板绑定 binding, List<SlotWidget> target)
     {
         target.Clear();
-        if (container == null)
+        if (binding == null)
         {
             return;
         }
 
-        for (int i = 0; i < EquipmentSlotNames.Length; i++)
-        {
-            string slotName = EquipmentSlotNames[i];
-            Transform slotTransform = FindEquipmentSlotTransform(container, slotName);
-            RectTransform slotRoot = slotTransform as RectTransform;
-            if (slotRoot == null)
-            {
-                continue;
-            }
-
-            Button button = slotRoot.GetComponent<Button>();
-            RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
-            RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
-            Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
-            if (icon == null)
-            {
-                continue;
-            }
-
-            target.Add(new SlotWidget
-            {
-                root = slotRoot,
-                button = button,
-                backgroundAnchor = backgroundAnchor,
-                iconAnchor = iconAnchor,
-                icon = icon,
-                iconIsRoot = icon.transform == slotRoot,
-                iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite,
-                equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
-            });
-        }
+        AddEquipmentSlotWidget(target, binding.HelmetSlot, ItemDatabase.EquipmentSlotType.Helmet);
+        AddEquipmentSlotWidget(target, binding.ArmorSlot, ItemDatabase.EquipmentSlotType.Armor);
+        AddEquipmentSlotWidget(target, binding.GlovesSlot, ItemDatabase.EquipmentSlotType.Gloves);
+        AddEquipmentSlotWidget(target, binding.ShoesSlot, ItemDatabase.EquipmentSlotType.Shoes);
+        AddEquipmentSlotWidget(target, binding.LegArmorSlot, ItemDatabase.EquipmentSlotType.LegArmor);
+        AddEquipmentSlotWidget(target, binding.AccessorySlot, ItemDatabase.EquipmentSlotType.Accessory);
+        AddEquipmentSlotWidget(target, binding.MainHandSlot, ItemDatabase.EquipmentSlotType.MainHand);
+        AddEquipmentSlotWidget(target, binding.OffHandSlot, ItemDatabase.EquipmentSlotType.OffHand);
     }
 
-    private static Transform FindEquipmentSlotTransform(Transform container, string slotName)
+    private static void AddEquipmentSlotWidget(List<SlotWidget> target, RectTransform slotRoot, ItemDatabase.EquipmentSlotType slotType)
     {
-        if (container == null || string.IsNullOrWhiteSpace(slotName))
+        if (target == null || slotRoot == null)
         {
-            return null;
+            return;
         }
 
-        string slotNameWithSuffix = slotName + "栏位";
-
-        return FindChildByName(container, slotName) ??
-            FindChildByName(container, slotNameWithSuffix) ??
-            FindDescendantByName(container, slotName) ??
-            FindDescendantByName(container, slotNameWithSuffix);
-    }
-
-    private static ItemDatabase.EquipmentSlotType ResolveEquipmentSlotType(string slotName)
-    {
-        switch (slotName)
+        Button button = slotRoot.GetComponent<Button>();
+        RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
+        RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
+        Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
+        if (icon == null)
         {
-            case "主手":
-                return ItemDatabase.EquipmentSlotType.MainHand;
-            case "副手":
-                return ItemDatabase.EquipmentSlotType.OffHand;
-            case "主副手":
-                return ItemDatabase.EquipmentSlotType.MainOrOffHand;
-            case "头盔":
-                return ItemDatabase.EquipmentSlotType.Helmet;
-            case "胸甲":
-                return ItemDatabase.EquipmentSlotType.Armor;
-            case "手套":
-                return ItemDatabase.EquipmentSlotType.Gloves;
-            case "鞋子":
-                return ItemDatabase.EquipmentSlotType.Shoes;
-            case "腿甲":
-                return ItemDatabase.EquipmentSlotType.LegArmor;
-            case "饰品":
-                return ItemDatabase.EquipmentSlotType.Accessory;
-            default:
-                return ItemDatabase.EquipmentSlotType.None;
+            return;
         }
+
+        target.Add(new SlotWidget
+        {
+            root = slotRoot,
+            button = button,
+            backgroundAnchor = backgroundAnchor,
+            iconAnchor = iconAnchor,
+            icon = icon,
+            iconIsRoot = icon.transform == slotRoot,
+            iconOriginalColor = icon.color,
+            iconOriginalSprite = icon.sprite,
+            equipmentSlotType = slotType
+        });
     }
 
     private static Image FindBestIconImage(RectTransform slotRoot)
@@ -1669,7 +1576,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             }
         }
 
-        return EquipmentSlotNames.Length;
+        return 8;
     }
 
     private static List<ItemSlotData> CloneItemSlotDataList(List<ItemSlotData> source)
