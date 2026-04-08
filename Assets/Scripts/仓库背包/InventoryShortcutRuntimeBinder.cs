@@ -127,16 +127,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
-    private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
     private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
     private const string BattleEquipmentContainerPath = "Canvas/弹窗/左边栏位";
-    private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
-    private const string QuickContainerPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域/格子容器";
-    private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
-    private const string BattleBackpackMirrorContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域/格子容器";
-    private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
-    private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string LeftWeaponMountPointName = "武器挂载点（左）";
     private const string RightWeaponMountPointName = "武器挂载点（右）";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
@@ -753,44 +745,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheQualityBackgroundPrefabs();
         CacheItemTooltip(ItemDatabase.WeaponCategory.OneHanded, true);
-        CacheBackpackSlotTemplate();
         UnbindAll();
-
-        CollectWarehouseSlots();
-        CollectBackpackSlots();
+        CollectStorageSlots();
         CollectEquipmentSlots();
-        CollectBattleBackpackSlots();
 
         EnsureDataSize(warehouseData, warehouseSlots.Count);
         SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
 
-        int backpackWidgetCount = Mathf.Max(backpackSlots.Count, quickSlots.Count);
-        backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
+        int backpackWidgetCount = backpackSlots.Count;
         EnsureBackpackDataSize(backpackWidgetCount);
-
-        RectTransform quickAnchor = FindQuickAnchor();
-        RectTransform quickContainer = ResolveMirrorContainer(quickAnchor, QuickContainerPath);
-        if (quickContainer != null)
-        {
-            ApplyBackpackLayoutToMirrorAnchor(quickContainer);
-            EnsureMirrorSlots(quickContainer, quickSlots, "快捷格子");
-            CollectSlotsFromContainer(quickContainer, quickSlots);
-            backpackWidgetCount = Mathf.Max(backpackWidgetCount, quickSlots.Count);
-            EnsureBackpackDataSize(backpackWidgetCount);
-        }
-
-        RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
-        RectTransform battleContainer = ResolveMirrorContainer(battleBackpackAnchor, BattleBackpackMirrorContainerPath);
-        if (battleContainer != null)
-        {
-            ApplyBackpackLayoutToMirrorAnchor(battleContainer);
-            EnsureMirrorSlots(battleContainer, battleBackpackSlots, "战斗背包格子");
-            CollectSlotsFromContainer(battleContainer, battleBackpackSlots);
-            backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
-            EnsureBackpackDataSize(backpackWidgetCount);
-        }
-
-        EnsureBattleBackpackDrag();
         BindCategoryFilters();
 
         BindDragRelays();
@@ -798,62 +761,57 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RefreshAllRuntimeWeaponModelsInternal();
     }
 
-    private void CollectWarehouseSlots()
+    private void CollectStorageSlots()
     {
         warehouseSlots.Clear();
-        Transform container = journeyBindings != null && journeyBindings.warehouseContainer != null
-            ? journeyBindings.warehouseContainer
-            : FindTransformByPath(WarehouseContainerPath);
-        if (container != null)
-        {
-            CollectSlotsFromContainer(container, warehouseSlots);
-        }
-    }
-
-    private void CollectBackpackSlots()
-    {
         backpackSlots.Clear();
-        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
-            ? journeyBindings.backpackContainer
-            : FindTransformByPath(BackpackContainerPath);
-        if (container != null)
+        quickSlots.Clear();
+        battleBackpackSlots.Clear();
+
+        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
+        for (int i = 0; i < bindings.Length; i++)
         {
-            CollectSlotsFromContainer(container, backpackSlots);
+            物品格子区域绑定 binding = bindings[i];
+            if (binding == null)
+            {
+                continue;
+            }
+
+            RectTransform container = EnsureBoundSlotContainer(binding);
+            if (container == null)
+            {
+                continue;
+            }
+
+            int targetCount = Mathf.Max(binding.格子数量, binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库 ? warehouseData.Count : backpackData.Count);
+            EnsureBoundSlots(binding, container, targetCount);
+
+            if (binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库)
+            {
+                if (warehouseSlots.Count == 0)
+                {
+                    CollectSlotsFromContainer(container, warehouseSlots);
+                }
+
+                continue;
+            }
+
+            if (backpackSlots.Count == 0)
+            {
+                CollectSlotsFromContainer(container, backpackSlots);
+                CacheBackpackSlotTemplate();
+            }
         }
     }
 
     private void CacheBackpackSlotTemplate()
     {
-        if (backpackSlots.Count > 0 && backpackSlots[0].root != null)
-        {
-            StoreBackpackTemplate(backpackSlots[0].root.gameObject);
-            return;
-        }
-
-        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
-            ? journeyBindings.backpackContainer
-            : FindTransformByPath(BackpackContainerPath);
-        if (container == null || container.childCount == 0)
+        if (backpackSlots.Count <= 0 || backpackSlots[0].root == null)
         {
             return;
         }
 
-        for (int i = 0; i < container.childCount; i++)
-        {
-            RectTransform child = container.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            if (!child.name.Contains(SlotNameKeyword) && child.GetComponent<Button>() == null)
-            {
-                continue;
-            }
-
-            StoreBackpackTemplate(child.gameObject);
-            return;
-        }
+        StoreBackpackTemplate(backpackSlots[0].root.gameObject);
     }
 
     private void StoreBackpackTemplate(GameObject source)
@@ -961,44 +919,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         containers.Add(container);
     }
 
-    private void CollectBattleBackpackSlots()
-    {
-        battleBackpackSlots.Clear();
-        Transform container = battleBindings != null && battleBindings.battleBackpackContainer != null
-            ? battleBindings.battleBackpackContainer
-            : FindTransformByPath(BattleBackpackContainerPath);
-        if (container != null)
-        {
-            CollectSlotsFromContainer(container, battleBackpackSlots);
-        }
-    }
-
-    private RectTransform FindQuickAnchor()
-    {
-        RectTransform resolvedByPath = FindTransformByPath(QuickAnchorPath) as RectTransform;
-        if (resolvedByPath != null)
-        {
-            return resolvedByPath;
-        }
-
-        if (journeyBindings != null && journeyBindings.quickSlotAnchor != null)
-        {
-            return journeyBindings.quickSlotAnchor;
-        }
-
-        return null;
-    }
-
-    private RectTransform FindBattleBackpackAnchor()
-    {
-        if (battleBindings != null && battleBindings.battleBackpackContainer != null)
-        {
-            return battleBindings.battleBackpackContainer;
-        }
-
-        return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
-    }
-
     private static RectTransform EnsureSlotContainer(RectTransform anchor)
     {
         if (anchor == null)
@@ -1029,37 +949,112 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return container;
     }
 
-    private RectTransform ResolveMirrorContainer(RectTransform anchor, string containerPath)
+    private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
     {
-        RectTransform existingByPath = FindTransformByPath(containerPath) as RectTransform;
-        if (existingByPath != null)
+        if (binding == null)
         {
-            return existingByPath;
+            return null;
         }
 
-        return EnsureSlotContainer(anchor);
+        return EnsureSlotContainer(binding.已绑定格子容器);
     }
 
-    private void EnsureBattleBackpackDrag()
+    private void EnsureBoundSlots(物品格子区域绑定 binding, RectTransform container, int desiredCount)
     {
-        RectTransform dragTarget = battleBindings != null && battleBindings.battleBackpackContent != null
-            ? battleBindings.battleBackpackContent
-            : FindTransformByPath(BattleBackpackContentPath) as RectTransform;
-        RectTransform dragHandle = battleBindings != null && battleBindings.battleBackpackDragHandle != null
-            ? battleBindings.battleBackpackDragHandle
-            : FindTransformByPath(BattleBackpackDragHandlePath) as RectTransform;
-        if (dragTarget == null || dragHandle == null)
+        if (binding == null || container == null)
         {
             return;
         }
 
-        UIDragPanel dragPanel = dragHandle.GetComponent<UIDragPanel>();
-        if (dragPanel == null)
+        int normalizedCount = Mathf.Max(0, desiredCount);
+        if (normalizedCount <= 0)
         {
-            dragPanel = dragHandle.gameObject.AddComponent<UIDragPanel>();
+            return;
         }
 
-        dragPanel.SetDragTarget(dragTarget);
+        GameObject template = ResolveBoundSlotTemplate(binding, container);
+        if (template == null)
+        {
+            return;
+        }
+
+        int currentCount = CountRecognizableSlots(container);
+        if (currentCount == normalizedCount)
+        {
+            return;
+        }
+
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            Destroy(container.GetChild(i).gameObject);
+        }
+
+        for (int i = 0; i < normalizedCount; i++)
+        {
+            GameObject go = Instantiate(template, container, false);
+            go.name = "格子 (" + (i + 1) + ")";
+            SetActiveRecursively(go, true);
+            if (go.transform is RectTransform rt)
+            {
+                rt.localScale = Vector3.one;
+            }
+        }
+    }
+
+    private static GameObject ResolveBoundSlotTemplate(物品格子区域绑定 binding, RectTransform container)
+    {
+        if (binding != null && binding.格子模板 != null)
+        {
+            return binding.格子模板;
+        }
+
+        if (container == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < container.childCount; i++)
+        {
+            Transform child = container.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            bool looksLikeSlot = child.name.Contains(SlotNameKeyword);
+            bool hasButton = child.GetComponent<Button>() != null;
+            if (looksLikeSlot || hasButton)
+            {
+                return child.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    private static int CountRecognizableSlots(RectTransform container)
+    {
+        if (container == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < container.childCount; i++)
+        {
+            Transform child = container.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (child.name.Contains(SlotNameKeyword) || child.GetComponent<Button>() != null)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private static Transform FindTransformByPath(string path)
@@ -5461,21 +5456,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        Transform direct = FindTransformByPath("Canvas/UI控制器/目录/仓库页面/" + panelName);
-        if (direct != null)
+        物品格子区域绑定.数据来源类型 sourceType = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
+            ? 物品格子区域绑定.数据来源类型.仓库
+            : 物品格子区域绑定.数据来源类型.背包;
+
+        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
+        for (int i = 0; i < bindings.Length; i++)
         {
-            return direct;
+            物品格子区域绑定 binding = bindings[i];
+            if (binding == null ||
+                binding.数据来源 != sourceType)
+            {
+                continue;
+            }
+
+            Transform panelRoot = FindAncestorByName(binding.已绑定格子容器, panelName);
+            if (panelRoot != null)
+            {
+                return panelRoot;
+            }
         }
 
-        RectTransform container = null;
-        if (journeyBindings != null)
-        {
-            container = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
-                ? journeyBindings.warehouseContainer
-                : journeyBindings.backpackContainer;
-        }
-
-        return FindAncestorByName(container, panelName);
+        return null;
     }
 
     private void BindCategoryFilterForPanel(Transform panelRoot, CategoryFilterBinding binding, Action refreshAction)
