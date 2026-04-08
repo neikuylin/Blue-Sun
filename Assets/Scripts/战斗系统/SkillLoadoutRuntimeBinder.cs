@@ -676,8 +676,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        string tempSkillId = entry.warehouseSkillIds[sourceIndex];
-        entry.warehouseSkillIds[sourceIndex] = entry.warehouseSkillIds[targetIndex];
+        string sourceSkillId = entry.warehouseSkillIds[sourceIndex];
+        string targetSkillId = entry.warehouseSkillIds[targetIndex];
+        if (string.IsNullOrWhiteSpace(sourceSkillId) || string.IsNullOrWhiteSpace(targetSkillId))
+        {
+            return false;
+        }
+
+        string tempSkillId = sourceSkillId;
+        entry.warehouseSkillIds[sourceIndex] = targetSkillId;
         entry.warehouseSkillIds[targetIndex] = tempSkillId;
 
         if (entry.warehouseSkillWeights != null &&
