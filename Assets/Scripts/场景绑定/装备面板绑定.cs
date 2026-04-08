@@ -16,22 +16,9 @@ public sealed class 装备面板绑定 : MonoBehaviour
     {
         get
         {
-            if (equipmentContainer != null)
-            {
-                return equipmentContainer;
-            }
-
-            return transform as RectTransform;
+            return equipmentContainer;
         }
     }
 
     public 回流目标类型 ReturnTarget => returnTarget;
-
-    private void Reset()
-    {
-        if (equipmentContainer == null)
-        {
-            equipmentContainer = transform as RectTransform;
-        }
-    }
 }

@@ -139,8 +139,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
-    private const string BattleEquipmentContainerPath = "Canvas/弹窗/左边栏位";
     private const string LeftWeaponMountPointName = "武器挂载点（左）";
     private const string RightWeaponMountPointName = "武器挂载点（右）";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
@@ -216,8 +214,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int backpackUsableSlotCount = -1;
     private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
     private int equipmentSkillRevision;
-    private JourneySceneBindings journeyBindings;
-    private BattleSceneBindings battleBindings;
     private readonly CategoryFilterBinding warehouseFilter = new CategoryFilterBinding();
     private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
@@ -750,8 +746,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
-        journeyBindings = JourneySceneBindings.FindInActiveScene();
-        battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheQualityBackgroundPrefabs();
         CacheItemTooltip(ItemDatabase.WeaponCategory.OneHanded, true);
         UnbindAll();
@@ -919,21 +913,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         extraEquipmentSlots.Clear();
 
         List<EquipmentPanelBindingInfo> containers = new List<EquipmentPanelBindingInfo>();
-        AddUniqueEquipmentContainer(containers, battleBindings != null ? battleBindings.equipmentContainer : null, StorageRightClickTarget.Backpack);
-        AddUniqueEquipmentContainer(containers, journeyBindings != null ? journeyBindings.equipmentContainer : null, StorageRightClickTarget.Backpack);
-
         装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
         for (int i = 0; i < panelBindings.Length; i++)
         {
             装备面板绑定 binding = panelBindings[i];
+            if (binding == null || binding.EquipmentContainer == null)
+            {
+                continue;
+            }
+
             AddUniqueEquipmentContainer(
                 containers,
-                binding != null ? binding.EquipmentContainer : null,
-                MapEquipmentReturnTarget(binding != null ? binding.ReturnTarget : 装备面板绑定.回流目标类型.背包));
+                binding.EquipmentContainer,
+                MapEquipmentReturnTarget(binding.ReturnTarget));
         }
-
-        AddUniqueEquipmentContainer(containers, FindTransformByPath(BattleEquipmentContainerPath), StorageRightClickTarget.Backpack);
-        AddUniqueEquipmentContainer(containers, FindTransformByPath(EquipmentContainerPath), StorageRightClickTarget.Backpack);
 
         for (int i = 0; i < containers.Count; i++)
         {
