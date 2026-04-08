@@ -290,11 +290,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(characterId))
-        {
-            界面ID列表.设置当前ID(characterId);
-        }
-
         instance.manualEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
         instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
     }
@@ -306,7 +301,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        界面ID列表.清空当前ID();
         instance.manualEquipmentCharacterId = string.Empty;
         instance.SetCurrentEquipmentCharacter(string.Empty);
     }
@@ -318,7 +312,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        界面ID列表.清空当前ID();
         instance.manualEquipmentCharacterId = string.Empty;
         instance.SetCurrentEquipmentCharacter(string.Empty);
     }

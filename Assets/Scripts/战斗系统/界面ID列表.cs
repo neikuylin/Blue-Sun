@@ -56,12 +56,6 @@ public static class 界面ID列表
         }
 
         BattleTurnSystem turnSystem = 获取战斗回合系统();
-        string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (turnSystem != null && !string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
-        {
-            return displayedEquipmentCharacterId;
-        }
-
         if (!string.IsNullOrWhiteSpace(currentCharacterIdOverride))
         {
             return currentCharacterIdOverride;
