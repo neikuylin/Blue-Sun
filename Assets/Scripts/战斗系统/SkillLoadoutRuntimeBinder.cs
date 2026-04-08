@@ -276,7 +276,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
         List<string> grantedSkillIds = CharacterSkillListUtility.BuildGrantedSkillIds(currentCharacterId);
         int grantedSkillCount = grantedSkillIds.Count;
-        int memorizedSlotCapacity = entry != null && entry.memorizedSkillIds != null ? entry.memorizedSkillIds.Count : 0;
+        int memorizedSlotCapacity = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int visibleSlotCount = grantedSkillCount + memorizedSlotCapacity;
         EnsureJourneySkillSlotCapacity(grantedSkillCount, memorizedSlotCapacity);
         CollectJourneySkillSlots();
@@ -554,9 +554,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return -1;
         }
 
-        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
+        int visibleSlotCount = ResolveVisibleSkillMemorySlotCount(entry.characterId);
+        for (int i = 0; i < visibleSlotCount; i++)
         {
-            if (string.IsNullOrWhiteSpace(entry.memorizedSkillIds[i]))
+            if (i >= entry.memorizedSkillIds.Count || string.IsNullOrWhiteSpace(entry.memorizedSkillIds[i]))
             {
                 return i;
             }
@@ -597,7 +598,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
         string movedSkillId = entry.warehouseSkillIds[warehouseIndex];
         if (string.IsNullOrWhiteSpace(movedSkillId))
         {
@@ -631,7 +632,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         int warehouseIndex = FindFirstEmptyWarehouseSlotIndex(entry);
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
         int movedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
         entry.warehouseSkillIds[warehouseIndex] = movedSkillId;
         entry.warehouseSkillWeights[warehouseIndex] = movedWeight;
@@ -650,7 +651,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, Mathf.Max(sourceIndex, targetIndex) + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, Mathf.Max(sourceIndex, targetIndex) + 1);
         if (sourceIndex >= entry.memorizedSkillIds.Count || targetIndex >= entry.memorizedSkillIds.Count)
         {
             return false;
@@ -714,7 +715,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
         if (entry.warehouseSkillIds == null ||
             entry.memorizedSkillIds == null ||
             warehouseIndex >= entry.warehouseSkillIds.Count ||
@@ -755,7 +756,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
         if (entry.warehouseSkillIds == null ||
             entry.memorizedSkillIds == null ||
             warehouseIndex >= entry.warehouseSkillIds.Count ||
@@ -835,8 +836,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         string resolvedCharacterId = ResolveCharacterId(characterId);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(resolvedCharacterId);
-        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorySlotCount);
+        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, ResolveVisibleSkillMemorySlotCount(resolvedCharacterId));
         return entry;
     }
 

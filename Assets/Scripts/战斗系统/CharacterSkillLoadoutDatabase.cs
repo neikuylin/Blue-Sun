@@ -52,6 +52,7 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         CharacterSkillEntry entry = FindEntry(resolvedCharacterId);
         if (entry != null)
         {
+            EnsureListsInitialized(entry);
             return entry;
         }
 
@@ -59,7 +60,7 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             characterId = resolvedCharacterId
         };
-        EnsureMemorizedSlotCapacity(entry, CharacterStatDatabase.StatEntry.BaseSkillMemorySlots);
+        EnsureListsInitialized(entry);
         entries.Add(entry);
         return entry;
     }
@@ -70,10 +71,21 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             return;
         }
-
         MigrateLegacyIfNeeded(entry, size);
         EnsureStringListSize(entry.memorizedSkillIds, size);
         EnsureIntListSize(entry.memorizedSkillWeights, size);
+    }
+
+    public static void EnsureMemorizedSlotMinSize(CharacterSkillEntry entry, int size)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        MigrateLegacyIfNeeded(entry, size);
+        EnsureStringListMinSize(entry.memorizedSkillIds, size);
+        EnsureIntListMinSize(entry.memorizedSkillWeights, size);
     }
 
     public static void EnsureWarehouseSlotCapacity(CharacterSkillEntry entry, int size)
@@ -83,9 +95,19 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
             return;
         }
 
-        MigrateLegacyIfNeeded(entry, CharacterStatDatabase.StatEntry.BaseSkillMemorySlots);
+        EnsureListsInitialized(entry);
         EnsureStringListMinSize(entry.warehouseSkillIds, size);
         EnsureIntListMinSize(entry.warehouseSkillWeights, size);
+    }
+
+    public static void PrepareEntryForRuntime(CharacterSkillEntry entry, int memorySlotCount)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        MigrateLegacyIfNeeded(entry, memorySlotCount);
     }
 
     public static int GetMemorizedSkillWeightAt(CharacterSkillEntry entry, int index)
@@ -188,7 +210,7 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         }
     }
 
-    private static void MigrateLegacyIfNeeded(CharacterSkillEntry entry, int memorySlotCount)
+    private static void EnsureListsInitialized(CharacterSkillEntry entry)
     {
         if (entry == null)
         {
@@ -214,13 +236,21 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             entry.warehouseSkillWeights = new List<int>();
         }
+    }
+
+    private static void MigrateLegacyIfNeeded(CharacterSkillEntry entry, int memorySlotCount)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        EnsureListsInitialized(entry);
 
         if ((entry.legacySkillIds == null || entry.legacySkillIds.Count == 0) ||
             entry.memorizedSkillIds.Count > 0 ||
             entry.warehouseSkillIds.Count > 0)
         {
-            EnsureStringListSize(entry.memorizedSkillIds, memorySlotCount);
-            EnsureIntListSize(entry.memorizedSkillWeights, memorySlotCount);
             return;
         }
 
@@ -230,9 +260,6 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
             entry.memorizedSkillIds.Add(entry.legacySkillIds[i]);
             entry.memorizedSkillWeights.Add(i < entry.legacySkillWeights.Count ? entry.legacySkillWeights[i] : 0);
         }
-
-        EnsureStringListSize(entry.memorizedSkillIds, memorySlotCount);
-        EnsureIntListSize(entry.memorizedSkillWeights, memorySlotCount);
 
         for (int i = memorizedCount; i < entry.legacySkillIds.Count; i++)
         {

@@ -14,11 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    memorizedSkillIds: []
-    memorizedSkillWeights: 
+    memorizedSkillIds:
+    - 
+    - 
+    - 
+    memorizedSkillWeights: 000000000000000000000000
     warehouseSkillIds:
-    - "\u56DE\u65CB\u65A9"
     - "\u706B\u7403"
+    - "\u56DE\u65CB\u65A9"
     warehouseSkillWeights: 0000000000000000
     legacySkillIds: []
     legacySkillWeights: 
