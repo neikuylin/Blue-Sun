@@ -11017,6 +11017,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1464923686}
+  - component: {fileID: 1464923687}
   m_Layer: 5
   m_Name: "\u88C5\u5907\u680F\u4F4D"
   m_TagString: Untagged
@@ -11051,6 +11052,20 @@ RectTransform:
   m_AnchoredPosition: {x: 101.99994, y: 149.54}
   m_SizeDelta: {x: 742, y: 657.93}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1464923687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1464923685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89d559295917c4d43af70da43c92b5cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  equipmentContainer: {fileID: 1464923686}
+  returnTarget: 0
 --- !u!1 &1471778119
 GameObject:
   m_ObjectHideFlags: 0
