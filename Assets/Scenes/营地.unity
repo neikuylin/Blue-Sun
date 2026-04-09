@@ -122,6 +122,58 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &1682676
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1682678}
+  - component: {fileID: 1682677}
+  m_Layer: 0
+  m_Name: DialogueSceneBindings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1682677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1682676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f81320d54447f40bdaf072be2ba6f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mainViewPrefab: {fileID: 4227591272030912172, guid: 32fb57a85d18b0e4bb5a2cb51b4786fd, type: 3}
+  secondaryViewPrefab: {fileID: 2070539011258567263, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
+  mainViewPortraitContainer: {fileID: 0}
+  secondaryViewPortraitContainer: {fileID: 0}
+  mainViewRoleName: {fileID: 0}
+  secondaryViewRoleName: {fileID: 0}
+  mainViewContent: {fileID: 0}
+  secondaryViewContent: {fileID: 0}
+--- !u!4 &1682678
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1682676}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &16659892
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11106,3 +11158,4 @@ SceneRoots:
   - {fileID: 850972986}
   - {fileID: 1184170722}
   - {fileID: 1795698891}
+  - {fileID: 1682678}

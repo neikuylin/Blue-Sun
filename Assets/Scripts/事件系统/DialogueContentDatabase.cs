@@ -7,11 +7,19 @@ public sealed class DialogueContentDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "DialogueContentDatabase";
 
+    public enum DialogueViewSide
+    {
+        Main,
+        Secondary
+    }
+
     [Serializable]
     public sealed class DialogueContentEntry
     {
         public string id = string.Empty;
         public string roleNameId = string.Empty;
+        public Sprite portraitSprite2D;
+        public DialogueViewSide viewSide = DialogueViewSide.Main;
         [TextArea(3, 8)] public string content = string.Empty;
     }
 

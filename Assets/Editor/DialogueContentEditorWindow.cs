@@ -15,7 +15,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
     private static void Open()
     {
         DialogueContentEditorWindow window = GetWindow<DialogueContentEditorWindow>("对话内容编辑器");
-        window.minSize = new Vector2(860f, 560f);
+        window.minSize = new Vector2(860f, 620f);
         window.Show();
         window.Focus();
     }
@@ -71,9 +71,10 @@ public sealed class DialogueContentEditorWindow : EditorWindow
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
+            string foldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+
             using (new EditorGUILayout.HorizontalScope())
             {
-                string foldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
                 bool isExpanded = GetFoldoutState(foldoutKey);
                 string title = string.IsNullOrWhiteSpace(entry.id) ? $"内容 {index + 1}" : entry.id;
                 bool nextExpanded = EditorGUILayout.Foldout(isExpanded, title, true);
@@ -81,6 +82,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 {
                     foldoutStates[foldoutKey] = nextExpanded;
                 }
+
                 if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
                     Undo.RecordObject(database, "删除对话内容");
@@ -91,8 +93,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 }
             }
 
-            string currentFoldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
-            if (!GetFoldoutState(currentFoldoutKey))
+            if (!GetFoldoutState(foldoutKey))
             {
                 return;
             }
@@ -101,7 +102,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             if (!string.Equals(nextId, entry.id, System.StringComparison.Ordinal))
             {
                 Undo.RecordObject(database, "修改对话ID");
-                string oldKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+                string oldKey = foldoutKey;
                 entry.id = nextId;
                 string newKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
                 bool expanded = GetFoldoutState(oldKey);
@@ -114,6 +115,23 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 "角色名字",
                 entry.roleNameId,
                 GetRoleNameIds(roleNameDatabase));
+
+            Sprite nextPortraitSprite = (Sprite)EditorGUILayout.ObjectField("立绘 Sprite2D", entry.portraitSprite2D, typeof(Sprite), false);
+            if (nextPortraitSprite != entry.portraitSprite2D)
+            {
+                Undo.RecordObject(database, "修改立绘");
+                entry.portraitSprite2D = nextPortraitSprite;
+                SaveAsset(database);
+            }
+
+            DialogueContentDatabase.DialogueViewSide nextViewSide =
+                (DialogueContentDatabase.DialogueViewSide)EditorGUILayout.EnumPopup("视角", entry.viewSide);
+            if (nextViewSide != entry.viewSide)
+            {
+                Undo.RecordObject(database, "修改视角");
+                entry.viewSide = nextViewSide;
+                SaveAsset(database);
+            }
 
             string nextContent = EditorGUILayout.TextArea(entry.content, GUILayout.MinHeight(90f));
             if (!string.Equals(nextContent, entry.content, System.StringComparison.Ordinal))
