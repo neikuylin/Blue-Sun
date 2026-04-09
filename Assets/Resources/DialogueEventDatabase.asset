@@ -20,4 +20,5 @@ MonoBehaviour:
       buttons:
       - {fileID: 0}
       eventIds: []
-      conditionEventIds: []
+    condition:
+      eventIds: []

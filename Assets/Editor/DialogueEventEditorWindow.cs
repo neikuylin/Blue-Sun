@@ -15,7 +15,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
     private static void Open()
     {
         DialogueEventEditorWindow window = GetWindow<DialogueEventEditorWindow>("对话事件编辑器");
-        window.minSize = new Vector2(820f, 520f);
+        window.minSize = new Vector2(860f, 560f);
         window.Show();
         window.Focus();
     }
@@ -72,11 +72,12 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         }
 
         DialogueEventDatabase.EnsureEntry(entry);
+        string foldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+
         using (new EditorGUILayout.VerticalScope("box"))
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                string foldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
                 bool isExpanded = GetFoldoutState(foldoutKey);
                 string title = string.IsNullOrWhiteSpace(entry.id) ? $"事件 {index + 1}" : entry.id;
                 bool nextExpanded = EditorGUILayout.Foldout(isExpanded, title, true);
@@ -84,6 +85,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
                 {
                     foldoutStates[foldoutKey] = nextExpanded;
                 }
+
                 if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
                     Undo.RecordObject(database, "删除对话事件");
@@ -94,17 +96,17 @@ public sealed class DialogueEventEditorWindow : EditorWindow
                 }
             }
 
-            string currentFoldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
-            if (!GetFoldoutState(currentFoldoutKey))
+            if (!GetFoldoutState(foldoutKey))
             {
                 return;
             }
 
+            EditorGUILayout.LabelField("对话", EditorStyles.boldLabel);
             string nextId = EditorGUILayout.TextField("ID", entry.id);
             if (!string.Equals(nextId, entry.id, System.StringComparison.Ordinal))
             {
                 Undo.RecordObject(database, "修改对话事件ID");
-                string oldKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+                string oldKey = foldoutKey;
                 entry.id = nextId;
                 string newKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
                 bool expanded = GetFoldoutState(oldKey);
@@ -124,7 +126,10 @@ public sealed class DialogueEventEditorWindow : EditorWindow
             EditorGUILayout.LabelField("触发", EditorStyles.boldLabel);
             DrawButtonList(database, entry.trigger.buttons);
             DrawEventIdList(database, "事件编辑器ID", entry.trigger.eventIds, GetEventIds(eventDatabase));
-            DrawEventIdList(database, "条件", entry.trigger.conditionEventIds, GetEventIds(eventDatabase));
+
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.LabelField("条件", EditorStyles.boldLabel);
+            DrawConditionList(database, entry.condition.eventIds, GetEventIds(eventDatabase));
         }
     }
 
@@ -187,34 +192,32 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
         for (int i = 0; i < buttons.Count; i++)
         {
-            GameObject current = buttons[i];
-            GameObject next = (GameObject)EditorGUILayout.ObjectField($"按钮 {i + 1}", current, typeof(GameObject), true);
-            if (next != current)
+            using (new EditorGUILayout.HorizontalScope())
             {
-                Undo.RecordObject(database, "修改按钮绑定");
-                buttons[i] = next;
-                SaveAsset(database);
+                GameObject current = buttons[i];
+                GameObject next = (GameObject)EditorGUILayout.ObjectField($"按钮 {i + 1}", current, typeof(GameObject), true);
+                if (!ReferenceEquals(next, current))
+                {
+                    Undo.RecordObject(database, "修改按钮绑定");
+                    buttons[i] = next;
+                    SaveAsset(database);
+                }
+
+                if (GUILayout.Button("删除", GUILayout.Width(72f)))
+                {
+                    Undo.RecordObject(database, "删除按钮绑定");
+                    buttons.RemoveAt(i);
+                    SaveAsset(database);
+                    GUIUtility.ExitGUI();
+                }
             }
         }
 
-        using (new EditorGUILayout.HorizontalScope())
+        if (GUILayout.Button("新增按钮", GUILayout.Width(88f)))
         {
-            if (GUILayout.Button("新增按钮", GUILayout.Width(88f)))
-            {
-                Undo.RecordObject(database, "新增按钮绑定");
-                buttons.Add(null);
-                SaveAsset(database);
-            }
-
-            using (new EditorGUI.DisabledScope(buttons.Count == 0))
-            {
-                if (GUILayout.Button("删除最后一个按钮", GUILayout.Width(130f)))
-                {
-                    Undo.RecordObject(database, "删除按钮绑定");
-                    buttons.RemoveAt(buttons.Count - 1);
-                    SaveAsset(database);
-                }
-            }
+            Undo.RecordObject(database, "新增按钮绑定");
+            buttons.Add(null);
+            SaveAsset(database);
         }
     }
 
@@ -227,33 +230,91 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
         for (int i = 0; i < targetList.Count; i++)
         {
-            string nextValue = DrawIdPopup($"{label} {i + 1}", targetList[i], sourceIds);
-            if (!string.Equals(nextValue, targetList[i], System.StringComparison.Ordinal))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                Undo.RecordObject(database, $"修改{label}");
-                targetList[i] = nextValue;
-                SaveAsset(database);
+                string nextValue = DrawIdPopup($"{label} {i + 1}", targetList[i], sourceIds);
+                if (!string.Equals(nextValue, targetList[i], System.StringComparison.Ordinal))
+                {
+                    Undo.RecordObject(database, $"修改{label}");
+                    targetList[i] = nextValue;
+                    SaveAsset(database);
+                }
+
+                if (GUILayout.Button("删除", GUILayout.Width(72f)))
+                {
+                    Undo.RecordObject(database, $"删除{label}");
+                    targetList.RemoveAt(i);
+                    SaveAsset(database);
+                    GUIUtility.ExitGUI();
+                }
             }
         }
 
-        using (new EditorGUILayout.HorizontalScope())
+        if (GUILayout.Button($"新增{label}", GUILayout.Width(100f)))
         {
-            if (GUILayout.Button($"新增{label}", GUILayout.Width(100f)))
+            Undo.RecordObject(database, $"新增{label}");
+            targetList.Add(string.Empty);
+            SaveAsset(database);
+        }
+    }
+
+    private void DrawConditionList(
+        DialogueEventDatabase database,
+        List<DialogueEventDatabase.ConditionEntry> conditions,
+        List<string> sourceIds)
+    {
+        if (conditions == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < conditions.Count; i++)
+        {
+            DialogueEventDatabase.ConditionEntry condition = conditions[i];
+            if (condition == null)
             {
-                Undo.RecordObject(database, $"新增{label}");
-                targetList.Add(string.Empty);
-                SaveAsset(database);
+                continue;
             }
 
-            using (new EditorGUI.DisabledScope(targetList.Count == 0))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button($"删除最后一个{label}", GUILayout.Width(140f)))
+                string nextEventId = DrawIdPopup($"事件编辑器ID {i + 1}", condition.eventId, sourceIds);
+                if (!string.Equals(nextEventId, condition.eventId, System.StringComparison.Ordinal))
                 {
-                    Undo.RecordObject(database, $"删除{label}");
-                    targetList.RemoveAt(targetList.Count - 1);
+                    Undo.RecordObject(database, "修改条件事件编辑器ID");
+                    condition.eventId = nextEventId;
                     SaveAsset(database);
                 }
+
+                bool nextExpectedValue = EditorGUILayout.Toggle(condition.expectedValue, GUILayout.Width(20f));
+                if (nextExpectedValue != condition.expectedValue)
+                {
+                    Undo.RecordObject(database, "修改条件值");
+                    condition.expectedValue = nextExpectedValue;
+                    SaveAsset(database);
+                }
+
+                EditorGUILayout.LabelField(condition.expectedValue ? "True" : "False", GUILayout.Width(40f));
+
+                if (GUILayout.Button("删除", GUILayout.Width(72f)))
+                {
+                    Undo.RecordObject(database, "删除条件");
+                    conditions.RemoveAt(i);
+                    SaveAsset(database);
+                    GUIUtility.ExitGUI();
+                }
             }
+        }
+
+        if (GUILayout.Button("新增事件编辑器ID", GUILayout.Width(130f)))
+        {
+            Undo.RecordObject(database, "新增条件");
+            conditions.Add(new DialogueEventDatabase.ConditionEntry
+            {
+                eventId = string.Empty,
+                expectedValue = true
+            });
+            SaveAsset(database);
         }
     }
 
