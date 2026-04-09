@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DialogueEventDatabase
   m_EditorClassIdentifier: 
   entries:
-  - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD"
+  - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
     presentation:
       dialogueContentId: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
     trigger:
@@ -21,4 +21,6 @@ MonoBehaviour:
       - {fileID: 0}
       eventIds: []
     condition:
-      eventIds: []
+      eventIds:
+      - eventId: "\u7D22\u62C9\u5A1C\u8425\u5730\u5BF9\u8BDD"
+        number: 1

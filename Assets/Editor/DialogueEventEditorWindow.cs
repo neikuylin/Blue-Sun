@@ -25,6 +25,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         DialogueEventDatabase database = EnsureDatabase();
         DialogueContentDatabase contentDatabase = DialogueContentDatabase.LoadDefault();
         EventDatabase eventDatabase = EventDatabase.LoadDefault();
+        DialogueConditionDatabase conditionDatabase = DialogueConditionDatabase.LoadDefault();
         if (database == null)
         {
             EditorGUILayout.HelpBox("对话事件数据库创建失败。", MessageType.Error);
@@ -54,7 +55,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < database.Entries.Count; i++)
         {
-            DrawEntry(database, database.Entries[i], i, contentDatabase, eventDatabase);
+            DrawEntry(database, database.Entries[i], i, contentDatabase, eventDatabase, conditionDatabase);
         }
         EditorGUILayout.EndScrollView();
     }
@@ -64,7 +65,8 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         DialogueEventDatabase.DialogueEventEntry entry,
         int index,
         DialogueContentDatabase contentDatabase,
-        EventDatabase eventDatabase)
+        EventDatabase eventDatabase,
+        DialogueConditionDatabase conditionDatabase)
     {
         if (entry == null)
         {
@@ -129,7 +131,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("条件", EditorStyles.boldLabel);
-            DrawConditionList(database, entry.condition.eventIds, GetEventIds(eventDatabase));
+            DrawConditionList(database, entry.condition.eventIds, GetConditionIds(conditionDatabase));
         }
     }
 
@@ -258,10 +260,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         }
     }
 
-    private void DrawConditionList(
-        DialogueEventDatabase database,
-        List<DialogueEventDatabase.ConditionEntry> conditions,
-        List<string> sourceIds)
+    private void DrawConditionList(DialogueEventDatabase database, List<DialogueEventDatabase.ConditionEntry> conditions, List<string> sourceIds)
     {
         if (conditions == null)
         {
@@ -278,7 +277,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                string nextEventId = DrawIdPopup($"事件编辑器ID {i + 1}", condition.eventId, sourceIds);
+                string nextEventId = DrawIdPopup($"条件ID {i + 1}", condition.eventId, sourceIds);
                 if (!string.Equals(nextEventId, condition.eventId, System.StringComparison.Ordinal))
                 {
                     Undo.RecordObject(database, "修改条件事件编辑器ID");
@@ -286,15 +285,13 @@ public sealed class DialogueEventEditorWindow : EditorWindow
                     SaveAsset(database);
                 }
 
-                bool nextExpectedValue = EditorGUILayout.Toggle(condition.expectedValue, GUILayout.Width(20f));
-                if (nextExpectedValue != condition.expectedValue)
+                int nextNumber = EditorGUILayout.IntField(condition.number, GUILayout.Width(60f));
+                if (nextNumber != condition.number)
                 {
-                    Undo.RecordObject(database, "修改条件值");
-                    condition.expectedValue = nextExpectedValue;
+                    Undo.RecordObject(database, "修改条件数字");
+                    condition.number = nextNumber;
                     SaveAsset(database);
                 }
-
-                EditorGUILayout.LabelField(condition.expectedValue ? "True" : "False", GUILayout.Width(40f));
 
                 if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
@@ -306,13 +303,13 @@ public sealed class DialogueEventEditorWindow : EditorWindow
             }
         }
 
-        if (GUILayout.Button("新增事件编辑器ID", GUILayout.Width(130f)))
+        if (GUILayout.Button("新增条件ID", GUILayout.Width(100f)))
         {
             Undo.RecordObject(database, "新增条件");
             conditions.Add(new DialogueEventDatabase.ConditionEntry
             {
                 eventId = string.Empty,
-                expectedValue = true
+                number = 0
             });
             SaveAsset(database);
         }
@@ -329,6 +326,28 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         for (int i = 0; i < database.Entries.Count; i++)
         {
             DialogueContentDatabase.DialogueContentEntry entry = database.Entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.id))
+            {
+                continue;
+            }
+
+            result.Add(entry.id);
+        }
+
+        return result;
+    }
+
+    private static List<string> GetConditionIds(DialogueConditionDatabase database)
+    {
+        List<string> result = new List<string>();
+        if (database == null || database.Entries == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < database.Entries.Count; i++)
+        {
+            DialogueConditionDatabase.ConditionDefinitionEntry entry = database.Entries[i];
             if (entry == null || string.IsNullOrWhiteSpace(entry.id))
             {
                 continue;

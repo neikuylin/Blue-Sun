@@ -39,7 +39,7 @@ public sealed class DialogueEventDatabase : ScriptableObject
     public sealed class ConditionEntry
     {
         public string eventId = string.Empty;
-        public bool expectedValue = true;
+        public int number;
     }
 
     [SerializeField] private List<DialogueEventEntry> entries = new List<DialogueEventEntry>();
