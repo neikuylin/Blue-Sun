@@ -896,23 +896,14 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        SkillBarBinding 通用技能栏绑定 = SkillBarBinding.FindBindingInActiveScene();
-        if (通用技能栏绑定 == null)
+        战斗技能栏绑定 binder = FindObjectOfType<战斗技能栏绑定>(true);
+        if (binder == null)
         {
+            Debug.LogWarning("BattleBootstrap: 场景中未找到战斗技能栏绑定，战斗下方技能栏不会刷新。");
             return;
         }
 
-        战斗技能栏绑定 binder = 通用技能栏绑定.GetComponent<战斗技能栏绑定>();
-        if (binder == null)
-        {
-            binder = 通用技能栏绑定.gameObject.AddComponent<战斗技能栏绑定>();
-        }
-
-        binder.初始化(
-            turnSystem,
-            通用技能栏绑定.ResolveSkillSlotTemplate(),
-            通用技能栏绑定.ResolveSkillPanel(),
-            通用技能栏绑定.ResolveSkillSlotContainer());
+        binder.初始化(turnSystem);
     }
 
     private void RefreshVitalBars(BattleTurnSystem turnSystem)

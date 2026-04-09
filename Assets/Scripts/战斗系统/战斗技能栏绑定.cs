@@ -15,6 +15,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private BattleSkillDatabase 技能数据库;
     private string 当前角色ID = string.Empty;
     private string 当前技能签名 = string.Empty;
+    private string 上次调试签名 = string.Empty;
 
     private sealed class 技能格组件
     {
@@ -25,14 +26,12 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         public string 技能ID = string.Empty;
     }
 
-    public void 初始化(BattleTurnSystem turnSystem, RectTransform 技能格子模板, RectTransform 技能栏位根, RectTransform 技能格子容器)
+    public void 初始化(BattleTurnSystem turnSystem)
     {
         战斗回合系统 = turnSystem;
         技能数据库 = BattleSkillDatabase.LoadDefault();
-        技能格子prefab = 技能格子模板;
-        战斗技能栏位 = 技能栏位根;
-        战斗技能格子区域 = 技能格子容器;
-        立即刷新(force: true);
+        校验绑定();
+        立即刷新(true);
     }
 
     private void LateUpdate()
@@ -42,14 +41,17 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             return;
         }
 
-        立即刷新(force: false);
+        立即刷新(false);
     }
 
     private void 立即刷新(bool force)
     {
         string 角色ID = 解析当前角色ID();
-        List<string> 技能列表 = 构建技能列表(角色ID);
-        string 技能签名 = 构建技能签名(角色ID, 技能列表);
+        List<string> 最终技能列表 = 构建技能列表(角色ID);
+        string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
+
+        输出调试信息(角色ID, 最终技能列表);
+
         if (!force &&
             string.Equals(当前角色ID, 角色ID, StringComparison.Ordinal) &&
             string.Equals(当前技能签名, 技能签名, StringComparison.Ordinal))
@@ -60,7 +62,25 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         当前角色ID = 角色ID;
         当前技能签名 = 技能签名;
         刷新技能栏可见性();
-        重建技能格子(技能列表);
+        重建技能格子(最终技能列表);
+    }
+
+    private void 校验绑定()
+    {
+        if (技能格子prefab == null)
+        {
+            Debug.LogWarning("[战斗技能栏绑定] 未绑定技能格子prefab。", this);
+        }
+
+        if (战斗技能栏位 == null)
+        {
+            Debug.LogWarning("[战斗技能栏绑定] 未绑定战斗技能栏位。", this);
+        }
+
+        if (战斗技能格子区域 == null)
+        {
+            Debug.LogWarning("[战斗技能栏绑定] 未绑定战斗技能格子区域。", this);
+        }
     }
 
     private void 刷新技能栏可见性()
@@ -89,6 +109,16 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         return 当前单位.characterId ?? string.Empty;
     }
 
+    private static List<string> 构建技能列表(string 角色ID)
+    {
+        if (string.IsNullOrWhiteSpace(角色ID))
+        {
+            return new List<string>();
+        }
+
+        return CharacterSkillListUtility.BuildSkillIds(角色ID);
+    }
+
     private static string 构建技能签名(string 角色ID, List<string> 技能列表)
     {
         if (技能列表 == null || 技能列表.Count == 0)
@@ -99,14 +129,37 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         return (角色ID ?? string.Empty) + "|" + string.Join("|", 技能列表);
     }
 
-    private List<string> 构建技能列表(string 角色ID)
+    private void 输出调试信息(string 角色ID, List<string> 最终技能列表)
     {
-        if (string.IsNullOrWhiteSpace(角色ID))
+        string 装备技能文本 = 拼接技能(CharacterSkillListUtility.BuildGrantedSkillIds(角色ID));
+        string 已装技能文本 = 拼接技能(CharacterSkillListUtility.BuildMemorizedSkillIds(角色ID));
+        string 最终技能文本 = 拼接技能(最终技能列表);
+        string 调试签名 = $"{角色ID}|granted:{装备技能文本}|memorized:{已装技能文本}|final:{最终技能文本}|prefab:{(技能格子prefab != null ? 技能格子prefab.name : "空")}|panel:{(战斗技能栏位 != null ? 战斗技能栏位.name : "空")}|container:{(战斗技能格子区域 != null ? 战斗技能格子区域.name : "空")}";
+        if (string.Equals(上次调试签名, 调试签名, StringComparison.Ordinal))
         {
-            return new List<string>();
+            return;
         }
 
-        return CharacterSkillListUtility.BuildSkillIds(角色ID);
+        上次调试签名 = 调试签名;
+
+        string 当前单位信息;
+        if (战斗回合系统 == null)
+        {
+            当前单位信息 = "战斗回合系统为空";
+        }
+        else if (战斗回合系统.ActiveUnit == null)
+        {
+            当前单位信息 = "当前行动单位为空";
+        }
+        else
+        {
+            BattleUnit unit = 战斗回合系统.ActiveUnit;
+            当前单位信息 = $"当前行动单位={unit.name}, 角色ID={unit.characterId}, 玩家控制={unit.isPlayerControlled}, 存活={unit.IsAlive}";
+        }
+
+        Debug.LogWarning(
+            $"[战斗技能栏调试] {当前单位信息} | 已装技能=[{已装技能文本}] | 装备技能=[{装备技能文本}] | 最终技能=[{最终技能文本}] | prefab={(技能格子prefab != null ? 技能格子prefab.name : "空")} | 栏位={(战斗技能栏位 != null ? 战斗技能栏位.name : "空")} | 容器={(战斗技能格子区域 != null ? 战斗技能格子区域.name : "空")}",
+            this);
     }
 
     private void 重建技能格子(List<string> 技能列表)
@@ -127,6 +180,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
 
             RectTransform 实例 = Instantiate(技能格子prefab, 战斗技能格子区域, false);
             实例.name = $"战斗技能格_{i}";
+
             技能格组件 格子 = new 技能格组件
             {
                 根节点 = 实例,
@@ -241,5 +295,24 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static string 拼接技能(List<string> 技能列表)
+    {
+        if (技能列表 == null || 技能列表.Count == 0)
+        {
+            return "空";
+        }
+
+        List<string> 有效技能 = new List<string>();
+        for (int i = 0; i < 技能列表.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(技能列表[i]))
+            {
+                有效技能.Add(技能列表[i]);
+            }
+        }
+
+        return 有效技能.Count == 0 ? "空" : string.Join(", ", 有效技能);
     }
 }
