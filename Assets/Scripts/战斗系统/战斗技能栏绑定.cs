@@ -13,7 +13,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private readonly List<技能格组件> 已生成格子 = new List<技能格组件>();
     private BattleTurnSystem 战斗回合系统;
     private BattleSkillDatabase 技能数据库;
-    private CanvasGroup 栏位CanvasGroup;
+    private CanvasGroup 栏位画布组;
     private string 当前角色ID = string.Empty;
     private string 当前技能签名 = string.Empty;
 
@@ -31,7 +31,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         战斗回合系统 = turnSystem;
         技能数据库 = BattleSkillDatabase.LoadDefault();
         校验绑定();
-        缓存栏位CanvasGroup();
+        缓存栏位画布组();
         立即刷新(true);
     }
 
@@ -63,25 +63,25 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
     }
 
-    private void 缓存栏位CanvasGroup()
+    private void 缓存栏位画布组()
     {
         if (战斗技能栏位 == null)
         {
-            栏位CanvasGroup = null;
+            栏位画布组 = null;
             return;
         }
 
-        栏位CanvasGroup = 战斗技能栏位.GetComponent<CanvasGroup>();
-        if (栏位CanvasGroup == null)
+        栏位画布组 = 战斗技能栏位.GetComponent<CanvasGroup>();
+        if (栏位画布组 == null)
         {
-            栏位CanvasGroup = 战斗技能栏位.gameObject.AddComponent<CanvasGroup>();
+            栏位画布组 = 战斗技能栏位.gameObject.AddComponent<CanvasGroup>();
         }
     }
 
     private void 立即刷新(bool force)
     {
         string 角色ID = 解析当前角色ID();
-        List<string> 最终技能列表 = 构建技能列表(角色ID);
+        List<string> 最终技能列表 = CharacterSkillListUtility.BuildSkillIds(角色ID);
         string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
 
         刷新技能栏可见性(角色ID);
@@ -106,17 +106,17 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         bool 显示 = !string.IsNullOrWhiteSpace(角色ID);
-        if (栏位CanvasGroup != null)
+        if (栏位画布组 != null)
         {
-            栏位CanvasGroup.alpha = 显示 ? 1f : 0f;
-            栏位CanvasGroup.interactable = 显示;
-            栏位CanvasGroup.blocksRaycasts = 显示;
+            栏位画布组.alpha = 显示 ? 1f : 0f;
+            栏位画布组.interactable = 显示;
+            栏位画布组.blocksRaycasts = 显示;
         }
 
         for (int i = 0; i < 已生成格子.Count; i++)
         {
             技能格组件 格子 = 已生成格子[i];
-            if (格子 != null && 格子.根节点 != null)
+            if (格子?.根节点 != null)
             {
                 格子.根节点.gameObject.SetActive(显示);
             }
@@ -132,11 +132,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         return 当前单位.characterId ?? string.Empty;
-    }
-
-    private static List<string> 构建技能列表(string 角色ID)
-    {
-        return CharacterSkillListUtility.BuildSkillIds(角色ID);
     }
 
     private static string 构建技能签名(string 角色ID, List<string> 技能列表)
@@ -256,7 +251,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         for (int i = 0; i < 已生成格子.Count; i++)
         {
             技能格组件 格子 = 已生成格子[i];
-            if (格子 != null && 格子.根节点 != null)
+            if (格子?.根节点 != null)
             {
                 Destroy(格子.根节点.gameObject);
             }
