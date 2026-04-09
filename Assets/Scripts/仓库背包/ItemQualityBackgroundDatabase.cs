@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "ItemQualityBackgroundDatabase", menuName = "背包/物品品质底图数据库")]
 public sealed class ItemQualityBackgroundDatabase : ScriptableObject
@@ -11,7 +10,6 @@ public sealed class ItemQualityBackgroundDatabase : ScriptableObject
     {
         public ItemDatabase.ItemQuality quality = ItemDatabase.ItemQuality.Common;
 
-        [FormerlySerializedAs("prefab")]
         public GameObject oneByOnePrefab;
 
         public GameObject oneByTwoPrefab;

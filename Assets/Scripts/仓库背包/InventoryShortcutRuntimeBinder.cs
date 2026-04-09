@@ -2534,20 +2534,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        if (!ShouldUseBackpackFallbackForDisplacedItems(source, placementTarget, displacedItems))
-        {
-            return false;
-        }
-
-        List<int> fallbackCells = GetBackpackFallbackCandidateCells(sourceCells, sourceSim);
-        workingPlacements.Clear();
-        if (!TryResolveDisplacedPlacementsRecursive(SlotKind.Backpack, displacedItems, 0, fallbackCells, sourceSim, workingPlacements))
-        {
-            return false;
-        }
-
-        displacedPlacements.AddRange(workingPlacements);
-        return true;
+        return false;
     }
 
     private bool TryResolveDisplacedPlacementsRecursive(
@@ -2584,42 +2571,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return false;
-    }
-
-    private bool ShouldUseBackpackFallbackForDisplacedItems(SlotRef source, SlotRef placementTarget, List<ItemSlotData> displacedItems)
-    {
-        return source.kind == SlotKind.Backpack
-            && (placementTarget.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Backpack)
-            && displacedItems != null
-            && displacedItems.Count > 0;
-    }
-
-    private List<int> GetBackpackFallbackCandidateCells(List<int> preferredCells, List<ItemSlotData> backpackData)
-    {
-        List<int> candidates = new List<int>();
-        HashSet<int> seen = new HashSet<int>();
-
-        if (preferredCells != null)
-        {
-            for (int i = 0; i < preferredCells.Count; i++)
-            {
-                int index = preferredCells[i];
-                if (index >= 0 && index < backpackData.Count && seen.Add(index))
-                {
-                    candidates.Add(index);
-                }
-            }
-        }
-
-        for (int i = backpackData.Count - 1; i >= 0; i--)
-        {
-            if (seen.Add(i))
-            {
-                candidates.Add(i);
-            }
-        }
-
-        return candidates;
     }
 
     private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
