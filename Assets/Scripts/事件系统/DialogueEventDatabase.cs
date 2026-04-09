@@ -7,43 +7,39 @@ public sealed class DialogueEventDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "DialogueEventDatabase";
 
-    public enum TriggerType
-    {
-        Manual,
-        SceneEnter,
-        ClickObject,
-        CampCharacter,
-        BattleRoom,
-        Interaction
-    }
-
     [Serializable]
     public sealed class DialogueEventEntry
     {
+        public string id = string.Empty;
+        public PresentationData presentation = new PresentationData();
+        public TriggerData trigger = new TriggerData();
+    }
+
+    [Serializable]
+    public sealed class PresentationData
+    {
+        public string dialogueContentId = string.Empty;
+    }
+
+    [Serializable]
+    public sealed class TriggerData
+    {
+        public string buttonId = string.Empty;
         public string eventId = string.Empty;
-        public string displayName = string.Empty;
-        public bool enabled = true;
-        public TriggerType triggerType = TriggerType.Manual;
-        public string dialogueId = string.Empty;
-        public string sceneName = string.Empty;
-        public string targetId = string.Empty;
-        public string speakerId = string.Empty;
-        public bool playOnce;
-        [TextArea(2, 5)] public string description = string.Empty;
-        public List<string> tags = new List<string>();
     }
 
     [SerializeField] private List<DialogueEventEntry> entries = new List<DialogueEventEntry>();
 
     public List<DialogueEventEntry> Entries => entries;
 
-    public DialogueEventEntry FindEntry(string eventId)
+    public DialogueEventEntry FindEntry(string id)
     {
-        if (string.IsNullOrWhiteSpace(eventId))
+        if (string.IsNullOrWhiteSpace(id))
         {
             return null;
         }
 
+        string resolvedId = id.Trim();
         for (int i = 0; i < entries.Count; i++)
         {
             DialogueEventEntry entry = entries[i];
@@ -52,7 +48,7 @@ public sealed class DialogueEventDatabase : ScriptableObject
                 continue;
             }
 
-            if (string.Equals(entry.eventId, eventId.Trim(), StringComparison.Ordinal))
+            if (string.Equals(entry.id, resolvedId, StringComparison.Ordinal))
             {
                 EnsureEntry(entry);
                 return entry;
@@ -62,14 +58,14 @@ public sealed class DialogueEventDatabase : ScriptableObject
         return null;
     }
 
-    public DialogueEventEntry GetOrCreateEntry(string eventId)
+    public DialogueEventEntry GetOrCreateEntry(string id)
     {
-        if (string.IsNullOrWhiteSpace(eventId))
+        if (string.IsNullOrWhiteSpace(id))
         {
             return null;
         }
 
-        string resolvedId = eventId.Trim();
+        string resolvedId = id.Trim();
         DialogueEventEntry existing = FindEntry(resolvedId);
         if (existing != null)
         {
@@ -78,8 +74,7 @@ public sealed class DialogueEventDatabase : ScriptableObject
 
         DialogueEventEntry created = new DialogueEventEntry
         {
-            eventId = resolvedId,
-            displayName = resolvedId
+            id = resolvedId
         };
         EnsureEntry(created);
         entries.Add(created);
@@ -93,9 +88,14 @@ public sealed class DialogueEventDatabase : ScriptableObject
             return;
         }
 
-        if (entry.tags == null)
+        if (entry.presentation == null)
         {
-            entry.tags = new List<string>();
+            entry.presentation = new PresentationData();
+        }
+
+        if (entry.trigger == null)
+        {
+            entry.trigger = new TriggerData();
         }
     }
 
