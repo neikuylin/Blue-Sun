@@ -15,6 +15,6 @@ MonoBehaviour:
   entries:
   - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
     roleNameId: "\u7D22\u62C9\u5A1C"
-    portraitSprite2D: {fileID: 0}
+    portraitSprite2D: {fileID: 21300000, guid: f46a0c15ecfe61347b6ee5d2a95dc023, type: 3}
     viewSide: 1
     content: "\u4F60\u597D\u554A\uFF0C\u65E0\u540D\u5927\u4EBA\u3002"
