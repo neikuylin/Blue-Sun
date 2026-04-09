@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -30,10 +29,6 @@ public static class SceneReferenceAutoBinder
     private const string BattleTimelinePath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u56de\u5408\u65f6\u95f4\u8f74";
     private const string BattleEndTurnButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u7ed3\u675f\u56de\u5408\u6309\u94ae";
     private const string BattleMoveButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u79fb\u52a8\u6309\u94ae";
-    private const string PreviousPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u524d\u7ffb\u9875";
-    private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
-    private const string SpellCurrentPagePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u6cd5\u672f\u5f53\u524d\u9875";
-    private const string SpellTotalPagePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u603b\u9875";
     private const string BattleCurrentPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u56fe";
     private const string BattleSecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string BattleThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
@@ -136,8 +131,6 @@ public static class SceneReferenceAutoBinder
         Transform timeline = FindTransform(scene, BattleTimelinePath);
         Button endTurnButton = FindButton(scene, BattleEndTurnButtonPath);
         Button moveSkillButton = FindButton(scene, BattleMoveButtonPath);
-        Button previousSkillPageButton = FindButton(scene, PreviousPageButtonPath);
-        Button nextSkillPageButton = FindButton(scene, NextPageButtonPath);
         Image currentPortrait = FindImage(scene, BattleCurrentPortraitPath);
         Image secondPortrait = FindImage(scene, BattleSecondPortraitPath);
         Image thirdPortrait = FindImage(scene, BattleThirdPortraitPath);
@@ -149,9 +142,6 @@ public static class SceneReferenceAutoBinder
         Image manaSlot = FindImage(scene, BattleManaSlotPath);
         Image manaFill = FindImage(scene, BattleManaFillPath);
         TMP_Text manaText = FindText(scene, BattleManaTextPath);
-        TMP_Text spellCurrentPageText = FindText(scene, SpellCurrentPagePath);
-        TMP_Text spellTotalPageText = FindText(scene, SpellTotalPagePath);
-        RectTransform skillContainer = FindRectTransform(scene, "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df");
         RectTransform battleBackpackContainer = FindRectTransform(scene, BattleBackpackContainerPath);
         RectTransform battleBackpackContent = FindRectTransform(scene, BattleBackpackContentPath);
         RectTransform battleBackpackDragHandle = FindRectTransform(scene, BattleBackpackDragHandlePath);
@@ -178,8 +168,6 @@ public static class SceneReferenceAutoBinder
         bindings.timelineAnchor = timeline;
         bindings.endTurnButton = endTurnButton;
         bindings.moveSkillButton = moveSkillButton;
-        bindings.previousSkillPageButton = previousSkillPageButton;
-        bindings.nextSkillPageButton = nextSkillPageButton;
         bindings.currentPortrait = currentPortrait;
         bindings.secondPortrait = secondPortrait;
         bindings.thirdPortrait = thirdPortrait;
@@ -197,43 +185,8 @@ public static class SceneReferenceAutoBinder
         bindings.equipmentContainer = equipmentContainer;
         bindings.leftPanelSkillSlotContainer = leftPanelSkillSlotContainer;
         bindings.overlayCanvas = overlayCanvas;
-        bindings.spellCurrentPageText = spellCurrentPageText;
-        bindings.spellTotalPageText = spellTotalPageText;
-        CollectBattleSkillPageWidgets(skillContainer, bindings.skillPageButtons, bindings.skillPageIcons);
         EditorUtility.SetDirty(bindings);
         return 1;
-    }
-
-    private static void CollectBattleSkillPageWidgets(RectTransform container, List<Button> buttons, List<Image> icons)
-    {
-        if (buttons == null || icons == null)
-        {
-            return;
-        }
-
-        buttons.Clear();
-        icons.Clear();
-        if (container == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < container.childCount; i++)
-        {
-            RectTransform child = container.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            Button button = child.GetComponent<Button>();
-            Image icon = FindBestSkillIcon(child);
-            if (button != null)
-            {
-                buttons.Add(button);
-                icons.Add(icon);
-            }
-        }
     }
 
     private static T GetOrCreateRootComponent<T>(Scene scene, string rootName) where T : Component
@@ -303,34 +256,4 @@ public static class SceneReferenceAutoBinder
         return SceneHierarchyPathUtility.Find(scene, path);
     }
 
-    private static Image FindBestSkillIcon(RectTransform root)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        Transform explicitPattern = SceneHierarchyPathUtility.FindDirectChildByName(root, "\u6280\u80fd\u56fe\u6848");
-        if (explicitPattern != null)
-        {
-            Image explicitImage = explicitPattern.GetComponent<Image>();
-            if (explicitImage != null)
-            {
-                return explicitImage;
-            }
-        }
-
-        Image[] images = root.GetComponentsInChildren<Image>(true);
-        Image rootImage = root.GetComponent<Image>();
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image image = images[i];
-            if (image != null && image != rootImage)
-            {
-                return image;
-            }
-        }
-
-        return rootImage;
-    }
 }

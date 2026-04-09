@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,8 +11,6 @@ public sealed class BattleSceneBindings : MonoBehaviour
     [Header("Buttons")]
     public Button endTurnButton;
     public Button moveSkillButton;
-    public Button previousSkillPageButton;
-    public Button nextSkillPageButton;
 
     [Header("Portraits")]
     public Image currentPortrait;
@@ -43,12 +40,6 @@ public sealed class BattleSceneBindings : MonoBehaviour
 
     [Header("Overlay")]
     public RectTransform overlayCanvas;
-
-    [Header("Paged Skills")]
-    public List<Button> skillPageButtons = new List<Button>();
-    public List<Image> skillPageIcons = new List<Image>();
-    public TMP_Text spellCurrentPageText;
-    public TMP_Text spellTotalPageText;
 
     public static BattleSceneBindings FindInActiveScene()
     {

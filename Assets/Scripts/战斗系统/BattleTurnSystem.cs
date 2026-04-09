@@ -1072,36 +1072,6 @@ public class BattleTurnSystem : MonoBehaviour
             sceneBindings.actionPointPanel.gameObject.SetActive(visible);
         }
 
-        if (sceneBindings != null)
-        {
-            for (int i = 0; i < sceneBindings.skillPageButtons.Count; i++)
-            {
-                Button button = sceneBindings.skillPageButtons[i];
-                if (button != null)
-                {
-                    button.gameObject.SetActive(visible);
-                }
-            }
-
-            for (int i = 0; i < sceneBindings.skillPageIcons.Count; i++)
-            {
-                Image image = sceneBindings.skillPageIcons[i];
-                if (image != null)
-                {
-                    image.gameObject.SetActive(visible);
-                }
-            }
-
-            if (sceneBindings.spellCurrentPageText != null)
-            {
-                sceneBindings.spellCurrentPageText.gameObject.SetActive(visible);
-            }
-
-            if (sceneBindings.spellTotalPageText != null)
-            {
-                sceneBindings.spellTotalPageText.gameObject.SetActive(visible);
-            }
-        }
     }
 
     private void AdvanceTurn()

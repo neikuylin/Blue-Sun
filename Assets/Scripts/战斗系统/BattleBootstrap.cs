@@ -239,7 +239,7 @@ public class BattleBootstrap : MonoBehaviour
         InventoryShortcutRuntimeBinder.RefreshRuntimeWeaponModels();
         turnSystem.SetSkillCostHintText(skillCostHintText);
         RefreshPartyPortraits(GetSelectedPlayers());
-        RefreshSkillPagination(turnSystem);
+        RefreshBattleSkillBar(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
     }
@@ -889,20 +889,30 @@ public class BattleBootstrap : MonoBehaviour
         binder.Initialize(turnSystem);
     }
 
-    private void RefreshSkillPagination(BattleTurnSystem turnSystem)
+    private void RefreshBattleSkillBar(BattleTurnSystem turnSystem)
     {
         if (turnSystem == null)
         {
             return;
         }
 
-        BattleSkillPaginationBinder binder = GetComponent<BattleSkillPaginationBinder>();
-        if (binder == null)
+        SkillBarBinding 通用技能栏绑定 = SkillBarBinding.FindBindingInActiveScene();
+        if (通用技能栏绑定 == null)
         {
-            binder = gameObject.AddComponent<BattleSkillPaginationBinder>();
+            return;
         }
 
-        binder.Initialize(turnSystem);
+        战斗技能栏绑定 binder = 通用技能栏绑定.GetComponent<战斗技能栏绑定>();
+        if (binder == null)
+        {
+            binder = 通用技能栏绑定.gameObject.AddComponent<战斗技能栏绑定>();
+        }
+
+        binder.初始化(
+            turnSystem,
+            通用技能栏绑定.ResolveSkillSlotTemplate(),
+            通用技能栏绑定.ResolveSkillPanel(),
+            通用技能栏绑定.ResolveSkillSlotContainer());
     }
 
     private void RefreshVitalBars(BattleTurnSystem turnSystem)
