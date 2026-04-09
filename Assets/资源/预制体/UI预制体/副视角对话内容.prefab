@@ -84,6 +84,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 685442582951172270}
+  - component: {fileID: 748753929324955064}
   m_Layer: 5
   m_Name: "\u526F\u89C6\u89D2\u5BF9\u8BDD\u5185\u5BB9"
   m_TagString: Untagged
@@ -117,6 +118,22 @@ RectTransform:
   m_AnchoredPosition: {x: -0.000061035, y: 0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &748753929324955064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2070539011258567263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b46fe66ab9748884f9875b0b6b013002, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5BF9\u8BDD\u9884\u5236\u4F53": {fileID: 2070539011258567263}
+  "\u7ACB\u7ED8\u5BB9\u5668": {fileID: 4730824604512595683}
+  "\u89D2\u8272\u540D\u5B57": {fileID: 6653937092301710751}
+  "\u5BF9\u8BDD\u5185\u5BB9": {fileID: 5148771622755957597}
 --- !u!1 &4195637566797592073
 GameObject:
   m_ObjectHideFlags: 0
