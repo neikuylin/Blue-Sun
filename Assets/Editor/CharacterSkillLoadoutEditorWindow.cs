@@ -46,13 +46,14 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, memorizedSlotCount);
 
         EditorGUILayout.HelpBox(
-            "技能仓库现在表示“这个角色已经拥有的全部技能顺序”。\n" +
-            "仓库空格不再是额外补出来的空位，而是表示这个技能已经被放进技能栏。\n" +
-            "所以：仓库空格数 + 技能栏里的技能数 = 角色拥有的技能总数。",
+            "技能仓库现在是固定格。\n" +
+            "仓库总格子数 = 角色拥有的技能总数。\n" +
+            "空格就是真空格，不带隐藏技能归属。\n" +
+            "技能从技能栏拿下来时，可以放到任意空格。",
             MessageType.Info);
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
-        DrawOwnedSkills(entry);
+        DrawWarehouseSlots(entry);
         EditorGUILayout.Space(12f);
         DrawMemorizedSkills(entry, memorizedSlotCount);
         EditorGUILayout.EndScrollView();
@@ -65,9 +66,9 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         }
     }
 
-    private void DrawOwnedSkills(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
+    private void DrawWarehouseSlots(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
     {
-        EditorGUILayout.LabelField("已拥有技能总表", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("技能仓库固定格", EditorStyles.boldLabel);
 
         List<BattleSkillDatabase.SkillEntry> skills =
             skillDatabase != null ? skillDatabase.Entries : new List<BattleSkillDatabase.SkillEntry>();
@@ -75,24 +76,29 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
         for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
         {
-            string ownedSkillId = entry.warehouseSkillIds[i];
-            int selectedIndex = FindSkillOptionIndex(ownedSkillId, skills);
-            bool isMemorized = string.IsNullOrWhiteSpace(CharacterSkillLoadoutDatabase.GetWarehouseDisplaySkillId(entry, i));
+            string warehouseSkillId = entry.warehouseSkillIds[i];
+            int selectedIndex = FindSkillOptionIndex(warehouseSkillId, skills);
 
             using (new EditorGUILayout.VerticalScope("box"))
             {
-                EditorGUILayout.LabelField($"拥有格 {i + 1}", EditorStyles.boldLabel);
-                EditorGUILayout.LabelField("当前状态", isMemorized ? "已放入技能栏" : "仍在仓库中");
+                EditorGUILayout.LabelField($"仓库格 {i + 1}", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("当前状态", string.IsNullOrWhiteSpace(warehouseSkillId) ? "空格" : "已放技能");
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    int newIndex = EditorGUILayout.Popup("对应技能", selectedIndex, options);
-                    if (newIndex > 0)
+                    int newIndex = EditorGUILayout.Popup("当前技能", selectedIndex, options);
+                    string nextSkillId = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
+                    if (!string.Equals(nextSkillId, warehouseSkillId, StringComparison.Ordinal))
                     {
-                        string nextSkillId = skills[newIndex - 1].skillId;
-                        if (!string.Equals(nextSkillId, ownedSkillId, StringComparison.Ordinal))
+                        entry.warehouseSkillIds[i] = nextSkillId;
+                        if (string.IsNullOrWhiteSpace(nextSkillId) && entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count)
                         {
-                            entry.warehouseSkillIds[i] = nextSkillId;
+                            entry.warehouseSkillWeights[i] = 0;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(nextSkillId))
+                        {
+                            ClearWarehouseDuplicates(entry, nextSkillId, i);
+                            ClearMemorizedSkillSelections(entry, nextSkillId);
                         }
                     }
 
@@ -110,12 +116,13 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                         GUIUtility.ExitGUI();
                     }
 
-                    GUI.enabled = true;
+                    GUI.enabled = !string.IsNullOrWhiteSpace(warehouseSkillId);
                     if (GUILayout.Button("删除", GUILayout.Width(60f)))
                     {
-                        RemoveOwnedSkillAt(entry, i);
+                        RemoveWarehouseSlotAt(entry, i);
                         GUIUtility.ExitGUI();
                     }
+                    GUI.enabled = true;
                 }
             }
         }
@@ -125,7 +132,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
             newOwnedSkillOptionIndex = Mathf.Clamp(newOwnedSkillOptionIndex, 0, Mathf.Max(0, options.Length - 1));
             newOwnedSkillOptionIndex = EditorGUILayout.Popup("新增技能", newOwnedSkillOptionIndex, options);
             GUI.enabled = newOwnedSkillOptionIndex > 0;
-            if (GUILayout.Button("加入总表", GUILayout.Width(100f)))
+            if (GUILayout.Button("新增仓库格", GUILayout.Width(100f)))
             {
                 string newSkillId = skills[newOwnedSkillOptionIndex - 1].skillId;
                 if (!string.IsNullOrWhiteSpace(newSkillId))
@@ -144,7 +151,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
     private void DrawMemorizedSkills(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorizedSlotCount)
     {
         EditorGUILayout.LabelField("技能栏位", EditorStyles.boldLabel);
-        List<string> ownedSkillIds = entry.warehouseSkillIds ?? new List<string>();
+        List<string> ownedSkillIds = BuildOwnedSkillIds(entry);
         string[] options = BuildMemorizedOptions(ownedSkillIds);
 
         CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(entry, memorizedSlotCount);
@@ -159,6 +166,11 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                 string nextSkillId = newIndex <= 0 ? string.Empty : ownedSkillIds[newIndex - 1];
                 if (!string.Equals(nextSkillId, currentSkillId, StringComparison.Ordinal))
                 {
+                    if (!string.IsNullOrWhiteSpace(currentSkillId))
+                    {
+                        TryPlaceSkillIntoFirstEmptyWarehouseSlot(entry, currentSkillId);
+                    }
+
                     entry.memorizedSkillIds[i] = nextSkillId;
                     if (string.IsNullOrWhiteSpace(nextSkillId))
                     {
@@ -167,11 +179,17 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     else
                     {
                         ClearDuplicateMemorizedSelections(entry, nextSkillId, i);
+                        ClearWarehouseSkillSelections(entry, nextSkillId);
                     }
                 }
 
                 if (GUILayout.Button("清空", GUILayout.Width(60f)))
                 {
+                    if (!string.IsNullOrWhiteSpace(currentSkillId))
+                    {
+                        TryPlaceSkillIntoFirstEmptyWarehouseSlot(entry, currentSkillId);
+                    }
+
                     entry.memorizedSkillIds[i] = string.Empty;
                     entry.memorizedSkillWeights[i] = 0;
                 }
@@ -204,37 +222,17 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         }
     }
 
-    private static void RemoveOwnedSkillAt(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int index)
+    private static void RemoveWarehouseSlotAt(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int index)
     {
         if (entry == null || entry.warehouseSkillIds == null || index < 0 || index >= entry.warehouseSkillIds.Count)
         {
             return;
         }
 
-        string removedSkillId = entry.warehouseSkillIds[index];
         entry.warehouseSkillIds.RemoveAt(index);
         if (entry.warehouseSkillWeights != null && index < entry.warehouseSkillWeights.Count)
         {
             entry.warehouseSkillWeights.RemoveAt(index);
-        }
-
-        if (entry.memorizedSkillIds == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
-        {
-            if (!string.Equals(entry.memorizedSkillIds[i], removedSkillId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            entry.memorizedSkillIds[i] = string.Empty;
-            if (entry.memorizedSkillWeights != null && i < entry.memorizedSkillWeights.Count)
-            {
-                entry.memorizedSkillWeights[i] = 0;
-            }
         }
     }
 
@@ -261,6 +259,146 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                 entry.memorizedSkillWeights[i] = 0;
             }
         }
+    }
+
+    private static void ClearWarehouseDuplicates(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        string skillId,
+        int keepIndex)
+    {
+        if (entry == null || entry.warehouseSkillIds == null || string.IsNullOrWhiteSpace(skillId))
+        {
+            return;
+        }
+
+        for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+        {
+            if (i == keepIndex || !string.Equals(entry.warehouseSkillIds[i], skillId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            entry.warehouseSkillIds[i] = string.Empty;
+            if (entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count)
+            {
+                entry.warehouseSkillWeights[i] = 0;
+            }
+        }
+    }
+
+    private static void ClearMemorizedSkillSelections(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        string skillId)
+    {
+        if (entry == null || entry.memorizedSkillIds == null || string.IsNullOrWhiteSpace(skillId))
+        {
+            return;
+        }
+
+        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
+        {
+            if (!string.Equals(entry.memorizedSkillIds[i], skillId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            entry.memorizedSkillIds[i] = string.Empty;
+            if (entry.memorizedSkillWeights != null && i < entry.memorizedSkillWeights.Count)
+            {
+                entry.memorizedSkillWeights[i] = 0;
+            }
+        }
+    }
+
+    private static void ClearWarehouseSkillSelections(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        string skillId)
+    {
+        if (entry == null || entry.warehouseSkillIds == null || string.IsNullOrWhiteSpace(skillId))
+        {
+            return;
+        }
+
+        for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+        {
+            if (!string.Equals(entry.warehouseSkillIds[i], skillId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            entry.warehouseSkillIds[i] = string.Empty;
+            if (entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count)
+            {
+                entry.warehouseSkillWeights[i] = 0;
+            }
+        }
+    }
+
+    private static bool TryPlaceSkillIntoFirstEmptyWarehouseSlot(
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
+        string skillId)
+    {
+        if (entry == null || entry.warehouseSkillIds == null || string.IsNullOrWhiteSpace(skillId))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.warehouseSkillIds[i]))
+            {
+                continue;
+            }
+
+            entry.warehouseSkillIds[i] = skillId;
+            if (entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count)
+            {
+                entry.warehouseSkillWeights[i] = 0;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private static List<string> BuildOwnedSkillIds(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
+    {
+        List<string> ownedSkillIds = new List<string>();
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+        if (entry == null)
+        {
+            return ownedSkillIds;
+        }
+
+        if (entry.warehouseSkillIds != null)
+        {
+            for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+            {
+                string skillId = entry.warehouseSkillIds[i];
+                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                {
+                    continue;
+                }
+
+                ownedSkillIds.Add(skillId);
+            }
+        }
+
+        if (entry.memorizedSkillIds != null)
+        {
+            for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
+            {
+                string skillId = entry.memorizedSkillIds[i];
+                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                {
+                    continue;
+                }
+
+                ownedSkillIds.Add(skillId);
+            }
+        }
+
+        return ownedSkillIds;
     }
 
     private static string[] BuildSkillOptions(List<BattleSkillDatabase.SkillEntry> skills)

@@ -20,9 +20,10 @@ MonoBehaviour:
     - 
     memorizedSkillWeights: 000000000000000000000000
     warehouseSkillIds:
+    - "\u5C04\u51FB"
+    - "\u96C6\u4E2D"
     - "\u706B\u7403"
-    - "\u56DE\u65CB\u65A9"
-    warehouseSkillWeights: 0000000000000000
+    warehouseSkillWeights: 000000000000000000000000
     legacySkillIds: []
     legacySkillWeights: 
   - characterId: "\u7D22\u62C9\u5A1C"

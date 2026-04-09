@@ -108,7 +108,7 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         }
 
         MigrateLegacyIfNeeded(entry, memorySlotCount);
-        NormalizeOwnedAndMemorizedSkills(entry, memorySlotCount);
+        NormalizeWarehouseAndMemorizedSkills(entry, memorySlotCount);
     }
 
     public static int GetMemorizedSkillWeightAt(CharacterSkillEntry entry, int index)
@@ -129,34 +129,6 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         }
 
         return entry.warehouseSkillWeights[index];
-    }
-
-    public static string GetWarehouseDisplaySkillId(CharacterSkillEntry entry, int index)
-    {
-        if (entry == null || entry.warehouseSkillIds == null || index < 0 || index >= entry.warehouseSkillIds.Count)
-        {
-            return string.Empty;
-        }
-
-        string ownedSkillId = entry.warehouseSkillIds[index];
-        if (string.IsNullOrWhiteSpace(ownedSkillId))
-        {
-            return string.Empty;
-        }
-
-        int ownedOccurrenceIndex = CountOwnedSkillOccurrencesThroughIndex(entry, index, ownedSkillId);
-        int memorizedOccurrenceCount = CountMemorizedSkillOccurrences(entry, ownedSkillId);
-        return memorizedOccurrenceCount >= ownedOccurrenceIndex ? string.Empty : ownedSkillId;
-    }
-
-    public static bool IsWarehouseSlotOccupiedByMemorized(CharacterSkillEntry entry, int index)
-    {
-        if (entry == null || entry.warehouseSkillIds == null || index < 0 || index >= entry.warehouseSkillIds.Count)
-        {
-            return false;
-        }
-
-        return string.IsNullOrWhiteSpace(GetWarehouseDisplaySkillId(entry, index));
     }
 
     private static void EnsureStringListSize(List<string> values, int size)
@@ -282,66 +254,97 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         entry.legacySkillWeights.Clear();
     }
 
-    private static void NormalizeOwnedAndMemorizedSkills(CharacterSkillEntry entry, int memorySlotCount)
+    private static void NormalizeWarehouseAndMemorizedSkills(CharacterSkillEntry entry, int memorySlotCount)
     {
         EnsureListsInitialized(entry);
+        EnsureMemorizedSlotCapacity(entry, Math.Max(0, memorySlotCount));
+        NormalizeMemorizedSkills(entry);
 
-        List<string> ownedSkillIds = new List<string>();
-        List<int> ownedSkillWeights = new List<int>();
+        HashSet<string> memorizedSkills = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
+        {
+            string skillId = entry.memorizedSkillIds[i];
+            if (!string.IsNullOrWhiteSpace(skillId))
+            {
+                memorizedSkills.Add(skillId);
+            }
+        }
 
-        AppendOwnedSkills(ownedSkillIds, ownedSkillWeights, entry.warehouseSkillIds, entry.warehouseSkillWeights);
-        AppendOwnedSkills(ownedSkillIds, ownedSkillWeights, entry.memorizedSkillIds, entry.memorizedSkillWeights);
+        List<string> normalizedWarehouseSkillIds = new List<string>();
+        List<int> normalizedWarehouseSkillWeights = new List<int>();
+        HashSet<string> warehouseSkills = new HashSet<string>(StringComparer.Ordinal);
+
+        if (entry.warehouseSkillIds != null)
+        {
+            for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
+            {
+                string skillId = entry.warehouseSkillIds[i];
+                if (string.IsNullOrWhiteSpace(skillId))
+                {
+                    normalizedWarehouseSkillIds.Add(string.Empty);
+                    normalizedWarehouseSkillWeights.Add(0);
+                    continue;
+                }
+
+                if (memorizedSkills.Contains(skillId) || !warehouseSkills.Add(skillId))
+                {
+                    continue;
+                }
+
+                normalizedWarehouseSkillIds.Add(skillId);
+                normalizedWarehouseSkillWeights.Add(
+                    entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count
+                        ? entry.warehouseSkillWeights[i]
+                        : 0);
+            }
+        }
+
+        int desiredWarehouseSlotCount = warehouseSkills.Count + memorizedSkills.Count;
+        while (normalizedWarehouseSkillIds.Count < desiredWarehouseSlotCount)
+        {
+            normalizedWarehouseSkillIds.Add(string.Empty);
+            normalizedWarehouseSkillWeights.Add(0);
+        }
+
+        if (normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount)
+        {
+            for (int i = normalizedWarehouseSkillIds.Count - 1; i >= 0 && normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount; i--)
+            {
+                if (!string.IsNullOrWhiteSpace(normalizedWarehouseSkillIds[i]))
+                {
+                    continue;
+                }
+
+                normalizedWarehouseSkillIds.RemoveAt(i);
+                normalizedWarehouseSkillWeights.RemoveAt(i);
+            }
+
+            while (normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount)
+            {
+                int lastIndex = normalizedWarehouseSkillIds.Count - 1;
+                normalizedWarehouseSkillIds.RemoveAt(lastIndex);
+                normalizedWarehouseSkillWeights.RemoveAt(lastIndex);
+            }
+        }
 
         entry.warehouseSkillIds.Clear();
         entry.warehouseSkillWeights.Clear();
-        entry.warehouseSkillIds.AddRange(ownedSkillIds);
-        entry.warehouseSkillWeights.AddRange(ownedSkillWeights);
-
-        EnsureMemorizedSlotCapacity(entry, Math.Max(0, memorySlotCount));
-        SanitizeMemorizedSkills(entry);
+        entry.warehouseSkillIds.AddRange(normalizedWarehouseSkillIds);
+        entry.warehouseSkillWeights.AddRange(normalizedWarehouseSkillWeights);
     }
 
-    private static void AppendOwnedSkills(
-        List<string> ownedSkillIds,
-        List<int> ownedSkillWeights,
-        List<string> sourceSkillIds,
-        List<int> sourceWeights)
-    {
-        if (ownedSkillIds == null || ownedSkillWeights == null || sourceSkillIds == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < sourceSkillIds.Count; i++)
-        {
-            string skillId = sourceSkillIds[i];
-            if (string.IsNullOrWhiteSpace(skillId) || ownedSkillIds.Contains(skillId))
-            {
-                continue;
-            }
-
-            ownedSkillIds.Add(skillId);
-            ownedSkillWeights.Add(sourceWeights != null && i < sourceWeights.Count ? sourceWeights[i] : 0);
-        }
-    }
-
-    private static void SanitizeMemorizedSkills(CharacterSkillEntry entry)
+    private static void NormalizeMemorizedSkills(CharacterSkillEntry entry)
     {
         if (entry == null || entry.memorizedSkillIds == null)
         {
             return;
         }
 
-        HashSet<string> ownedSkillSet = new HashSet<string>(entry.warehouseSkillIds ?? new List<string>(), StringComparer.Ordinal);
-        HashSet<string> memorizedSkillSet = new HashSet<string>(StringComparer.Ordinal);
-
+        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
         {
             string skillId = entry.memorizedSkillIds[i];
-            bool shouldClear = string.IsNullOrWhiteSpace(skillId) ||
-                               !ownedSkillSet.Contains(skillId) ||
-                               !memorizedSkillSet.Add(skillId);
-
+            bool shouldClear = string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId);
             if (!shouldClear)
             {
                 continue;
@@ -353,45 +356,6 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
                 entry.memorizedSkillWeights[i] = 0;
             }
         }
-    }
-
-    private static int CountOwnedSkillOccurrencesThroughIndex(CharacterSkillEntry entry, int index, string skillId)
-    {
-        if (entry == null || entry.warehouseSkillIds == null || string.IsNullOrWhiteSpace(skillId))
-        {
-            return 0;
-        }
-
-        int count = 0;
-        int lastIndex = Math.Min(index, entry.warehouseSkillIds.Count - 1);
-        for (int i = 0; i <= lastIndex; i++)
-        {
-            if (string.Equals(entry.warehouseSkillIds[i], skillId, StringComparison.Ordinal))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private static int CountMemorizedSkillOccurrences(CharacterSkillEntry entry, string skillId)
-    {
-        if (entry == null || entry.memorizedSkillIds == null || string.IsNullOrWhiteSpace(skillId))
-        {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
-        {
-            if (string.Equals(entry.memorizedSkillIds[i], skillId, StringComparison.Ordinal))
-            {
-                count++;
-            }
-        }
-
-        return count;
     }
 
     public static CharacterSkillLoadoutDatabase LoadDefault()

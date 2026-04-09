@@ -60,7 +60,7 @@ public static class CharacterSkillListUtility
         {
             for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
             {
-                TryAddSkill(result, null, CharacterSkillLoadoutDatabase.GetWarehouseDisplaySkillId(entry, i));
+                TryAddSkill(result, null, entry.warehouseSkillIds[i]);
             }
         }
 

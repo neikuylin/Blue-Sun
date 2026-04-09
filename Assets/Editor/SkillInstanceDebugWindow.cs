@@ -35,7 +35,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
     {
         EditorGUILayout.LabelField("现有技能实例", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "这里直接读取技能装配资源。上面是技能栏位，下面是已拥有技能总表和仓库当前显示状态。",
+            "这里直接读取技能装配资源。上面是技能栏位，下面是技能仓库固定格的当前摆放结果。",
             MessageType.Info);
 
         DrawCharacterSelector();
@@ -77,7 +77,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         DrawMemorizedSection(entry);
         EditorGUILayout.Space(10f);
-        DrawOwnedSection(entry);
+        DrawWarehouseSection(entry);
 
         EditorGUILayout.EndScrollView();
     }
@@ -109,9 +109,9 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
         }
     }
 
-    private static void DrawOwnedSection(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
+    private static void DrawWarehouseSection(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
     {
-        EditorGUILayout.LabelField("已拥有技能总表 / 仓库映射", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("技能仓库固定格", EditorStyles.boldLabel);
 
         int count = entry.warehouseSkillIds != null ? entry.warehouseSkillIds.Count : 0;
         if (count == 0)
@@ -122,19 +122,16 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         for (int i = 0; i < count; i++)
         {
-            string ownedSkillId = entry.warehouseSkillIds[i];
-            string warehouseDisplaySkillId = CharacterSkillLoadoutDatabase.GetWarehouseDisplaySkillId(entry, i);
-            bool isMemorized = string.IsNullOrWhiteSpace(warehouseDisplaySkillId);
+            string warehouseSkillId = entry.warehouseSkillIds[i];
             int weight = entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count
                 ? entry.warehouseSkillWeights[i]
                 : 0;
 
             using (new EditorGUILayout.VerticalScope("box"))
             {
-                EditorGUILayout.LabelField($"拥有格 {i + 1}");
-                EditorGUILayout.LabelField("对应技能", string.IsNullOrWhiteSpace(ownedSkillId) ? "（空）" : ownedSkillId);
-                EditorGUILayout.LabelField("仓库显示", string.IsNullOrWhiteSpace(warehouseDisplaySkillId) ? "（空）" : warehouseDisplaySkillId);
-                EditorGUILayout.LabelField("状态", isMemorized ? "已放入技能栏" : "仍在仓库中");
+                EditorGUILayout.LabelField($"仓库格 {i + 1}");
+                EditorGUILayout.LabelField("当前技能", string.IsNullOrWhiteSpace(warehouseSkillId) ? "（空）" : warehouseSkillId);
+                EditorGUILayout.LabelField("状态", string.IsNullOrWhiteSpace(warehouseSkillId) ? "空格" : "已放技能");
                 EditorGUILayout.LabelField("权重", weight.ToString());
             }
         }
