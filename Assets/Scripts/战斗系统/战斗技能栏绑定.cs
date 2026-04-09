@@ -16,7 +16,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private CanvasGroup 栏位CanvasGroup;
     private string 当前角色ID = string.Empty;
     private string 当前技能签名 = string.Empty;
-    private string 上次调试签名 = string.Empty;
 
     private sealed class 技能格组件
     {
@@ -85,7 +84,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         List<string> 最终技能列表 = 构建技能列表(角色ID);
         string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
 
-        输出调试信息(角色ID, 最终技能列表);
         刷新技能栏可见性(角色ID);
 
         if (!force &&
@@ -149,39 +147,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         return (角色ID ?? string.Empty) + "|" + string.Join("|", 技能列表);
-    }
-
-    private void 输出调试信息(string 角色ID, List<string> 最终技能列表)
-    {
-        string 装备技能文本 = 拼接技能(CharacterSkillListUtility.BuildGrantedSkillIds(角色ID));
-        string 已装技能文本 = 拼接技能(CharacterSkillListUtility.BuildMemorizedSkillIds(角色ID));
-        string 最终技能文本 = 拼接技能(最终技能列表);
-        string 调试签名 = $"{角色ID}|granted:{装备技能文本}|memorized:{已装技能文本}|final:{最终技能文本}";
-        if (string.Equals(上次调试签名, 调试签名, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        上次调试签名 = 调试签名;
-
-        string 当前单位信息;
-        if (战斗回合系统 == null)
-        {
-            当前单位信息 = "战斗回合系统为空";
-        }
-        else if (战斗回合系统.ActiveUnit == null)
-        {
-            当前单位信息 = "当前行动单位为空";
-        }
-        else
-        {
-            BattleUnit unit = 战斗回合系统.ActiveUnit;
-            当前单位信息 = $"当前行动单位={unit.name}, 角色ID={unit.characterId}, 玩家控制={unit.isPlayerControlled}, 存活={unit.IsAlive}";
-        }
-
-        Debug.LogWarning(
-            $"[战斗技能栏调试] {当前单位信息} | 已装技能=[{已装技能文本}] | 装备技能=[{装备技能文本}] | 最终技能=[{最终技能文本}] | prefab={(技能格子prefab != null ? 技能格子prefab.name : "空")} | 栏位={(战斗技能栏位 != null ? 战斗技能栏位.name : "空")} | 容器={(战斗技能格子区域 != null ? 战斗技能格子区域.name : "空")}",
-            this);
     }
 
     private void 重建技能格子(List<string> 技能列表)
@@ -317,24 +282,5 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         return null;
-    }
-
-    private static string 拼接技能(List<string> 技能列表)
-    {
-        if (技能列表 == null || 技能列表.Count == 0)
-        {
-            return "空";
-        }
-
-        List<string> 有效技能 = new List<string>();
-        for (int i = 0; i < 技能列表.Count; i++)
-        {
-            if (!string.IsNullOrWhiteSpace(技能列表[i]))
-            {
-                有效技能.Add(技能列表[i]);
-            }
-        }
-
-        return 有效技能.Count == 0 ? "空" : string.Join(", ", 有效技能);
     }
 }
