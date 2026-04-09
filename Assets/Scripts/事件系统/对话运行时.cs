@@ -16,6 +16,8 @@ public sealed class 对话运行时 : MonoBehaviour
     }
 
     private static 对话运行时 instance;
+    private 主视角对话绑定 当前主视角绑定;
+    private 副视角对话绑定 当前副视角绑定;
 
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -291,7 +293,9 @@ public sealed class 对话运行时 : MonoBehaviour
     private void ShowOnMainBinding(主视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "主视角对话绑定");
+        当前主视角绑定 = binding;
         ConfigureContinueButton(binding.继续按钮);
+        Debug.Log($"对话运行时: 显示主视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
     }
@@ -299,7 +303,9 @@ public sealed class 对话运行时 : MonoBehaviour
     private void ShowOnSecondaryBinding(副视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "副视角对话绑定");
+        当前副视角绑定 = binding;
         ConfigureContinueButton(binding.继续按钮);
+        Debug.Log($"对话运行时: 显示副视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
     }
@@ -354,6 +360,7 @@ public sealed class 对话运行时 : MonoBehaviour
 
         button.onClick.RemoveListener(关闭当前对话);
         button.onClick.AddListener(关闭当前对话);
+        Debug.Log($"对话运行时: 已绑定继续按钮, name={continueButtonObject.name}, id={continueButtonObject.GetInstanceID()}");
     }
 
     private static void ApplyDialogueToBinding(GameObject portraitContainer, GameObject roleNameObject, GameObject contentObject, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
@@ -385,21 +392,22 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void CloseDialogue()
     {
+        Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
         HideAllViews();
     }
 
     private void HideAllViews()
     {
-        主视角对话绑定 mainBinding = FindObjectOfType<主视角对话绑定>(true);
-        if (mainBinding != null)
+        if (当前主视角绑定 != null)
         {
-            mainBinding.gameObject.SetActive(false);
+            Debug.Log($"对话运行时: 隐藏主视角对话, root={当前主视角绑定.gameObject.name}, id={当前主视角绑定.gameObject.GetInstanceID()}");
+            当前主视角绑定.gameObject.SetActive(false);
         }
 
-        副视角对话绑定 secondaryBinding = FindObjectOfType<副视角对话绑定>(true);
-        if (secondaryBinding != null)
+        if (当前副视角绑定 != null)
         {
-            secondaryBinding.gameObject.SetActive(false);
+            Debug.Log($"对话运行时: 隐藏副视角对话, root={当前副视角绑定.gameObject.name}, id={当前副视角绑定.gameObject.GetInstanceID()}");
+            当前副视角绑定.gameObject.SetActive(false);
         }
     }
 
