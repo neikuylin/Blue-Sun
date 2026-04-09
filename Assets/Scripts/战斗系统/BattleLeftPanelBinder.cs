@@ -80,14 +80,20 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
-        SkillLoadoutRuntimeBinder.SkillDataChanged += OnSkillDataChanged;
+        界面刷新中心.全部界面刷新 += OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 += OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 += OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 += OnEquipmentChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        SkillLoadoutRuntimeBinder.SkillDataChanged -= OnSkillDataChanged;
+        界面刷新中心.全部界面刷新 -= OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 -= OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 -= OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 -= OnEquipmentChanged;
         skillSlots.Clear();
         ClearPreviewTargetUnit();
     }
@@ -102,14 +108,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         UpdatePreviewCameraFollow();
 
-        string targetCharacterId = ResolveCharacterId();
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        currentCharacterId = targetCharacterId;
-        RefreshLeftPanel();
     }
 
     private void UpdatePreviewCameraFollow()
@@ -152,7 +150,25 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         RefreshLeftPanel();
     }
 
-    private void OnSkillDataChanged(string characterId)
+    private void OnGlobalRefreshRequested()
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnCurrentCharacterRefreshRequested(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnSkillLoadoutChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnEquipmentChanged(string characterId)
     {
         currentCharacterId = ResolveCharacterId();
         RefreshLeftPanel();

@@ -189,7 +189,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TextAnchor cachedBackpackChildAlignment;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
-    private string lastEquipmentRefreshCharacterId = string.Empty;
     private int warehouseUsableSlotCount = -1;
     private int backpackUsableSlotCount = -1;
     private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -403,13 +402,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         equipment[index] = NormalizeItemSlotData(data);
         instance.RebuildEquipmentFootprintOccupancy(equipment);
-        if (string.Equals(instance.ResolveEquipmentCharacterId(), characterId, StringComparison.Ordinal))
-        {
-            instance.RefreshEquipmentSlots();
-        }
-
-        instance.RefreshRuntimeWeaponModelForCharacter(characterId);
-        instance.NotifyEquipmentSkillDataChanged(characterId);
+        界面刷新中心.请求装备变更(characterId);
 
         return true;
     }
@@ -641,31 +634,30 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        界面刷新中心.全部界面刷新 += OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 += OnCurrentCharacterRefreshRequested;
+        界面刷新中心.仓储界面刷新 += OnStorageRefreshRequested;
+        界面刷新中心.装备变更 += OnEquipmentChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        界面刷新中心.全部界面刷新 -= OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 -= OnCurrentCharacterRefreshRequested;
+        界面刷新中心.仓储界面刷新 -= OnStorageRefreshRequested;
+        界面刷新中心.装备变更 -= OnEquipmentChanged;
         UnbindAll();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Cross-scene manual selections from camp/battle should not override
-        // the next scene's own current-character logic.
-        lastEquipmentRefreshCharacterId = string.Empty;
         BindScene();
     }
 
     private void Update()
     {
-        string targetCharacterId = ResolveEquipmentCharacterId();
-        if (!string.Equals(lastEquipmentRefreshCharacterId, targetCharacterId, StringComparison.Ordinal))
-        {
-            RefreshEquipmentSlots();
-        }
-
         HandleHoveredItemRotation();
         UpdatePendingTooltip();
         UpdateTooltipLowerBackgroundState();
@@ -703,8 +695,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         BindCategoryFilters();
 
         BindDragRelays();
+    }
+
+    private void OnGlobalRefreshRequested()
+    {
         RefreshAll();
         RefreshAllRuntimeWeaponModelsInternal();
+    }
+
+    private void OnCurrentCharacterRefreshRequested(string characterId)
+    {
+        RefreshEquipmentSlots();
+    }
+
+    private void OnStorageRefreshRequested()
+    {
+        RefreshAll();
+    }
+
+    private void OnEquipmentChanged(string characterId)
+    {
+        RefreshAll();
+        RefreshRuntimeWeaponModelForCharacter(characterId);
     }
 
     private void CollectStorageSlots()
@@ -2431,10 +2443,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             PlaceDataAt(displacedPlacements[i], displacedItems[i]);
         }
 
-        RefreshAll();
         if (source.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Equipment)
         {
-            NotifyEquipmentSkillDataChanged(ResolveEquipmentCharacterId());
+            界面刷新中心.请求装备变更(ResolveEquipmentCharacterId());
+        }
+        else
+        {
+            界面刷新中心.请求刷新仓储界面();
         }
         ItemSoundUtility.PlayForItem(sourceData.itemId);
         return true;
@@ -2468,7 +2483,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         sourceData.count -= canMove;
         SetSlotData(target, targetData);
         SetSlotData(source, sourceData.count > 0 ? sourceData : default);
-        RefreshAll();
+        界面刷新中心.请求刷新仓储界面();
         ItemSoundUtility.PlayForItem(targetData.itemId);
         return true;
     }
@@ -3335,11 +3350,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return equipmentSlots;
     }
 
-    private void NotifyEquipmentSkillDataChanged(string characterId)
-    {
-        SkillLoadoutRuntimeBinder.NotifySkillDataChanged(characterId);
-    }
-
     private static bool ShouldShowWeaponTooltip(ItemDatabase.ItemEntry entry)
     {
         if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
@@ -3828,7 +3838,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ApplyEquipmentSlotData(i, data, IsSlotUsable(SlotKind.Equipment, i));
         }
 
-        lastEquipmentRefreshCharacterId = equipmentCharacterId;
         RefreshRuntimeWeaponModelForCharacter(equipmentCharacterId);
     }
 
