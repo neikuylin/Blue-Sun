@@ -3,8 +3,6 @@ using System.Collections.Generic;
 
 public static class CharacterSkillListUtility
 {
-    private const string DefaultCharacterId = "\u73A9\u5BB6";
-
     public readonly struct DisplaySkillEntry
     {
         public DisplaySkillEntry(string skillId, bool isGranted)
@@ -31,11 +29,15 @@ public static class CharacterSkillListUtility
 
     public static List<string> BuildMemorizedSkillIds(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return new List<string>();
+        }
+
         List<string> result = new List<string>();
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(characterId) : null;
         if (entry != null && entry.memorizedSkillIds != null)
         {
             for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
@@ -49,11 +51,15 @@ public static class CharacterSkillListUtility
 
     public static List<string> BuildWarehouseSkillIds(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return new List<string>();
+        }
+
         List<string> result = new List<string>();
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
+            loadoutDatabase != null ? loadoutDatabase.FindEntry(characterId) : null;
         if (entry != null && entry.warehouseSkillIds != null)
         {
             for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
@@ -67,23 +73,31 @@ public static class CharacterSkillListUtility
 
     public static List<string> BuildGrantedSkillIds(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
-        return InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(resolvedCharacterId);
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return new List<string>();
+        }
+
+        return InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(characterId);
     }
 
     public static List<DisplaySkillEntry> BuildDisplaySkillEntries(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return new List<DisplaySkillEntry>();
+        }
+
         List<DisplaySkillEntry> result = new List<DisplaySkillEntry>();
         HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
 
-        List<string> grantedSkills = BuildGrantedSkillIds(resolvedCharacterId);
+        List<string> grantedSkills = BuildGrantedSkillIds(characterId);
         for (int i = 0; i < grantedSkills.Count; i++)
         {
             TryAddDisplaySkill(result, seen, grantedSkills[i], true);
         }
 
-        List<string> memorizedSkills = BuildMemorizedSkillIds(resolvedCharacterId);
+        List<string> memorizedSkills = BuildMemorizedSkillIds(characterId);
         for (int i = 0; i < memorizedSkills.Count; i++)
         {
             TryAddDisplaySkill(result, seen, memorizedSkills[i], false);

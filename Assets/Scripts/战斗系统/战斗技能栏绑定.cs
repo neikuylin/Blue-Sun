@@ -13,6 +13,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private readonly List<技能格组件> 已生成格子 = new List<技能格组件>();
     private BattleTurnSystem 战斗回合系统;
     private BattleSkillDatabase 技能数据库;
+    private CanvasGroup 栏位CanvasGroup;
     private string 当前角色ID = string.Empty;
     private string 当前技能签名 = string.Empty;
     private string 上次调试签名 = string.Empty;
@@ -31,6 +32,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         战斗回合系统 = turnSystem;
         技能数据库 = BattleSkillDatabase.LoadDefault();
         校验绑定();
+        缓存栏位CanvasGroup();
         立即刷新(true);
     }
 
@@ -42,27 +44,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         立即刷新(false);
-    }
-
-    private void 立即刷新(bool force)
-    {
-        string 角色ID = 解析当前角色ID();
-        List<string> 最终技能列表 = 构建技能列表(角色ID);
-        string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
-
-        输出调试信息(角色ID, 最终技能列表);
-
-        if (!force &&
-            string.Equals(当前角色ID, 角色ID, StringComparison.Ordinal) &&
-            string.Equals(当前技能签名, 技能签名, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        当前角色ID = 角色ID;
-        当前技能签名 = 技能签名;
-        刷新技能栏可见性();
-        重建技能格子(最终技能列表);
     }
 
     private void 校验绑定()
@@ -83,19 +64,65 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
     }
 
-    private void 刷新技能栏可见性()
+    private void 缓存栏位CanvasGroup()
+    {
+        if (战斗技能栏位 == null)
+        {
+            栏位CanvasGroup = null;
+            return;
+        }
+
+        栏位CanvasGroup = 战斗技能栏位.GetComponent<CanvasGroup>();
+        if (栏位CanvasGroup == null)
+        {
+            栏位CanvasGroup = 战斗技能栏位.gameObject.AddComponent<CanvasGroup>();
+        }
+    }
+
+    private void 立即刷新(bool force)
+    {
+        string 角色ID = 解析当前角色ID();
+        List<string> 最终技能列表 = 构建技能列表(角色ID);
+        string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
+
+        输出调试信息(角色ID, 最终技能列表);
+        刷新技能栏可见性(角色ID);
+
+        if (!force &&
+            string.Equals(当前角色ID, 角色ID, StringComparison.Ordinal) &&
+            string.Equals(当前技能签名, 技能签名, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        当前角色ID = 角色ID;
+        当前技能签名 = 技能签名;
+        重建技能格子(最终技能列表);
+    }
+
+    private void 刷新技能栏可见性(string 角色ID)
     {
         if (战斗技能栏位 == null)
         {
             return;
         }
 
-        BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
-        bool 显示 = 当前单位 != null &&
-            当前单位.IsAlive &&
-            当前单位.isPlayerControlled &&
-            !string.IsNullOrWhiteSpace(当前单位.characterId);
-        战斗技能栏位.gameObject.SetActive(显示);
+        bool 显示 = !string.IsNullOrWhiteSpace(角色ID);
+        if (栏位CanvasGroup != null)
+        {
+            栏位CanvasGroup.alpha = 显示 ? 1f : 0f;
+            栏位CanvasGroup.interactable = 显示;
+            栏位CanvasGroup.blocksRaycasts = 显示;
+        }
+
+        for (int i = 0; i < 已生成格子.Count; i++)
+        {
+            技能格组件 格子 = 已生成格子[i];
+            if (格子 != null && 格子.根节点 != null)
+            {
+                格子.根节点.gameObject.SetActive(显示);
+            }
+        }
     }
 
     private string 解析当前角色ID()
@@ -111,11 +138,6 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
 
     private static List<string> 构建技能列表(string 角色ID)
     {
-        if (string.IsNullOrWhiteSpace(角色ID))
-        {
-            return new List<string>();
-        }
-
         return CharacterSkillListUtility.BuildSkillIds(角色ID);
     }
 
@@ -134,7 +156,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         string 装备技能文本 = 拼接技能(CharacterSkillListUtility.BuildGrantedSkillIds(角色ID));
         string 已装技能文本 = 拼接技能(CharacterSkillListUtility.BuildMemorizedSkillIds(角色ID));
         string 最终技能文本 = 拼接技能(最终技能列表);
-        string 调试签名 = $"{角色ID}|granted:{装备技能文本}|memorized:{已装技能文本}|final:{最终技能文本}|prefab:{(技能格子prefab != null ? 技能格子prefab.name : "空")}|panel:{(战斗技能栏位 != null ? 战斗技能栏位.name : "空")}|container:{(战斗技能格子区域 != null ? 战斗技能格子区域.name : "空")}";
+        string 调试签名 = $"{角色ID}|granted:{装备技能文本}|memorized:{已装技能文本}|final:{最终技能文本}";
         if (string.Equals(上次调试签名, 调试签名, StringComparison.Ordinal))
         {
             return;
