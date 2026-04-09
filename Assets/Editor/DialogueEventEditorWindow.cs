@@ -126,7 +126,6 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("触发", EditorStyles.boldLabel);
-            DrawButtonList(database, entry.trigger.buttons);
             DrawTriggerEventList(database, entry.trigger.eventIds, GetEventIds(eventDatabase));
 
             EditorGUILayout.Space(4f);
@@ -183,44 +182,6 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         }
 
         return options[nextIndex];
-    }
-
-    private void DrawButtonList(DialogueEventDatabase database, List<GameObject> buttons)
-    {
-        if (buttons == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                GameObject current = buttons[i];
-                GameObject next = (GameObject)EditorGUILayout.ObjectField($"按钮 {i + 1}", current, typeof(GameObject), true);
-                if (!ReferenceEquals(next, current))
-                {
-                    Undo.RecordObject(database, "修改按钮绑定");
-                    buttons[i] = next;
-                    SaveAsset(database);
-                }
-
-                if (GUILayout.Button("删除", GUILayout.Width(72f)))
-                {
-                    Undo.RecordObject(database, "删除按钮绑定");
-                    buttons.RemoveAt(i);
-                    SaveAsset(database);
-                    GUIUtility.ExitGUI();
-                }
-            }
-        }
-
-        if (GUILayout.Button("新增按钮", GUILayout.Width(88f)))
-        {
-            Undo.RecordObject(database, "新增按钮绑定");
-            buttons.Add(null);
-            SaveAsset(database);
-        }
     }
 
     private void DrawTriggerEventList(

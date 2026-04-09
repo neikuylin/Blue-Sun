@@ -25,7 +25,6 @@ public sealed class DialogueEventDatabase : ScriptableObject
     [Serializable]
     public sealed class TriggerData
     {
-        public List<GameObject> buttons = new List<GameObject>();
         public List<TriggerEventEntry> eventIds = new List<TriggerEventEntry>();
     }
 
@@ -122,11 +121,6 @@ public sealed class DialogueEventDatabase : ScriptableObject
         if (entry.condition == null)
         {
             entry.condition = new ConditionData();
-        }
-
-        if (entry.trigger.buttons == null)
-        {
-            entry.trigger.buttons = new List<GameObject>();
         }
 
         if (entry.trigger.eventIds == null)

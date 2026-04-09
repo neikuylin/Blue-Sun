@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -18,7 +17,6 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private static 对话运行时 instance;
 
-    private readonly List<Action> unbindActions = new List<Action>();
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
 
@@ -87,56 +85,14 @@ public sealed class 对话运行时 : MonoBehaviour
             }
 
             DialogueEventDatabase.EnsureEntry(entry);
-            BindButtons(entry);
             BindEventTriggers(entry);
         }
     }
 
     private void UnbindAll()
     {
-        for (int i = 0; i < unbindActions.Count; i++)
-        {
-            unbindActions[i]?.Invoke();
-        }
-
-        unbindActions.Clear();
         事件触发监听项.Clear();
         上次事件状态.Clear();
-    }
-
-    private void BindButtons(DialogueEventDatabase.DialogueEventEntry entry)
-    {
-        if (entry == null || entry.trigger == null || entry.trigger.buttons == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < entry.trigger.buttons.Count; i++)
-        {
-            GameObject buttonObject = entry.trigger.buttons[i];
-            if (buttonObject == null)
-            {
-                continue;
-            }
-
-            Button button = buttonObject.GetComponent<Button>();
-            if (button == null)
-            {
-                Debug.LogError($"对话运行时: 对话事件 '{entry.id}' 绑定的对象 '{buttonObject.name}' 缺少 Button 组件。");
-                continue;
-            }
-
-            string capturedEventId = entry.id;
-            UnityAction onClick = () => TryTriggerDialogueEvent(capturedEventId);
-            button.onClick.AddListener(onClick);
-            unbindActions.Add(() =>
-            {
-                if (button != null)
-                {
-                    button.onClick.RemoveListener(onClick);
-                }
-            });
-        }
     }
 
     private void BindEventTriggers(DialogueEventDatabase.DialogueEventEntry entry)
@@ -184,8 +140,7 @@ public sealed class 对话运行时 : MonoBehaviour
             }
 
             bool currentValue = ResolveEventState(eventDatabase, item.事件ID);
-            bool previousValue;
-            if (!上次事件状态.TryGetValue(item.事件ID, out previousValue))
+            if (!上次事件状态.TryGetValue(item.事件ID, out bool previousValue))
             {
                 上次事件状态[item.事件ID] = currentValue;
                 continue;
