@@ -24,8 +24,9 @@ public sealed class DialogueEventDatabase : ScriptableObject
     [Serializable]
     public sealed class TriggerData
     {
-        public string buttonId = string.Empty;
-        public string eventId = string.Empty;
+        public List<GameObject> buttons = new List<GameObject>();
+        public List<string> eventIds = new List<string>();
+        public List<string> conditionEventIds = new List<string>();
     }
 
     [SerializeField] private List<DialogueEventEntry> entries = new List<DialogueEventEntry>();
@@ -96,6 +97,21 @@ public sealed class DialogueEventDatabase : ScriptableObject
         if (entry.trigger == null)
         {
             entry.trigger = new TriggerData();
+        }
+
+        if (entry.trigger.buttons == null)
+        {
+            entry.trigger.buttons = new List<GameObject>();
+        }
+
+        if (entry.trigger.eventIds == null)
+        {
+            entry.trigger.eventIds = new List<string>();
+        }
+
+        if (entry.trigger.conditionEventIds == null)
+        {
+            entry.trigger.conditionEventIds = new List<string>();
         }
     }
 

@@ -9,6 +9,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
     private Vector2 scroll;
     private string newId = string.Empty;
+    private readonly Dictionary<string, bool> foldoutStates = new Dictionary<string, bool>();
 
     [MenuItem("Tools/事件/对话事件编辑器")]
     private static void Open()
@@ -43,6 +44,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
                     Undo.RecordObject(database, "新增对话事件");
                     database.GetOrCreateEntry(newId);
                     SaveAsset(database);
+                    foldoutStates[newId.Trim()] = true;
                     newId = string.Empty;
                 }
             }
@@ -57,7 +59,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    private static void DrawEntry(
+    private void DrawEntry(
         DialogueEventDatabase database,
         DialogueEventDatabase.DialogueEventEntry entry,
         int index,
@@ -74,21 +76,40 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(entry.id) ? $"事件 {index + 1}" : entry.id, EditorStyles.boldLabel);
+                string foldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+                bool isExpanded = GetFoldoutState(foldoutKey);
+                string title = string.IsNullOrWhiteSpace(entry.id) ? $"事件 {index + 1}" : entry.id;
+                bool nextExpanded = EditorGUILayout.Foldout(isExpanded, title, true);
+                if (nextExpanded != isExpanded)
+                {
+                    foldoutStates[foldoutKey] = nextExpanded;
+                }
                 if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
                     Undo.RecordObject(database, "删除对话事件");
                     database.Entries.RemoveAt(index);
+                    foldoutStates.Remove(foldoutKey);
                     SaveAsset(database);
                     GUIUtility.ExitGUI();
                 }
+            }
+
+            string currentFoldoutKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+            if (!GetFoldoutState(currentFoldoutKey))
+            {
+                return;
             }
 
             string nextId = EditorGUILayout.TextField("ID", entry.id);
             if (!string.Equals(nextId, entry.id, System.StringComparison.Ordinal))
             {
                 Undo.RecordObject(database, "修改对话事件ID");
+                string oldKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
                 entry.id = nextId;
+                string newKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
+                bool expanded = GetFoldoutState(oldKey);
+                foldoutStates.Remove(oldKey);
+                foldoutStates[newKey] = expanded;
                 SaveAsset(database);
             }
 
@@ -101,22 +122,30 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("触发", EditorStyles.boldLabel);
-            string nextButtonId = EditorGUILayout.TextField("按钮ID", entry.trigger.buttonId);
-            if (!string.Equals(nextButtonId, entry.trigger.buttonId, System.StringComparison.Ordinal))
-            {
-                Undo.RecordObject(database, "修改按钮ID");
-                entry.trigger.buttonId = nextButtonId;
-                SaveAsset(database);
-            }
-
-            entry.trigger.eventId = DrawIdPopup(
-                "事件编辑器ID",
-                entry.trigger.eventId,
-                GetEventIds(eventDatabase));
+            DrawButtonList(database, entry.trigger.buttons);
+            DrawEventIdList(database, "事件编辑器ID", entry.trigger.eventIds, GetEventIds(eventDatabase));
+            DrawEventIdList(database, "条件", entry.trigger.conditionEventIds, GetEventIds(eventDatabase));
         }
     }
 
-    private static string DrawIdPopup(string label, string currentValue, List<string> values)
+    private bool GetFoldoutState(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return true;
+        }
+
+        bool expanded;
+        if (foldoutStates.TryGetValue(key, out expanded))
+        {
+            return expanded;
+        }
+
+        foldoutStates[key] = true;
+        return true;
+    }
+
+    private string DrawIdPopup(string label, string currentValue, List<string> values)
     {
         List<string> options = new List<string> { string.Empty };
         if (values != null)
@@ -147,6 +176,85 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         }
 
         return options[nextIndex];
+    }
+
+    private void DrawButtonList(DialogueEventDatabase database, List<GameObject> buttons)
+    {
+        if (buttons == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            GameObject current = buttons[i];
+            GameObject next = (GameObject)EditorGUILayout.ObjectField($"按钮 {i + 1}", current, typeof(GameObject), true);
+            if (next != current)
+            {
+                Undo.RecordObject(database, "修改按钮绑定");
+                buttons[i] = next;
+                SaveAsset(database);
+            }
+        }
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("新增按钮", GUILayout.Width(88f)))
+            {
+                Undo.RecordObject(database, "新增按钮绑定");
+                buttons.Add(null);
+                SaveAsset(database);
+            }
+
+            using (new EditorGUI.DisabledScope(buttons.Count == 0))
+            {
+                if (GUILayout.Button("删除最后一个按钮", GUILayout.Width(130f)))
+                {
+                    Undo.RecordObject(database, "删除按钮绑定");
+                    buttons.RemoveAt(buttons.Count - 1);
+                    SaveAsset(database);
+                }
+            }
+        }
+    }
+
+    private void DrawEventIdList(DialogueEventDatabase database, string label, List<string> targetList, List<string> sourceIds)
+    {
+        if (targetList == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < targetList.Count; i++)
+        {
+            string nextValue = DrawIdPopup($"{label} {i + 1}", targetList[i], sourceIds);
+            if (!string.Equals(nextValue, targetList[i], System.StringComparison.Ordinal))
+            {
+                Undo.RecordObject(database, $"修改{label}");
+                targetList[i] = nextValue;
+                SaveAsset(database);
+            }
+        }
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button($"新增{label}", GUILayout.Width(100f)))
+            {
+                Undo.RecordObject(database, $"新增{label}");
+                targetList.Add(string.Empty);
+                SaveAsset(database);
+            }
+
+            using (new EditorGUI.DisabledScope(targetList.Count == 0))
+            {
+                if (GUILayout.Button($"删除最后一个{label}", GUILayout.Width(140f)))
+                {
+                    Undo.RecordObject(database, $"删除{label}");
+                    targetList.RemoveAt(targetList.Count - 1);
+                    SaveAsset(database);
+                }
+            }
+        }
     }
 
     private static List<string> GetDialogueContentIds(DialogueContentDatabase database)

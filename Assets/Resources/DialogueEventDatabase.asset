@@ -17,5 +17,7 @@ MonoBehaviour:
     presentation:
       dialogueContentId: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
     trigger:
-      buttonId: 
-      eventId: 
+      buttons:
+      - {fileID: 0}
+      eventIds: []
+      conditionEventIds: []
