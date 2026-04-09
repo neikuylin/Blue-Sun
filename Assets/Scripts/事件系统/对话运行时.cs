@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class 对话运行时 : MonoBehaviour
@@ -331,13 +330,6 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private static void ApplyDialogueToBinding(GameObject portraitContainer, GameObject roleNameObject, GameObject contentObject, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
-        Image portraitImage = portraitContainer.GetComponent<Image>();
-        if (portraitImage == null)
-        {
-            Debug.LogError($"对话运行时: 对象 '{portraitContainer.name}' 缺少 Image 组件。");
-            throw new InvalidOperationException(portraitContainer.name);
-        }
-
         TMP_Text roleNameText = roleNameObject.GetComponent<TMP_Text>();
         if (roleNameText == null)
         {
@@ -352,7 +344,13 @@ public sealed class 对话运行时 : MonoBehaviour
             throw new InvalidOperationException(contentObject.name);
         }
 
-        portraitImage.sprite = contentEntry.portraitSprite2D;
+        if (contentEntry.portraitPrefab == null)
+        {
+            Debug.LogError("对话运行时: 立绘Prefab未绑定。");
+            throw new InvalidOperationException("立绘Prefab");
+        }
+
+        UnityEngine.Object.Instantiate(contentEntry.portraitPrefab, portraitContainer.transform, false);
         roleNameText.text = roleName;
         contentText.text = contentEntry.content ?? string.Empty;
     }

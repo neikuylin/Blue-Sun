@@ -116,11 +116,11 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 entry.roleNameId,
                 GetRoleNameIds(roleNameDatabase));
 
-            Sprite nextPortraitSprite = (Sprite)EditorGUILayout.ObjectField("立绘 Sprite2D", entry.portraitSprite2D, typeof(Sprite), false);
-            if (nextPortraitSprite != entry.portraitSprite2D)
+            GameObject nextPortraitPrefab = (GameObject)EditorGUILayout.ObjectField("立绘Prefab", entry.portraitPrefab, typeof(GameObject), false);
+            if (nextPortraitPrefab != entry.portraitPrefab)
             {
-                Undo.RecordObject(database, "修改立绘");
-                entry.portraitSprite2D = nextPortraitSprite;
+                Undo.RecordObject(database, "修改立绘Prefab");
+                entry.portraitPrefab = nextPortraitPrefab;
                 SaveAsset(database);
             }
 
@@ -150,8 +150,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             return true;
         }
 
-        bool expanded;
-        if (foldoutStates.TryGetValue(key, out expanded))
+        if (foldoutStates.TryGetValue(key, out bool expanded))
         {
             return expanded;
         }

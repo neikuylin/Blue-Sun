@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "DialogueContentDatabase", menuName = "事件/对话内容数据库")]
+[CreateAssetMenu(fileName = "DialogueContentDatabase", menuName = "事件/对话内容数据")]
 public sealed class DialogueContentDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "DialogueContentDatabase";
@@ -18,7 +18,7 @@ public sealed class DialogueContentDatabase : ScriptableObject
     {
         public string id = string.Empty;
         public string roleNameId = string.Empty;
-        public Sprite portraitSprite2D;
+        public GameObject portraitPrefab;
         public DialogueViewSide viewSide = DialogueViewSide.Main;
         [TextArea(3, 8)] public string content = string.Empty;
     }
