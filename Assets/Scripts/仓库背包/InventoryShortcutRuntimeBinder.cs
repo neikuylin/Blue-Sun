@@ -403,13 +403,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         equipment[index] = NormalizeItemSlotData(data);
         instance.RebuildEquipmentFootprintOccupancy(equipment);
-        instance.NotifyEquipmentSkillDataChanged(characterId);
         if (string.Equals(instance.ResolveEquipmentCharacterId(), characterId, StringComparison.Ordinal))
         {
             instance.RefreshEquipmentSlots();
         }
 
         instance.RefreshRuntimeWeaponModelForCharacter(characterId);
+        instance.NotifyEquipmentSkillDataChanged(characterId);
 
         return true;
     }
@@ -2136,7 +2136,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (slot.kind == SlotKind.Equipment)
         {
             RebuildEquipmentFootprintOccupancy(list);
-            MarkEquipmentSkillsDirty();
         }
     }
 
@@ -2433,6 +2432,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         RefreshAll();
+        if (source.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Equipment)
+        {
+            NotifyEquipmentSkillDataChanged(ResolveEquipmentCharacterId());
+        }
         ItemSoundUtility.PlayForItem(sourceData.itemId);
         return true;
     }
@@ -3330,11 +3333,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return equipmentSlots;
-    }
-
-    private void MarkEquipmentSkillsDirty()
-    {
-        NotifyEquipmentSkillDataChanged(ResolveEquipmentCharacterId());
     }
 
     private void NotifyEquipmentSkillDataChanged(string characterId)
