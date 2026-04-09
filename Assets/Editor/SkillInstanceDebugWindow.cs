@@ -10,14 +10,14 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
     private Vector2 scroll;
     private int selectedCharacterIndex;
     private string manualCharacterId = string.Empty;
-    private List<string> characterIds = new List<string>();
+    private readonly List<string> characterIds = new List<string>();
 
     [MenuItem("Tools/技能/现有技能实例")]
     private static void Open()
     {
         SkillInstanceDebugWindow window = GetWindow<SkillInstanceDebugWindow>();
         window.titleContent = new GUIContent("现有技能实例");
-        window.minSize = new Vector2(640f, 480f);
+        window.minSize = new Vector2(720f, 520f);
         window.Show();
     }
 
@@ -35,7 +35,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
     {
         EditorGUILayout.LabelField("现有技能实例", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "这里直接读取 CharacterSkillLoadoutDatabase 里的真实数据，不再依赖战斗运行时快照。",
+            "这里直接读取技能装配资源。上面是技能栏位，下面是已拥有技能总表和仓库当前显示状态。",
             MessageType.Info);
 
         DrawCharacterSelector();
@@ -67,38 +67,74 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         if (entry == null)
         {
-            EditorGUILayout.HelpBox("这个角色当前没有技能实例数据。", MessageType.Info);
+            EditorGUILayout.HelpBox("这个角色当前没有技能数据。", MessageType.Info);
             EditorGUILayout.EndScrollView();
             return;
         }
 
-        DrawSection("技能栏位", entry.memorizedSkillIds, entry.memorizedSkillWeights);
+        int memorizedSlotCount = ResolveSkillMemorySlotCount(characterId);
+        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, memorizedSlotCount);
+
+        DrawMemorizedSection(entry);
         EditorGUILayout.Space(10f);
-        DrawSection("技能仓库", entry.warehouseSkillIds, entry.warehouseSkillWeights);
+        DrawOwnedSection(entry);
 
         EditorGUILayout.EndScrollView();
     }
 
-    private static void DrawSection(string title, List<string> skillIds, List<int> skillWeights)
+    private static void DrawMemorizedSection(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
     {
-        EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("技能栏位", EditorStyles.boldLabel);
 
-        int count = skillIds != null ? skillIds.Count : 0;
+        int count = entry.memorizedSkillIds != null ? entry.memorizedSkillIds.Count : 0;
         if (count == 0)
         {
-            EditorGUILayout.HelpBox($"{title} 当前没有任何格子数据。", MessageType.Info);
+            EditorGUILayout.HelpBox("当前没有技能栏位数据。", MessageType.Info);
             return;
         }
 
         for (int i = 0; i < count; i++)
         {
-            string skillId = skillIds[i];
-            int weight = skillWeights != null && i < skillWeights.Count ? skillWeights[i] : 0;
+            string skillId = entry.memorizedSkillIds[i];
+            int weight = entry.memorizedSkillWeights != null && i < entry.memorizedSkillWeights.Count
+                ? entry.memorizedSkillWeights[i]
+                : 0;
 
             using (new EditorGUILayout.VerticalScope("box"))
             {
-                EditorGUILayout.LabelField($"索引 {i}");
-                EditorGUILayout.LabelField("技能ID", string.IsNullOrWhiteSpace(skillId) ? "（空）" : skillId);
+                EditorGUILayout.LabelField($"栏位 {i + 1}");
+                EditorGUILayout.LabelField("技能", string.IsNullOrWhiteSpace(skillId) ? "（空）" : skillId);
+                EditorGUILayout.LabelField("权重", weight.ToString());
+            }
+        }
+    }
+
+    private static void DrawOwnedSection(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
+    {
+        EditorGUILayout.LabelField("已拥有技能总表 / 仓库映射", EditorStyles.boldLabel);
+
+        int count = entry.warehouseSkillIds != null ? entry.warehouseSkillIds.Count : 0;
+        if (count == 0)
+        {
+            EditorGUILayout.HelpBox("这个角色当前还没有拥有任何技能。", MessageType.Info);
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            string ownedSkillId = entry.warehouseSkillIds[i];
+            string warehouseDisplaySkillId = CharacterSkillLoadoutDatabase.GetWarehouseDisplaySkillId(entry, i);
+            bool isMemorized = string.IsNullOrWhiteSpace(warehouseDisplaySkillId);
+            int weight = entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count
+                ? entry.warehouseSkillWeights[i]
+                : 0;
+
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                EditorGUILayout.LabelField($"拥有格 {i + 1}");
+                EditorGUILayout.LabelField("对应技能", string.IsNullOrWhiteSpace(ownedSkillId) ? "（空）" : ownedSkillId);
+                EditorGUILayout.LabelField("仓库显示", string.IsNullOrWhiteSpace(warehouseDisplaySkillId) ? "（空）" : warehouseDisplaySkillId);
+                EditorGUILayout.LabelField("状态", isMemorized ? "已放入技能栏" : "仍在仓库中");
                 EditorGUILayout.LabelField("权重", weight.ToString());
             }
         }
@@ -113,7 +149,7 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         if (characterIds.Count == 0)
         {
-            EditorGUILayout.HelpBox("当前没有可选角色ID。", MessageType.Info);
+            EditorGUILayout.HelpBox("当前没有可选角色。", MessageType.Info);
             manualCharacterId = EditorGUILayout.TextField("角色ID", manualCharacterId);
             return;
         }
@@ -210,5 +246,14 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         selectedCharacterIndex = Mathf.Clamp(selectedCharacterIndex, 0, characterIds.Count - 1);
         manualCharacterId = characterIds[selectedCharacterIndex];
+    }
+
+    private static int ResolveSkillMemorySlotCount(string characterId)
+    {
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        return statEntry != null
+            ? statEntry.ResolveSkillMemorySlots()
+            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
     }
 }
