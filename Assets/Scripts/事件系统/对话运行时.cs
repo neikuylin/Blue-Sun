@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class 对话运行时 : MonoBehaviour
@@ -289,19 +290,27 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void ShowOnMainBinding(主视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
-        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, "主视角对话绑定");
+        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "主视角对话绑定");
+        ConfigureContinueButton(binding.继续按钮);
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
     }
 
     private void ShowOnSecondaryBinding(副视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
-        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, "副视角对话绑定");
+        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "副视角对话绑定");
+        ConfigureContinueButton(binding.继续按钮);
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
     }
 
-    private static void ValidateBinding(GameObject prefab, GameObject portraitContainer, GameObject roleNameObject, GameObject contentObject, string bindingName)
+    private static void ValidateBinding(
+        GameObject prefab,
+        GameObject portraitContainer,
+        GameObject roleNameObject,
+        GameObject contentObject,
+        GameObject continueButtonObject,
+        string bindingName)
     {
         if (prefab == null)
         {
@@ -326,6 +335,25 @@ public sealed class 对话运行时 : MonoBehaviour
             Debug.LogError($"{bindingName}: 对话内容未绑定。");
             throw new InvalidOperationException(bindingName);
         }
+
+        if (continueButtonObject == null)
+        {
+            Debug.LogError($"{bindingName}: 继续按钮未绑定。");
+            throw new InvalidOperationException(bindingName);
+        }
+    }
+
+    private void ConfigureContinueButton(GameObject continueButtonObject)
+    {
+        Button button = continueButtonObject.GetComponent<Button>();
+        if (button == null)
+        {
+            Debug.LogError($"对话运行时: 对象 '{continueButtonObject.name}' 缺少 Button 组件。");
+            throw new InvalidOperationException(continueButtonObject.name);
+        }
+
+        button.onClick.RemoveListener(关闭当前对话);
+        button.onClick.AddListener(关闭当前对话);
     }
 
     private static void ApplyDialogueToBinding(GameObject portraitContainer, GameObject roleNameObject, GameObject contentObject, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)

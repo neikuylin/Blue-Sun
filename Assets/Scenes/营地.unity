@@ -151,14 +151,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32f81320d54447f40bdaf072be2ba6f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainViewPrefab: {fileID: 4227591272030912172, guid: 32fb57a85d18b0e4bb5a2cb51b4786fd, type: 3}
-  secondaryViewPrefab: {fileID: 2070539011258567263, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
-  mainViewPortraitContainer: {fileID: 0}
-  secondaryViewPortraitContainer: {fileID: 0}
-  mainViewRoleName: {fileID: 0}
-  secondaryViewRoleName: {fileID: 0}
-  mainViewContent: {fileID: 0}
-  secondaryViewContent: {fileID: 0}
 --- !u!4 &1682678
 Transform:
   m_ObjectHideFlags: 0
@@ -6530,6 +6522,7 @@ GameObject:
   - component: {fileID: 1252405363}
   - component: {fileID: 1252405362}
   - component: {fileID: 1252405361}
+  - component: {fileID: 1252405364}
   m_Layer: 5
   m_Name: "\u7D22\u62C9\u5A1C"
   m_TagString: Untagged
@@ -6638,6 +6631,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1252405359}
   m_CullTransparentMesh: 1
+--- !u!114 &1252405364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1252405359}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37151f0030ba20e4e8f7a4067f9c0a1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  "\u5BF9\u8BDD\u4E8B\u4EF6ID": "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
 --- !u!1001 &1267803336
 PrefabInstance:
   m_ObjectHideFlags: 0
