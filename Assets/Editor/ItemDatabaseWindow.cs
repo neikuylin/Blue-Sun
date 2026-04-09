@@ -249,7 +249,6 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
             if (entry.category == ItemDatabase.ItemCategory.Equipment)
             {
-                ItemDatabase.EnsureValidWeaponDamageDistribution(entry);
                 ItemDatabase.EnsureValidWeaponResistancePenetrationList(entry);
                 entry.equipmentSlot = (ItemDatabase.EquipmentSlotType)EditorGUILayout.Popup(
                     "装备部位",
@@ -485,7 +484,19 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
         if (ItemDatabase.ShouldShowWeaponDamageDistribution(entry.category, entry.weaponCategory))
         {
-            ItemDatabase.EnsureValidWeaponDamageDistribution(entry);
+            if (entry.weaponDamageDistribution == null)
+            {
+                return "武器伤害分布未配置。";
+            }
+
+            if (entry.weaponDamageDistribution.physical < 0 ||
+                entry.weaponDamageDistribution.fire < 0 ||
+                entry.weaponDamageDistribution.corruption < 0 ||
+                entry.weaponDamageDistribution.cold < 0)
+            {
+                return "武器伤害分布不能出现负数。";
+            }
+
             if (entry.weaponDamageDistribution.Total != 100)
             {
                 return "武器伤害属性总和必须等于 100。";
@@ -910,15 +921,15 @@ public sealed class ItemDatabaseWindow : EditorWindow
     {
         if (source == null)
         {
-            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            return null;
         }
 
         return new ItemDatabase.WeaponDamageDistribution
         {
-            physical = Mathf.Max(0, source.physical),
-            fire = Mathf.Max(0, source.fire),
-            corruption = Mathf.Max(0, source.corruption),
-            cold = Mathf.Max(0, source.cold)
+            physical = source.physical,
+            fire = source.fire,
+            corruption = source.corruption,
+            cold = source.cold
         };
     }
 

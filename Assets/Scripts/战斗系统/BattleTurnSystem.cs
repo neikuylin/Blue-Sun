@@ -3836,23 +3836,21 @@ public class BattleTurnSystem : MonoBehaviour
         BattleUnit target)
     {
         components.Clear();
-        if (totalDamage <= 0f)
+        if (totalDamage <= 0f || distribution == null)
         {
             return;
         }
 
-        ItemDatabase.WeaponDamageDistribution resolvedDistribution = distribution ?? ItemDatabase.CreateDefaultWeaponDamageDistribution();
-        int distributionTotal = Mathf.Max(0, resolvedDistribution.Total);
+        int distributionTotal = Mathf.Max(0, distribution.Total);
         if (distributionTotal <= 0)
         {
-            resolvedDistribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
-            distributionTotal = resolvedDistribution.Total;
+            return;
         }
 
-        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, resolvedDistribution.physical, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, resolvedDistribution.fire, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, resolvedDistribution.corruption, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, resolvedDistribution.cold, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target);
     }
 
     private void AddDamageComponent(

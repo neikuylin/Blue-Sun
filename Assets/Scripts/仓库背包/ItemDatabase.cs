@@ -249,24 +249,6 @@ public sealed class ItemDatabase : ScriptableObject
             weaponCategory == WeaponCategory.Staff;
     }
 
-    public static void EnsureValidWeaponDamageDistribution(ItemEntry entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        if (entry.weaponDamageDistribution == null)
-        {
-            entry.weaponDamageDistribution = CreateDefaultWeaponDamageDistribution();
-        }
-
-        entry.weaponDamageDistribution.physical = Mathf.Max(0, entry.weaponDamageDistribution.physical);
-        entry.weaponDamageDistribution.fire = Mathf.Max(0, entry.weaponDamageDistribution.fire);
-        entry.weaponDamageDistribution.corruption = Mathf.Max(0, entry.weaponDamageDistribution.corruption);
-        entry.weaponDamageDistribution.cold = Mathf.Max(0, entry.weaponDamageDistribution.cold);
-    }
-
     public static WeaponDamageDistribution CreateDefaultWeaponDamageDistribution()
     {
         return new WeaponDamageDistribution

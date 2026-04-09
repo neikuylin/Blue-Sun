@@ -350,7 +350,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        instance.backpackData[index] = NormalizeItemSlotData(data);
+        instance.backpackData[index] = PrepareItemSlotDataForStorage(data, $"背包格 {index}");
         instance.RefreshBackpackSlot(index);
         instance.RefreshExtraBackpackSlots(index);
         return true;
@@ -363,7 +363,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        instance.warehouseData[index] = NormalizeItemSlotData(data);
+        instance.warehouseData[index] = PrepareItemSlotDataForStorage(data, $"仓库格 {index}");
         instance.RefreshWarehouseSlot(index);
         return true;
     }
@@ -400,7 +400,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        equipment[index] = NormalizeItemSlotData(data);
+        equipment[index] = PrepareItemSlotDataForStorage(data, $"装备栏 {characterId}:{index}");
         instance.RebuildEquipmentFootprintOccupancy(equipment);
         界面刷新中心.请求装备变更(characterId);
 
@@ -526,6 +526,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static int ResolveMaxStack(string itemId, int fallback)
     {
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        if (entry == null)
+        {
+            Debug.LogWarning($"[物品数据警告] 未找到物品定义，无法确认堆叠上限：{itemId}");
+        }
+
         return ResolveMaxStack(entry, fallback);
     }
 
@@ -539,17 +544,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return entry.category == ItemDatabase.ItemCategory.Equipment ? 1 : 5;
     }
 
-    private static ItemSlotData NormalizeItemSlotData(ItemSlotData data)
+    private static ItemSlotData PrepareItemSlotDataForStorage(ItemSlotData data, string context)
     {
         if (data.isFootprintExtension)
         {
-            data.itemId = string.Empty;
-            data.icon = null;
-            data.count = 0;
-            data.maxStack = 0;
-            data.isRotated = false;
-            data.primarySlotIndex = Mathf.Max(0, data.primarySlotIndex);
-            return data;
+            return new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = Mathf.Max(0, data.primarySlotIndex)
+            };
         }
 
         if (data.IsEmpty)
@@ -557,15 +560,41 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return default;
         }
 
+        ValidateItemSlotData(data, context);
         data.primarySlotIndex = -1;
-        data.count = Mathf.Max(1, data.count);
-        data.maxStack = ResolveMaxStack(data.itemId, data.maxStack);
-        if (data.count > data.maxStack)
+        return data;
+    }
+
+    private static void ValidateItemSlotData(ItemSlotData data, string context)
+    {
+        string area = string.IsNullOrWhiteSpace(context) ? "未知位置" : context;
+        if (string.IsNullOrWhiteSpace(data.itemId))
         {
-            data.count = data.maxStack;
+            Debug.LogWarning($"[物品数据警告] {area} 的格子数据缺少物品ID。");
         }
 
-        return data;
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (entry == null)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 引用了不存在的物品：{data.itemId}");
+            return;
+        }
+
+        int expectedMaxStack = ResolveMaxStack(entry, data.maxStack);
+        if (data.count <= 0)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的物品数量不合法：{data.itemId}，当前数量 {data.count}");
+        }
+
+        if (data.maxStack != expectedMaxStack)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的堆叠上限不匹配：{data.itemId}，当前 {data.maxStack}，应为 {expectedMaxStack}");
+        }
+
+        if (data.count > expectedMaxStack)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的物品数量超过上限：{data.itemId}，数量 {data.count} / 上限 {expectedMaxStack}");
+        }
     }
 
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
@@ -1506,13 +1535,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            result[i] = NormalizeItemSlotData(new ItemSlotData
+            result[i] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 itemId = itemId,
                 icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab),
                 count = 1,
                 maxStack = 1
-            });
+            }, $"敌人装备栏 {characterId}:{i}");
         }
 
         boundEnemyEquipmentDataCache[characterId] = result;
@@ -2144,7 +2173,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        list[slot.index] = NormalizeItemSlotData(data);
+        list[slot.index] = PrepareItemSlotDataForStorage(data, $"{slot.kind} {slot.index}");
         if (slot.kind == SlotKind.Equipment)
         {
             RebuildEquipmentFootprintOccupancy(list);
@@ -2722,16 +2751,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {index}");
         list[index] = normalizedPrimary;
         int extensionIndex = GetExtensionIndexForData(kind, index, normalizedPrimary);
         if (extensionIndex >= 0 && extensionIndex < list.Count)
         {
-            list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+            list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 isFootprintExtension = true,
                 primarySlotIndex = index
-            });
+            }, $"{kind} 扩展格 {extensionIndex}");
         }
 
         if (kind == SlotKind.Equipment)
@@ -2979,11 +3008,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return;
             }
 
-            equipmentData[offHandIndex] = NormalizeItemSlotData(new ItemSlotData
+            equipmentData[offHandIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 isFootprintExtension = true,
                 primarySlotIndex = i
-            });
+            }, $"装备栏扩展格 {offHandIndex}");
             return;
         }
     }
@@ -3049,7 +3078,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {primaryIndex}");
         list[primaryIndex] = normalizedPrimary;
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(normalizedPrimary.itemId);
@@ -3064,11 +3093,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+        list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
         {
             isFootprintExtension = true,
             primarySlotIndex = primaryIndex
-        });
+        }, $"{kind} 扩展格 {extensionIndex}");
     }
 
     private void ClearFootprintAt(SlotKind kind, int primaryIndex, ItemSlotData data)
@@ -3255,14 +3284,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        liveData[source.index] = NormalizeItemSlotData(rotatedData);
+        liveData[source.index] = PrepareItemSlotDataForStorage(rotatedData, $"{source.kind} {source.index}");
         if (newExtensionIndex >= 0 && newExtensionIndex < liveData.Count)
         {
-            liveData[newExtensionIndex] = NormalizeItemSlotData(new ItemSlotData
+            liveData[newExtensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 isFootprintExtension = true,
                 primarySlotIndex = source.index
-            });
+            }, $"{source.kind} 扩展格 {newExtensionIndex}");
         }
 
         if (oldExtensionIndex >= 0 &&
@@ -3371,10 +3400,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
         if (weaponEntry == null)
         {
-            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            return null;
         }
 
-        ItemDatabase.EnsureValidWeaponDamageDistribution(weaponEntry);
+        if (!HasValidWeaponDamageDistribution(weaponEntry))
+        {
+            Debug.LogWarning($"[物品数据警告] 武器伤害分布未配置或总和不合法：{weaponEntry.itemId}");
+            return null;
+        }
+
         return CloneWeaponDamageDistribution(weaponEntry.weaponDamageDistribution);
     }
 
@@ -3475,7 +3509,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (distribution == null)
         {
-            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            return null;
         }
 
         return new ItemDatabase.WeaponDamageDistribution
@@ -3485,6 +3519,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             corruption = distribution.corruption,
             cold = distribution.cold
         };
+    }
+
+    private static bool HasValidWeaponDamageDistribution(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.weaponDamageDistribution == null)
+        {
+            return false;
+        }
+
+        ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
+        return distribution.physical >= 0 &&
+            distribution.fire >= 0 &&
+            distribution.corruption >= 0 &&
+            distribution.cold >= 0 &&
+            distribution.Total == 100;
     }
 
     private List<string> BuildGrantedSkillList(string characterId)
@@ -4444,7 +4493,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         segments = BuildAttackPowerSegments(entry, statEntry);
-        if (segments == null || segments.Count == 0)
+        if (segments == null)
+        {
+            return "<color=#E6C229>攻击力：伤害分布未配置</color>";
+        }
+
+        if (segments.Count == 0)
         {
             float attackPower = CalculateWeaponAttackPower(entry, statEntry);
             return $"攻击力：{attackPower:0.##}";
@@ -4548,9 +4602,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
-        if (distribution == null || distribution.Total <= 0)
+        if (distribution == null || distribution.physical < 0 || distribution.fire < 0 ||
+            distribution.corruption < 0 || distribution.cold < 0 || distribution.Total != 100)
         {
-            distribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            Debug.LogWarning($"[物品数据警告] 武器提示读取到未配置伤害分布：{entry.itemId}");
+            return null;
         }
 
         int total = Mathf.Max(1, distribution.Total);
