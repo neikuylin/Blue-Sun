@@ -117,6 +117,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             ResetWeaponResistancePenetrationList(createWeaponResistancePenetrations);
         }
 
+        DrawStackRuleHelpBox(createCategory);
+
         newItemId = EditorGUILayout.TextField("物品ID", newItemId);
         newDisplayName = EditorGUILayout.TextField("物品名字", newDisplayName);
         newDescription = EditorGUILayout.TextField("文本介绍", newDescription);
@@ -297,6 +299,8 @@ public sealed class ItemDatabaseWindow : EditorWindow
             {
                 entry.weaponModelPrefab = null;
             }
+
+            DrawStackRuleHelpBox(entry.category);
 
             string validationMessage = ValidateEntry(entry, index);
             if (!string.IsNullOrEmpty(validationMessage))
@@ -786,6 +790,14 @@ public sealed class ItemDatabaseWindow : EditorWindow
         {
             resistancePenetrations.Add(new ItemDatabase.WeaponResistancePenetrationEntry());
         }
+    }
+
+    private static void DrawStackRuleHelpBox(ItemDatabase.ItemCategory category)
+    {
+        string message = category == ItemDatabase.ItemCategory.Equipment
+            ? "当前规则：装备类物品不可堆叠，单格上限固定为 1。"
+            : "当前规则：非装备类物品堆叠上限固定为 5。";
+        EditorGUILayout.HelpBox(message, MessageType.Info);
     }
 
     private static List<string> CloneGrantedSkillList(List<string> source)
