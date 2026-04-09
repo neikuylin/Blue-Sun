@@ -303,11 +303,11 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                string nextEventId = DrawIdPopup($"条件ID {i + 1}", condition.eventId, sourceIds);
-                if (!string.Equals(nextEventId, condition.eventId, System.StringComparison.Ordinal))
+                string nextConditionId = DrawIdPopup($"条件ID {i + 1}", condition.eventId, sourceIds);
+                if (!string.Equals(nextConditionId, condition.eventId, System.StringComparison.Ordinal))
                 {
                     Undo.RecordObject(database, "修改条件ID");
-                    condition.eventId = nextEventId;
+                    condition.eventId = nextConditionId;
                     SaveAsset(database);
                 }
 
