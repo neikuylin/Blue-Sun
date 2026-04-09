@@ -56,7 +56,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private RectTransform leftPanelPreviewAnchor;
     private RectTransform leftPanelSkillContainer;
     private string currentCharacterId = string.Empty;
-    private int lastEquipmentSkillRevision = -1;
     private RawImage previewImage;
     private Camera previewCamera;
     private RenderTexture previewTexture;
@@ -81,12 +80,14 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        SkillLoadoutRuntimeBinder.SkillDataChanged += OnSkillDataChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        SkillLoadoutRuntimeBinder.SkillDataChanged -= OnSkillDataChanged;
         skillSlots.Clear();
         ClearPreviewTargetUnit();
     }
@@ -102,15 +103,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         UpdatePreviewCameraFollow();
 
         string targetCharacterId = ResolveCharacterId();
-        int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
-            lastEquipmentSkillRevision == equipmentSkillRevision)
+        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal))
         {
             return;
         }
 
         currentCharacterId = targetCharacterId;
-        lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshLeftPanel();
     }
 
@@ -151,7 +149,12 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
-        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        RefreshLeftPanel();
+    }
+
+    private void OnSkillDataChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
         RefreshLeftPanel();
     }
 

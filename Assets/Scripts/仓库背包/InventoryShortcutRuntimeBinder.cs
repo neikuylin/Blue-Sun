@@ -193,7 +193,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int warehouseUsableSlotCount = -1;
     private int backpackUsableSlotCount = -1;
     private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-    private int equipmentSkillRevision;
     private readonly CategoryFilterBinding warehouseFilter = new CategoryFilterBinding();
     private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
@@ -229,8 +228,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
-    public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
-
     public static int GetWarehouseUsableSlotCount()
     {
         return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Warehouse, null) : 0;
@@ -406,7 +403,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         equipment[index] = NormalizeItemSlotData(data);
         instance.RebuildEquipmentFootprintOccupancy(equipment);
-        instance.MarkEquipmentSkillsDirty();
+        instance.NotifyEquipmentSkillDataChanged(characterId);
         if (string.Equals(instance.ResolveEquipmentCharacterId(), characterId, StringComparison.Ordinal))
         {
             instance.RefreshEquipmentSlots();
@@ -3337,7 +3334,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void MarkEquipmentSkillsDirty()
     {
-        equipmentSkillRevision++;
+        NotifyEquipmentSkillDataChanged(ResolveEquipmentCharacterId());
+    }
+
+    private void NotifyEquipmentSkillDataChanged(string characterId)
+    {
+        SkillLoadoutRuntimeBinder.NotifySkillDataChanged(characterId);
     }
 
     private static bool ShouldShowWeaponTooltip(ItemDatabase.ItemEntry entry)
@@ -3830,7 +3832,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         lastEquipmentRefreshCharacterId = equipmentCharacterId;
         RefreshRuntimeWeaponModelForCharacter(equipmentCharacterId);
-        SkillLoadoutRuntimeBinder.ForceRefresh();
     }
 
     private void ApplyEquipmentSlotData(int index, ItemSlotData data, bool isUsable)

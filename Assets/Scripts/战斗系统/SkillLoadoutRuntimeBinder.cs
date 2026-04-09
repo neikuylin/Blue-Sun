@@ -94,12 +94,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     }
 
     private static SkillLoadoutRuntimeBinder instance;
+    public static event Action<string> SkillDataChanged;
 
     private readonly List<SkillSlotWidget> journeySkillSlots = new List<SkillSlotWidget>();
     private readonly List<SkillSlotWidget> warehouseSkillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
     private string currentCharacterId = string.Empty;
-    private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
     private SkillBarBinding skillBarBinding;
     private SkillWarehouseBinding skillWarehouseBinding;
@@ -128,12 +128,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        SkillDataChanged += OnSkillDataChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        SkillDataChanged -= OnSkillDataChanged;
         if (deferredRefreshCoroutine != null)
         {
             StopCoroutine(deferredRefreshCoroutine);
@@ -146,15 +148,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void Update()
     {
         string targetCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
-            lastEquipmentSkillRevision == equipmentSkillRevision)
+        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal))
         {
             return;
         }
 
         currentCharacterId = targetCharacterId;
-        lastEquipmentSkillRevision = equipmentSkillRevision;
         RefreshAll();
     }
 
@@ -173,7 +172,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         if (deferredRefreshCoroutine != null)
         {
             StopCoroutine(deferredRefreshCoroutine);
@@ -189,8 +187,13 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         instance.currentCharacterId = instance.ResolveCharacterId(界面ID列表.当前ID);
-        instance.lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
         instance.RefreshAll();
+    }
+
+    public static void NotifySkillDataChanged(string characterId)
+    {
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+        SkillDataChanged?.Invoke(resolvedCharacterId);
     }
 
     private IEnumerator DeferredRefreshAfterBinding()
@@ -198,7 +201,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         yield return null;
         deferredRefreshCoroutine = null;
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        RefreshAll();
+    }
+
+    private void OnSkillDataChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         RefreshAll();
     }
 
@@ -476,7 +484,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        RefreshAll();
+        NotifySkillDataChanged(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
 
@@ -494,7 +502,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         eventData.Use();
-        RefreshAll();
+        NotifySkillDataChanged(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
 
