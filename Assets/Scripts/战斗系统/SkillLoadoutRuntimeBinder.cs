@@ -834,7 +834,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         string resolvedCharacterId = ResolveCharacterId(characterId);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
-        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, ResolveVisibleSkillMemorySlotCount(resolvedCharacterId));
         return entry;
     }
 

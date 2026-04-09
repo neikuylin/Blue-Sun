@@ -43,7 +43,6 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         string characterId = characterIds[selectedCharacterIndex];
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(characterId);
         int memorizedSlotCount = ResolveSkillMemorySlotCount(characterId);
-        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, memorizedSlotCount);
 
         EditorGUILayout.HelpBox(
             "技能仓库现在是固定格。\n" +
@@ -60,7 +59,6 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
 
         if (GUI.changed)
         {
-            CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, memorizedSlotCount);
             EditorUtility.SetDirty(database);
             AssetDatabase.SaveAssets();
         }

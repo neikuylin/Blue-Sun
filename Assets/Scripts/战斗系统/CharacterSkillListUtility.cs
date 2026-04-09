@@ -36,7 +36,6 @@ public static class CharacterSkillListUtility
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
-        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, ResolveSkillMemorySlotCount(resolvedCharacterId));
         if (entry != null && entry.memorizedSkillIds != null)
         {
             for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
@@ -55,7 +54,6 @@ public static class CharacterSkillListUtility
         CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(resolvedCharacterId) : null;
-        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, ResolveSkillMemorySlotCount(resolvedCharacterId));
         if (entry != null && entry.warehouseSkillIds != null)
         {
             for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
@@ -117,16 +115,5 @@ public static class CharacterSkillListUtility
         }
 
         target.Add(new DisplaySkillEntry(skillId, isGranted));
-    }
-
-    private static int ResolveSkillMemorySlotCount(string characterId)
-    {
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry =
-            statDatabase != null ? statDatabase.FindEntry(string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId) : null;
-
-        return statEntry != null
-            ? statEntry.ResolveSkillMemorySlots()
-            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
     }
 }

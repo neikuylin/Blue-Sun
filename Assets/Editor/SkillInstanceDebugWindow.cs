@@ -72,9 +72,6 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
             return;
         }
 
-        int memorizedSlotCount = ResolveSkillMemorySlotCount(characterId);
-        CharacterSkillLoadoutDatabase.PrepareEntryForRuntime(entry, memorizedSlotCount);
-
         DrawMemorizedSection(entry);
         EditorGUILayout.Space(10f);
         DrawWarehouseSection(entry);
@@ -243,14 +240,5 @@ public sealed class SkillInstanceDebugWindow : EditorWindow
 
         selectedCharacterIndex = Mathf.Clamp(selectedCharacterIndex, 0, characterIds.Count - 1);
         manualCharacterId = characterIds[selectedCharacterIndex];
-    }
-
-    private static int ResolveSkillMemorySlotCount(string characterId)
-    {
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
-        return statEntry != null
-            ? statEntry.ResolveSkillMemorySlots()
-            : CharacterStatDatabase.StatEntry.BaseSkillMemorySlots;
     }
 }

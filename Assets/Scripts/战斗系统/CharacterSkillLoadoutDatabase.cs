@@ -100,17 +100,6 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         EnsureIntListMinSize(entry.warehouseSkillWeights, size);
     }
 
-    public static void PrepareEntryForRuntime(CharacterSkillEntry entry, int memorySlotCount)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        MigrateLegacyIfNeeded(entry, memorySlotCount);
-        NormalizeWarehouseAndMemorizedSkills(entry, memorySlotCount);
-    }
-
     public static int GetMemorizedSkillWeightAt(CharacterSkillEntry entry, int index)
     {
         if (entry == null || entry.memorizedSkillWeights == null || index < 0 || index >= entry.memorizedSkillWeights.Count)
@@ -252,110 +241,6 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
 
         entry.legacySkillIds.Clear();
         entry.legacySkillWeights.Clear();
-    }
-
-    private static void NormalizeWarehouseAndMemorizedSkills(CharacterSkillEntry entry, int memorySlotCount)
-    {
-        EnsureListsInitialized(entry);
-        EnsureMemorizedSlotCapacity(entry, Math.Max(0, memorySlotCount));
-        NormalizeMemorizedSkills(entry);
-
-        HashSet<string> memorizedSkills = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
-        {
-            string skillId = entry.memorizedSkillIds[i];
-            if (!string.IsNullOrWhiteSpace(skillId))
-            {
-                memorizedSkills.Add(skillId);
-            }
-        }
-
-        List<string> normalizedWarehouseSkillIds = new List<string>();
-        List<int> normalizedWarehouseSkillWeights = new List<int>();
-        HashSet<string> warehouseSkills = new HashSet<string>(StringComparer.Ordinal);
-
-        if (entry.warehouseSkillIds != null)
-        {
-            for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
-            {
-                string skillId = entry.warehouseSkillIds[i];
-                if (string.IsNullOrWhiteSpace(skillId))
-                {
-                    normalizedWarehouseSkillIds.Add(string.Empty);
-                    normalizedWarehouseSkillWeights.Add(0);
-                    continue;
-                }
-
-                if (memorizedSkills.Contains(skillId) || !warehouseSkills.Add(skillId))
-                {
-                    continue;
-                }
-
-                normalizedWarehouseSkillIds.Add(skillId);
-                normalizedWarehouseSkillWeights.Add(
-                    entry.warehouseSkillWeights != null && i < entry.warehouseSkillWeights.Count
-                        ? entry.warehouseSkillWeights[i]
-                        : 0);
-            }
-        }
-
-        int desiredWarehouseSlotCount = warehouseSkills.Count + memorizedSkills.Count;
-        while (normalizedWarehouseSkillIds.Count < desiredWarehouseSlotCount)
-        {
-            normalizedWarehouseSkillIds.Add(string.Empty);
-            normalizedWarehouseSkillWeights.Add(0);
-        }
-
-        if (normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount)
-        {
-            for (int i = normalizedWarehouseSkillIds.Count - 1; i >= 0 && normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount; i--)
-            {
-                if (!string.IsNullOrWhiteSpace(normalizedWarehouseSkillIds[i]))
-                {
-                    continue;
-                }
-
-                normalizedWarehouseSkillIds.RemoveAt(i);
-                normalizedWarehouseSkillWeights.RemoveAt(i);
-            }
-
-            while (normalizedWarehouseSkillIds.Count > desiredWarehouseSlotCount)
-            {
-                int lastIndex = normalizedWarehouseSkillIds.Count - 1;
-                normalizedWarehouseSkillIds.RemoveAt(lastIndex);
-                normalizedWarehouseSkillWeights.RemoveAt(lastIndex);
-            }
-        }
-
-        entry.warehouseSkillIds.Clear();
-        entry.warehouseSkillWeights.Clear();
-        entry.warehouseSkillIds.AddRange(normalizedWarehouseSkillIds);
-        entry.warehouseSkillWeights.AddRange(normalizedWarehouseSkillWeights);
-    }
-
-    private static void NormalizeMemorizedSkills(CharacterSkillEntry entry)
-    {
-        if (entry == null || entry.memorizedSkillIds == null)
-        {
-            return;
-        }
-
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
-        {
-            string skillId = entry.memorizedSkillIds[i];
-            bool shouldClear = string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId);
-            if (!shouldClear)
-            {
-                continue;
-            }
-
-            entry.memorizedSkillIds[i] = string.Empty;
-            if (entry.memorizedSkillWeights != null && i < entry.memorizedSkillWeights.Count)
-            {
-                entry.memorizedSkillWeights[i] = 0;
-            }
-        }
     }
 
     public static CharacterSkillLoadoutDatabase LoadDefault()
