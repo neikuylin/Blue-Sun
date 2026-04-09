@@ -70,7 +70,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private void RebindScene()
     {
         UnbindAll();
-        HideAllViews();
+        HideAllViewsInScene();
 
         DialogueEventDatabase eventDatabase = DialogueEventDatabase.LoadDefault();
         if (eventDatabase == null || eventDatabase.Entries == null)
@@ -265,7 +265,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        HideAllViews();
+        HideCurrentViews();
 
         if (contentEntry.viewSide == DialogueContentDatabase.DialogueViewSide.Main)
         {
@@ -393,10 +393,10 @@ public sealed class 对话运行时 : MonoBehaviour
     private void CloseDialogue()
     {
         Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
-        HideAllViews();
+        HideCurrentViews();
     }
 
-    private void HideAllViews()
+    private void HideCurrentViews()
     {
         if (当前主视角绑定 != null)
         {
@@ -409,6 +409,30 @@ public sealed class 对话运行时 : MonoBehaviour
             Debug.Log($"对话运行时: 隐藏副视角对话, root={当前副视角绑定.gameObject.name}, id={当前副视角绑定.gameObject.GetInstanceID()}");
             当前副视角绑定.gameObject.SetActive(false);
         }
+    }
+
+    private void HideAllViewsInScene()
+    {
+        主视角对话绑定[] mainBindings = FindObjectsOfType<主视角对话绑定>(true);
+        for (int i = 0; i < mainBindings.Length; i++)
+        {
+            if (mainBindings[i] != null)
+            {
+                mainBindings[i].gameObject.SetActive(false);
+            }
+        }
+
+        副视角对话绑定[] secondaryBindings = FindObjectsOfType<副视角对话绑定>(true);
+        for (int i = 0; i < secondaryBindings.Length; i++)
+        {
+            if (secondaryBindings[i] != null)
+            {
+                secondaryBindings[i].gameObject.SetActive(false);
+            }
+        }
+
+        当前主视角绑定 = null;
+        当前副视角绑定 = null;
     }
 
     private static bool ResolveEventState(EventDatabase database, string eventId)
