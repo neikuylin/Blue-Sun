@@ -29,10 +29,6 @@ MonoBehaviour:
       interactionType: 0
       identifierId: "\u88C5\u5907"
       targetDialogueGroupId: 
-    - buttonText: "\u67E5\u770B\u6280\u80FD"
-      interactionType: 0
-      identifierId: 
-      targetDialogueGroupId: 
     - buttonText: "\u79BB\u5F00"
       interactionType: 2
       identifierId: 
