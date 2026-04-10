@@ -19,7 +19,7 @@ public sealed class DialogueEventDatabase : ScriptableObject
     [Serializable]
     public sealed class PresentationData
     {
-        public string dialogueContentId = string.Empty;
+        public string dialogueGroupId = string.Empty;
     }
 
     [Serializable]

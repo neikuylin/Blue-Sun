@@ -23,7 +23,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
     private void OnGUI()
     {
         DialogueEventDatabase database = EnsureDatabase();
-        DialogueContentDatabase contentDatabase = DialogueContentDatabase.LoadDefault();
+        DialogueGroupDatabase groupDatabase = DialogueGroupDatabase.LoadDefault();
         EventDatabase eventDatabase = EventDatabase.LoadDefault();
         DialogueConditionDatabase conditionDatabase = DialogueConditionDatabase.LoadDefault();
         if (database == null)
@@ -55,7 +55,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         scroll = EditorGUILayout.BeginScrollView(scroll);
         for (int i = 0; i < database.Entries.Count; i++)
         {
-            DrawEntry(database, database.Entries[i], i, contentDatabase, eventDatabase, conditionDatabase);
+            DrawEntry(database, database.Entries[i], i, groupDatabase, eventDatabase, conditionDatabase);
         }
         EditorGUILayout.EndScrollView();
     }
@@ -64,7 +64,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         DialogueEventDatabase database,
         DialogueEventDatabase.DialogueEventEntry entry,
         int index,
-        DialogueContentDatabase contentDatabase,
+        DialogueGroupDatabase groupDatabase,
         EventDatabase eventDatabase,
         DialogueConditionDatabase conditionDatabase)
     {
@@ -119,10 +119,10 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("表现", EditorStyles.boldLabel);
-            entry.presentation.dialogueContentId = DrawIdPopup(
-                "对话内容ID",
-                entry.presentation.dialogueContentId,
-                GetDialogueContentIds(contentDatabase));
+            entry.presentation.dialogueGroupId = DrawIdPopup(
+                "对话组ID",
+                entry.presentation.dialogueGroupId,
+                GetDialogueGroupIds(groupDatabase));
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("触发", EditorStyles.boldLabel);
@@ -302,7 +302,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
         }
     }
 
-    private static List<string> GetDialogueContentIds(DialogueContentDatabase database)
+    private static List<string> GetDialogueGroupIds(DialogueGroupDatabase database)
     {
         List<string> result = new List<string>();
         if (database == null)
@@ -312,7 +312,7 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
         for (int i = 0; i < database.Entries.Count; i++)
         {
-            DialogueContentDatabase.DialogueContentEntry entry = database.Entries[i];
+            DialogueGroupDatabase.DialogueGroupEntry entry = database.Entries[i];
             if (entry == null || string.IsNullOrWhiteSpace(entry.id))
             {
                 continue;
