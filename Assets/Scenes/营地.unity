@@ -6443,7 +6443,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1252405362}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1252405365}
+        m_TargetAssemblyTypeName: "\u5F53\u524DID\u9009\u62E9\u5668, Assembly-CSharp"
+        m_MethodName: "\u8BBE\u7F6E\u5F53\u524DID"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1252405362
 MonoBehaviour:
   m_ObjectHideFlags: 0
