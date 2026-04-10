@@ -16,6 +16,7 @@ public sealed class 副视角对话绑定 : MonoBehaviour
     [Header("交互按钮")]
     public GameObject 交互按钮容器;
     public GameObject 交互按钮模板;
+    public List<GameObject> 交互按钮槽位 = new List<GameObject>();
 
     [Header("标识内容绑定")]
     public List<DialogueInteractionIdentifierBinding> 标识内容绑定 = new List<DialogueInteractionIdentifierBinding>();

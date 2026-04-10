@@ -295,7 +295,7 @@ public sealed class 对话运行时 : MonoBehaviour
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.主视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, contentEntry);
+        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry);
         显示屏幕火星特效();
     }
 
@@ -307,7 +307,7 @@ public sealed class 对话运行时 : MonoBehaviour
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.副视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, contentEntry);
+        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry);
         显示屏幕火星特效();
     }
 
@@ -354,6 +354,7 @@ public sealed class 对话运行时 : MonoBehaviour
         GameObject continueButtonObject,
         GameObject interactionContainerObject,
         GameObject interactionButtonTemplateObject,
+        List<GameObject> interactionSlotObjects,
         DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         DialogueContentDatabase.EnsureEntry(contentEntry);
@@ -369,7 +370,8 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        ValidateInteractionBinding(interactionContainerObject, interactionButtonTemplateObject, contentEntry);
+        ValidateInteractionBinding(interactionContainerObject, interactionButtonTemplateObject, interactionSlotObjects, contentEntry);
+        int visibleInteractionIndex = 0;
         for (int i = 0; i < contentEntry.interactions.Count; i++)
         {
             DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
@@ -378,7 +380,8 @@ public sealed class 对话运行时 : MonoBehaviour
                 continue;
             }
 
-            CreateInteractionButton(interactionContainerObject, interactionButtonTemplateObject, interaction);
+            CreateInteractionButton(interactionSlotObjects[visibleInteractionIndex], interactionButtonTemplateObject, interaction);
+            visibleInteractionIndex++;
         }
     }
 
@@ -404,6 +407,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private static void ValidateInteractionBinding(
         GameObject interactionContainerObject,
         GameObject interactionButtonTemplateObject,
+        List<GameObject> interactionSlotObjects,
         DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         if (interactionContainerObject == null)
@@ -423,6 +427,14 @@ public sealed class 对话运行时 : MonoBehaviour
             throw new InvalidOperationException("交互按钮模板");
         }
 
+        if (interactionSlotObjects == null || interactionSlotObjects.Count == 0)
+        {
+            Debug.LogError("对话运行时: 缺少交互按钮槽位绑定。");
+            throw new InvalidOperationException("交互按钮槽位");
+        }
+
+        int visibleInteractionCount = 0;
+
         for (int i = 0; i < contentEntry.interactions.Count; i++)
         {
             DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
@@ -430,6 +442,8 @@ public sealed class 对话运行时 : MonoBehaviour
             {
                 continue;
             }
+
+            visibleInteractionCount++;
             if (interaction.interactionType == DialogueContentDatabase.InteractionType.Button &&
                 string.IsNullOrWhiteSpace(interaction.identifierId))
             {
@@ -437,10 +451,27 @@ public sealed class 对话运行时 : MonoBehaviour
                 throw new InvalidOperationException("标识ID");
             }
         }
+
+        if (visibleInteractionCount > interactionSlotObjects.Count)
+        {
+            Debug.LogError($"对话运行时: 当前对话需要 {visibleInteractionCount} 个交互按钮槽位，但只绑定了 {interactionSlotObjects.Count} 个。");
+            throw new InvalidOperationException("交互按钮槽位数量");
+        }
+
+        for (int i = 0; i < visibleInteractionCount; i++)
+        {
+            if (interactionSlotObjects[i] != null)
+            {
+                continue;
+            }
+
+            Debug.LogError($"对话运行时: 第 {i + 1} 个交互按钮槽位未绑定。");
+            throw new InvalidOperationException("交互按钮槽位");
+        }
     }
 
     private void CreateInteractionButton(
-        GameObject interactionContainerObject,
+        GameObject interactionSlotObject,
         GameObject interactionButtonTemplateObject,
         DialogueContentDatabase.InteractionEntry interaction)
     {
@@ -449,7 +480,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        GameObject buttonInstance = Instantiate(interactionButtonTemplateObject, interactionContainerObject.transform, false);
+        GameObject buttonInstance = Instantiate(interactionButtonTemplateObject, interactionSlotObject.transform, false);
         buttonInstance.name = $"交互按钮_{interaction.buttonText}";
         buttonInstance.SetActive(true);
         已生成交互按钮.Add(buttonInstance);
