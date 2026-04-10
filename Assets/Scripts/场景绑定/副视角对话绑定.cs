@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -14,4 +15,8 @@ public sealed class 副视角对话绑定 : MonoBehaviour
 
     [Header("交互按钮")]
     public GameObject 交互按钮容器;
+    public GameObject 交互按钮模板;
+
+    [Header("标识内容绑定")]
+    public List<DialogueInteractionIdentifierBinding> 标识内容绑定 = new List<DialogueInteractionIdentifierBinding>();
 }

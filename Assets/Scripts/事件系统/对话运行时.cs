@@ -295,7 +295,7 @@ public sealed class 对话运行时 : MonoBehaviour
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.主视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, contentEntry);
+        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, contentEntry);
         显示屏幕火星特效();
     }
 
@@ -307,7 +307,7 @@ public sealed class 对话运行时 : MonoBehaviour
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.副视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, contentEntry);
+        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, contentEntry);
         显示屏幕火星特效();
     }
 
@@ -353,6 +353,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private void ConfigureInteractions(
         GameObject continueButtonObject,
         GameObject interactionContainerObject,
+        GameObject interactionButtonTemplateObject,
         DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         DialogueContentDatabase.EnsureEntry(contentEntry);
@@ -368,7 +369,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        ValidateInteractionBinding(interactionContainerObject, contentEntry);
+        ValidateInteractionBinding(interactionContainerObject, interactionButtonTemplateObject, contentEntry);
         for (int i = 0; i < contentEntry.interactions.Count; i++)
         {
             DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
@@ -377,7 +378,7 @@ public sealed class 对话运行时 : MonoBehaviour
                 continue;
             }
 
-            CreateInteractionButton(interactionContainerObject, interaction);
+            CreateInteractionButton(interactionContainerObject, interactionButtonTemplateObject, interaction);
         }
     }
 
@@ -402,6 +403,7 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private static void ValidateInteractionBinding(
         GameObject interactionContainerObject,
+        GameObject interactionButtonTemplateObject,
         DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
         if (interactionContainerObject == null)
@@ -415,6 +417,12 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
+        if (interactionButtonTemplateObject == null)
+        {
+            Debug.LogError("对话运行时: 缺少交互按钮模板绑定。");
+            throw new InvalidOperationException("交互按钮模板");
+        }
+
         for (int i = 0; i < contentEntry.interactions.Count; i++)
         {
             DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
@@ -422,17 +430,18 @@ public sealed class 对话运行时 : MonoBehaviour
             {
                 continue;
             }
-
-            if (interaction.interactionPrefab == null)
+            if (interaction.interactionType == DialogueContentDatabase.InteractionType.Button &&
+                string.IsNullOrWhiteSpace(interaction.identifierId))
             {
-                Debug.LogError($"对话运行时: 交互项 '{interaction.buttonText}' 缺少交互预制体绑定。");
-                throw new InvalidOperationException("交互预制体");
+                Debug.LogError($"对话运行时: 按钮交互 '{interaction.buttonText}' 缺少标识ID。");
+                throw new InvalidOperationException("标识ID");
             }
         }
     }
 
     private void CreateInteractionButton(
         GameObject interactionContainerObject,
+        GameObject interactionButtonTemplateObject,
         DialogueContentDatabase.InteractionEntry interaction)
     {
         if (interaction == null)
@@ -440,24 +449,13 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        GameObject sourcePrefab = ResolveInteractionPrefab(interaction);
-        GameObject buttonInstance = Instantiate(sourcePrefab, interactionContainerObject.transform, false);
+        GameObject buttonInstance = Instantiate(interactionButtonTemplateObject, interactionContainerObject.transform, false);
         buttonInstance.name = $"交互按钮_{interaction.buttonText}";
         buttonInstance.SetActive(true);
         已生成交互按钮.Add(buttonInstance);
 
         ApplyInteractionText(buttonInstance, interaction.buttonText);
-        BindInteractionClick(buttonInstance, sourcePrefab, interaction);
-    }
-
-    private static GameObject ResolveInteractionPrefab(DialogueContentDatabase.InteractionEntry interaction)
-    {
-        if (interaction == null || interaction.interactionPrefab == null)
-        {
-            throw new InvalidOperationException("交互预制体");
-        }
-
-        return interaction.interactionPrefab;
+        BindInteractionClick(buttonInstance, interaction);
     }
 
     private static void ApplyInteractionText(GameObject buttonInstance, string buttonTextValue)
@@ -471,14 +469,13 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void BindInteractionClick(
         GameObject buttonInstance,
-        GameObject sourcePrefab,
         DialogueContentDatabase.InteractionEntry interaction)
     {
         Button button = buttonInstance.GetComponent<Button>();
         if (button == null)
         {
-            Debug.LogError($"对话运行时: 交互预制体 '{sourcePrefab.name}' 缺少 Button 组件。");
-            throw new InvalidOperationException(sourcePrefab.name);
+            Debug.LogError($"对话运行时: 交互按钮模板 '{buttonInstance.name}' 缺少 Button 组件。");
+            throw new InvalidOperationException(buttonInstance.name);
         }
 
         DialogueContentDatabase.InteractionEntry capturedInteraction = interaction;
@@ -518,9 +515,28 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void 执行按钮交互(DialogueContentDatabase.InteractionEntry interaction)
     {
-        GameObject interactionPrefab = interaction != null ? interaction.interactionPrefab : null;
-        string prefabName = interactionPrefab != null ? interactionPrefab.name : string.Empty;
-        Debug.Log($"对话运行时: 按钮交互入口已触发，buttonText='{interaction?.buttonText ?? string.Empty}'，interactionPrefab='{prefabName}'。");
+        string identifierId = interaction != null ? interaction.identifierId : string.Empty;
+        if (string.IsNullOrWhiteSpace(identifierId))
+        {
+            Debug.LogError("对话运行时: 按钮交互缺少标识ID。");
+            return;
+        }
+
+        GameObject targetObject = ResolveIdentifierTarget(identifierId);
+        if (targetObject == null)
+        {
+            Debug.LogError($"对话运行时: 找不到标识ID '{identifierId}' 对应的目标对象。");
+            return;
+        }
+
+        Button targetButton = targetObject.GetComponent<Button>();
+        if (targetButton == null)
+        {
+            Debug.LogError($"对话运行时: 标识ID '{identifierId}' 绑定的对象 '{targetObject.name}' 缺少 Button 组件。");
+            return;
+        }
+
+        targetButton.onClick.Invoke();
     }
 
     private void 执行对话跳跃(DialogueContentDatabase.InteractionEntry interaction)
@@ -792,6 +808,83 @@ public sealed class 对话运行时 : MonoBehaviour
         {
             interactionContainerObject.SetActive(visible);
         }
+    }
+
+    private GameObject ResolveIdentifierTarget(string identifierId)
+    {
+        if (string.IsNullOrWhiteSpace(identifierId))
+        {
+            return null;
+        }
+
+        GameObject targetObject = ResolveIdentifierTargetFromBinding(当前主视角绑定, identifierId);
+        if (targetObject != null)
+        {
+            return targetObject;
+        }
+
+        targetObject = ResolveIdentifierTargetFromBinding(当前副视角绑定, identifierId);
+        if (targetObject != null)
+        {
+            return targetObject;
+        }
+
+        主视角对话绑定[] mainBindings = FindObjectsOfType<主视角对话绑定>(true);
+        for (int i = 0; i < mainBindings.Length; i++)
+        {
+            targetObject = ResolveIdentifierTargetFromBinding(mainBindings[i], identifierId);
+            if (targetObject != null)
+            {
+                return targetObject;
+            }
+        }
+
+        副视角对话绑定[] secondaryBindings = FindObjectsOfType<副视角对话绑定>(true);
+        for (int i = 0; i < secondaryBindings.Length; i++)
+        {
+            targetObject = ResolveIdentifierTargetFromBinding(secondaryBindings[i], identifierId);
+            if (targetObject != null)
+            {
+                return targetObject;
+            }
+        }
+
+        return null;
+    }
+
+    private static GameObject ResolveIdentifierTargetFromBinding(主视角对话绑定 binding, string identifierId)
+    {
+        return ResolveIdentifierTargetFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
+    }
+
+    private static GameObject ResolveIdentifierTargetFromBinding(副视角对话绑定 binding, string identifierId)
+    {
+        return ResolveIdentifierTargetFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
+    }
+
+    private static GameObject ResolveIdentifierTargetFromEntries(List<DialogueInteractionIdentifierBinding> entries, string identifierId)
+    {
+        if (entries == null || string.IsNullOrWhiteSpace(identifierId))
+        {
+            return null;
+        }
+
+        string resolvedId = identifierId.Trim();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            DialogueInteractionIdentifierBinding entry = entries[i];
+            if (entry == null || string.IsNullOrWhiteSpace(entry.标识ID))
+            {
+                continue;
+            }
+
+            if (string.Equals(entry.标识ID.Trim(), resolvedId, StringComparison.Ordinal))
+            {
+                return entry.目标对象;
+            }
+        }
+
+        return null;
     }
 
     private void ClearGeneratedInteractionButtons()

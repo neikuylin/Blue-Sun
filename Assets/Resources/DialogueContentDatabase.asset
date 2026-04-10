@@ -27,14 +27,15 @@ MonoBehaviour:
     interactions:
     - buttonText: "\u67E5\u770B\u88C5\u5907"
       interactionType: 0
-      interactionPrefab: {fileID: 0}
+      identifierId: 
       targetDialogueGroupId: 
     - buttonText: "\u67E5\u770B\u6280\u80FD"
       interactionType: 0
-      interactionPrefab: {fileID: 0}
+      identifierId: 
       targetDialogueGroupId: 
     - buttonText: "\u79BB\u5F00"
       interactionType: 2
-      interactionPrefab: {fileID: 0}
+      identifierId: 
       targetDialogueGroupId: 
+
 

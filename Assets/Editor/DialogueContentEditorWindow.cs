@@ -83,7 +83,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 bool isExpanded = GetFoldoutState(foldoutKey);
-                string title = string.IsNullOrWhiteSpace(entry.id) ? $"内容 {index + 1}" : entry.id;
+                string title = string.IsNullOrWhiteSpace(entry.id) ? $"Content {index + 1}" : entry.id;
                 bool nextExpanded = EditorGUILayout.Foldout(isExpanded, title, true);
                 if (nextExpanded != isExpanded)
                 {
@@ -243,23 +243,21 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 SaveAsset(database);
             }
 
-            GameObject nextInteractionPrefab = (GameObject)EditorGUILayout.ObjectField(
-                "Interaction Prefab",
-                interaction.interactionPrefab,
-                typeof(GameObject),
-                false);
-            if (nextInteractionPrefab != interaction.interactionPrefab)
-            {
-                Undo.RecordObject(database, "Edit Interaction Prefab");
-                interaction.interactionPrefab = nextInteractionPrefab;
-                SaveAsset(database);
-            }
-
             switch (interaction.interactionType)
             {
                 case DialogueContentDatabase.InteractionType.Button:
-                    EditorGUILayout.HelpBox("Button interactions only keep an entry point for now.", MessageType.None);
+                {
+                    string nextIdentifierId = DrawIdPopup("标识ID", interaction.identifierId, GetInteractionIdentifierIds());
+                    if (!string.Equals(nextIdentifierId, interaction.identifierId, StringComparison.Ordinal))
+                    {
+                        Undo.RecordObject(database, "Edit Identifier ID");
+                        interaction.identifierId = nextIdentifierId;
+                        SaveAsset(database);
+                    }
+
+                    EditorGUILayout.HelpBox("Button type will find the target GameObject by 标识ID and invoke its Button click.", MessageType.None);
                     break;
+                }
 
                 case DialogueContentDatabase.InteractionType.JumpToDialogueGroup:
                 {
@@ -391,6 +389,62 @@ public sealed class DialogueContentEditorWindow : EditorWindow
         }
 
         return result;
+    }
+
+    private static List<string> GetInteractionIdentifierIds()
+    {
+        List<string> result = new List<string>();
+        AppendInteractionIdentifierIds(Resources.FindObjectsOfTypeAll<主视角对话绑定>(), result);
+        AppendInteractionIdentifierIds(Resources.FindObjectsOfTypeAll<副视角对话绑定>(), result);
+        result.Sort(StringComparer.Ordinal);
+        return result;
+    }
+
+    private static void AppendInteractionIdentifierIds<TBinding>(TBinding[] bindings, List<string> result)
+        where TBinding : MonoBehaviour
+    {
+        if (bindings == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            if (bindings[i] == null)
+            {
+                continue;
+            }
+
+            List<DialogueInteractionIdentifierBinding> items = null;
+            if (bindings[i] is 主视角对话绑定 mainBinding)
+            {
+                items = mainBinding.标识内容绑定;
+            }
+            else if (bindings[i] is 副视角对话绑定 secondaryBinding)
+            {
+                items = secondaryBinding.标识内容绑定;
+            }
+
+            if (items == null)
+            {
+                continue;
+            }
+
+            for (int j = 0; j < items.Count; j++)
+            {
+                DialogueInteractionIdentifierBinding item = items[j];
+                if (item == null || string.IsNullOrWhiteSpace(item.标识ID))
+                {
+                    continue;
+                }
+
+                string resolvedId = item.标识ID.Trim();
+                if (!result.Contains(resolvedId))
+                {
+                    result.Add(resolvedId);
+                }
+            }
+        }
     }
 
     private static DialogueContentDatabase EnsureDatabase()

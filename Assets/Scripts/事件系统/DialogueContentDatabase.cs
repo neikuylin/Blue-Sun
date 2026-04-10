@@ -25,7 +25,7 @@ public sealed class DialogueContentDatabase : ScriptableObject
     {
         public string buttonText = string.Empty;
         public InteractionType interactionType = InteractionType.ContinueDialogue;
-        public GameObject interactionPrefab;
+        public string identifierId = string.Empty;
         public string targetDialogueGroupId = string.Empty;
     }
 
