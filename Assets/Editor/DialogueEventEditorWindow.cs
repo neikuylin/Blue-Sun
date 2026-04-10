@@ -119,10 +119,16 @@ public sealed class DialogueEventEditorWindow : EditorWindow
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("表现", EditorStyles.boldLabel);
-            entry.presentation.dialogueGroupId = DrawIdPopup(
+            string nextDialogueGroupId = DrawIdPopup(
                 "对话组ID",
                 entry.presentation.dialogueGroupId,
                 GetDialogueGroupIds(groupDatabase));
+            if (!string.Equals(nextDialogueGroupId, entry.presentation.dialogueGroupId, System.StringComparison.Ordinal))
+            {
+                Undo.RecordObject(database, "修改对话组ID");
+                entry.presentation.dialogueGroupId = nextDialogueGroupId;
+                SaveAsset(database);
+            }
 
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField("触发", EditorStyles.boldLabel);

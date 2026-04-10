@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - id: "\u7D22\u62C9\u5A1C\u5BF9\u8BDD1"
     presentation:
-      dialogueGroupId: 
+      dialogueGroupId: "\u7D22\u62C9\u5A1C\u5BF9\u8BDD1"
     trigger:
       eventIds: []
     condition:
