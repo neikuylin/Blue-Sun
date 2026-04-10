@@ -189,6 +189,7 @@ GameObject:
   - component: {fileID: 715430794871266376}
   - component: {fileID: 3352483461319223792}
   - component: {fileID: 5116190904474928945}
+  - component: {fileID: 7614867499147858538}
   m_Layer: 5
   m_Name: "\u7FFB\u9875\u56FE\u6848"
   m_TagString: Untagged
@@ -253,6 +254,27 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!95 &7614867499147858538
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3219770012736609025}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 93740cc4ac0b15941be8d7ebd782ed22, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &4227591272030912172
 GameObject:
   m_ObjectHideFlags: 0
@@ -533,7 +555,7 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 0}
+  m_TargetGraphic: {fileID: 1126514971624542191}
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
