@@ -28,6 +28,8 @@ public sealed class 屏幕火星特效 : MonoBehaviour
     private readonly List<火星状态> 火星列表 = new List<火星状态>();
     private Texture2D 火星纹理;
     private Sprite 火星精灵;
+    private bool 需要重建;
+    private bool 需要刷新表现;
 
     private sealed class 火星状态
     {
@@ -54,6 +56,17 @@ public sealed class 屏幕火星特效 : MonoBehaviour
         {
             生命周期颜色 = 创建默认渐变();
         }
+    }
+
+    private void OnValidate()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        需要重建 = true;
+        需要刷新表现 = true;
     }
 
     private void OnEnable()
@@ -94,6 +107,15 @@ public sealed class 屏幕火星特效 : MonoBehaviour
 
     private void Update()
     {
+        if (需要重建)
+        {
+            立即重建();
+        }
+        else if (需要刷新表现)
+        {
+            立即刷新表现();
+        }
+
         float deltaTime = Time.deltaTime;
         for (int i = 0; i < 火星列表.Count; i++)
         {
@@ -119,6 +141,57 @@ public sealed class 屏幕火星特效 : MonoBehaviour
             color.a *= 火星.透明度;
             火星.image.color = color;
         }
+    }
+
+    private void 立即重建()
+    {
+        if (火星容器 == null)
+        {
+            需要重建 = false;
+            需要刷新表现 = false;
+            return;
+        }
+
+        if (生命周期颜色 == null || 生命周期颜色.colorKeys == null || 生命周期颜色.colorKeys.Length == 0)
+        {
+            生命周期颜色 = 创建默认渐变();
+        }
+
+        if (火星纹理 == null)
+        {
+            火星纹理 = 创建火星纹理();
+        }
+
+        if (火星精灵 == null)
+        {
+            火星精灵 = Sprite.Create(
+                火星纹理,
+                new Rect(0f, 0f, 火星纹理.width, 火星纹理.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+        }
+
+        清空火星();
+        创建火星();
+        需要重建 = false;
+        需要刷新表现 = false;
+    }
+
+    private void 立即刷新表现()
+    {
+        for (int i = 0; i < 火星列表.Count; i++)
+        {
+            火星状态 火星 = 火星列表[i];
+            if (火星 == null || 火星.rectTransform == null || 火星.image == null)
+            {
+                continue;
+            }
+
+            火星.尺寸 = Mathf.Clamp(火星.尺寸, 尺寸范围.x, 尺寸范围.y);
+            火星.透明度 = Mathf.Clamp(火星.透明度, 透明度范围.x, 透明度范围.y);
+        }
+
+        需要刷新表现 = false;
     }
 
     private void 创建火星()
