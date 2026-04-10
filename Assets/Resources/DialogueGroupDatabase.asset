@@ -12,4 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e6ab1f2d3c94c8aa8a7e1b8f2d6c1a5, type: 3}
   m_Name: DialogueGroupDatabase
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - id: "\u7D22\u62C9\u5A1C\u5BF9\u8BDD1"
+    contentIds:
+    - "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-1"
+    - "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-2"

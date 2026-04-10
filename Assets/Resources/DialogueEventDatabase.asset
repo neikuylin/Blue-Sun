@@ -13,12 +13,10 @@ MonoBehaviour:
   m_Name: DialogueEventDatabase
   m_EditorClassIdentifier: 
   entries:
-  - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
+  - id: "\u7D22\u62C9\u5A1C\u5BF9\u8BDD1"
     presentation:
-      dialogueContentId: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1"
+      dialogueGroupId: 
     trigger:
-      buttons:
-      - {fileID: 0}
       eventIds: []
     condition:
       eventIds:

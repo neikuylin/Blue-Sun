@@ -19,6 +19,8 @@ public sealed class 对话运行时 : MonoBehaviour
     private 主视角对话绑定 当前主视角绑定;
     private 副视角对话绑定 当前副视角绑定;
     private 屏幕火星特效 当前屏幕火星特效;
+    private DialogueGroupDatabase.DialogueGroupEntry 当前对话组;
+    private int 当前对话索引 = -1;
 
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -56,6 +58,11 @@ public sealed class 对话运行时 : MonoBehaviour
     public static void 关闭当前对话()
     {
         instance?.CloseDialogue();
+    }
+
+    public static void 继续当前对话()
+    {
+        instance?.AdvanceDialogue();
     }
 
     public static void 尝试触发对话事件(string 对话事件ID)
@@ -98,6 +105,8 @@ public sealed class 对话运行时 : MonoBehaviour
     {
         事件触发监听项.Clear();
         上次事件状态.Clear();
+        当前对话组 = null;
+        当前对话索引 = -1;
     }
 
     private void BindEventTriggers(DialogueEventDatabase.DialogueEventEntry entry)
@@ -234,63 +243,35 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void ShowDialogue(DialogueEventDatabase.DialogueEventEntry eventEntry)
     {
-        if (eventEntry == null || eventEntry.presentation == null || string.IsNullOrWhiteSpace(eventEntry.presentation.dialogueContentId))
+        if (eventEntry == null || eventEntry.presentation == null || string.IsNullOrWhiteSpace(eventEntry.presentation.dialogueGroupId))
         {
             Debug.LogError($"对话运行时: 对话事件 '{eventEntry?.id ?? "<null>"}' 缺少表现配置。");
             return;
         }
 
-        DialogueContentDatabase contentDatabase = DialogueContentDatabase.LoadDefault();
-        if (contentDatabase == null)
+        DialogueGroupDatabase groupDatabase = DialogueGroupDatabase.LoadDefault();
+        if (groupDatabase == null)
         {
-            Debug.LogError("对话运行时: 缺少 DialogueContentDatabase。");
+            Debug.LogError("对话运行时: 缺少 DialogueGroupDatabase。");
             return;
         }
 
-        DialogueContentDatabase.DialogueContentEntry contentEntry = contentDatabase.FindEntry(eventEntry.presentation.dialogueContentId);
-        if (contentEntry == null)
+        DialogueGroupDatabase.DialogueGroupEntry groupEntry = groupDatabase.FindEntry(eventEntry.presentation.dialogueGroupId);
+        if (groupEntry == null)
         {
-            Debug.LogError($"对话运行时: 找不到对话内容 '{eventEntry.presentation.dialogueContentId}'。");
+            Debug.LogError($"对话运行时: 找不到对话组 '{eventEntry.presentation.dialogueGroupId}'。");
             return;
         }
 
-        DialogueRoleNameDatabase roleNameDatabase = DialogueRoleNameDatabase.LoadDefault();
-        if (roleNameDatabase == null)
+        if (groupEntry.contentIds == null || groupEntry.contentIds.Count == 0)
         {
-            Debug.LogError("对话运行时: 缺少 DialogueRoleNameDatabase。");
+            Debug.LogError($"对话运行时: 对话组 '{groupEntry.id}' 没有内容ID。");
             return;
         }
 
-        DialogueRoleNameDatabase.RoleNameEntry roleNameEntry = roleNameDatabase.FindEntry(contentEntry.roleNameId);
-        if (roleNameEntry == null)
-        {
-            Debug.LogError($"对话运行时: 找不到角色名字 '{contentEntry.roleNameId}'。");
-            return;
-        }
-
-        HideCurrentViews();
-
-        if (contentEntry.viewSide == DialogueContentDatabase.DialogueViewSide.Main)
-        {
-            主视角对话绑定 binding = FindObjectOfType<主视角对话绑定>(true);
-            if (binding == null)
-            {
-                Debug.LogError("对话运行时: 场景中缺少 主视角对话绑定。");
-                return;
-            }
-
-            ShowOnMainBinding(binding, roleNameEntry.id, contentEntry);
-            return;
-        }
-
-        副视角对话绑定 secondaryBinding = FindObjectOfType<副视角对话绑定>(true);
-        if (secondaryBinding == null)
-        {
-            Debug.LogError("对话运行时: 场景中缺少 副视角对话绑定。");
-            return;
-        }
-
-        ShowOnSecondaryBinding(secondaryBinding, roleNameEntry.id, contentEntry);
+        当前对话组 = groupEntry;
+        当前对话索引 = 0;
+        ShowCurrentDialogueEntry();
     }
 
     private void ShowOnMainBinding(主视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
@@ -363,8 +344,8 @@ public sealed class 对话运行时 : MonoBehaviour
             throw new InvalidOperationException(continueButtonObject.name);
         }
 
-        button.onClick.RemoveListener(关闭当前对话);
-        button.onClick.AddListener(关闭当前对话);
+        button.onClick.RemoveListener(继续当前对话);
+        button.onClick.AddListener(继续当前对话);
         Debug.Log($"对话运行时: 已绑定继续按钮, name={continueButtonObject.name}, id={continueButtonObject.GetInstanceID()}");
     }
 
@@ -390,15 +371,36 @@ public sealed class 对话运行时 : MonoBehaviour
             throw new InvalidOperationException("立绘Prefab");
         }
 
+        ClearPortraitContainer(portraitContainer);
         UnityEngine.Object.Instantiate(contentEntry.portraitPrefab, portraitContainer.transform, false);
         roleNameText.text = roleName;
         contentText.text = contentEntry.content ?? string.Empty;
+    }
+
+    private void AdvanceDialogue()
+    {
+        if (当前对话组 == null)
+        {
+            Debug.LogError("对话运行时: 当前没有正在播放的对话组。");
+            return;
+        }
+
+        当前对话索引++;
+        if (当前对话索引 >= 当前对话组.contentIds.Count)
+        {
+            CloseDialogue();
+            return;
+        }
+
+        ShowCurrentDialogueEntry();
     }
 
     private void CloseDialogue()
     {
         Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
         HideCurrentViews();
+        当前对话组 = null;
+        当前对话索引 = -1;
         隐藏屏幕火星特效();
     }
 
@@ -439,6 +441,94 @@ public sealed class 对话运行时 : MonoBehaviour
 
         当前主视角绑定 = null;
         当前副视角绑定 = null;
+    }
+
+    private void ShowCurrentDialogueEntry()
+    {
+        if (当前对话组 == null)
+        {
+            Debug.LogError("对话运行时: 当前对话组为空。");
+            return;
+        }
+
+        if (当前对话组.contentIds == null || 当前对话索引 < 0 || 当前对话索引 >= 当前对话组.contentIds.Count)
+        {
+            Debug.LogError($"对话运行时: 对话组 '{当前对话组.id}' 的索引 '{当前对话索引}' 无效。");
+            return;
+        }
+
+        string contentId = 当前对话组.contentIds[当前对话索引];
+        if (string.IsNullOrWhiteSpace(contentId))
+        {
+            Debug.LogError($"对话运行时: 对话组 '{当前对话组.id}' 的第 {当前对话索引 + 1} 条内容ID为空。");
+            return;
+        }
+
+        DialogueContentDatabase contentDatabase = DialogueContentDatabase.LoadDefault();
+        if (contentDatabase == null)
+        {
+            Debug.LogError("对话运行时: 缺少 DialogueContentDatabase。");
+            return;
+        }
+
+        DialogueContentDatabase.DialogueContentEntry contentEntry = contentDatabase.FindEntry(contentId);
+        if (contentEntry == null)
+        {
+            Debug.LogError($"对话运行时: 找不到对话内容 '{contentId}'。");
+            return;
+        }
+
+        DialogueRoleNameDatabase roleNameDatabase = DialogueRoleNameDatabase.LoadDefault();
+        if (roleNameDatabase == null)
+        {
+            Debug.LogError("对话运行时: 缺少 DialogueRoleNameDatabase。");
+            return;
+        }
+
+        DialogueRoleNameDatabase.RoleNameEntry roleNameEntry = roleNameDatabase.FindEntry(contentEntry.roleNameId);
+        if (roleNameEntry == null)
+        {
+            Debug.LogError($"对话运行时: 找不到角色名字 '{contentEntry.roleNameId}'。");
+            return;
+        }
+
+        HideCurrentViews();
+
+        if (contentEntry.viewSide == DialogueContentDatabase.DialogueViewSide.Main)
+        {
+            主视角对话绑定 binding = FindObjectOfType<主视角对话绑定>(true);
+            if (binding == null)
+            {
+                Debug.LogError("对话运行时: 场景中缺少 主视角对话绑定。");
+                return;
+            }
+
+            ShowOnMainBinding(binding, roleNameEntry.id, contentEntry);
+            return;
+        }
+
+        副视角对话绑定 secondaryBinding = FindObjectOfType<副视角对话绑定>(true);
+        if (secondaryBinding == null)
+        {
+            Debug.LogError("对话运行时: 场景中缺少 副视角对话绑定。");
+            return;
+        }
+
+        ShowOnSecondaryBinding(secondaryBinding, roleNameEntry.id, contentEntry);
+    }
+
+    private static void ClearPortraitContainer(GameObject portraitContainer)
+    {
+        if (portraitContainer == null)
+        {
+            return;
+        }
+
+        Transform portraitTransform = portraitContainer.transform;
+        for (int i = portraitTransform.childCount - 1; i >= 0; i--)
+        {
+            UnityEngine.Object.Destroy(portraitTransform.GetChild(i).gameObject);
+        }
     }
 
     private void 绑定屏幕火星特效()
