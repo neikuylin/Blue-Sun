@@ -8,6 +8,13 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class 对话运行时 : MonoBehaviour
 {
+    private enum 对话显示视角
+    {
+        无,
+        主视角,
+        副视角
+    }
+
     private sealed class 触发监听项
     {
         public string 对话事件ID = string.Empty;
@@ -21,6 +28,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private 屏幕火星特效 当前屏幕火星特效;
     private DialogueGroupDatabase.DialogueGroupEntry 当前对话组;
     private int 当前对话索引 = -1;
+    private 对话显示视角 当前显示视角 = 对话显示视角.无;
 
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -107,6 +115,7 @@ public sealed class 对话运行时 : MonoBehaviour
         上次事件状态.Clear();
         当前对话组 = null;
         当前对话索引 = -1;
+        当前显示视角 = 对话显示视角.无;
     }
 
     private void BindEventTriggers(DialogueEventDatabase.DialogueEventEntry entry)
@@ -279,8 +288,9 @@ public sealed class 对话运行时 : MonoBehaviour
         ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "主视角对话绑定");
         当前主视角绑定 = binding;
         ConfigureContinueButton(binding.继续按钮);
-        Debug.Log($"对话运行时: 显示主视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
-        binding.gameObject.SetActive(true);
+        对话框持续显示 持续显示 = Resolve持续显示(binding.gameObject, "主视角对话绑定");
+        持续显示.打开对话框();
+        当前显示视角 = 对话显示视角.主视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
         显示屏幕火星特效();
     }
@@ -290,8 +300,9 @@ public sealed class 对话运行时 : MonoBehaviour
         ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "副视角对话绑定");
         当前副视角绑定 = binding;
         ConfigureContinueButton(binding.继续按钮);
-        Debug.Log($"对话运行时: 显示副视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
-        binding.gameObject.SetActive(true);
+        对话框持续显示 持续显示 = Resolve持续显示(binding.gameObject, "副视角对话绑定");
+        持续显示.打开对话框();
+        当前显示视角 = 对话显示视角.副视角;
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
         显示屏幕火星特效();
     }
@@ -408,15 +419,15 @@ public sealed class 对话运行时 : MonoBehaviour
     {
         if (当前主视角绑定 != null)
         {
-            Debug.Log($"对话运行时: 隐藏主视角对话, root={当前主视角绑定.gameObject.name}, id={当前主视角绑定.gameObject.GetInstanceID()}");
-            当前主视角绑定.gameObject.SetActive(false);
+            Resolve持续显示(当前主视角绑定.gameObject, "主视角对话绑定").关闭对话框();
         }
 
         if (当前副视角绑定 != null)
         {
-            Debug.Log($"对话运行时: 隐藏副视角对话, root={当前副视角绑定.gameObject.name}, id={当前副视角绑定.gameObject.GetInstanceID()}");
-            当前副视角绑定.gameObject.SetActive(false);
+            Resolve持续显示(当前副视角绑定.gameObject, "副视角对话绑定").关闭对话框();
         }
+
+        当前显示视角 = 对话显示视角.无;
     }
 
     private void HideAllViewsInScene()
@@ -441,6 +452,7 @@ public sealed class 对话运行时 : MonoBehaviour
 
         当前主视角绑定 = null;
         当前副视角绑定 = null;
+        当前显示视角 = 对话显示视角.无;
     }
 
     private void ShowCurrentDialogueEntry()
@@ -492,8 +504,6 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        HideCurrentViews();
-
         if (contentEntry.viewSide == DialogueContentDatabase.DialogueViewSide.Main)
         {
             主视角对话绑定 binding = FindObjectOfType<主视角对话绑定>(true);
@@ -501,6 +511,11 @@ public sealed class 对话运行时 : MonoBehaviour
             {
                 Debug.LogError("对话运行时: 场景中缺少 主视角对话绑定。");
                 return;
+            }
+
+            if (当前显示视角 == 对话显示视角.副视角)
+            {
+                HideCurrentViews();
             }
 
             ShowOnMainBinding(binding, roleNameEntry.id, contentEntry);
@@ -514,7 +529,24 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
+        if (当前显示视角 == 对话显示视角.主视角)
+        {
+            HideCurrentViews();
+        }
+
         ShowOnSecondaryBinding(secondaryBinding, roleNameEntry.id, contentEntry);
+    }
+
+    private static 对话框持续显示 Resolve持续显示(GameObject rootObject, string bindingName)
+    {
+        对话框持续显示 持续显示 = rootObject.GetComponent<对话框持续显示>();
+        if (持续显示 == null)
+        {
+            Debug.LogError($"{bindingName}: 缺少 对话框持续显示。");
+            throw new InvalidOperationException(bindingName);
+        }
+
+        return 持续显示;
     }
 
     private static void ClearPortraitContainer(GameObject portraitContainer)
