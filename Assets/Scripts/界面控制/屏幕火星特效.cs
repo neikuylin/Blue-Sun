@@ -30,6 +30,7 @@ public sealed class 屏幕火星特效 : MonoBehaviour
     private Sprite 火星精灵;
     private bool 需要重建;
     private bool 需要刷新表现;
+    private bool 已显示;
 
     private sealed class 火星状态
     {
@@ -71,6 +72,8 @@ public sealed class 屏幕火星特效 : MonoBehaviour
 
     private void OnEnable()
     {
+        已显示 = gameObject.activeSelf;
+
         if (火星容器 == null)
         {
             Debug.LogError("屏幕火星特效: 火星容器未绑定。");
@@ -90,6 +93,7 @@ public sealed class 屏幕火星特效 : MonoBehaviour
 
     private void OnDisable()
     {
+        已显示 = false;
         清空火星();
 
         if (火星精灵 != null)
@@ -102,6 +106,28 @@ public sealed class 屏幕火星特效 : MonoBehaviour
         {
             Destroy(火星纹理);
             火星纹理 = null;
+        }
+    }
+
+    public void 显示特效()
+    {
+        已显示 = true;
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+            return;
+        }
+
+        需要重建 = true;
+        需要刷新表现 = true;
+    }
+
+    public void 隐藏特效()
+    {
+        已显示 = false;
+        if (gameObject.activeSelf)
+        {
+            gameObject.SetActive(false);
         }
     }
 

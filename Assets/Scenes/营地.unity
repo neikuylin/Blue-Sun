@@ -3546,7 +3546,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u706B\u661F\u5BB9\u5668": {fileID: 658729460}
-  "\u706B\u661F\u6570\u91CF": 48
+  "\u706B\u661F\u6570\u91CF": 12
   "\u751F\u6210\u533A\u57DF\u5C3A\u5BF8": {x: 1800, y: 320}
   "\u751F\u6210\u504F\u79FB": {x: -500, y: 100}
   "\u6A2A\u5411\u901F\u5EA6\u8303\u56F4": {x: -120, y: -55}
@@ -3554,7 +3554,7 @@ MonoBehaviour:
   "\u98D8\u52A8\u5F3A\u5EA6": 50
   "\u98D8\u52A8\u9891\u7387": 0.9
   "\u751F\u547D\u5468\u671F\u8303\u56F4": {x: 3.8, y: 6.4}
-  "\u5C3A\u5BF8\u8303\u56F4": {x: 25, y: 40}
+  "\u5C3A\u5BF8\u8303\u56F4": {x: 18, y: 22}
   "\u751F\u547D\u5468\u671F\u989C\u8272":
     serializedVersion: 2
     key0: {r: 1, g: 0.92, b: 0.72, a: 0}

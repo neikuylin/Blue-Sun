@@ -18,6 +18,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private static 对话运行时 instance;
     private 主视角对话绑定 当前主视角绑定;
     private 副视角对话绑定 当前副视角绑定;
+    private 屏幕火星特效 当前屏幕火星特效;
 
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -71,6 +72,8 @@ public sealed class 对话运行时 : MonoBehaviour
     {
         UnbindAll();
         HideAllViewsInScene();
+        绑定屏幕火星特效();
+        隐藏屏幕火星特效();
 
         DialogueEventDatabase eventDatabase = DialogueEventDatabase.LoadDefault();
         if (eventDatabase == null || eventDatabase.Entries == null)
@@ -298,6 +301,7 @@ public sealed class 对话运行时 : MonoBehaviour
         Debug.Log($"对话运行时: 显示主视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
+        显示屏幕火星特效();
     }
 
     private void ShowOnSecondaryBinding(副视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
@@ -308,6 +312,7 @@ public sealed class 对话运行时 : MonoBehaviour
         Debug.Log($"对话运行时: 显示副视角对话, root={binding.gameObject.name}, id={binding.gameObject.GetInstanceID()}, continue={binding.继续按钮.name}, continueId={binding.继续按钮.GetInstanceID()}");
         binding.gameObject.SetActive(true);
         ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
+        显示屏幕火星特效();
     }
 
     private static void ValidateBinding(
@@ -394,6 +399,7 @@ public sealed class 对话运行时 : MonoBehaviour
     {
         Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
         HideCurrentViews();
+        隐藏屏幕火星特效();
     }
 
     private void HideCurrentViews()
@@ -433,6 +439,37 @@ public sealed class 对话运行时 : MonoBehaviour
 
         当前主视角绑定 = null;
         当前副视角绑定 = null;
+    }
+
+    private void 绑定屏幕火星特效()
+    {
+        当前屏幕火星特效 = FindObjectOfType<屏幕火星特效>(true);
+    }
+
+    private void 显示屏幕火星特效()
+    {
+        if (当前屏幕火星特效 == null)
+        {
+            绑定屏幕火星特效();
+        }
+
+        if (当前屏幕火星特效 != null)
+        {
+            当前屏幕火星特效.显示特效();
+        }
+    }
+
+    private void 隐藏屏幕火星特效()
+    {
+        if (当前屏幕火星特效 == null)
+        {
+            绑定屏幕火星特效();
+        }
+
+        if (当前屏幕火星特效 != null)
+        {
+            当前屏幕火星特效.隐藏特效();
+        }
     }
 
     private static bool ResolveEventState(EventDatabase database, string eventId)
