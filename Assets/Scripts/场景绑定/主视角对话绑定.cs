@@ -11,4 +11,7 @@ public sealed class 主视角对话绑定 : MonoBehaviour
     public GameObject 角色名字;
     public GameObject 对话内容;
     public GameObject 继续按钮;
+
+    [Header("交互按钮")]
+    public GameObject 交互按钮容器;
 }

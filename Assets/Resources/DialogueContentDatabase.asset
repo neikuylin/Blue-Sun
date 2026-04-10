@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -18,8 +18,23 @@ MonoBehaviour:
     portraitPrefab: {fileID: 6668381433562315157, guid: 4d2551eb28d08be4a8448b60962a4730, type: 3}
     viewSide: 1
     content: "\u771F\u4E3B\u74E6\u9C81\u5179\uFF0C\u4FDD\u4F51\u6211\u4EEC\u627E\u5230\u7231\u4E3D\u4E1D\u5927\u4EBA\u2026\u2026"
+    interactions: []
   - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-2"
     roleNameId: "\u7D22\u62C9\u5A1C"
     portraitPrefab: {fileID: 6668381433562315157, guid: 4d2551eb28d08be4a8448b60962a4730, type: 3}
     viewSide: 1
     content: "\u554A\u2014\u2014\u662F\u65E0\u540D\u5927\u4EBA\uFF0C\u6709\u4EC0\u4E48\u4E8B\u5417"
+    interactions:
+    - buttonText: "\u67E5\u770B\u88C5\u5907"
+      interactionType: 0
+      interactionPrefab: {fileID: 0}
+      targetDialogueGroupId: 
+    - buttonText: "\u67E5\u770B\u6280\u80FD"
+      interactionType: 0
+      interactionPrefab: {fileID: 0}
+      targetDialogueGroupId: 
+    - buttonText: "\u79BB\u5F00"
+      interactionType: 2
+      interactionPrefab: {fileID: 0}
+      targetDialogueGroupId: 
+
