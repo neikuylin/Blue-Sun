@@ -70,7 +70,6 @@ public sealed class DialogueEventDatabase : ScriptableObject
 
             if (string.Equals(entry.id, resolvedId, StringComparison.Ordinal))
             {
-                EnsureEntry(entry);
                 return entry;
             }
         }

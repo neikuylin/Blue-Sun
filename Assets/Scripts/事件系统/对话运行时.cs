@@ -88,7 +88,10 @@ public sealed class 对话运行时 : MonoBehaviour
         UnbindAll();
         HideAllViewsInScene();
         绑定屏幕火星特效();
-        隐藏屏幕火星特效();
+        if (当前屏幕火星特效 != null)
+        {
+            隐藏屏幕火星特效();
+        }
 
         DialogueEventDatabase eventDatabase = DialogueEventDatabase.LoadDefault();
         if (eventDatabase == null || eventDatabase.Entries == null)
@@ -104,7 +107,6 @@ public sealed class 对话运行时 : MonoBehaviour
                 continue;
             }
 
-            DialogueEventDatabase.EnsureEntry(entry);
             BindEventTriggers(entry);
         }
     }
@@ -437,7 +439,7 @@ public sealed class 对话运行时 : MonoBehaviour
         {
             if (mainBindings[i] != null)
             {
-                mainBindings[i].gameObject.SetActive(false);
+                Resolve持续显示(mainBindings[i].gameObject, "主视角对话绑定").关闭对话框();
             }
         }
 
@@ -446,7 +448,7 @@ public sealed class 对话运行时 : MonoBehaviour
         {
             if (secondaryBindings[i] != null)
             {
-                secondaryBindings[i].gameObject.SetActive(false);
+                Resolve持续显示(secondaryBindings[i].gameObject, "副视角对话绑定").关闭对话框();
             }
         }
 
@@ -572,26 +574,22 @@ public sealed class 对话运行时 : MonoBehaviour
     {
         if (当前屏幕火星特效 == null)
         {
-            绑定屏幕火星特效();
+            Debug.LogError("对话运行时: 当前场景缺少 屏幕火星特效。");
+            throw new InvalidOperationException("屏幕火星特效");
         }
 
-        if (当前屏幕火星特效 != null)
-        {
-            当前屏幕火星特效.显示特效();
-        }
+        当前屏幕火星特效.显示特效();
     }
 
     private void 隐藏屏幕火星特效()
     {
         if (当前屏幕火星特效 == null)
         {
-            绑定屏幕火星特效();
+            Debug.LogError("对话运行时: 当前场景缺少 屏幕火星特效。");
+            throw new InvalidOperationException("屏幕火星特效");
         }
 
-        if (当前屏幕火星特效 != null)
-        {
-            当前屏幕火星特效.隐藏特效();
-        }
+        当前屏幕火星特效.隐藏特效();
     }
 
     private static bool ResolveEventState(EventDatabase database, string eventId)

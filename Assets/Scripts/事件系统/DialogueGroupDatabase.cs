@@ -36,7 +36,6 @@ public sealed class DialogueGroupDatabase : ScriptableObject
 
             if (string.Equals(entry.id, resolvedId, StringComparison.Ordinal))
             {
-                EnsureEntry(entry);
                 return entry;
             }
         }
