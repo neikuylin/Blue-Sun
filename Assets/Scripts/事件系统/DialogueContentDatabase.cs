@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "DialogueContentDatabase", menuName = "Events/Dialogue Content Database")]
+[CreateAssetMenu(fileName = "DialogueContentDatabase", menuName = "事件/对话内容数据")]
 public sealed class DialogueContentDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "DialogueContentDatabase";

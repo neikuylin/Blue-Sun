@@ -529,14 +529,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        Button targetButton = targetObject.GetComponent<Button>();
-        if (targetButton == null)
-        {
-            Debug.LogError($"对话运行时: 标识ID '{identifierId}' 绑定的对象 '{targetObject.name}' 缺少 Button 组件。");
-            return;
-        }
-
-        targetButton.onClick.Invoke();
+        targetObject.SetActive(true);
     }
 
     private void 执行对话跳跃(DialogueContentDatabase.InteractionEntry interaction)

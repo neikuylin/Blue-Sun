@@ -13,10 +13,10 @@ public sealed class DialogueContentEditorWindow : EditorWindow
     private readonly Dictionary<string, bool> foldoutStates = new Dictionary<string, bool>();
     private readonly Dictionary<string, bool> interactionFoldoutStates = new Dictionary<string, bool>();
 
-    [MenuItem("Tools/Event/Dialogue Content Editor")]
+    [MenuItem("Tools/事件/对话内容编辑器")]
     private static void Open()
     {
-        DialogueContentEditorWindow window = GetWindow<DialogueContentEditorWindow>("Dialogue Content Editor");
+        DialogueContentEditorWindow window = GetWindow<DialogueContentEditorWindow>("对话内容编辑器");
         window.minSize = new Vector2(920f, 680f);
         window.Show();
         window.Focus();
@@ -29,21 +29,21 @@ public sealed class DialogueContentEditorWindow : EditorWindow
         DialogueGroupDatabase groupDatabase = DialogueGroupDatabase.LoadDefault();
         if (database == null)
         {
-            EditorGUILayout.HelpBox("Failed to create or load DialogueContentDatabase.", MessageType.Error);
+            EditorGUILayout.HelpBox("无法创建或加载 DialogueContentDatabase。", MessageType.Error);
             return;
         }
 
-        EditorGUILayout.LabelField("Dialogue Content Editor", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("对话内容编辑器", EditorStyles.boldLabel);
         EditorGUILayout.Space(4f);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            newId = EditorGUILayout.TextField("New Dialogue ID", newId);
+            newId = EditorGUILayout.TextField("新增对话ID", newId);
             using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(newId)))
             {
-                if (GUILayout.Button("Add", GUILayout.Width(72f)))
+                if (GUILayout.Button("新增", GUILayout.Width(72f)))
                 {
-                    Undo.RecordObject(database, "Add Dialogue Content");
+                    Undo.RecordObject(database, "新增对话内容");
                     database.GetOrCreateEntry(newId);
                     SaveAsset(database);
                     foldoutStates[newId.Trim()] = true;
@@ -83,16 +83,16 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 bool isExpanded = GetFoldoutState(foldoutKey);
-                string title = string.IsNullOrWhiteSpace(entry.id) ? $"Content {index + 1}" : entry.id;
+                string title = string.IsNullOrWhiteSpace(entry.id) ? $"内容 {index + 1}" : entry.id;
                 bool nextExpanded = EditorGUILayout.Foldout(isExpanded, title, true);
                 if (nextExpanded != isExpanded)
                 {
                     foldoutStates[foldoutKey] = nextExpanded;
                 }
 
-                if (GUILayout.Button("Delete", GUILayout.Width(72f)))
+                if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
-                    Undo.RecordObject(database, "Delete Dialogue Content");
+                    Undo.RecordObject(database, "删除对话内容");
                     database.Entries.RemoveAt(index);
                     foldoutStates.Remove(foldoutKey);
                     interactionFoldoutStates.Remove(foldoutKey);
@@ -106,10 +106,10 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 return;
             }
 
-            string nextId = EditorGUILayout.TextField("Dialogue ID", entry.id);
+            string nextId = EditorGUILayout.TextField("对话ID", entry.id);
             if (!string.Equals(nextId, entry.id, StringComparison.Ordinal))
             {
-                Undo.RecordObject(database, "Edit Dialogue ID");
+                Undo.RecordObject(database, "修改对话ID");
                 string oldKey = foldoutKey;
                 entry.id = nextId;
                 string newKey = string.IsNullOrWhiteSpace(entry.id) ? $"__index_{index}" : entry.id;
@@ -123,27 +123,27 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 foldoutKey = newKey;
             }
 
-            string nextRoleNameId = DrawIdPopup("Role Name", entry.roleNameId, GetRoleNameIds(roleNameDatabase));
+            string nextRoleNameId = DrawIdPopup("角色名字", entry.roleNameId, GetRoleNameIds(roleNameDatabase));
             if (!string.Equals(nextRoleNameId, entry.roleNameId, StringComparison.Ordinal))
             {
-                Undo.RecordObject(database, "Edit Role Name");
+                Undo.RecordObject(database, "修改角色名字");
                 entry.roleNameId = nextRoleNameId;
                 SaveAsset(database);
             }
 
-            GameObject nextPortraitPrefab = (GameObject)EditorGUILayout.ObjectField("Portrait Prefab", entry.portraitPrefab, typeof(GameObject), false);
+            GameObject nextPortraitPrefab = (GameObject)EditorGUILayout.ObjectField("立绘Prefab", entry.portraitPrefab, typeof(GameObject), false);
             if (nextPortraitPrefab != entry.portraitPrefab)
             {
-                Undo.RecordObject(database, "Edit Portrait Prefab");
+                Undo.RecordObject(database, "修改立绘Prefab");
                 entry.portraitPrefab = nextPortraitPrefab;
                 SaveAsset(database);
             }
 
             DialogueContentDatabase.DialogueViewSide nextViewSide =
-                (DialogueContentDatabase.DialogueViewSide)EditorGUILayout.EnumPopup("View Side", entry.viewSide);
+                (DialogueContentDatabase.DialogueViewSide)EditorGUILayout.EnumPopup("视角", entry.viewSide);
             if (nextViewSide != entry.viewSide)
             {
-                Undo.RecordObject(database, "Edit View Side");
+                Undo.RecordObject(database, "修改视角");
                 entry.viewSide = nextViewSide;
                 SaveAsset(database);
             }
@@ -151,7 +151,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             string nextContent = EditorGUILayout.TextArea(entry.content, GUILayout.MinHeight(90f));
             if (!string.Equals(nextContent, entry.content, StringComparison.Ordinal))
             {
-                Undo.RecordObject(database, "Edit Dialogue Content");
+                Undo.RecordObject(database, "修改对话内容");
                 entry.content = nextContent;
                 SaveAsset(database);
             }
@@ -170,7 +170,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             bool expanded = GetInteractionFoldoutState(foldoutKey);
-            bool nextExpanded = EditorGUILayout.Foldout(expanded, $"Interactions ({entry.interactions.Count})", true);
+            bool nextExpanded = EditorGUILayout.Foldout(expanded, $"交互项 ({entry.interactions.Count})", true);
             if (nextExpanded != expanded)
             {
                 interactionFoldoutStates[foldoutKey] = nextExpanded;
@@ -186,9 +186,9 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 DrawInteractionEntry(database, entry, i, groupDatabase);
             }
 
-            if (GUILayout.Button("Add Interaction", GUILayout.Width(120f)))
+            if (GUILayout.Button("新增交互项", GUILayout.Width(120f)))
             {
-                Undo.RecordObject(database, "Add Interaction");
+                Undo.RecordObject(database, "新增交互项");
                 entry.interactions.Add(new DialogueContentDatabase.InteractionEntry());
                 SaveAsset(database);
             }
@@ -216,29 +216,29 @@ public sealed class DialogueContentEditorWindow : EditorWindow
         {
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField($"Interaction {index + 1}", EditorStyles.boldLabel);
-                if (GUILayout.Button("Delete", GUILayout.Width(72f)))
+                EditorGUILayout.LabelField($"交互项 {index + 1}", EditorStyles.boldLabel);
+                if (GUILayout.Button("删除", GUILayout.Width(72f)))
                 {
-                    Undo.RecordObject(database, "Delete Interaction");
+                    Undo.RecordObject(database, "删除交互项");
                     contentEntry.interactions.RemoveAt(index);
                     SaveAsset(database);
                     GUIUtility.ExitGUI();
                 }
             }
 
-            string nextButtonText = EditorGUILayout.TextField("Button Text", interaction.buttonText);
+            string nextButtonText = EditorGUILayout.TextField("按钮文字", interaction.buttonText);
             if (!string.Equals(nextButtonText, interaction.buttonText, StringComparison.Ordinal))
             {
-                Undo.RecordObject(database, "Edit Interaction Text");
+                Undo.RecordObject(database, "修改交互项文字");
                 interaction.buttonText = nextButtonText;
                 SaveAsset(database);
             }
 
             DialogueContentDatabase.InteractionType nextInteractionType =
-                (DialogueContentDatabase.InteractionType)EditorGUILayout.EnumPopup("Interaction Type", interaction.interactionType);
+                (DialogueContentDatabase.InteractionType)EditorGUILayout.EnumPopup("交互类型", interaction.interactionType);
             if (nextInteractionType != interaction.interactionType)
             {
-                Undo.RecordObject(database, "Edit Interaction Type");
+                Undo.RecordObject(database, "修改交互类型");
                 interaction.interactionType = nextInteractionType;
                 SaveAsset(database);
             }
@@ -250,24 +250,24 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                     string nextIdentifierId = DrawIdPopup("标识ID", interaction.identifierId, GetInteractionIdentifierIds());
                     if (!string.Equals(nextIdentifierId, interaction.identifierId, StringComparison.Ordinal))
                     {
-                        Undo.RecordObject(database, "Edit Identifier ID");
+                        Undo.RecordObject(database, "修改标识ID");
                         interaction.identifierId = nextIdentifierId;
                         SaveAsset(database);
                     }
 
-                    EditorGUILayout.HelpBox("Button type will find the target GameObject by 标识ID and invoke its Button click.", MessageType.None);
+                    EditorGUILayout.HelpBox("按钮类型会根据标识ID找到目标对象，并触发它的 Button 点击。", MessageType.None);
                     break;
                 }
 
                 case DialogueContentDatabase.InteractionType.JumpToDialogueGroup:
                 {
                     string nextTargetDialogueGroupId = DrawIdPopup(
-                        "Target Dialogue Group",
+                        "目标对话组",
                         interaction.targetDialogueGroupId,
                         GetDialogueGroupIds(groupDatabase));
                     if (!string.Equals(nextTargetDialogueGroupId, interaction.targetDialogueGroupId, StringComparison.Ordinal))
                     {
-                        Undo.RecordObject(database, "Edit Target Dialogue Group");
+                        Undo.RecordObject(database, "修改目标对话组");
                         interaction.targetDialogueGroupId = nextTargetDialogueGroupId;
                         SaveAsset(database);
                     }
@@ -276,7 +276,7 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 }
 
                 case DialogueContentDatabase.InteractionType.ContinueDialogue:
-                    EditorGUILayout.HelpBox("Continue to the next line in the current dialogue group.", MessageType.None);
+                    EditorGUILayout.HelpBox("点击后继续当前对话组的下一句。", MessageType.None);
                     break;
             }
         }
