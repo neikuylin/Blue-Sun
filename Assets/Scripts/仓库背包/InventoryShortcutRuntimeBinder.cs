@@ -162,6 +162,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 仓储交互服务 仓储交互规则 = new 仓储交互服务();
     private readonly 仓储交互服务.State 仓储交互状态 = new 仓储交互服务.State();
     private readonly 物品占格服务 物品占格规则 = new 物品占格服务();
+    private readonly 槽位访问服务 槽位访问规则 = new 槽位访问服务();
     private readonly 仓储状态服务 仓储状态 = new 仓储状态服务();
     private readonly Dictionary<string, GameObject> qualityBackgroundPrefabCache = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
@@ -961,88 +962,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private int FindFirstEmptySlotIndex(SlotKind kind)
     {
-        List<ItemSlotData> dataList = GetDataList(kind);
-        for (int i = dataList.Count - 1; i >= 0; i--)
-        {
-            if (IsSlotUsable(kind, i) && dataList[i].IsEmpty)
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return 槽位访问规则.FindFirstEmptySlotIndex(创建槽位访问上下文(), kind);
     }
 
     private int FindFirstAvailableSlotIndex(SlotKind kind, ItemDatabase.ItemEntry entry)
     {
-        List<ItemSlotData> dataList = GetDataList(kind);
-        for (int i = dataList.Count - 1; i >= 0; i--)
-        {
-            if (CanPlaceItemAtIndex(kind, i, entry, dataList))
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return 槽位访问规则.FindFirstAvailableSlotIndex(创建槽位访问上下文(), kind, entry);
     }
 
     private int FindFirstAvailableSlotIndex(SlotKind kind, ItemSlotData data)
     {
-        List<ItemSlotData> dataList = GetDataList(kind);
-        for (int i = dataList.Count - 1; i >= 0; i--)
-        {
-            if (CanPlaceDataAt(kind, i, data, dataList))
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return 槽位访问规则.FindFirstAvailableSlotIndex(创建槽位访问上下文(), kind, data);
     }
 
     private int FindRightClickEquipmentTargetIndex(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null || equipmentSlots.Count == 0)
-        {
-            return -1;
-        }
-
-        ItemDatabase.EquipmentSlotType desiredSlotType = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand
-            ? ItemDatabase.EquipmentSlotType.MainHand
-            : entry.equipmentSlot;
-
-        int emptySlotIndex = FindEquipmentSlotIndex(desiredSlotType, requireEmpty: true, entry);
-        return emptySlotIndex >= 0
-            ? emptySlotIndex
-            : FindEquipmentSlotIndex(desiredSlotType, requireEmpty: false, entry);
+        return 槽位访问规则.FindRightClickEquipmentTargetIndex(创建槽位访问上下文(), entry, equipmentSlots);
     }
 
     private int FindEquipmentSlotIndex(ItemDatabase.EquipmentSlotType slotType, bool requireEmpty, ItemDatabase.ItemEntry entry = null)
     {
-        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (equipmentData == null)
-        {
-            return -1;
-        }
-
-        for (int i = 0; i < equipmentSlots.Count; i++)
-        {
-            SlotWidget widget = equipmentSlots[i];
-            if (widget == null || widget.equipmentSlotType != slotType)
-            {
-                continue;
-            }
-
-            if (!CanUseEquipmentSlotIndex(i, slotType, requireEmpty, entry, equipmentData))
-            {
-                continue;
-            }
-
-            return i;
-        }
-
-        return -1;
+        return 槽位访问规则.FindEquipmentSlotIndex(创建槽位访问上下文(), slotType, requireEmpty, entry, equipmentSlots);
     }
 
     private void HandleEndDrag()
@@ -1109,96 +1049,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool TryGetSlotData(SlotRef slot, out ItemSlotData data)
     {
-        data = default;
-        List<ItemSlotData> list = GetDataList(slot.kind);
-        if (slot.index < 0 || slot.index >= list.Count)
-        {
-            return false;
-        }
-
-        data = list[slot.index];
-        return true;
+        return 槽位访问规则.TryGetSlotData(创建槽位访问上下文(), slot, out data);
     }
 
     private void SetSlotData(SlotRef slot, ItemSlotData data)
     {
-        List<ItemSlotData> list = GetDataList(slot.kind);
-        if (slot.index < 0 || slot.index >= list.Count)
-        {
-            return;
-        }
-
-        list[slot.index] = PrepareItemSlotDataForStorage(data, $"{slot.kind} {slot.index}");
-        if (slot.kind == SlotKind.Equipment)
-        {
-            RebuildEquipmentFootprintOccupancy(list);
-        }
-    }
-
-    private void SwapSlotData(SlotRef a, SlotRef b)
-    {
-        if (!TryGetSlotData(a, out ItemSlotData aData) || !TryGetSlotData(b, out ItemSlotData bData))
-        {
-            return;
-        }
-
-        SetSlotData(a, bData);
-        SetSlotData(b, aData);
-    }
-
-    private bool CanSwapSlots(SlotRef source, SlotRef target)
-    {
-        source = ResolvePrimarySlotRef(source);
-        target = ResolvePrimarySlotRef(target);
-        if (!TryGetSlotData(source, out ItemSlotData sourceData) || !TryGetSlotData(target, out ItemSlotData targetData))
-        {
-            return false;
-        }
-
-        if (IsFootprintItem(sourceData) || IsFootprintItem(targetData) || sourceData.isFootprintExtension || targetData.isFootprintExtension)
-        {
-            return false;
-        }
-
-        if (!CanPlaceIntoTarget(sourceData, target))
-        {
-            return false;
-        }
-
-        if (!CanPlaceIntoTarget(targetData, source))
-        {
-            return false;
-        }
-
-        return true;
+        槽位访问规则.SetSlotData(创建槽位访问上下文(), slot, data);
     }
 
     private bool CanPlaceIntoTarget(ItemSlotData data, SlotRef target)
     {
-        if (target.kind != SlotKind.Equipment || data.IsEmpty)
-        {
-            return true;
-        }
-
-        SlotWidget widget = GetWidget(target);
-        if (widget == null)
-        {
-            return false;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
-        {
-            return false;
-        }
-
-        if (!IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
-        {
-            return false;
-        }
-
-        int targetIndex = ResolvePrimarySlotIndex(SlotKind.Equipment, target.index);
-        return CanUseEquipmentSlotIndex(targetIndex, widget.equipmentSlotType, requireEmpty: false, entry, GetCurrentEquipmentData(true));
+        return 槽位访问规则.CanPlaceIntoTarget(创建槽位访问上下文(), data, target);
     }
 
     internal static bool IsEquipmentSlotCompatible(
@@ -1234,17 +1095,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private List<ItemSlotData> GetDataList(SlotKind kind)
     {
-        if (kind == SlotKind.Warehouse)
+        switch (kind)
         {
-            return 仓储状态.仓库数据;
+            case SlotKind.Warehouse:
+                return 仓储状态.仓库数据;
+            case SlotKind.Backpack:
+                return 仓储状态.背包数据;
+            case SlotKind.Equipment:
+                return GetCurrentEquipmentData(true);
+            default:
+                return null;
         }
-
-        if (kind == SlotKind.Backpack)
-        {
-            return 仓储状态.背包数据;
-        }
-
-        return GetCurrentEquipmentData(true);
     }
 
     private SlotWidget GetWidget(SlotRef slot)
@@ -1295,6 +1156,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             PlayItemSound = ItemSoundUtility.PlayForItem,
             RebuildEquipmentFootprintOccupancy = RebuildEquipmentFootprintOccupancy,
             GetOffHandEquipmentSlotIndex = GetOffHandEquipmentSlotIndex
+        };
+    }
+
+    private 槽位访问服务.Context 创建槽位访问上下文()
+    {
+        return new 槽位访问服务.Context
+        {
+            GetDataList = GetDataList,
+            GetWidget = GetWidget,
+            IsSlotUsable = IsSlotUsable,
+            PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
+            ResolveItemEntry = ResolveItemEntry,
+            IsOneByTwoItem = IsOneByTwoItem,
+            ResolvePrimarySlotIndex = ResolvePrimarySlotIndex,
+            CanUseEquipmentSlotIndex = CanUseEquipmentSlotIndex,
+            CanPlaceItemAtIndex = CanPlaceItemAtIndex,
+            CanPlaceDataAt = CanPlaceDataAt,
+            RebuildEquipmentFootprintOccupancy = RebuildEquipmentFootprintOccupancy,
+            GetCurrentEquipmentData = () => GetCurrentEquipmentData(true)
         };
     }
 
