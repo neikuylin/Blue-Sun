@@ -163,6 +163,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 仓储交互服务.State 仓储交互状态 = new 仓储交互服务.State();
     private readonly 物品占格服务 物品占格规则 = new 物品占格服务();
     private readonly 槽位访问服务 槽位访问规则 = new 槽位访问服务();
+    private readonly 摆放规则服务 摆放规则 = new 摆放规则服务();
     private readonly 仓储状态服务 仓储状态 = new 仓储状态服务();
     private readonly Dictionary<string, GameObject> qualityBackgroundPrefabCache = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
@@ -411,7 +412,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(itemId);
-        bool useOneByTwo = instance.IsOneByTwoItem(itemEntry);
+        bool useOneByTwo = 摆放规则服务.是一乘二物品(itemEntry);
         maxStack = ResolveMaxStack(itemId, maxStack);
         int remain = count;
 
@@ -1136,7 +1137,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ResolveItemEntry = ResolveItemEntry,
             IsSlotUsable = IsSlotUsable,
             IsFootprintItem = IsFootprintItem,
-            IsOneByTwoItem = IsOneByTwoItem,
+            IsOneByTwoItem = 摆放规则服务.是一乘二物品,
             CloneItemSlotDataList = 仓储状态服务.克隆数据,
             GetOneByTwoExtensionIndex = GetOneByTwoExtensionIndex,
             PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
@@ -1168,13 +1169,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             IsSlotUsable = IsSlotUsable,
             PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
             ResolveItemEntry = ResolveItemEntry,
-            IsOneByTwoItem = IsOneByTwoItem,
             ResolvePrimarySlotIndex = ResolvePrimarySlotIndex,
-            CanUseEquipmentSlotIndex = CanUseEquipmentSlotIndex,
-            CanPlaceItemAtIndex = CanPlaceItemAtIndex,
+            CanUseEquipmentSlotIndex = (index, slotType, requireEmpty, entry, equipmentData) =>
+                摆放规则.可以使用装备槽位(创建摆放规则上下文(), index, slotType, requireEmpty, entry, equipmentData),
+            CanPlaceItemAtIndex = (kind, primaryIndex, entry, dataList) =>
+                摆放规则.可以放置物品到索引(创建摆放规则上下文(), kind, primaryIndex, entry, dataList),
             CanPlaceDataAt = CanPlaceDataAt,
             RebuildEquipmentFootprintOccupancy = RebuildEquipmentFootprintOccupancy,
             GetCurrentEquipmentData = () => GetCurrentEquipmentData(true)
+        };
+    }
+
+    private 摆放规则服务.Context 创建摆放规则上下文()
+    {
+        return new 摆放规则服务.Context
+        {
+            GetDataList = GetDataList,
+            IsSlotUsable = IsSlotUsable,
+            GetOneByTwoExtensionIndex = GetOneByTwoExtensionIndex,
+            GetOffHandEquipmentSlotIndex = GetOffHandEquipmentSlotIndex
         };
     }
 
@@ -1257,7 +1270,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshRuntimeWeaponModelForCharacter = RefreshRuntimeWeaponModelForCharacter,
             ResolveItemEntry = ResolveItemEntry,
             ResolveQualityBackgroundPrefab = ResolveQualityBackgroundPrefab,
-            IsOneByTwoItem = IsOneByTwoItem,
+            IsOneByTwoItem = 摆放规则服务.是一乘二物品,
             FindChildByName = FindChildByName,
             FindDescendantByName = FindDescendantByName,
             DisabledSlotColor = DisabledSlotColor
@@ -1310,7 +1323,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ResolveDisplaySprite = ResolveDisplaySprite,
             SetWidgetDraggingVisible = SetWidgetDraggingVisible,
             RefreshByRef = RefreshByRef,
-            IsOneByTwoItem = IsOneByTwoItem,
+            IsOneByTwoItem = 摆放规则服务.是一乘二物品,
             GetDataList = GetDataList,
             CloneItemSlotDataList = 仓储状态服务.克隆数据,
             ClearPlacement = ClearPlacement,
@@ -1329,7 +1342,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             GetDataList = GetDataList,
             GetWidgetList = GetWidgetList,
             ResolveItemEntry = ResolveItemEntry,
-            IsOneByTwoItem = IsOneByTwoItem,
+            IsOneByTwoItem = 摆放规则服务.是一乘二物品,
             PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
             IsSlotUsable = IsSlotUsable,
             GetOffHandEquipmentSlotIndex = GetOffHandEquipmentSlotIndex,
@@ -1451,106 +1464,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 物品占格规则.ResolvePrimarySlotIndex(创建物品占格上下文(), kind, index);
     }
 
-    private bool TryMoveItemToEmptyStorageSlot(SlotRef source, SlotRef target, ItemSlotData sourceData)
-    {
-        List<ItemSlotData> sourceList = GetDataList(source.kind);
-        List<ItemSlotData> targetList = GetDataList(target.kind);
-        if (source.index < 0 || source.index >= sourceList.Count || target.index < 0 || target.index >= targetList.Count)
-        {
-            return false;
-        }
-
-        if (!CanPlaceDataAt(target.kind, target.index, sourceData, targetList))
-        {
-            return false;
-        }
-
-        ClearFootprintAt(source.kind, source.index, sourceData);
-        SetFootprintDataAt(target.kind, target.index, sourceData);
-        RefreshFootprintSlots(source.kind, source.index, sourceData);
-        RefreshFootprintSlots(target.kind, target.index, sourceData);
-        ItemSoundUtility.PlayForItem(sourceData.itemId);
-        return true;
-    }
-
-    private bool TryMoveStorageItemToEquipment(SlotRef source, SlotRef target, ItemSlotData sourceData)
-    {
-        if (!TryGetSlotData(target, out ItemSlotData targetData))
-        {
-            return false;
-        }
-
-        if (!CanPlaceIntoTarget(sourceData, target))
-        {
-            return false;
-        }
-
-        ClearFootprintAt(source.kind, source.index, sourceData);
-        if (targetData.IsEmpty)
-        {
-            SetSlotData(source, default);
-        }
-        else if (IsFootprintItem(targetData))
-        {
-            SetFootprintDataAt(source.kind, source.index, targetData);
-        }
-        else
-        {
-            SetSlotData(source, targetData);
-        }
-
-        sourceData.isRotated = false;
-        SetSlotData(target, sourceData);
-        RefreshFootprintSlots(source.kind, source.index, sourceData);
-        RefreshByRef(target);
-        ItemSoundUtility.PlayForItem(sourceData.itemId);
-        return true;
-    }
-
-    private bool CanUseEquipmentSlotIndex(int index, ItemDatabase.EquipmentSlotType slotType, bool requireEmpty, ItemDatabase.ItemEntry entry, List<ItemSlotData> equipmentData)
-    {
-        if (equipmentData == null || index < 0 || index >= equipmentData.Count)
-        {
-            return false;
-        }
-
-        ItemSlotData targetData = equipmentData[index];
-        if (targetData.isFootprintExtension)
-        {
-            return false;
-        }
-
-        if (requireEmpty && !targetData.IsEmpty)
-        {
-            return false;
-        }
-
-        if (!IsOneByTwoItem(entry))
-        {
-            return true;
-        }
-
-        if (slotType != ItemDatabase.EquipmentSlotType.MainHand &&
-            slotType != ItemDatabase.EquipmentSlotType.MainOrOffHand)
-        {
-            return false;
-        }
-
-        int offHandIndex = GetOffHandEquipmentSlotIndex();
-        if (offHandIndex < 0 || offHandIndex >= equipmentData.Count)
-        {
-            return false;
-        }
-
-        if (offHandIndex == index)
-        {
-            return false;
-        }
-
-        ItemSlotData offHandData = equipmentData[offHandIndex];
-        return offHandData.IsEmpty || (offHandData.isFootprintExtension && offHandData.primarySlotIndex == index);
-    }
-
     private void RebuildEquipmentFootprintOccupancy(List<ItemSlotData> equipmentData)
     {
         物品占格规则.RebuildEquipmentFootprintOccupancy(创建物品占格上下文(), equipmentData);
@@ -1564,26 +1477,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private int GetOffHandEquipmentSlotIndex()
     {
         return 物品占格规则.GetOffHandEquipmentSlotIndex(创建物品占格上下文());
-    }
-
-    private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
-    {
-        dataList = dataList ?? GetDataList(kind);
-        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !IsSlotUsable(kind, primaryIndex) || !dataList[primaryIndex].IsEmpty)
-        {
-            return false;
-        }
-
-        if (!IsOneByTwoItem(entry))
-        {
-            return true;
-        }
-
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, false);
-        return extensionIndex >= 0 &&
-            IsSlotUsable(kind, extensionIndex) &&
-            extensionIndex < dataList.Count &&
-            dataList[extensionIndex].IsEmpty;
     }
 
     private void SetFootprintDataAt(SlotKind kind, int primaryIndex, ItemSlotData data)
@@ -1619,18 +1512,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GridLayoutGroup GetGridLayout(SlotKind kind)
     {
         return 物品占格规则.GetGridLayout(创建物品占格上下文(), kind);
-    }
-
-    private bool IsOneByTwoItem(ItemDatabase.ItemEntry entry)
-    {
-        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
-        {
-            return false;
-        }
-
-        return entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
-            entry.weaponCategory == ItemDatabase.WeaponCategory.Staff;
     }
 
     private bool IsFootprintItem(ItemSlotData data)

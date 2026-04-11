@@ -10,7 +10,6 @@ internal sealed class 槽位访问服务
         public Func<InventoryShortcutRuntimeBinder.SlotKind, int, bool> IsSlotUsable;
         public Func<InventoryShortcutRuntimeBinder.ItemSlotData, string, InventoryShortcutRuntimeBinder.ItemSlotData> PrepareItemSlotDataForStorage;
         public Func<string, ItemDatabase.ItemEntry> ResolveItemEntry;
-        public Func<ItemDatabase.ItemEntry, bool> IsOneByTwoItem;
         public Func<InventoryShortcutRuntimeBinder.SlotKind, int, int> ResolvePrimarySlotIndex;
         public Func<int, ItemDatabase.EquipmentSlotType, bool, ItemDatabase.ItemEntry, List<InventoryShortcutRuntimeBinder.ItemSlotData>, bool> CanUseEquipmentSlotIndex;
         public Func<InventoryShortcutRuntimeBinder.SlotKind, int, ItemDatabase.ItemEntry, List<InventoryShortcutRuntimeBinder.ItemSlotData>, bool> CanPlaceItemAtIndex;
