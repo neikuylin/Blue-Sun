@@ -32,28 +32,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public bool IsEmpty => !isFootprintExtension && icon == null && string.IsNullOrEmpty(itemId) && count <= 0;
     }
 
-    private enum SlotKind
+    internal enum SlotKind
     {
         Warehouse,
         Backpack,
         Equipment
     }
 
-    private enum SlotSurface
+    internal enum SlotSurface
     {
         Warehouse,
         WarehouseBackpack,
         Equipment
     }
 
-    private enum StorageRightClickTarget
+    internal enum StorageRightClickTarget
     {
         Backpack,
         Warehouse,
         TargetIdEquipment
     }
 
-    private struct SlotRef
+    internal struct SlotRef
     {
         public SlotKind kind;
         public int index;
@@ -158,6 +158,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static readonly int[] BackpackLevelSlotCounts = { 14, 21, 28, 35, 42 };
     private static InventoryShortcutRuntimeBinder instance;
     private static Material itemTooltipIconFadeMaterial;
+    private readonly 物品转移服务 物品转移规则 = new 物品转移服务();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -1825,27 +1826,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, StorageRightClickTarget target, ItemSlotData sourceData)
     {
-        switch (surface)
-        {
-            case SlotSurface.Warehouse:
-            case SlotSurface.WarehouseBackpack:
-                switch (target)
-                {
-                    case StorageRightClickTarget.Backpack:
-                        return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
-                    case StorageRightClickTarget.TargetIdEquipment:
-                        return TryAutoEquipToTargetEquipment(source, sourceData);
-                    case StorageRightClickTarget.Warehouse:
-                    default:
-                        return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
-                }
-            case SlotSurface.Equipment:
-                return target == StorageRightClickTarget.Warehouse
-                    ? TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData)
-                    : TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
-            default:
-                return false;
-        }
+        return 物品转移规则.TryHandleRightClickMove(创建物品转移上下文(), source, surface, target, sourceData);
     }
 
     private bool TryAutoMoveToFirstEmpty(SlotRef source, SlotKind targetKind, ItemSlotData sourceData)
@@ -2419,69 +2400,43 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return TryGetSlotData(resolved, out ItemSlotData data) ? data : default;
     }
 
+    private 物品转移服务.Context 创建物品转移上下文()
+    {
+        return new 物品转移服务.Context
+        {
+            ResolvePrimarySlotRef = ResolvePrimarySlotRef,
+            GetResolvedSlotData = GetResolvedSlotData,
+            TryGetSlotData = TryGetSlotData,
+            GetDataList = GetDataList,
+            ResolveItemEntry = ResolveItemEntry,
+            IsSlotUsable = IsSlotUsable,
+            IsFootprintItem = IsFootprintItem,
+            IsOneByTwoItem = IsOneByTwoItem,
+            CloneItemSlotDataList = CloneItemSlotDataList,
+            GetOneByTwoExtensionIndex = GetOneByTwoExtensionIndex,
+            PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
+            ResolveEquipmentCharacterId = ResolveEquipmentCharacterId,
+            GetEquipmentSlotCount = () => equipmentSlots.Count,
+            GetEquipmentSlotTypeAt = index =>
+            {
+                if (index < 0 || index >= equipmentSlots.Count || equipmentSlots[index] == null)
+                {
+                    return ItemDatabase.EquipmentSlotType.None;
+                }
+
+                return equipmentSlots[index].equipmentSlotType;
+            },
+            RequestEquipmentChanged = 界面刷新中心.请求装备变更,
+            RequestStorageRefresh = 界面刷新中心.请求刷新仓储界面,
+            PlayItemSound = ItemSoundUtility.PlayForItem,
+            RebuildEquipmentFootprintOccupancy = RebuildEquipmentFootprintOccupancy,
+            GetOffHandEquipmentSlotIndex = GetOffHandEquipmentSlotIndex
+        };
+    }
+
     private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
     {
-        source = ResolvePrimarySlotRef(source);
-        sourceData = GetResolvedSlotData(source);
-        if (sourceData.IsEmpty)
-        {
-            return false;
-        }
-
-        if (source.kind == target.kind && source.index == target.index)
-        {
-            return false;
-        }
-
-        if (!TryGetSlotData(target, out ItemSlotData targetRawData))
-        {
-            return false;
-        }
-
-        SlotRef placementTarget = ShouldUseRawTargetSlotForDrop(sourceData, targetRawData)
-            ? target
-            : ResolvePrimarySlotRef(target);
-        List<SlotRef> displacedTargets = CollectDisplacedTargetsForPlacement(source, placementTarget, sourceData);
-        List<ItemSlotData> displacedItems = GetResolvedSlotDataList(displacedTargets);
-        List<SlotRef> displacedPlacements = new List<SlotRef>();
-
-        if (placementTarget.kind == source.kind && placementTarget.index == source.index)
-        {
-            return false;
-        }
-
-        if (displacedTargets.Count == 1 && TryMergeStorageStack(source, placementTarget, sourceData, displacedItems[0]))
-        {
-            return true;
-        }
-
-        if (!CanSwapPlacements(source, sourceData, placementTarget, displacedTargets, displacedItems, displacedPlacements))
-        {
-            return false;
-        }
-
-        ClearPlacement(source, sourceData);
-        for (int i = 0; i < displacedTargets.Count; i++)
-        {
-            ClearPlacement(displacedTargets[i], displacedItems[i]);
-        }
-
-        PlaceDataAt(placementTarget, sourceData);
-        for (int i = 0; i < displacedItems.Count; i++)
-        {
-            PlaceDataAt(displacedPlacements[i], displacedItems[i]);
-        }
-
-        if (source.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Equipment)
-        {
-            界面刷新中心.请求装备变更(ResolveEquipmentCharacterId());
-        }
-        else
-        {
-            界面刷新中心.请求刷新仓储界面();
-        }
-        ItemSoundUtility.PlayForItem(sourceData.itemId);
-        return true;
+        return 物品转移规则.TryTransferItem(创建物品转移上下文(), source, target, sourceData);
     }
 
     private bool TryMergeStorageStack(SlotRef source, SlotRef target, ItemSlotData sourceData, ItemSlotData targetData)
