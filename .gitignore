@@ -10,3 +10,13 @@ Recordings/
 .vs/
 Assets/字体包/Resources/Fonts & Materials/普通.asset
 Assets/字体包/Resources/Fonts & Materials/描边.asset
+Assets/字体包/**/*.ttf
+Assets/字体包/**/*.ttf.meta
+Assets/字体包/**/*.otf
+Assets/字体包/**/*.otf.meta
+Assets/字体包/**/*.woff
+Assets/字体包/**/*.woff.meta
+Assets/字体包/**/*.woff2
+Assets/字体包/**/*.woff2.meta
+Assets/字体包/**/*.eot
+Assets/字体包/**/*.eot.meta
