@@ -15,13 +15,6 @@ public sealed class 对话运行时 : MonoBehaviour
         副视角
     }
 
-    private sealed class 触发监听项
-    {
-        public string 对话事件ID = string.Empty;
-        public string 事件ID = string.Empty;
-        public bool 目标值;
-    }
-
     private static 对话运行时 instance;
     private 主视角对话绑定 当前主视角绑定;
     private 副视角对话绑定 当前副视角绑定;
@@ -30,7 +23,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private int 当前对话索引 = -1;
     private 对话显示视角 当前显示视角 = 对话显示视角.无;
 
-    private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
+    private readonly List<对话事件服务.触发监听项> 事件触发监听项 = new List<对话事件服务.触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
     private readonly List<GameObject> 已生成交互按钮 = new List<GameObject>();
     private GameObject 当前打开标识目标;
@@ -132,87 +125,19 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void BindEventTriggers(DialogueEventDatabase.DialogueEventEntry entry)
     {
-        if (entry == null || entry.trigger == null || entry.trigger.eventIds == null)
-        {
-            return;
-        }
-
-        EventDatabase eventDatabase = EventDatabase.LoadDefault();
-        for (int i = 0; i < entry.trigger.eventIds.Count; i++)
-        {
-            DialogueEventDatabase.TriggerEventEntry triggerEntry = entry.trigger.eventIds[i];
-            if (triggerEntry == null || string.IsNullOrWhiteSpace(triggerEntry.eventId))
-            {
-                continue;
-            }
-
-            string eventId = triggerEntry.eventId.Trim();
-            事件触发监听项.Add(new 触发监听项
-            {
-                对话事件ID = entry.id,
-                事件ID = eventId,
-                目标值 = triggerEntry.expectedValue
-            });
-
-            上次事件状态[eventId] = ResolveEventState(eventDatabase, eventId);
-        }
+        对话事件服务.绑定事件触发(entry, 事件触发监听项, 上次事件状态);
     }
 
     private void UpdateEventTriggers()
     {
-        if (事件触发监听项.Count == 0)
-        {
-            return;
-        }
-
-        EventDatabase eventDatabase = EventDatabase.LoadDefault();
-        for (int i = 0; i < 事件触发监听项.Count; i++)
-        {
-            触发监听项 item = 事件触发监听项[i];
-            if (item == null || string.IsNullOrWhiteSpace(item.事件ID))
-            {
-                continue;
-            }
-
-            bool currentValue = ResolveEventState(eventDatabase, item.事件ID);
-            if (!上次事件状态.TryGetValue(item.事件ID, out bool previousValue))
-            {
-                上次事件状态[item.事件ID] = currentValue;
-                continue;
-            }
-
-            if (previousValue == currentValue)
-            {
-                continue;
-            }
-
-            上次事件状态[item.事件ID] = currentValue;
-            if (currentValue == item.目标值)
-            {
-                TryTriggerDialogueEvent(item.对话事件ID);
-            }
-        }
+        对话事件服务.更新事件触发(事件触发监听项, 上次事件状态, TryTriggerDialogueEvent);
     }
 
     private void TryTriggerDialogueEvent(string dialogueEventId)
     {
-        if (string.IsNullOrWhiteSpace(dialogueEventId))
-        {
-            Debug.LogError("对话运行时: 对话事件ID为空。");
-            return;
-        }
-
-        DialogueEventDatabase eventDatabase = DialogueEventDatabase.LoadDefault();
-        if (eventDatabase == null)
-        {
-            Debug.LogError("对话运行时: 缺少 DialogueEventDatabase。");
-            return;
-        }
-
-        DialogueEventDatabase.DialogueEventEntry eventEntry = eventDatabase.FindEntry(dialogueEventId);
+        DialogueEventDatabase.DialogueEventEntry eventEntry = 对话事件服务.获取对话事件(dialogueEventId);
         if (eventEntry == null)
         {
-            Debug.LogError($"对话运行时: 找不到对话事件 '{dialogueEventId}'。");
             return;
         }
 
@@ -226,67 +151,14 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private bool EvaluateConditions(DialogueEventDatabase.DialogueEventEntry eventEntry)
     {
-        if (eventEntry == null || eventEntry.condition == null || eventEntry.condition.eventIds == null)
-        {
-            return true;
-        }
-
-        DialogueConditionDatabase conditionDatabase = DialogueConditionDatabase.LoadDefault();
-        if (conditionDatabase == null && eventEntry.condition.eventIds.Count > 0)
-        {
-            Debug.LogError($"对话运行时: 对话事件 '{eventEntry.id}' 需要 DialogueConditionDatabase，但资源缺失。");
-            return false;
-        }
-
-        for (int i = 0; i < eventEntry.condition.eventIds.Count; i++)
-        {
-            DialogueEventDatabase.ConditionEntry conditionEntry = eventEntry.condition.eventIds[i];
-            if (conditionEntry == null || string.IsNullOrWhiteSpace(conditionEntry.eventId))
-            {
-                continue;
-            }
-
-            DialogueConditionDatabase.ConditionDefinitionEntry definition = conditionDatabase.FindEntry(conditionEntry.eventId);
-            if (definition == null)
-            {
-                Debug.LogError($"对话运行时: 找不到条件定义 '{conditionEntry.eventId}'。");
-                return false;
-            }
-
-            if (definition.number != conditionEntry.number)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return 对话事件服务.满足条件(eventEntry);
     }
 
     private void ShowDialogue(DialogueEventDatabase.DialogueEventEntry eventEntry)
     {
-        if (eventEntry == null || eventEntry.presentation == null || string.IsNullOrWhiteSpace(eventEntry.presentation.dialogueGroupId))
-        {
-            Debug.LogError($"对话运行时: 对话事件 '{eventEntry?.id ?? "<null>"}' 缺少表现配置。");
-            return;
-        }
-
-        DialogueGroupDatabase groupDatabase = DialogueGroupDatabase.LoadDefault();
-        if (groupDatabase == null)
-        {
-            Debug.LogError("对话运行时: 缺少 DialogueGroupDatabase。");
-            return;
-        }
-
-        DialogueGroupDatabase.DialogueGroupEntry groupEntry = groupDatabase.FindEntry(eventEntry.presentation.dialogueGroupId);
+        DialogueGroupDatabase.DialogueGroupEntry groupEntry = 对话事件服务.获取对话组(eventEntry);
         if (groupEntry == null)
         {
-            Debug.LogError($"对话运行时: 找不到对话组 '{eventEntry.presentation.dialogueGroupId}'。");
-            return;
-        }
-
-        if (groupEntry.contentIds == null || groupEntry.contentIds.Count == 0)
-        {
-            Debug.LogError($"对话运行时: 对话组 '{groupEntry.id}' 没有内容ID。");
             return;
         }
 
@@ -297,235 +169,26 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void ShowOnMainBinding(主视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
-        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "主视角对话绑定");
+        对话界面服务.校验对话绑定(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "主视角对话绑定");
         当前主视角绑定 = binding;
-        对话框持续显示 持续显示 = Resolve持续显示(binding.gameObject, "主视角对话绑定");
+        对话框持续显示 持续显示 = 对话界面服务.解析持续显示(binding.gameObject, "主视角对话绑定");
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.主视角;
-        ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry);
+        对话界面服务.应用对话内容(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
+        对话界面服务.配置交互(已生成交互按钮, binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry, ClearGeneratedInteractionButtons, HandleInteraction, 继续当前对话);
         显示屏幕火星特效();
     }
 
     private void ShowOnSecondaryBinding(副视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
     {
-        ValidateBinding(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "副视角对话绑定");
+        对话界面服务.校验对话绑定(binding.对话预制体, binding.立绘容器, binding.角色名字, binding.对话内容, binding.继续按钮, "副视角对话绑定");
         当前副视角绑定 = binding;
-        对话框持续显示 持续显示 = Resolve持续显示(binding.gameObject, "副视角对话绑定");
+        对话框持续显示 持续显示 = 对话界面服务.解析持续显示(binding.gameObject, "副视角对话绑定");
         持续显示.打开对话框();
         当前显示视角 = 对话显示视角.副视角;
-        ApplyDialogueToBinding(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
-        ConfigureInteractions(binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry);
+        对话界面服务.应用对话内容(binding.立绘容器, binding.角色名字, binding.对话内容, roleName, contentEntry);
+        对话界面服务.配置交互(已生成交互按钮, binding.继续按钮, binding.交互按钮容器, binding.交互按钮模板, binding.交互按钮槽位, contentEntry, ClearGeneratedInteractionButtons, HandleInteraction, 继续当前对话);
         显示屏幕火星特效();
-    }
-
-    private static void ValidateBinding(
-        GameObject prefab,
-        GameObject portraitContainer,
-        GameObject roleNameObject,
-        GameObject contentObject,
-        GameObject continueButtonObject,
-        string bindingName)
-    {
-        if (prefab == null)
-        {
-            Debug.LogError($"{bindingName}: 对话预制体未绑定。");
-            throw new InvalidOperationException(bindingName);
-        }
-
-        if (portraitContainer == null)
-        {
-            Debug.LogError($"{bindingName}: 立绘容器未绑定。");
-            throw new InvalidOperationException(bindingName);
-        }
-
-        if (roleNameObject == null)
-        {
-            Debug.LogError($"{bindingName}: 角色名字未绑定。");
-            throw new InvalidOperationException(bindingName);
-        }
-
-        if (contentObject == null)
-        {
-            Debug.LogError($"{bindingName}: 对话内容未绑定。");
-            throw new InvalidOperationException(bindingName);
-        }
-
-        if (continueButtonObject == null)
-        {
-            Debug.LogError($"{bindingName}: 继续按钮未绑定。");
-            throw new InvalidOperationException(bindingName);
-        }
-    }
-
-    private void ConfigureInteractions(
-        GameObject continueButtonObject,
-        GameObject interactionContainerObject,
-        GameObject interactionButtonTemplateObject,
-        List<GameObject> interactionSlotObjects,
-        DialogueContentDatabase.DialogueContentEntry contentEntry)
-    {
-        DialogueContentDatabase.EnsureEntry(contentEntry);
-        ClearGeneratedInteractionButtons();
-
-        bool hasInteractions = HasVisibleInteractions(contentEntry);
-        SetContinueButtonVisible(continueButtonObject, !hasInteractions);
-        SetInteractionContainerVisible(interactionContainerObject, hasInteractions);
-
-        if (!hasInteractions)
-        {
-            ConfigureContinueButton(continueButtonObject);
-            return;
-        }
-
-        ValidateInteractionBinding(interactionContainerObject, interactionButtonTemplateObject, interactionSlotObjects, contentEntry);
-        int visibleInteractionIndex = 0;
-        for (int i = 0; i < contentEntry.interactions.Count; i++)
-        {
-            DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.buttonText))
-            {
-                continue;
-            }
-
-            CreateInteractionButton(interactionSlotObjects[visibleInteractionIndex], interactionButtonTemplateObject, interaction);
-            visibleInteractionIndex++;
-        }
-    }
-
-    private static bool HasVisibleInteractions(DialogueContentDatabase.DialogueContentEntry contentEntry)
-    {
-        if (contentEntry == null || contentEntry.interactions == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < contentEntry.interactions.Count; i++)
-        {
-            DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
-            if (interaction != null && !string.IsNullOrWhiteSpace(interaction.buttonText))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void ValidateInteractionBinding(
-        GameObject interactionContainerObject,
-        GameObject interactionButtonTemplateObject,
-        List<GameObject> interactionSlotObjects,
-        DialogueContentDatabase.DialogueContentEntry contentEntry)
-    {
-        if (interactionContainerObject == null)
-        {
-            Debug.LogError("对话运行时: 缺少交互按钮容器绑定。");
-            throw new InvalidOperationException("交互按钮容器");
-        }
-
-        if (contentEntry == null || contentEntry.interactions == null)
-        {
-            return;
-        }
-
-        if (interactionButtonTemplateObject == null)
-        {
-            Debug.LogError("对话运行时: 缺少交互按钮模板绑定。");
-            throw new InvalidOperationException("交互按钮模板");
-        }
-
-        if (interactionSlotObjects == null || interactionSlotObjects.Count == 0)
-        {
-            Debug.LogError("对话运行时: 缺少交互按钮槽位绑定。");
-            throw new InvalidOperationException("交互按钮槽位");
-        }
-
-        int visibleInteractionCount = 0;
-
-        for (int i = 0; i < contentEntry.interactions.Count; i++)
-        {
-            DialogueContentDatabase.InteractionEntry interaction = contentEntry.interactions[i];
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.buttonText))
-            {
-                continue;
-            }
-
-            visibleInteractionCount++;
-            if (interaction.interactionType == DialogueContentDatabase.InteractionType.Button &&
-                string.IsNullOrWhiteSpace(interaction.identifierId))
-            {
-                Debug.LogError($"对话运行时: 按钮交互 '{interaction.buttonText}' 缺少标识ID。");
-                throw new InvalidOperationException("标识ID");
-            }
-        }
-
-        if (visibleInteractionCount > interactionSlotObjects.Count)
-        {
-            Debug.LogError($"对话运行时: 当前对话需要 {visibleInteractionCount} 个交互按钮槽位，但只绑定了 {interactionSlotObjects.Count} 个。");
-            throw new InvalidOperationException("交互按钮槽位数量");
-        }
-
-        for (int i = 0; i < visibleInteractionCount; i++)
-        {
-            if (interactionSlotObjects[i] != null)
-            {
-                continue;
-            }
-
-            Debug.LogError($"对话运行时: 第 {i + 1} 个交互按钮槽位未绑定。");
-            throw new InvalidOperationException("交互按钮槽位");
-        }
-    }
-
-    private void CreateInteractionButton(
-        GameObject interactionSlotObject,
-        GameObject interactionButtonTemplateObject,
-        DialogueContentDatabase.InteractionEntry interaction)
-    {
-        if (interaction == null)
-        {
-            return;
-        }
-
-        GameObject buttonInstance = Instantiate(interactionButtonTemplateObject, interactionSlotObject.transform, false);
-        buttonInstance.name = $"交互按钮_{interaction.buttonText}";
-        buttonInstance.SetActive(true);
-        已生成交互按钮.Add(buttonInstance);
-
-        ApplyInteractionText(buttonInstance, interaction.buttonText);
-        BindInteractionClick(buttonInstance, interaction);
-    }
-
-    private static void ApplyInteractionText(GameObject buttonInstance, string buttonTextValue)
-    {
-        TMP_Text buttonText = buttonInstance.GetComponentInChildren<TMP_Text>(true);
-        if (buttonText != null)
-        {
-            buttonText.text = buttonTextValue;
-        }
-    }
-
-    private void BindInteractionClick(
-        GameObject buttonInstance,
-        DialogueContentDatabase.InteractionEntry interaction)
-    {
-        Button button = buttonInstance.GetComponent<Button>();
-        if (button == null)
-        {
-            Debug.LogError($"对话运行时: 交互按钮模板 '{buttonInstance.name}' 缺少 Button 组件。");
-            throw new InvalidOperationException(buttonInstance.name);
-        }
-
-        DialogueContentDatabase.InteractionEntry capturedInteraction = interaction;
-        if (interaction.interactionType == DialogueContentDatabase.InteractionType.Button)
-        {
-            button.onClick.AddListener(delegate { HandleInteraction(capturedInteraction); });
-            return;
-        }
-
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate { HandleInteraction(capturedInteraction); });
     }
 
     private void HandleInteraction(DialogueContentDatabase.InteractionEntry interaction)
@@ -618,47 +281,6 @@ public sealed class 对话运行时 : MonoBehaviour
         ShowCurrentDialogueEntry();
     }
 
-    private void ConfigureContinueButton(GameObject continueButtonObject)
-    {
-        Button button = continueButtonObject.GetComponent<Button>();
-        if (button == null)
-        {
-            Debug.LogError($"对话运行时: 对象 '{continueButtonObject.name}' 缺少 Button 组件。");
-            throw new InvalidOperationException(continueButtonObject.name);
-        }
-
-        button.onClick.RemoveListener(继续当前对话);
-        button.onClick.AddListener(继续当前对话);
-        Debug.Log($"对话运行时: 已绑定继续按钮, name={continueButtonObject.name}, id={continueButtonObject.GetInstanceID()}");
-    }
-
-    private static void ApplyDialogueToBinding(GameObject portraitContainer, GameObject roleNameObject, GameObject contentObject, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)
-    {
-        TMP_Text roleNameText = roleNameObject.GetComponent<TMP_Text>();
-        if (roleNameText == null)
-        {
-            Debug.LogError($"对话运行时: 对象 '{roleNameObject.name}' 缺少 TMP_Text 组件。");
-            throw new InvalidOperationException(roleNameObject.name);
-        }
-
-        TMP_Text contentText = contentObject.GetComponent<TMP_Text>();
-        if (contentText == null)
-        {
-            Debug.LogError($"对话运行时: 对象 '{contentObject.name}' 缺少 TMP_Text 组件。");
-            throw new InvalidOperationException(contentObject.name);
-        }
-
-        if (contentEntry.portraitPrefab == null)
-        {
-            Debug.LogError("对话运行时: 立绘Prefab未绑定。");
-            throw new InvalidOperationException("立绘Prefab");
-        }
-
-        ClearPortraitContainer(portraitContainer);
-        UnityEngine.Object.Instantiate(contentEntry.portraitPrefab, portraitContainer.transform, false);
-        roleNameText.text = roleName;
-        contentText.text = contentEntry.content ?? string.Empty;
-    }
 
     private void AdvanceDialogue()
     {
@@ -697,14 +319,14 @@ public sealed class 对话运行时 : MonoBehaviour
 
         if (当前主视角绑定 != null)
         {
-            SetInteractionContainerVisible(当前主视角绑定.交互按钮容器, false);
-            Resolve持续显示(当前主视角绑定.gameObject, "主视角对话绑定").关闭对话框();
+            对话界面服务.设置交互容器显隐(当前主视角绑定.交互按钮容器, false);
+            对话界面服务.解析持续显示(当前主视角绑定.gameObject, "主视角对话绑定").关闭对话框();
         }
 
         if (当前副视角绑定 != null)
         {
-            SetInteractionContainerVisible(当前副视角绑定.交互按钮容器, false);
-            Resolve持续显示(当前副视角绑定.gameObject, "副视角对话绑定").关闭对话框();
+            对话界面服务.设置交互容器显隐(当前副视角绑定.交互按钮容器, false);
+            对话界面服务.解析持续显示(当前副视角绑定.gameObject, "副视角对话绑定").关闭对话框();
         }
 
         当前显示视角 = 对话显示视角.无;
@@ -721,8 +343,8 @@ public sealed class 对话运行时 : MonoBehaviour
         {
             if (mainBindings[i] != null)
             {
-                SetInteractionContainerVisible(mainBindings[i].交互按钮容器, false);
-                Resolve持续显示(mainBindings[i].gameObject, "主视角对话绑定").关闭对话框();
+                对话界面服务.设置交互容器显隐(mainBindings[i].交互按钮容器, false);
+                对话界面服务.解析持续显示(mainBindings[i].gameObject, "主视角对话绑定").关闭对话框();
             }
         }
 
@@ -731,8 +353,8 @@ public sealed class 对话运行时 : MonoBehaviour
         {
             if (secondaryBindings[i] != null)
             {
-                SetInteractionContainerVisible(secondaryBindings[i].交互按钮容器, false);
-                Resolve持续显示(secondaryBindings[i].gameObject, "副视角对话绑定").关闭对话框();
+                对话界面服务.设置交互容器显隐(secondaryBindings[i].交互按钮容器, false);
+                对话界面服务.解析持续显示(secondaryBindings[i].gameObject, "副视角对话绑定").关闭对话框();
             }
         }
 
@@ -825,48 +447,6 @@ public sealed class 对话运行时 : MonoBehaviour
 
         ShowOnSecondaryBinding(secondaryBinding, roleNameEntry.id, contentEntry);
         PlayDialogueVoice(contentEntry);
-    }
-
-    private static 对话框持续显示 Resolve持续显示(GameObject rootObject, string bindingName)
-    {
-        对话框持续显示 持续显示 = rootObject.GetComponent<对话框持续显示>();
-        if (持续显示 == null)
-        {
-            Debug.LogError($"{bindingName}: 缺少 对话框持续显示。");
-            throw new InvalidOperationException(bindingName);
-        }
-
-        return 持续显示;
-    }
-
-    private static void ClearPortraitContainer(GameObject portraitContainer)
-    {
-        if (portraitContainer == null)
-        {
-            return;
-        }
-
-        Transform portraitTransform = portraitContainer.transform;
-        for (int i = portraitTransform.childCount - 1; i >= 0; i--)
-        {
-            UnityEngine.Object.Destroy(portraitTransform.GetChild(i).gameObject);
-        }
-    }
-
-    private static void SetContinueButtonVisible(GameObject continueButtonObject, bool visible)
-    {
-        if (continueButtonObject != null)
-        {
-            continueButtonObject.SetActive(visible);
-        }
-    }
-
-    private static void SetInteractionContainerVisible(GameObject interactionContainerObject, bool visible)
-    {
-        if (interactionContainerObject != null)
-        {
-            interactionContainerObject.SetActive(visible);
-        }
     }
 
     private GameObject ResolveIdentifierTarget(string identifierId)
@@ -986,39 +566,8 @@ public sealed class 对话运行时 : MonoBehaviour
                 break;
         }
 
-        SetButtonInteractable(continueButtonObject, interactable);
-        SetContainerInteractable(interactionContainerObject, interactable);
-    }
-
-    private static void SetButtonInteractable(GameObject buttonObject, bool interactable)
-    {
-        if (buttonObject == null)
-        {
-            return;
-        }
-
-        Button button = buttonObject.GetComponent<Button>();
-        if (button != null)
-        {
-            button.interactable = interactable;
-        }
-    }
-
-    private static void SetContainerInteractable(GameObject containerObject, bool interactable)
-    {
-        if (containerObject == null)
-        {
-            return;
-        }
-
-        CanvasGroup canvasGroup = containerObject.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-        {
-            canvasGroup = containerObject.AddComponent<CanvasGroup>();
-        }
-
-        canvasGroup.interactable = interactable;
-        canvasGroup.blocksRaycasts = interactable;
+        对话界面服务.设置按钮可交互(continueButtonObject, interactable);
+        对话界面服务.设置容器可交互(interactionContainerObject, interactable);
     }
 
     private void EnsureDialogueVoiceAudioSource()
@@ -1109,14 +658,4 @@ public sealed class 对话运行时 : MonoBehaviour
         当前屏幕火星特效.隐藏特效();
     }
 
-    private static bool ResolveEventState(EventDatabase database, string eventId)
-    {
-        if (database == null || string.IsNullOrWhiteSpace(eventId))
-        {
-            return false;
-        }
-
-        EventDatabase.EventEntry entry = database.FindEntry(eventId);
-        return entry != null && entry.enabled;
-    }
 }
