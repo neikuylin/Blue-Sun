@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class CharacterSelectionState : MonoBehaviour
@@ -64,12 +63,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
             GrantedSkillSnapshot snapshot = instance.grantedSkillSnapshots[i];
             if (string.Equals(snapshot.characterId, characterId, StringComparison.Ordinal))
             {
-                if (snapshot.skillIds != null)
-                {
-                    return snapshot.skillIds;
-                }
-
-                return Array.Empty<string>();
+                return snapshot.skillIds ?? (IReadOnlyList<string>)Array.Empty<string>();
             }
         }
 
@@ -154,275 +148,61 @@ public sealed class CharacterSelectionState : MonoBehaviour
     public static void CaptureFromCurrentScene()
     {
         CharacterSlotView[] slots = FindObjectsOfType<CharacterSlotView>(true);
-        CharacterSlotView activeSlot = null;
-
-        for (int i = 0; i < slots.Length; i++)
-        {
-            CharacterSlotView slot = slots[i];
-            if (slot == null)
-            {
-                continue;
-            }
-
-            for (int j = 0; j < slot.selectToggles.Count; j++)
-            {
-                Toggle toggle = slot.selectToggles[j];
-                if (toggle != null && toggle.isOn)
-                {
-                    activeSlot = slot;
-                    break;
-                }
-            }
-
-            if (activeSlot != null)
-            {
-                break;
-            }
-        }
-
+        CharacterSlotView activeSlot = 角色选择槽位服务.查找当前激活槽位(slots);
         UpdateSelections(slots, activeSlot);
     }
 
     public static string ResolveCharacterId(CharacterSlotView slot)
     {
-        if (slot == null)
-        {
-            return string.Empty;
-        }
-
-        if (!string.IsNullOrEmpty(slot.selectedCharacterId))
-        {
-            return slot.selectedCharacterId;
-        }
-
-        if (!string.IsNullOrEmpty(slot.slotCharacterId))
-        {
-            return slot.slotCharacterId;
-        }
-
-        return string.Empty;
+        return 角色选择槽位服务.解析角色ID(slot);
     }
 
     public static Sprite ResolvePortraitSprite(CharacterSlotView slot)
     {
-        Image portraitImage = ResolvePortraitImage(slot, requireActive: true);
-        if (portraitImage != null)
-        {
-            return portraitImage.sprite;
-        }
-
-        portraitImage = ResolvePortraitImage(slot, requireActive: false);
-        return portraitImage != null ? portraitImage.sprite : null;
+        return 角色选择槽位服务.解析立绘图片(slot);
     }
 
     public static PortraitLayout ResolvePortraitLayout(CharacterSlotView slot)
     {
-        PortraitLayout result = new PortraitLayout
-        {
-            anchorMin = new Vector2(0.5f, 0.5f),
-            anchorMax = new Vector2(0.5f, 0.5f),
-            pivot = new Vector2(0.5f, 0.5f),
-            anchoredPosition = Vector2.zero,
-            sizeDelta = Vector2.zero,
-            localScale = Vector3.one
-        };
-
-        Image portraitImage = ResolvePortraitImage(slot, requireActive: true) ?? ResolvePortraitImage(slot, requireActive: false);
-        if (portraitImage == null)
-        {
-            return result;
-        }
-
-        RectTransform rectTransform = portraitImage.rectTransform;
-        if (rectTransform == null)
-        {
-            return result;
-        }
-
-        result.anchorMin = rectTransform.anchorMin;
-        result.anchorMax = rectTransform.anchorMax;
-        result.pivot = rectTransform.pivot;
-        result.anchoredPosition = rectTransform.anchoredPosition;
-        result.sizeDelta = rectTransform.sizeDelta;
-        result.localScale = rectTransform.localScale;
-        return result;
-    }
-
-    private static Image ResolvePortraitImage(CharacterSlotView slot, bool requireActive)
-    {
-        if (slot == null)
-        {
-            return null;
-        }
-
-        if (slot.portraitImage != null && slot.portraitImage.sprite != null)
-        {
-            if (!requireActive || slot.portraitImage.gameObject.activeInHierarchy)
-            {
-                return slot.portraitImage;
-            }
-        }
-
-        Image[] childImages = slot.GetComponentsInChildren<Image>(true);
-        return FindPreferredPortraitImage(childImages, requireActive);
-    }
-
-    private static Image FindPreferredPortraitImage(Image[] images, bool requireActive)
-    {
-        if (images == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image image = images[i];
-            if (image == null || image.sprite == null)
-            {
-                continue;
-            }
-
-            if (requireActive && !image.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
-
-            if (image.name.Contains("头像", StringComparison.Ordinal))
-            {
-                return image;
-            }
-        }
-
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image image = images[i];
-            if (image == null || image.sprite == null)
-            {
-                continue;
-            }
-
-            if (requireActive && !image.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
-
-            return image;
-        }
-
-        return null;
+        return 角色选择槽位服务.解析立绘布局(slot);
     }
 
     private static List<CharacterSlotView> OrderSlots(IEnumerable<CharacterSlotView> slots)
     {
-        List<CharacterSlotView> result = new List<CharacterSlotView>();
-        if (slots == null)
-        {
-            return result;
-        }
-
-        foreach (CharacterSlotView slot in slots)
-        {
-            if (slot != null)
-            {
-                result.Add(slot);
-            }
-        }
-
-        result.Sort(CompareSlotOrder);
-        return result;
+        return 角色选择槽位服务.排序槽位(slots);
     }
 
     private void CaptureGrantedSkills(List<CharacterSlotView> orderedSlots)
     {
-        grantedSkillSnapshots.Clear();
-        if (orderedSlots == null)
-        {
-            return;
-        }
-
-        HashSet<string> seenCharacterIds = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < orderedSlots.Count; i++)
-        {
-            CharacterSlotView slot = orderedSlots[i];
-            string characterId = ResolveCharacterId(slot);
-            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacterIds.Add(characterId))
-            {
-                continue;
-            }
-
-            List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(characterId);
-            grantedSkillSnapshots.Add(new GrantedSkillSnapshot
+        角色选择快照服务.捕获授予技能快照(
+            orderedSlots,
+            grantedSkillSnapshots,
+            ResolveCharacterId,
+            GetCapturedGrantedSkillsFromInventory,
+            (characterId, skillIds) => new GrantedSkillSnapshot
             {
                 characterId = characterId,
-                skillIds = grantedSkills != null ? new List<string>(grantedSkills) : new List<string>()
+                skillIds = skillIds
             });
-        }
     }
 
     private void CaptureWeaponAttackPower(List<CharacterSlotView> orderedSlots)
     {
-        weaponAttackPowerSnapshots.Clear();
-        if (orderedSlots == null)
-        {
-            return;
-        }
-
-        HashSet<string> seenCharacterIds = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < orderedSlots.Count; i++)
-        {
-            CharacterSlotView slot = orderedSlots[i];
-            string characterId = ResolveCharacterId(slot);
-            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacterIds.Add(characterId))
-            {
-                continue;
-            }
-
-            weaponAttackPowerSnapshots.Add(new WeaponAttackPowerSnapshot
+        角色选择快照服务.捕获武器攻击力快照(
+            orderedSlots,
+            weaponAttackPowerSnapshots,
+            ResolveCharacterId,
+            InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower,
+            (characterId, attackPower) => new WeaponAttackPowerSnapshot
             {
                 characterId = characterId,
-                attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId)
+                attackPower = attackPower
             });
-        }
     }
 
-    private static int CompareSlotOrder(CharacterSlotView left, CharacterSlotView right)
+    private static IReadOnlyList<string> GetCapturedGrantedSkillsFromInventory(string characterId)
     {
-        if (ReferenceEquals(left, right))
-        {
-            return 0;
-        }
-
-        if (left == null)
-        {
-            return 1;
-        }
-
-        if (right == null)
-        {
-            return -1;
-        }
-
-        string leftPath = BuildHierarchyPath(left.transform);
-        string rightPath = BuildHierarchyPath(right.transform);
-        return string.Compare(leftPath, rightPath, StringComparison.Ordinal);
-    }
-
-    private static string BuildHierarchyPath(Transform target)
-    {
-        if (target == null)
-        {
-            return string.Empty;
-        }
-
-        List<string> segments = new List<string>();
-        Transform current = target;
-        while (current != null)
-        {
-            segments.Add(current.GetSiblingIndex().ToString("D4") + "_" + current.name);
-            current = current.parent;
-        }
-
-        segments.Reverse();
-        return string.Join("/", segments);
+        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(characterId);
+        return grantedSkills ?? (IReadOnlyList<string>)Array.Empty<string>();
     }
 }
