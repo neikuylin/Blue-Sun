@@ -138,7 +138,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
-    private const float ItemTooltipDelaySeconds = 0.5f;
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
@@ -160,6 +159,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 武器模型挂载服务 武器模型挂载规则 = new 武器模型挂载服务();
     private readonly 仓储界面刷新服务 仓储界面刷新规则 = new 仓储界面刷新服务();
     private readonly 仓储界面绑定服务 仓储界面绑定规则 = new 仓储界面绑定服务();
+    private readonly 仓储交互服务 仓储交互规则 = new 仓储交互服务();
+    private readonly 仓储交互服务.State 仓储交互状态 = new 仓储交互服务.State();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -174,12 +175,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly List<List<SlotWidget>> extraEquipmentSlots = new List<List<SlotWidget>>();
     private readonly List<Action> categoryFilterUnbindActions = new List<Action>();
 
-    private bool isDragging;
-    private SlotRef draggingSource;
-    private SlotWidget draggingSourceWidget;
-    private Canvas dragCanvas;
-    private RectTransform dragIconRoot;
-    private Image dragIconImage;
     private bool hasCachedBackpackLayout;
     private GridLayoutGroup.Corner cachedBackpackStartCorner;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
@@ -207,14 +202,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipDescriptionText;
     private TMP_Text itemTooltipGrantedSkillsText;
     private RectTransform itemTooltipGrantedSkillsIconRoot;
-    private SlotWidget hoveredTooltipWidget;
-    private SlotWidget pendingTooltipWidget;
-    private ItemDatabase.ItemEntry pendingTooltipEntry;
-    private SlotRef pendingTooltipSlot;
-    private SlotRef hoveredTooltipSlot;
-    private SlotRef hoveredRotateSlot;
-    private bool hasHoveredRotateSlot;
-    private float pendingTooltipShownAt;
     private GameObject runtimeTooltipRootInstance;
     private GameObject runtimeTooltipSourcePrefab;
 
@@ -681,23 +668,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        HandleHoveredItemRotation();
-        UpdatePendingTooltip();
+        仓储交互规则.HandleHoveredItemRotation(仓储交互状态, 创建仓储交互上下文());
+        仓储交互规则.UpdatePendingTooltip(仓储交互状态, 创建仓储交互上下文());
         UpdateTooltipLowerBackgroundState();
-    }
-
-    private void HandleHoveredItemRotation()
-    {
-        if (isDragging || !Input.GetKeyDown(KeyCode.R) || !hasHoveredRotateSlot)
-        {
-            return;
-        }
-
-        TryRotateHoveredOneByTwoItem();
-    }
-
-    private void UpdatePendingTooltip()
-    {
     }
 
     private void BindScene()
@@ -1060,191 +1033,32 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void HandleBeginDrag(SlotKind kind, int index, PointerEventData eventData)
     {
-        if (isDragging)
-        {
-            return;
-        }
-
-        if (!IsSlotUsable(kind, index))
-        {
-            return;
-        }
-
-        int rawIndex = index;
-        SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty)
-        {
-            return;
-        }
-
-        SlotWidget widget = rawIndex != source.index
-            ? GetWidget(source)
-            : ResolveDraggedWidget(source, eventData);
-        if (widget == null || widget.root == null)
-        {
-            return;
-        }
-
-        EnsureDragVisual(widget.root);
-        if (dragIconRoot == null)
-        {
-            return;
-        }
-
-        dragIconRoot.sizeDelta = widget.root.rect.size;
-        RebuildDragVisual(widget, data);
-        dragIconRoot.gameObject.SetActive(true);
-        dragIconRoot.SetAsLastSibling();
-        UpdateDragVisualPosition(eventData);
-        HideItemTooltip();
-
-        draggingSource = source;
-        draggingSourceWidget = widget;
-        SetWidgetDraggingVisible(widget, false);
-        isDragging = true;
+        仓储交互规则.HandleBeginDrag(仓储交互状态, 创建仓储交互上下文(), kind, index, eventData);
     }
 
     private void HandleDrag(PointerEventData eventData)
     {
-        if (isDragging)
-        {
-            UpdateDragVisualPosition(eventData);
-        }
+        仓储交互规则.HandleDrag(仓储交互状态, 创建仓储交互上下文(), eventData);
     }
 
     private void HandleDrop(SlotKind kind, int index)
     {
-        if (!isDragging)
-        {
-            return;
-        }
-
-        if (!IsSlotUsable(kind, index))
-        {
-            return;
-        }
-
-        SlotRef rawTarget = new SlotRef { kind = kind, index = index };
-        if (!TryGetSlotData(rawTarget, out _))
-        {
-            return;
-        }
-
-        if (!TryGetSlotData(draggingSource, out ItemSlotData sourceData))
-        {
-            return;
-        }
-
-        SlotRef effectiveTarget = ResolvePrimarySlotRef(rawTarget);
-        if (draggingSource.kind == effectiveTarget.kind && draggingSource.index == effectiveTarget.index &&
-            !(rawTarget.kind == effectiveTarget.kind && rawTarget.index != effectiveTarget.index && !IsFootprintItem(sourceData)))
-        {
-            return;
-        }
-
-        if (TryTransferItem(draggingSource, rawTarget, sourceData))
-        {
-            hoveredRotateSlot = ResolvePrimarySlotRef(rawTarget);
-            hasHoveredRotateSlot = true;
-        }
+        仓储交互规则.HandleDrop(仓储交互状态, 创建仓储交互上下文(), kind, index);
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
     {
-        if (isDragging)
-        {
-            return;
-        }
-
-        if (!IsSlotUsable(kind, index))
-        {
-            ClearHoveredRotateSlot();
-            HideItemTooltip();
-            return;
-        }
-
-        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
-        {
-            ClearHoveredRotateSlot();
-            HideItemTooltip();
-            return;
-        }
-
-        hoveredRotateSlot = slot;
-        hasHoveredRotateSlot = true;
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (!ShouldShowWeaponTooltip(entry))
-        {
-            HideItemTooltip();
-            return;
-        }
-
-        SlotWidget widget = ResolveHoveredWidget(slot, eventData);
-        if (widget == null || widget.root == null)
-        {
-            HideItemTooltip();
-            return;
-        }
-
-        pendingTooltipWidget = widget;
-        pendingTooltipEntry = entry;
-        pendingTooltipSlot = slot;
-        pendingTooltipShownAt = Time.unscaledTime + ItemTooltipDelaySeconds;
-        HoverTooltipController.BeginHover(
-            HoverTooltipController.HoverCategory.Item,
-            widget.root,
-            ItemTooltipDelaySeconds,
-            () => ShowItemTooltip(widget, entry),
-            HideItemTooltip);
+        仓储交互规则.HandlePointerEnter(仓储交互状态, 创建仓储交互上下文(), kind, index, eventData);
     }
 
     private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
     {
-        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (hasHoveredRotateSlot &&
-            hoveredRotateSlot.kind == slot.kind &&
-            hoveredRotateSlot.index == slot.index)
-        {
-            ClearHoveredRotateSlot();
-        }
-
-        SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(new SlotRef { kind = kind, index = index });
-        if (widget == null || widget.root == null)
-        {
-            HideItemTooltip();
-            return;
-        }
-
-        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Item, widget.root, eventData);
+        仓储交互规则.HandlePointerExit(仓储交互状态, 创建仓储交互上下文(), kind, index, eventData);
     }
 
     private void HandlePointerClick(SlotKind kind, SlotSurface surface, int index, PointerEventData eventData)
     {
-        if (eventData == null || eventData.button != PointerEventData.InputButton.Right || isDragging)
-        {
-            return;
-        }
-
-        if (!IsSlotUsable(kind, index))
-        {
-            return;
-        }
-
-        SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (!TryGetSlotData(source, out ItemSlotData sourceData) || sourceData.IsEmpty)
-        {
-            return;
-        }
-
-        SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(source);
-        if (!TryHandleRightClickMove(source, surface, widget != null ? widget.rightClickTarget : StorageRightClickTarget.Warehouse, sourceData))
-        {
-            return;
-        }
-
-        eventData.Use();
+        仓储交互规则.HandlePointerClick(仓储交互状态, 创建仓储交互上下文(), kind, surface, index, eventData);
     }
 
     private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, StorageRightClickTarget target, ItemSlotData sourceData)
@@ -1345,71 +1159,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void HandleEndDrag()
     {
-        isDragging = false;
-        if (dragIconRoot != null)
-        {
-            dragIconRoot.gameObject.SetActive(false);
-        }
-
-        if (dragIconImage != null)
-        {
-            dragIconImage.sprite = null;
-            dragIconImage.enabled = false;
-        }
-        SetWidgetDraggingVisible(draggingSourceWidget, true);
-        draggingSourceWidget = null;
-        RefreshByRef(draggingSource);
-    }
-
-    private void EnsureDragVisual(RectTransform fromRoot)
-    {
-        if (dragIconRoot != null && dragIconImage != null)
-        {
-            return;
-        }
-
-        if (dragCanvas == null)
-        {
-            dragCanvas = fromRoot.GetComponentInParent<Canvas>();
-        }
-
-        if (dragCanvas == null)
-        {
-            return;
-        }
-
-        GameObject go = new GameObject("InventoryDragIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
-        go.transform.SetParent(dragCanvas.transform, false);
-
-        dragIconRoot = go.GetComponent<RectTransform>();
-        dragIconRoot.anchorMin = new Vector2(0.5f, 0.5f);
-        dragIconRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        dragIconRoot.pivot = new Vector2(0.5f, 0.5f);
-
-        dragIconImage = go.GetComponent<Image>();
-        dragIconImage.raycastTarget = false;
-        dragIconImage.preserveAspect = true;
-
-        CanvasGroup cg = go.GetComponent<CanvasGroup>();
-        cg.blocksRaycasts = false;
-        cg.interactable = false;
-
-        go.SetActive(false);
-    }
-
-    private void RebuildDragVisual(SlotWidget sourceWidget, ItemSlotData data)
-    {
-        if (dragIconRoot == null || dragIconImage == null)
-        {
-            return;
-        }
-
-        Sprite dragSprite = ResolveRuntimeIconSprite(sourceWidget) ?? ResolveDisplaySprite(data);
-
-        dragIconImage.sprite = dragSprite;
-        dragIconImage.color = new Color(1f, 1f, 1f, 0.9f);
-        dragIconImage.enabled = dragIconImage.sprite != null;
-        dragIconImage.SetNativeSize();
+        仓储交互规则.HandleEndDrag(仓储交互状态, 创建仓储交互上下文());
     }
 
     private static void SetWidgetDraggingVisible(SlotWidget widget, bool visible)
@@ -1467,26 +1217,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         anchor.gameObject.SetActive(visible);
-    }
-
-    private void UpdateDragVisualPosition(PointerEventData eventData)
-    {
-        if (dragCanvas == null || dragIconRoot == null)
-        {
-            return;
-        }
-
-        Camera uiCamera = dragCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : dragCanvas.worldCamera;
-        RectTransform canvasRect = dragCanvas.transform as RectTransform;
-        if (canvasRect == null)
-        {
-            return;
-        }
-
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, eventData.position, uiCamera, out Vector2 localPos))
-        {
-            dragIconRoot.anchoredPosition = localPos;
-        }
     }
 
     private bool TryGetSlotData(SlotRef slot, out ItemSlotData data)
@@ -1640,116 +1370,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return list[slot.index];
     }
 
-    private SlotWidget ResolveDraggedWidget(SlotRef slot, PointerEventData eventData)
-    {
-        Transform pointerTransform = eventData != null
-            ? (eventData.pointerDrag != null ? eventData.pointerDrag.transform : eventData.pointerPressRaycast.gameObject != null ? eventData.pointerPressRaycast.gameObject.transform : null)
-            : null;
-
-        if (pointerTransform != null)
-        {
-            SlotWidget matched = FindWidgetByTransform(slot.kind, pointerTransform);
-            if (matched != null)
-            {
-                return matched;
-            }
-        }
-
-        return GetWidget(slot);
-    }
-
-    private SlotWidget ResolveHoveredWidget(SlotRef slot, PointerEventData eventData)
-    {
-        Transform pointerTransform = eventData != null
-            ? (eventData.pointerEnter != null ? eventData.pointerEnter.transform : eventData.pointerCurrentRaycast.gameObject != null ? eventData.pointerCurrentRaycast.gameObject.transform : null)
-            : null;
-
-        if (pointerTransform != null)
-        {
-            SlotWidget matched = FindWidgetByTransform(slot.kind, pointerTransform);
-            if (matched != null)
-            {
-                return matched;
-            }
-        }
-
-        return GetWidget(slot);
-    }
-
-    private SlotWidget FindWidgetByTransform(SlotKind kind, Transform target)
-    {
-        if (target == null)
-        {
-            return null;
-        }
-
-        if (kind == SlotKind.Backpack)
-        {
-            SlotWidget matched = FindWidgetByTransform(backpackSlots, target);
-            if (matched != null)
-            {
-                return matched;
-            }
-
-            for (int i = 0; i < extraBackpackSlots.Count; i++)
-            {
-                matched = FindWidgetByTransform(extraBackpackSlots[i], target);
-                if (matched != null)
-                {
-                    return matched;
-                }
-            }
-
-            return null;
-        }
-
-        if (kind == SlotKind.Warehouse)
-        {
-            return FindWidgetByTransform(warehouseSlots, target);
-        }
-
-        SlotWidget equipmentWidget = FindWidgetByTransform(equipmentSlots, target);
-        if (equipmentWidget != null)
-        {
-            return equipmentWidget;
-        }
-
-        for (int i = 0; i < extraEquipmentSlots.Count; i++)
-        {
-            equipmentWidget = FindWidgetByTransform(extraEquipmentSlots[i], target);
-            if (equipmentWidget != null)
-            {
-                return equipmentWidget;
-            }
-        }
-
-        return null;
-    }
-
-    private static SlotWidget FindWidgetByTransform(List<SlotWidget> widgets, Transform target)
-    {
-        if (widgets == null || target == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < widgets.Count; i++)
-        {
-            SlotWidget widget = widgets[i];
-            if (widget == null || widget.root == null)
-            {
-                continue;
-            }
-
-            if (target == widget.root || target.IsChildOf(widget.root))
-            {
-                return widget;
-            }
-        }
-
-        return null;
-    }
-
     private ItemSlotData GetResolvedSlotData(SlotRef slot)
     {
         SlotRef resolved = ResolvePrimarySlotRef(slot);
@@ -1898,6 +1518,42 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         };
     }
 
+    private 仓储交互服务.Context 创建仓储交互上下文()
+    {
+        return new 仓储交互服务.Context
+        {
+            WarehouseSlots = warehouseSlots,
+            BackpackSlots = backpackSlots,
+            ExtraBackpackSlots = extraBackpackSlots,
+            EquipmentSlots = equipmentSlots,
+            ExtraEquipmentSlots = extraEquipmentSlots,
+            IsSlotUsable = IsSlotUsable,
+            ResolvePrimarySlotRef = ResolvePrimarySlotRef,
+            GetResolvedSlotData = GetResolvedSlotData,
+            TryGetSlotData = TryGetSlotData,
+            GetWidget = GetWidget,
+            ResolveItemEntry = ResolveItemEntry,
+            ShouldShowWeaponTooltip = ShouldShowWeaponTooltip,
+            TryTransferToSlot = (target, sourceData) => TryTransferItem(仓储交互状态.draggingSource, target, sourceData),
+            TryHandleRightClickMove = TryHandleRightClickMove,
+            ShowItemTooltip = ShowItemTooltip,
+            HideItemTooltip = HideItemTooltip,
+            ResolveRuntimeIconSprite = ResolveRuntimeIconSprite,
+            ResolveDisplaySprite = ResolveDisplaySprite,
+            SetWidgetDraggingVisible = SetWidgetDraggingVisible,
+            RefreshByRef = RefreshByRef,
+            IsOneByTwoItem = IsOneByTwoItem,
+            GetDataList = GetDataList,
+            CloneItemSlotDataList = CloneItemSlotDataList,
+            ClearPlacement = ClearPlacement,
+            CanPlaceDataAt = CanPlaceDataAt,
+            GetExtensionIndexForData = GetExtensionIndexForData,
+            PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
+            RefreshFootprintSlots = RefreshFootprintSlots,
+            PlayItemSound = ItemSoundUtility.PlayForItem
+        };
+    }
+
     private void 同步物品提示框状态()
     {
         itemTooltipRoot = 物品提示框状态.itemTooltipRoot;
@@ -1918,8 +1574,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipDescriptionText = 物品提示框状态.itemTooltipDescriptionText;
         itemTooltipGrantedSkillsText = 物品提示框状态.itemTooltipGrantedSkillsText;
         itemTooltipGrantedSkillsIconRoot = 物品提示框状态.itemTooltipGrantedSkillsIconRoot;
-        hoveredTooltipSlot = 物品提示框状态.hoveredTooltipSlot;
-        pendingTooltipShownAt = 物品提示框状态.pendingTooltipShownAt;
         runtimeTooltipRootInstance = 物品提示框状态.runtimeTooltipRootInstance;
         runtimeTooltipSourcePrefab = 物品提示框状态.runtimeTooltipSourcePrefab;
     }
@@ -2536,71 +2190,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return IsOneByTwoItem(ResolveItemEntry(data.itemId));
     }
 
-    private void ClearHoveredRotateSlot()
-    {
-        hasHoveredRotateSlot = false;
-        hoveredRotateSlot = default;
-    }
-
-    private void TryRotateHoveredOneByTwoItem()
-    {
-        SlotRef source = ResolvePrimarySlotRef(hoveredRotateSlot);
-        if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty || source.kind == SlotKind.Equipment)
-        {
-            return;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (!IsOneByTwoItem(entry))
-        {
-            return;
-        }
-
-        List<ItemSlotData> list = GetDataList(source.kind);
-        if (list == null)
-        {
-            return;
-        }
-
-        ItemSlotData rotatedData = data;
-        rotatedData.isRotated = !rotatedData.isRotated;
-
-        List<ItemSlotData> working = CloneItemSlotDataList(list);
-        ClearPlacement(source.kind, source.index, data, working);
-        if (!CanPlaceDataAt(source.kind, source.index, rotatedData, working))
-        {
-            return;
-        }
-
-        int oldExtensionIndex = GetExtensionIndexForData(source.kind, source.index, data);
-        int newExtensionIndex = GetExtensionIndexForData(source.kind, source.index, rotatedData);
-        List<ItemSlotData> liveData = GetDataList(source.kind);
-        if (liveData == null || source.index < 0 || source.index >= liveData.Count)
-        {
-            return;
-        }
-
-        liveData[source.index] = PrepareItemSlotDataForStorage(rotatedData, $"{source.kind} {source.index}");
-        if (newExtensionIndex >= 0 && newExtensionIndex < liveData.Count)
-        {
-            liveData[newExtensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
-            {
-                isFootprintExtension = true,
-                primarySlotIndex = source.index
-            }, $"{source.kind} 扩展格 {newExtensionIndex}");
-        }
-
-        if (oldExtensionIndex >= 0 &&
-            oldExtensionIndex < liveData.Count &&
-            oldExtensionIndex != newExtensionIndex)
-        {
-            liveData[oldExtensionIndex] = default;
-        }
-
-        RefreshFootprintSlots(source.kind, source.index, rotatedData);
-        ItemSoundUtility.PlayForItem(rotatedData.itemId);
-    }
-
     private List<SlotWidget> GetWidgetList(SlotKind kind)
     {
         if (kind == SlotKind.Warehouse)
@@ -3124,19 +2713,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return canvas != null ? canvas.transform : null;
     }
 
-    private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry)
+    private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry, SlotRef slot)
     {
-        hoveredTooltipWidget = widget;
-        物品提示框规则.ShowTooltip(物品提示框状态, 创建物品提示框上下文(), widget, pendingTooltipSlot, entry);
+        物品提示框规则.ShowTooltip(物品提示框状态, 创建物品提示框上下文(), widget, slot, entry);
         同步物品提示框状态();
     }
 
     private void HideItemTooltip()
     {
-        hoveredTooltipWidget = null;
-        pendingTooltipWidget = null;
-        pendingTooltipEntry = null;
-        pendingTooltipSlot = default;
         物品提示框规则.HideTooltip(物品提示框状态, 创建物品提示框上下文());
         同步物品提示框状态();
     }
