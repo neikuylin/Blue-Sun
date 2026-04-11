@@ -260,6 +260,18 @@ internal sealed class 物品转移服务
         List<ItemSlotData> displacedItems,
         List<SlotRef> displacedPlacements)
     {
+        if (ShouldSplitDisplacedItemsByTargetCell(context, source, sourceData, placementTarget))
+        {
+            return CanSwapPlacementsWithStorageOverflow(
+                context,
+                source,
+                sourceData,
+                placementTarget,
+                displacedTargets,
+                displacedItems,
+                displacedPlacements);
+        }
+
         List<ItemSlotData> sourceActual = context.GetDataList(source.kind);
         List<ItemSlotData> sourceSim = context.CloneItemSlotDataList(sourceActual);
         List<ItemSlotData> targetSim = source.kind == placementTarget.kind
@@ -299,6 +311,117 @@ internal sealed class 物品转移服务
         }
 
         return false;
+    }
+
+    private bool CanSwapPlacementsWithStorageOverflow(
+        Context context,
+        SlotRef source,
+        ItemSlotData sourceData,
+        SlotRef placementTarget,
+        List<SlotRef> displacedTargets,
+        List<ItemSlotData> displacedItems,
+        List<SlotRef> displacedPlacements)
+    {
+        List<ItemSlotData> sourceActual = context.GetDataList(source.kind);
+        List<ItemSlotData> sourceSim = context.CloneItemSlotDataList(sourceActual);
+        List<ItemSlotData> targetActual = context.GetDataList(placementTarget.kind);
+        List<ItemSlotData> targetSim = context.CloneItemSlotDataList(targetActual);
+
+        ClearPlacement(context, source.kind, source.index, sourceData, sourceSim);
+        for (int i = 0; i < displacedTargets.Count; i++)
+        {
+            ClearPlacement(context, displacedTargets[i].kind, displacedTargets[i].index, displacedItems[i], targetSim);
+        }
+
+        if (!CanPlaceDataAt(context, placementTarget.kind, placementTarget.index, sourceData, targetSim))
+        {
+            return false;
+        }
+
+        PlaceDataAt(context, placementTarget.kind, placementTarget.index, sourceData, targetSim);
+
+        displacedPlacements.Clear();
+        for (int i = 0; i < displacedItems.Count; i++)
+        {
+            displacedPlacements.Add(default);
+        }
+
+        bool hasPrimaryDisplacedTarget = TryResolvePrimaryDisplacedTarget(context, source, placementTarget, out SlotRef primaryDisplacedTarget);
+        List<int> primaryIndices = new List<int>();
+        List<ItemSlotData> primaryItems = new List<ItemSlotData>();
+        List<int> overflowIndices = new List<int>();
+        List<ItemSlotData> overflowItems = new List<ItemSlotData>();
+
+        for (int i = 0; i < displacedTargets.Count; i++)
+        {
+            if (hasPrimaryDisplacedTarget &&
+                primaryDisplacedTarget.kind == displacedTargets[i].kind &&
+                primaryDisplacedTarget.index == displacedTargets[i].index)
+            {
+                primaryIndices.Add(i);
+                primaryItems.Add(displacedItems[i]);
+                continue;
+            }
+
+            overflowIndices.Add(i);
+            overflowItems.Add(displacedItems[i]);
+        }
+
+        if (primaryItems.Count > 0)
+        {
+            List<int> sourceCells = GetFootprintCellIndices(context, source.kind, source.index, sourceData);
+            if (sourceCells.Count == 0)
+            {
+                return false;
+            }
+
+            List<SlotRef> primaryPlacements = new List<SlotRef>(primaryItems.Count);
+            if (!TryResolveDisplacedPlacementsRecursive(
+                context,
+                source.kind,
+                primaryItems,
+                0,
+                sourceCells,
+                sourceSim,
+                primaryPlacements))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < primaryIndices.Count; i++)
+            {
+                displacedPlacements[primaryIndices[i]] = primaryPlacements[i];
+            }
+        }
+
+        if (overflowItems.Count > 0)
+        {
+            List<int> storageCandidates = BuildPlacementCandidateCells(context, placementTarget.kind, targetSim);
+            if (storageCandidates.Count == 0)
+            {
+                return false;
+            }
+
+            List<SlotRef> overflowPlacements = new List<SlotRef>(overflowItems.Count);
+            if (!TryResolveDisplacedPlacementsRecursive(
+                context,
+                placementTarget.kind,
+                overflowItems,
+                0,
+                storageCandidates,
+                targetSim,
+                overflowPlacements))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < overflowIndices.Count; i++)
+            {
+                displacedPlacements[overflowIndices[i]] = overflowPlacements[i];
+            }
+        }
+
+        return true;
     }
 
     private bool TryResolveDisplacedPlacementsRecursive(
@@ -343,6 +466,13 @@ internal sealed class 物品转移服务
         return !context.IsFootprintItem(sourceData) && targetRawData.isFootprintExtension;
     }
 
+    private bool ShouldSplitDisplacedItemsByTargetCell(Context context, SlotRef source, ItemSlotData sourceData, SlotRef placementTarget)
+    {
+        return source.kind == SlotKind.Equipment &&
+            placementTarget.kind != SlotKind.Equipment &&
+            context.IsFootprintItem(sourceData);
+    }
+
     private List<ItemSlotData> GetResolvedSlotDataList(Context context, List<SlotRef> slots)
     {
         List<ItemSlotData> result = new List<ItemSlotData>(slots != null ? slots.Count : 0);
@@ -354,6 +484,52 @@ internal sealed class 物品转移服务
         for (int i = 0; i < slots.Count; i++)
         {
             result.Add(context.GetResolvedSlotData(slots[i]));
+        }
+
+        return result;
+    }
+
+    private bool TryResolvePrimaryDisplacedTarget(Context context, SlotRef source, SlotRef placementTarget, out SlotRef resolvedTarget)
+    {
+        resolvedTarget = default;
+        List<ItemSlotData> list = context.GetDataList(placementTarget.kind);
+        if (list == null || placementTarget.index < 0 || placementTarget.index >= list.Count)
+        {
+            return false;
+        }
+
+        ItemSlotData data = list[placementTarget.index];
+        if (data.IsEmpty)
+        {
+            return false;
+        }
+
+        resolvedTarget = context.ResolvePrimarySlotRef(placementTarget);
+        if (resolvedTarget.kind == source.kind && resolvedTarget.index == source.index)
+        {
+            resolvedTarget = default;
+            return false;
+        }
+
+        return true;
+    }
+
+    private List<int> BuildPlacementCandidateCells(Context context, SlotKind kind, List<ItemSlotData> list)
+    {
+        List<int> result = new List<int>();
+        if (list == null)
+        {
+            return result;
+        }
+
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            if (!context.IsSlotUsable(kind, i))
+            {
+                continue;
+            }
+
+            result.Add(i);
         }
 
         return result;
