@@ -162,11 +162,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 仓储交互服务 仓储交互规则 = new 仓储交互服务();
     private readonly 仓储交互服务.State 仓储交互状态 = new 仓储交互服务.State();
     private readonly 物品占格服务 物品占格规则 = new 物品占格服务();
-
-    private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
-    private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
-    private readonly Dictionary<string, List<ItemSlotData>> equipmentDataByCharacter = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<ItemSlotData>> boundEnemyEquipmentDataCache = new Dictionary<string, List<ItemSlotData>>(StringComparer.Ordinal);
+    private readonly 仓储状态服务 仓储状态 = new 仓储状态服务();
     private readonly Dictionary<string, GameObject> qualityBackgroundPrefabCache = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
@@ -180,9 +176,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GridLayoutGroup.Corner cachedBackpackStartCorner;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
-    private int warehouseUsableSlotCount = -1;
-    private int backpackUsableSlotCount = -1;
-    private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
     private readonly CategoryFilterBinding warehouseFilter = new CategoryFilterBinding();
     private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
@@ -206,8 +199,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GameObject runtimeTooltipRootInstance;
     private GameObject runtimeTooltipSourcePrefab;
 
-    public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
-    public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
+    public static int BackpackSlotCount => instance != null ? instance.仓储状态.背包数据.Count : 0;
+    public static int WarehouseSlotCount => instance != null ? instance.仓储状态.仓库数据.Count : 0;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
     public static int GetWarehouseUsableSlotCount()
     {
@@ -246,12 +239,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static List<ItemSlotSnapshot> GetBackpackSnapshots()
     {
-        return instance != null ? BuildSnapshots(instance.backpackData) : new List<ItemSlotSnapshot>();
+        return instance != null ? BuildSnapshots(instance.仓储状态.背包数据) : new List<ItemSlotSnapshot>();
     }
 
     public static List<ItemSlotSnapshot> GetWarehouseSnapshots()
     {
-        return instance != null ? BuildSnapshots(instance.warehouseData) : new List<ItemSlotSnapshot>();
+        return instance != null ? BuildSnapshots(instance.仓储状态.仓库数据) : new List<ItemSlotSnapshot>();
     }
 
     public static List<string> GetEquipmentCharacterIds()
@@ -261,9 +254,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return new List<string>();
         }
 
-        List<string> result = new List<string>(instance.equipmentDataByCharacter.Keys);
-        result.Sort(StringComparer.Ordinal);
-        return result;
+        return instance.仓储状态.获取角色装备数据键列表();
     }
 
     public static List<ItemSlotSnapshot> GetEquipmentSnapshots(string characterId)
@@ -304,35 +295,35 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static bool TryGetBackpackSlotData(int index, out ItemSlotData data)
     {
         data = default;
-        if (instance == null || index < 0 || index >= instance.backpackData.Count)
+        if (instance == null || index < 0 || index >= instance.仓储状态.背包数据.Count)
         {
             return false;
         }
 
-        data = instance.backpackData[index];
+        data = instance.仓储状态.背包数据[index];
         return true;
     }
 
     public static bool TryGetWarehouseSlotData(int index, out ItemSlotData data)
     {
         data = default;
-        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        if (instance == null || index < 0 || index >= instance.仓储状态.仓库数据.Count)
         {
             return false;
         }
 
-        data = instance.warehouseData[index];
+        data = instance.仓储状态.仓库数据[index];
         return true;
     }
 
     public static bool TrySetBackpackSlotData(int index, ItemSlotData data)
     {
-        if (instance == null || index < 0 || index >= instance.backpackData.Count)
+        if (instance == null || index < 0 || index >= instance.仓储状态.背包数据.Count)
         {
             return false;
         }
 
-        instance.backpackData[index] = PrepareItemSlotDataForStorage(data, $"背包格 {index}");
+        instance.仓储状态.背包数据[index] = PrepareItemSlotDataForStorage(data, $"背包格 {index}");
         instance.RefreshBackpackSlot(index);
         instance.RefreshExtraBackpackSlots(index);
         return true;
@@ -340,12 +331,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static bool TrySetWarehouseSlotData(int index, ItemSlotData data)
     {
-        if (instance == null || index < 0 || index >= instance.warehouseData.Count)
+        if (instance == null || index < 0 || index >= instance.仓储状态.仓库数据.Count)
         {
             return false;
         }
 
-        instance.warehouseData[index] = PrepareItemSlotDataForStorage(data, $"仓库格 {index}");
+        instance.仓储状态.仓库数据[index] = PrepareItemSlotDataForStorage(data, $"仓库格 {index}");
         instance.RefreshWarehouseSlot(index);
         return true;
     }
@@ -376,7 +367,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: true);
-        EnsureDataSize(equipment, Mathf.Max(instance.GetExpectedEquipmentSlotCount(), index + 1));
+        仓储状态服务.确保容量(equipment, Mathf.Max(instance.GetExpectedEquipmentSlotCount(), index + 1));
         if (index >= equipment.Count)
         {
             return false;
@@ -423,9 +414,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         maxStack = ResolveMaxStack(itemId, maxStack);
         int remain = count;
 
-        for (int i = instance.backpackData.Count - 1; i >= 0 && remain > 0 && !useOneByTwo; i--)
+        for (int i = instance.仓储状态.背包数据.Count - 1; i >= 0 && remain > 0 && !useOneByTwo; i--)
         {
-            ItemSlotData slot = instance.backpackData[i];
+            ItemSlotData slot = instance.仓储状态.背包数据[i];
             if (slot.IsEmpty || slot.itemId != itemId)
             {
                 continue;
@@ -441,7 +432,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             slot.count += add;
             slot.icon = icon;
             slot.maxStack = cap;
-            instance.backpackData[i] = slot;
+            instance.仓储状态.背包数据[i] = slot;
             remain -= add;
             instance.RefreshBackpackSlot(i);
             instance.RefreshExtraBackpackSlots(i);
@@ -593,13 +584,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     }
     public static bool RemoveItemAt(int slotIndex, int count)
     {
-        if (instance == null || slotIndex < 0 || slotIndex >= instance.backpackData.Count || count <= 0)
+        if (instance == null || slotIndex < 0 || slotIndex >= instance.仓储状态.背包数据.Count || count <= 0)
         {
             return false;
         }
 
         slotIndex = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, slotIndex);
-        ItemSlotData slot = instance.backpackData[slotIndex];
+        ItemSlotData slot = instance.仓储状态.背包数据[slotIndex];
         if (slot.IsEmpty || slot.count <= 0)
         {
             return false;
@@ -613,7 +604,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        instance.backpackData[slotIndex] = slot;
+        instance.仓储状态.背包数据[slotIndex] = slot;
         instance.RefreshBackpackSlot(slotIndex);
         instance.RefreshExtraBackpackSlots(slotIndex);
         return true;
@@ -623,7 +614,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (instance == null ||
             fromSlot < 0 || toSlot < 0 ||
-            fromSlot >= instance.backpackData.Count || toSlot >= instance.backpackData.Count ||
+            fromSlot >= instance.仓储状态.背包数据.Count || toSlot >= instance.仓储状态.背包数据.Count ||
             fromSlot == toSlot)
         {
             return false;
@@ -631,8 +622,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         fromSlot = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, fromSlot);
         toSlot = instance.ResolvePrimarySlotIndex(SlotKind.Backpack, toSlot);
-        ItemSlotData from = instance.backpackData[fromSlot];
-        ItemSlotData to = instance.backpackData[toSlot];
+        ItemSlotData from = instance.仓储状态.背包数据[fromSlot];
+        ItemSlotData to = instance.仓储状态.背包数据[toSlot];
         if (from.IsEmpty || from.isFootprintExtension || to.isFootprintExtension)
         {
             return false;
@@ -684,13 +675,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         仓储界面绑定规则.CollectStorageSlots(创建仓储界面绑定上下文());
         仓储界面绑定规则.CollectEquipmentSlots(创建仓储界面绑定上下文());
 
-        EnsureWarehouseDataSize();
+        仓储状态.确保仓库数据容量(FixedStorageSlotCount);
         int backpackWidgetCount = backpackSlots.Count;
         for (int i = 0; i < extraBackpackSlots.Count; i++)
         {
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, extraBackpackSlots[i].Count);
         }
-        EnsureBackpackDataSize(backpackWidgetCount);
+        仓储状态.确保背包数据容量(backpackWidgetCount);
         仓储界面绑定规则.BindCategoryFilters(创建仓储界面绑定上下文());
         仓储界面绑定规则.BindDragRelays(创建仓储界面绑定上下文());
     }
@@ -875,19 +866,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         cachedBackpackConstraintCount = source.constraintCount;
     }
 
-    private static void EnsureDataSize(List<ItemSlotData> data, int size)
-    {
-        while (data.Count < size)
-        {
-            data.Add(default);
-        }
-
-        while (data.Count > size)
-        {
-            data.RemoveAt(data.Count - 1);
-        }
-    }
-
     private string ResolveEquipmentCharacterId()
     {
         string currentId = 界面ID列表.当前ID;
@@ -902,85 +880,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private List<ItemSlotData> GetEquipmentDataForCharacter(string characterId, bool createIfMissing)
     {
         string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
-        List<ItemSlotData> data;
-        if (equipmentDataByCharacter.TryGetValue(resolvedCharacterId, out data))
-        {
-            return data;
-        }
-
-        if (!createIfMissing)
-        {
-            return GetBoundEnemyEquipmentDataForCharacter(resolvedCharacterId);
-        }
-
-        List<ItemSlotData> boundEnemyEquipment = GetBoundEnemyEquipmentDataForCharacter(resolvedCharacterId);
-        if (boundEnemyEquipment != null)
-        {
-            data = CloneItemSlotDataList(boundEnemyEquipment);
-            EnsureDataSize(data, Mathf.Max(GetExpectedEquipmentSlotCount(), data.Count));
-            equipmentDataByCharacter[resolvedCharacterId] = data;
-            return data;
-        }
-
-        data = new List<ItemSlotData>();
-        EnsureDataSize(data, GetExpectedEquipmentSlotCount());
-        equipmentDataByCharacter[resolvedCharacterId] = data;
-        return data;
-    }
-
-    private List<ItemSlotData> GetBoundEnemyEquipmentDataForCharacter(string characterId)
-    {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        List<ItemSlotData> cachedData;
-        if (boundEnemyEquipmentDataCache.TryGetValue(characterId, out cachedData))
-        {
-            return cachedData;
-        }
-
-        EnemyEquipmentDatabase equipmentDatabase = EnemyEquipmentDatabase.LoadDefault();
-        if (equipmentDatabase == null)
-        {
-            return null;
-        }
-
-        EnemyEquipmentDatabase.EnemyEquipmentEntry entry = equipmentDatabase.FindEntry(characterId);
-        if (entry == null || entry.itemIds == null)
-        {
-            return null;
-        }
-
-        int slotCount = Mathf.Max(GetExpectedEquipmentSlotCount(), EnemyEquipmentDatabase.SlotCount);
-        List<ItemSlotData> result = new List<ItemSlotData>(slotCount);
-        EnsureDataSize(result, slotCount);
-        for (int i = 0; i < entry.itemIds.Count && i < result.Count; i++)
-        {
-            string itemId = entry.itemIds[i];
-            if (string.IsNullOrWhiteSpace(itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(itemId);
-            if (itemEntry == null || itemEntry.category != ItemDatabase.ItemCategory.Equipment)
-            {
-                continue;
-            }
-
-            result[i] = PrepareItemSlotDataForStorage(new ItemSlotData
-            {
-                itemId = itemId,
-                icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab),
-                count = 1,
-                maxStack = 1
-            }, $"敌人装备栏 {characterId}:{i}");
-        }
-
-        boundEnemyEquipmentDataCache[characterId] = result;
-        return result;
+        return 仓储状态.获取角色装备数据(
+            resolvedCharacterId,
+            createIfMissing,
+            GetExpectedEquipmentSlotCount(),
+            ResolveItemEntry,
+            ResolveDisplaySpriteFromPrefab,
+            PrepareItemSlotDataForStorage);
     }
 
     private int GetExpectedEquipmentSlotCount()
@@ -1002,36 +908,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 8;
     }
 
-    private static List<ItemSlotData> CloneItemSlotDataList(List<ItemSlotData> source)
-    {
-        return source != null ? new List<ItemSlotData>(source) : new List<ItemSlotData>();
-    }
-
     private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
     {
-        string equipmentCharacterId = ResolveEquipmentCharacterId();
-        if (string.IsNullOrWhiteSpace(equipmentCharacterId))
-        {
-            return null;
-        }
-
-        return GetEquipmentDataForCharacter(equipmentCharacterId, createIfMissing);
-    }
-
-    private void EnsureBackpackDataSize(int size)
-    {
-        while (backpackData.Count < size)
-        {
-            backpackData.Add(default);
-        }
-    }
-
-    private void EnsureWarehouseDataSize()
-    {
-        while (warehouseData.Count < FixedStorageSlotCount)
-        {
-            warehouseData.Add(default);
-        }
+        return 仓储状态.获取当前角色装备数据(
+            ResolveEquipmentCharacterId(),
+            createIfMissing,
+            GetExpectedEquipmentSlotCount(),
+            ResolveItemEntry,
+            ResolveDisplaySpriteFromPrefab,
+            PrepareItemSlotDataForStorage);
     }
 
     private void HandleBeginDrag(SlotKind kind, int index, PointerEventData eventData)
@@ -1351,12 +1236,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (kind == SlotKind.Warehouse)
         {
-            return warehouseData;
+            return 仓储状态.仓库数据;
         }
 
         if (kind == SlotKind.Backpack)
         {
-            return backpackData;
+            return 仓储状态.背包数据;
         }
 
         return GetCurrentEquipmentData(true);
@@ -1391,7 +1276,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             IsSlotUsable = IsSlotUsable,
             IsFootprintItem = IsFootprintItem,
             IsOneByTwoItem = IsOneByTwoItem,
-            CloneItemSlotDataList = CloneItemSlotDataList,
+            CloneItemSlotDataList = 仓储状态服务.克隆数据,
             GetOneByTwoExtensionIndex = GetOneByTwoExtensionIndex,
             PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
             ResolveEquipmentCharacterId = ResolveEquipmentCharacterId,
@@ -1481,8 +1366,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ExtraBackpackSlots = extraBackpackSlots,
             EquipmentSlots = equipmentSlots,
             ExtraEquipmentSlots = extraEquipmentSlots,
-            WarehouseData = warehouseData,
-            BackpackData = backpackData,
+            WarehouseData = 仓储状态.仓库数据,
+            BackpackData = 仓储状态.背包数据,
             GetCurrentEquipmentData = () => GetCurrentEquipmentData(true),
             GetExpectedEquipmentSlotCount = GetExpectedEquipmentSlotCount,
             ResolveEquipmentCharacterId = ResolveEquipmentCharacterId,
@@ -1505,8 +1390,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             Owner = this,
             FixedStorageSlotCount = FixedStorageSlotCount,
-            WarehouseData = warehouseData,
-            BackpackData = backpackData,
+            WarehouseData = 仓储状态.仓库数据,
+            BackpackData = 仓储状态.背包数据,
             WarehouseSlots = warehouseSlots,
             BackpackSlots = backpackSlots,
             ExtraBackpackSlots = extraBackpackSlots,
@@ -1547,7 +1432,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshByRef = RefreshByRef,
             IsOneByTwoItem = IsOneByTwoItem,
             GetDataList = GetDataList,
-            CloneItemSlotDataList = CloneItemSlotDataList,
+            CloneItemSlotDataList = 仓储状态服务.克隆数据,
             ClearPlacement = ClearPlacement,
             CanPlaceDataAt = CanPlaceDataAt,
             GetExtensionIndexForData = GetExtensionIndexForData,
@@ -2020,95 +1905,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void SetUsableSlotCount(SlotKind kind, string characterId, int count)
     {
-        int normalized = Mathf.Max(0, count);
-        switch (kind)
-        {
-            case SlotKind.Warehouse:
-                warehouseUsableSlotCount = normalized;
-                break;
-            case SlotKind.Backpack:
-                backpackUsableSlotCount = normalized;
-                break;
-            case SlotKind.Equipment:
-                equipmentUsableSlotCounts[ResolveEquipmentCountCharacterKey(characterId)] = normalized;
-                break;
-        }
-
+        仓储状态.设置可用槽位数量(kind, characterId, count);
         RefreshAll();
     }
 
     private int GetResolvedUsableSlotCount(SlotKind kind, string characterId)
     {
         int totalCount = GetSlotCountForKind(kind);
-        if (totalCount <= 0)
-        {
-            return 0;
-        }
-
-        int configuredCount;
-        switch (kind)
-        {
-            case SlotKind.Warehouse:
-                configuredCount = warehouseUsableSlotCount;
-                break;
-            case SlotKind.Backpack:
-                configuredCount = ResolveBackpackUsableSlotCountFromEvents(totalCount);
-                break;
-            case SlotKind.Equipment:
-                if (!equipmentUsableSlotCounts.TryGetValue(ResolveEquipmentCountCharacterKey(characterId), out configuredCount))
-                {
-                    configuredCount = totalCount;
-                }
-                break;
-            default:
-                configuredCount = totalCount;
-                break;
-        }
-
-        if (configuredCount < 0)
-        {
-            configuredCount = totalCount;
-        }
-
-        return Mathf.Clamp(configuredCount, 0, totalCount);
-    }
-
-    private int ResolveBackpackUsableSlotCountFromEvents(int totalCount)
-    {
-        EventDatabase eventDatabase = EventDatabase.LoadDefault();
-        if (eventDatabase == null)
-        {
-            return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
-        }
-
-        bool foundAnyMatchingEvent = false;
-        int resolvedCount = -1;
-        for (int i = 0; i < BackpackLevelEventIds.Length && i < BackpackLevelSlotCounts.Length; i++)
-        {
-            EventDatabase.EventEntry entry = eventDatabase.FindEntry(BackpackLevelEventIds[i]);
-            if (entry == null)
-            {
-                continue;
-            }
-
-            foundAnyMatchingEvent = true;
-            if (entry.enabled)
-            {
-                resolvedCount = BackpackLevelSlotCounts[i];
-            }
-        }
-
-        if (resolvedCount >= 0)
-        {
-            return resolvedCount;
-        }
-
-        if (foundAnyMatchingEvent)
-        {
-            return 0;
-        }
-
-        return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
+        return 仓储状态.获取可用槽位数量(kind, characterId, totalCount, BackpackLevelEventIds, BackpackLevelSlotCounts);
     }
 
     private int GetSlotCountForKind(SlotKind kind)
@@ -2116,9 +1920,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         switch (kind)
         {
             case SlotKind.Warehouse:
-                return Mathf.Max(warehouseSlots.Count, warehouseData.Count);
+                return Mathf.Max(warehouseSlots.Count, 仓储状态.仓库数据.Count);
             case SlotKind.Backpack:
-                return Mathf.Max(backpackSlots.Count, backpackData.Count);
+                return Mathf.Max(backpackSlots.Count, 仓储状态.背包数据.Count);
             case SlotKind.Equipment:
                 return GetExpectedEquipmentSlotCount();
             default:
@@ -2146,11 +1950,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return index >= totalCount - usableCount;
-    }
-
-    private static string ResolveEquipmentCountCharacterKey(string characterId)
-    {
-        return string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId.Trim();
     }
 
     private void RefreshWarehouseSlot(int index)
