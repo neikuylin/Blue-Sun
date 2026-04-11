@@ -138,7 +138,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
     private const string ItemIconName = "物品图标";
-    private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
     private static readonly Color DisabledSlotColor = new Color32(100, 100, 100, 255);
@@ -152,7 +151,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     };
     private static readonly int[] BackpackLevelSlotCounts = { 14, 21, 28, 35, 42 };
     private static InventoryShortcutRuntimeBinder instance;
-    private static Material itemTooltipIconFadeMaterial;
     private readonly 物品转移服务 物品转移规则 = new 物品转移服务();
     private readonly 物品提示框服务 物品提示框规则 = new 物品提示框服务();
     private readonly 物品提示框服务.State 物品提示框状态 = new 物品提示框服务.State();
@@ -278,7 +276,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
-        return BuildAttackPowerDisplayText(entry, characterId, null, out _);
+        return 物品显示辅助服务.获取角色攻击力显示文本(entry, characterId);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -576,13 +574,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
     {
-        if (prefab == null)
-        {
-            return null;
-        }
-
-        Image image = ResolveDisplayImage(prefab.transform);
-        return image != null ? image.sprite : null;
+        return 物品显示辅助服务.解析预制体显示图标(prefab, FindChildByName, FindDescendantByName);
     }
     public static bool RemoveItemAt(int slotIndex, int count)
     {
@@ -1381,37 +1373,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private Sprite ResolveTooltipItemIconSprite(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null || entry.prefab == null)
-        {
-            return null;
-        }
-
-        Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
-        Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
-        return iconImage != null ? iconImage.sprite : null;
+        return 物品显示辅助服务.解析提示框物品图标(entry, FindChildByName, FindDescendantByName, ItemIconName);
     }
 
     private Vector2 ResolveTooltipItemIconSize(ItemDatabase.ItemEntry entry)
     {
-        if (itemTooltipItemIconImage == null)
-        {
-            return Vector2.zero;
-        }
-
-        Vector2 iconSize = itemTooltipItemIconImage.rectTransform.sizeDelta;
-        if (entry == null || entry.prefab == null)
-        {
-            return iconSize;
-        }
-
-        Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
-        Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
-        if (iconImage == null || iconImage.rectTransform == null)
-        {
-            return iconSize;
-        }
-
-        return iconImage.rectTransform.sizeDelta;
+        return 物品显示辅助服务.解析提示框物品图标尺寸(entry, itemTooltipItemIconImage, FindChildByName, FindDescendantByName, ItemIconName);
     }
 
     private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
@@ -1798,261 +1765,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
-        string value = GetAttackPowerDisplayText(entry, slot, ownerCharacterId, attackPowerText, out List<AttackPowerSegment> segments);
-        bool hasValue = !string.IsNullOrEmpty(value);
-        attackPowerText.gameObject.SetActive(hasValue);
-        attackPowerText.text = value ?? string.Empty;
+        物品显示辅助服务.设置提示框攻击力文本(entry, slot, attackPowerText, ResolveTooltipEquipmentOwnerCharacterId);
     }
 
     private TMP_Text EnsureTooltipAttackPowerText()
     {
-        if (itemTooltipAttackPowerText != null)
-        {
-            return itemTooltipAttackPowerText;
-        }
-
-        if (itemTooltipTextContentRoot == null)
-        {
-            return null;
-        }
-
-        TMP_Text template = itemTooltipFixedDamageText ?? itemTooltipAttributeMultiplierText ?? itemTooltipDescriptionText;
-        if (template == null)
-        {
-            return null;
-        }
-
-        GameObject attackPowerObject = Instantiate(template.gameObject, itemTooltipTextContentRoot, false);
-        attackPowerObject.name = "攻击力";
-
-        itemTooltipAttackPowerText = attackPowerObject.GetComponent<TMP_Text>();
-        RectTransform attackPowerRect = attackPowerObject.transform as RectTransform;
-        RectTransform templateRect = template.rectTransform;
-        if (itemTooltipAttackPowerText == null || attackPowerRect == null || templateRect == null)
-        {
-            return itemTooltipAttackPowerText;
-        }
-
-        attackPowerRect.anchorMin = templateRect.anchorMin;
-        attackPowerRect.anchorMax = templateRect.anchorMax;
-        attackPowerRect.pivot = templateRect.pivot;
-        attackPowerRect.sizeDelta = templateRect.sizeDelta;
-        attackPowerRect.localScale = templateRect.localScale;
-        attackPowerRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -36f);
-        itemTooltipAttackPowerText.text = string.Empty;
-        itemTooltipAttackPowerText.gameObject.SetActive(false);
+        itemTooltipAttackPowerText = 物品显示辅助服务.确保提示框攻击力文本(
+            itemTooltipAttackPowerText,
+            itemTooltipTextContentRoot,
+            itemTooltipFixedDamageText,
+            itemTooltipAttributeMultiplierText,
+            itemTooltipDescriptionText);
         return itemTooltipAttackPowerText;
-    }
-
-    private string GetAttackPowerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot, string ownerCharacterId, TMP_Text attackPowerText, out List<AttackPowerSegment> segments)
-    {
-        segments = null;
-        if (!装备数值服务.是攻击力武器条目(entry) || slot.kind != SlotKind.Equipment)
-        {
-            return string.Empty;
-        }
-
-        return BuildAttackPowerDisplayText(entry, ownerCharacterId, attackPowerText, out segments);
-    }
-
-    private static string BuildAttackPowerDisplayText(ItemDatabase.ItemEntry entry, string ownerCharacterId, TMP_Text attackPowerText, out List<AttackPowerSegment> segments)
-    {
-        segments = null;
-        if (!装备数值服务.是攻击力武器条目(entry))
-        {
-            return string.Empty;
-        }
-
-        if (string.IsNullOrWhiteSpace(ownerCharacterId))
-        {
-            return "攻击力：无";
-        }
-
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
-        if (statEntry == null)
-        {
-            return "攻击力：无";
-        }
-
-        segments = BuildAttackPowerSegments(entry, statEntry);
-        if (segments == null)
-        {
-            return "<color=#E6C229>攻击力：伤害分布未配置</color>";
-        }
-
-        if (segments.Count == 0)
-        {
-            float attackPower = 装备数值服务.计算武器攻击力(entry, statEntry);
-            return $"攻击力：{attackPower:0.##}";
-        }
-
-        TMP_SpriteAsset activeSpriteAsset = ResolveAttackPowerSpriteAsset();
-        List<string> parts = new List<string>();
-        for (int i = 0; i < segments.Count; i++)
-        {
-            AttackPowerSegment segment = segments[i];
-            string segmentText = $"<color={segment.colorHex}>{FormatTooltipAttackPowerValue(segment.amount)}</color>";
-
-            string spriteName = GetAttackPowerSpriteName(segment.attributeId);
-            if (activeSpriteAsset != null && !string.IsNullOrWhiteSpace(spriteName))
-            {
-                segmentText += $"<sprite name=\"{spriteName}\">";
-            }
-
-            parts.Add(segmentText);
-        }
-
-        if (attackPowerText != null)
-        {
-            attackPowerText.spriteAsset = activeSpriteAsset;
-        }
-
-        return $"攻击力：{string.Join("<color=#808080>+</color>", parts)}";
     }
 
     private static string BuildTooltipLowerContentText(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null)
-        {
-            return string.Empty;
-        }
-
-        WeaponDetailLowerTextDatabase database = WeaponDetailLowerTextDatabase.LoadDefault();
-        List<string> lines = new List<string>();
-
-        if (entry.criticalChanceBonus > 0)
-        {
-            string line = FormatWeaponDetailLowerText(
-                database != null ? database.criticalChanceFormat : string.Empty,
-                entry.criticalChanceBonus.ToString());
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                lines.Add(line);
-            }
-        }
-
-        if (entry.criticalDamageBonus > 0)
-        {
-            string line = FormatWeaponDetailLowerText(
-                database != null ? database.criticalDamageFormat : string.Empty,
-                entry.criticalDamageBonus.ToString());
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                lines.Add(line);
-            }
-        }
-
-        return lines.Count > 0 ? string.Join("\n", lines) : string.Empty;
-    }
-
-    private static string FormatWeaponDetailLowerText(string format, string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        if (string.IsNullOrEmpty(format))
-        {
-            return value;
-        }
-
-        return format.Contains("x")
-            ? format.Replace("x", value)
-            : format + value;
-    }
-
-    private sealed class AttackPowerSegment
-    {
-        public string attributeId = string.Empty;
-        public float amount;
-        public string colorHex = "#FFFFFF";
-    }
-
-    private static List<AttackPowerSegment> BuildAttackPowerSegments(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
-    {
-        List<AttackPowerSegment> segments = new List<AttackPowerSegment>();
-        if (!装备数值服务.是攻击力武器条目(entry) || statEntry == null)
-        {
-            return segments;
-        }
-
-        float attackPower = 装备数值服务.计算武器攻击力(entry, statEntry);
-        if (attackPower <= 0f)
-        {
-            return segments;
-        }
-
-        ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
-        if (distribution == null || distribution.physical < 0 || distribution.fire < 0 ||
-            distribution.corruption < 0 || distribution.cold < 0 || distribution.Total != 100)
-        {
-            Debug.LogWarning($"[物品数据警告] 武器提示读取到未配置伤害分布：{entry.itemId}");
-            return null;
-        }
-
-        int total = Mathf.Max(1, distribution.Total);
-        TryAddAttackPowerSegment(segments, "物理", distribution.physical, total, attackPower, "#FFFFFF");
-        TryAddAttackPowerSegment(segments, "火焰", distribution.fire, total, attackPower, "#FF8A00");
-        TryAddAttackPowerSegment(segments, "腐败", distribution.corruption, total, attackPower, "#33CC66");
-        TryAddAttackPowerSegment(segments, "寒冷", distribution.cold, total, attackPower, "#4DA6FF");
-        return segments;
-    }
-
-    private static void TryAddAttackPowerSegment(List<AttackPowerSegment> segments, string attributeId, int distributionValue, int distributionTotal, float attackPower, string colorHex)
-    {
-        if (segments == null || distributionValue <= 0 || distributionTotal <= 0 || attackPower <= 0f)
-        {
-            return;
-        }
-
-        float amount = attackPower * distributionValue / distributionTotal;
-        if (amount <= 0f)
-        {
-            return;
-        }
-
-        segments.Add(new AttackPowerSegment
-        {
-            attributeId = attributeId,
-            amount = amount,
-            colorHex = colorHex
-        });
-    }
-
-    private static string FormatTooltipAttackPowerValue(float value)
-    {
-        if (Mathf.Approximately(value, Mathf.Round(value)))
-        {
-            return Mathf.RoundToInt(value).ToString();
-        }
-
-        return value.ToString("0.#");
-    }
-
-    private static string GetAttackPowerSpriteName(string attributeId)
-    {
-        switch (attributeId)
-        {
-            case "物理":
-                return "物理伤害";
-            case "火焰":
-                return "火焰伤害";
-            case "腐败":
-                return "腐败伤害";
-            case "寒冷":
-                return "寒冷伤害";
-            default:
-                return string.Empty;
-        }
-    }
-
-    private static TMP_SpriteAsset ResolveAttackPowerSpriteAsset()
-    {
-        AttackPowerTextSpriteDatabase database = AttackPowerTextSpriteDatabase.LoadDefault();
-        return database != null ? database.spriteAsset : null;
+        return 物品显示辅助服务.构建提示框下方面板文本(entry);
     }
 
     private string ResolveTooltipEquipmentOwnerCharacterId()
@@ -2063,348 +1792,72 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string GetTooltipOwnerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot)
     {
-        if (!装备数值服务.是攻击力武器条目(entry) || slot.kind != SlotKind.Equipment)
-        {
-            return string.Empty;
-        }
-
-        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
-        if (string.IsNullOrWhiteSpace(ownerCharacterId))
-        {
-            return "装备者：\n无";
-        }
-
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
-        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无";
+        return 物品显示辅助服务.获取提示框装备者显示文本(entry, slot, ResolveTooltipEquipmentOwnerCharacterId);
     }
 
     private static Material EnsureItemTooltipIconFadeMaterial()
     {
-        if (itemTooltipIconFadeMaterial != null)
-        {
-            return itemTooltipIconFadeMaterial;
-        }
-
-        Shader shader = Shader.Find(ItemTooltipIconFadeShaderName);
-        if (shader == null)
-        {
-            return null;
-        }
-
-        itemTooltipIconFadeMaterial = new Material(shader)
-        {
-            name = "ItemTooltipIconBottomFade"
-        };
-        itemTooltipIconFadeMaterial.hideFlags = HideFlags.HideAndDontSave;
-        itemTooltipIconFadeMaterial.SetFloat("_FadeHeight", 0.2f);
-        itemTooltipIconFadeMaterial.SetFloat("_FadePower", 3f);
-        return itemTooltipIconFadeMaterial;
+        return 物品显示辅助服务.确保提示框图标渐隐材质();
     }
 
     private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null)
-        {
-            return string.Empty;
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.displayName))
-        {
-            return entry.displayName;
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.itemId) && entry.itemId.StartsWith("itm_", StringComparison.Ordinal))
-        {
-            return entry.itemId.Substring(4);
-        }
-
-        return entry.itemId ?? string.Empty;
+        return 物品显示辅助服务.解析物品显示名(entry);
     }
 
     public static string GetItemDisplayName(string itemId)
     {
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
-        return ResolveItemDisplayName(entry);
+        return 物品显示辅助服务.解析物品显示名(ResolveItemEntry(itemId));
     }
 
     private static string GetFixedDamageDisplayText(ItemDatabase.ItemEntry entry)
     {
-        float value = entry != null ? entry.fixedDamage : 0f;
-        return $"固定伤害：{value:0.##}";
+        return 物品显示辅助服务.获取固定伤害显示文本(entry);
     }
 
     private static string GetAttributeMultiplierDisplayText(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null || entry.weaponAttributeMultipliers == null || entry.weaponAttributeMultipliers.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        List<string> parts = new List<string>();
-        for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
-        {
-            ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
-            if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
-            {
-                continue;
-            }
-
-            parts.Add($"{GetWeaponAttributeTypeDisplayName(multiplier.attributeType)}{GetAttributeMultiplierRank(multiplier.multiplier)}");
-        }
-
-        if (parts.Count == 0)
-        {
-            return string.Empty;
-        }
-
-        return string.Join(" ", parts);
+        return 物品显示辅助服务.获取属性倍率显示文本(entry);
     }
 
     private static string GetItemQualityDisplayName(ItemDatabase.ItemQuality quality)
     {
-        switch (quality)
-        {
-            case ItemDatabase.ItemQuality.Excellent:
-                return "优秀";
-            case ItemDatabase.ItemQuality.Epic:
-                return "史诗";
-            case ItemDatabase.ItemQuality.Blessed:
-                return "赐福";
-            default:
-                return "普通";
-        }
+        return 物品显示辅助服务.获取物品品质显示名(quality);
     }
 
     private static string GetWeaponCategoryDisplayName(ItemDatabase.WeaponCategory weaponCategory)
     {
-        switch (weaponCategory)
-        {
-            case ItemDatabase.WeaponCategory.OneHanded:
-                return "单手武器";
-            case ItemDatabase.WeaponCategory.TwoHanded:
-                return "双手武器";
-            case ItemDatabase.WeaponCategory.Bow:
-                return "弓箭";
-            case ItemDatabase.WeaponCategory.Staff:
-                return "法杖";
-            default:
-                return weaponCategory == ItemDatabase.WeaponCategory.None ? string.Empty : weaponCategory.ToString();
-        }
-    }
-
-    private static string GetWeaponAttributeTypeDisplayName(ItemDatabase.WeaponAttributeType attributeType)
-    {
-        switch (attributeType)
-        {
-            case ItemDatabase.WeaponAttributeType.Strength:
-                return "力量";
-            case ItemDatabase.WeaponAttributeType.Agility:
-                return "敏捷";
-            case ItemDatabase.WeaponAttributeType.Intelligence:
-                return "智力";
-            default:
-                return string.Empty;
-        }
-    }
-
-    private static string GetAttributeMultiplierRank(float multiplier)
-    {
-        if (multiplier < 0.5f)
-        {
-            return "E";
-        }
-
-        if (multiplier < 1f)
-        {
-            return "D";
-        }
-
-        if (multiplier < 1.5f)
-        {
-            return "C";
-        }
-
-        if (multiplier < 2f)
-        {
-            return "B";
-        }
-
-        if (multiplier < 2.5f)
-        {
-            return "A";
-        }
-
-        return "S";
+        return 物品显示辅助服务.获取武器类别显示名(weaponCategory);
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
     {
-        if (data.icon != null)
-        {
-            return data.icon;
-        }
-
-        GameObject prefab = ResolvePrefabFromItemId(data.itemId);
-        if (prefab == null)
-        {
-            return null;
-        }
-
-        Image image = ResolveDisplayImage(prefab.transform);
-        return image != null ? image.sprite : null;
-    }
-
-    private static GameObject ResolvePrefabFromItemId(string itemId)
-    {
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
-        return entry != null ? entry.prefab : null;
+        return 物品显示辅助服务.解析显示图标(data, ResolveItemEntry, FindChildByName, FindDescendantByName);
     }
 
     private GameObject ResolveQualityBackgroundPrefab(ItemDatabase.ItemEntry entry)
     {
-        if (entry == null)
-        {
-            return null;
-        }
-
-        string cacheKey = BuildQualityBackgroundCacheKey(entry.quality, ShouldUseOneByTwoQualityBackground(entry));
-        if (qualityBackgroundPrefabCache.TryGetValue(cacheKey, out GameObject prefab))
-        {
-            return prefab;
-        }
-
-        return null;
+        return 物品显示辅助服务.解析品质背景预制体(qualityBackgroundPrefabCache, entry);
     }
 
     private static Sprite ResolveRuntimeIconSprite(SlotWidget widget)
     {
-        if (widget == null)
-        {
-            return null;
-        }
-
-        if (widget.runtimeIconVisual != null)
-        {
-            Image image = widget.runtimeIconVisual.GetComponent<Image>();
-            if (image != null)
-            {
-                return image.sprite;
-            }
-        }
-
-        return widget.icon != null ? widget.icon.sprite : null;
+        return 物品显示辅助服务.解析运行时图标(widget);
     }
 
     private void CacheQualityBackgroundPrefabs()
     {
-        qualityBackgroundPrefabCache.Clear();
-
-        ItemQualityBackgroundDatabase database = ItemQualityBackgroundDatabase.LoadDefault();
-        if (database == null)
-        {
-            return;
-        }
-
-        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Common);
-        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Excellent);
-        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Epic);
-        CacheQualityBackgroundPrefab(database, ItemDatabase.ItemQuality.Blessed);
-    }
-
-    private void CacheQualityBackgroundPrefab(ItemQualityBackgroundDatabase database, ItemDatabase.ItemQuality quality)
-    {
-        if (database == null)
-        {
-            return;
-        }
-
-        CacheQualityBackgroundPrefabVariant(database, quality, useOneByTwo: false);
-        CacheQualityBackgroundPrefabVariant(database, quality, useOneByTwo: true);
-    }
-
-    private void CacheQualityBackgroundPrefabVariant(
-        ItemQualityBackgroundDatabase database,
-        ItemDatabase.ItemQuality quality,
-        bool useOneByTwo)
-    {
-        if (database == null)
-        {
-            return;
-        }
-
-        GameObject prefab = database.GetPrefab(quality, useOneByTwo);
-        if (prefab == null)
-        {
-            return;
-        }
-
-        qualityBackgroundPrefabCache[BuildQualityBackgroundCacheKey(quality, useOneByTwo)] = prefab;
-    }
-
-    private static bool ShouldUseOneByTwoQualityBackground(ItemDatabase.ItemEntry entry)
-    {
-        return entry != null &&
-            entry.category == ItemDatabase.ItemCategory.Equipment &&
-            (entry.weaponCategory == ItemDatabase.WeaponCategory.Bow ||
-             entry.weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
-             entry.weaponCategory == ItemDatabase.WeaponCategory.Staff);
-    }
-
-    private static string BuildQualityBackgroundCacheKey(ItemDatabase.ItemQuality quality, bool useOneByTwo)
-    {
-        return quality.ToString() + (useOneByTwo ? "_1x2" : "_1x1");
-    }
-
-    private static Image ResolveDisplayImage(Transform root)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        Transform picture = FindChildByName(root, "图片") ?? FindDescendantByName(root, "图片");
-        if (picture != null)
-        {
-            Image pictureImage = picture.GetComponent<Image>();
-            if (pictureImage != null && pictureImage.sprite != null)
-            {
-                return pictureImage;
-            }
-        }
-
-        Image[] images = root.GetComponentsInChildren<Image>(true);
-        for (int i = 0; i < images.Length; i++)
-        {
-            if (images[i] != null && images[i].sprite != null)
-            {
-                return images[i];
-            }
-        }
-
-        return null;
+        物品显示辅助服务.缓存品质背景预制体(qualityBackgroundPrefabCache);
     }
 
     private static ItemDatabase.ItemEntry ResolveItemEntry(string itemId)
     {
-        if (string.IsNullOrWhiteSpace(itemId))
-        {
-            return null;
-        }
-
-        ItemDatabase database = ItemDatabase.LoadDefault();
-        return database != null ? database.FindEntry(itemId) : null;
+        return 物品显示辅助服务.解析物品条目(itemId);
     }
 
     private static bool ShouldDisplayItem(CategoryFilterBinding binding, ItemSlotData data)
     {
-        if (data.IsEmpty || binding == null || binding.selectedCategories.Count == 0)
-        {
-            return true;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        return entry != null && binding.selectedCategories.Contains(entry.category);
+        return 物品显示辅助服务.应显示物品(binding, data, ResolveItemEntry);
     }
 
     private void RefreshWarehouseFilteredView()
