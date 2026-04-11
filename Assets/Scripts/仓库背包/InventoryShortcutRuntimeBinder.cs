@@ -66,7 +66,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public readonly HashSet<ItemDatabase.ItemCategory> selectedCategories = new HashSet<ItemDatabase.ItemCategory>();
     }
 
-    private sealed class SlotWidget
+    internal sealed class SlotWidget
     {
         public RectTransform root;
         public Button button;
@@ -133,10 +133,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private const string LeftWeaponMountPointName = "武器挂载点（左）";
-    private const string RightWeaponMountPointName = "武器挂载点（右）";
-    private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
-    private const float DefaultOutlineWidth = 0.025f;
     private const int FixedStorageSlotCount = 42;
     private const string SlotNameKeyword = "格子";
     private const string SlotContainerName = "格子容器";
@@ -159,6 +155,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static InventoryShortcutRuntimeBinder instance;
     private static Material itemTooltipIconFadeMaterial;
     private readonly 物品转移服务 物品转移规则 = new 物品转移服务();
+    private readonly 物品提示框服务 物品提示框规则 = new 物品提示框服务();
+    private readonly 物品提示框服务.State 物品提示框状态 = new 物品提示框服务.State();
+    private readonly 武器模型挂载服务 武器模型挂载规则 = new 武器模型挂载服务();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -213,7 +212,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TMP_Text itemTooltipDescriptionText;
     private TMP_Text itemTooltipGrantedSkillsText;
     private RectTransform itemTooltipGrantedSkillsIconRoot;
-    private readonly List<GameObject> itemTooltipGrantedSkillIcons = new List<GameObject>();
     private SlotWidget hoveredTooltipWidget;
     private SlotWidget pendingTooltipWidget;
     private ItemDatabase.ItemEntry pendingTooltipEntry;
@@ -1829,73 +1827,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 物品转移规则.TryHandleRightClickMove(创建物品转移上下文(), source, surface, target, sourceData);
     }
 
-    private bool TryAutoMoveToFirstEmpty(SlotRef source, SlotKind targetKind, ItemSlotData sourceData)
-    {
-        source = ResolvePrimarySlotRef(source);
-        sourceData = GetResolvedSlotData(source);
-        int targetIndex = FindFirstAvailableSlotIndex(targetKind, sourceData);
-        if (targetIndex < 0)
-        {
-            return false;
-        }
-
-        SlotRef target = new SlotRef { kind = targetKind, index = targetIndex };
-        return TryTransferItem(source, target, sourceData);
-    }
-
-    private bool TryAutoEquipToTargetEquipment(SlotRef source, ItemSlotData sourceData)
-    {
-        string targetCharacterId = ResolveEquipmentCharacterId();
-        if (string.IsNullOrWhiteSpace(targetCharacterId))
-        {
-            return false;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
-        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
-        {
-            return false;
-        }
-
-        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (equipmentData == null)
-        {
-            return false;
-        }
-
-        for (int pass = 0; pass < 2; pass++)
-        {
-            bool requireEmpty = pass == 0;
-            for (int i = 0; i < equipmentSlots.Count; i++)
-            {
-                SlotWidget widget = equipmentSlots[i];
-                if (widget == null || !IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
-                {
-                    continue;
-                }
-
-                ItemSlotData slotData = i < equipmentData.Count ? equipmentData[i] : default;
-                if (slotData.isFootprintExtension)
-                {
-                    continue;
-                }
-
-                if (requireEmpty != slotData.IsEmpty)
-                {
-                    continue;
-                }
-
-                SlotRef target = new SlotRef { kind = SlotKind.Equipment, index = i };
-                if (TryTransferItem(source, target, sourceData))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private bool TryExecuteSlotTransfer(SlotRef source, SlotRef target, ItemSlotData sourceData)
     {
         return TryTransferItem(source, target, sourceData);
@@ -2434,193 +2365,129 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         };
     }
 
+    private 物品提示框服务.Context 创建物品提示框上下文()
+    {
+        return new 物品提示框服务.Context
+        {
+            GetWeaponTooltipPrefab = weaponCategory =>
+            {
+                ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
+                return database != null ? database.GetWeaponTooltipPrefab(weaponCategory) : null;
+            },
+            GetQualityBackgroundPrefab = quality =>
+            {
+                ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
+                return database != null ? database.GetQualityBackgroundPrefab(quality) : null;
+            },
+            FindTooltipParent = FindTooltipParent,
+            FindChildByName = FindChildByName,
+            FindDescendantByName = FindDescendantByName,
+            FindTooltipTextByName = null,
+            FindTransformByPath = FindTransformByPath,
+            FindSkillEntry = skillId =>
+            {
+                BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
+                return skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
+            },
+            ResolveItemDisplayName = ResolveItemDisplayName,
+            GetItemQualityDisplayName = GetItemQualityDisplayName,
+            GetWeaponCategoryDisplayName = GetWeaponCategoryDisplayName,
+            GetTooltipOwnerDisplayText = GetTooltipOwnerDisplayText,
+            SetTooltipAttackPowerText = (entry, slot, text) =>
+            {
+                itemTooltipAttackPowerText = text;
+                SetTooltipAttackPowerText(entry, slot);
+            },
+            GetFixedDamageDisplayText = GetFixedDamageDisplayText,
+            GetAttributeMultiplierDisplayText = GetAttributeMultiplierDisplayText,
+            BuildTooltipLowerContentText = BuildTooltipLowerContentText,
+            ResolveTooltipItemIconSprite = ResolveTooltipItemIconSprite,
+            ResolveTooltipItemIconSize = ResolveTooltipItemIconSize,
+            EnsureItemTooltipIconFadeMaterial = EnsureItemTooltipIconFadeMaterial,
+            CancelHover = () => HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item),
+            ShouldShowLowerBackground = () => Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl),
+            FindAnyCanvas = () => FindObjectOfType<Canvas>(true),
+            ItemTooltipScale = ItemTooltipScale,
+            ItemTooltipIconScale = ItemTooltipIconScale
+        };
+    }
+
+    private 武器模型挂载服务.Context 创建武器模型挂载上下文()
+    {
+        return new 武器模型挂载服务.Context
+        {
+            FindBattleUnits = () => FindObjectsOfType<BattleUnit>(true),
+            GetEquipmentDataForCharacter = characterId => GetEquipmentDataForCharacter(characterId, createIfMissing: false),
+            ResolveItemEntry = ResolveItemEntry,
+            FindChildByName = FindChildByName,
+            FindDescendantByName = FindDescendantByName
+        };
+    }
+
+    private void 同步物品提示框状态()
+    {
+        itemTooltipRoot = 物品提示框状态.itemTooltipRoot;
+        itemTooltipDetailRoot = 物品提示框状态.itemTooltipDetailRoot;
+        itemTooltipLowerBackgroundRoot = 物品提示框状态.itemTooltipLowerBackgroundRoot;
+        itemTooltipTextContentRoot = 物品提示框状态.itemTooltipTextContentRoot;
+        itemTooltipExpandHintRoot = 物品提示框状态.itemTooltipExpandHintRoot;
+        itemTooltipLowerContentText = 物品提示框状态.itemTooltipLowerContentText;
+        itemTooltipDetailBackgroundImage = 物品提示框状态.itemTooltipDetailBackgroundImage;
+        itemTooltipItemIconImage = 物品提示框状态.itemTooltipItemIconImage;
+        itemTooltipItemNameText = 物品提示框状态.itemTooltipItemNameText;
+        itemTooltipQualityText = 物品提示框状态.itemTooltipQualityText;
+        itemTooltipWeaponCategoryText = 物品提示框状态.itemTooltipWeaponCategoryText;
+        itemTooltipOwnerText = 物品提示框状态.itemTooltipOwnerText;
+        itemTooltipAttackPowerText = 物品提示框状态.itemTooltipAttackPowerText;
+        itemTooltipFixedDamageText = 物品提示框状态.itemTooltipFixedDamageText;
+        itemTooltipAttributeMultiplierText = 物品提示框状态.itemTooltipAttributeMultiplierText;
+        itemTooltipDescriptionText = 物品提示框状态.itemTooltipDescriptionText;
+        itemTooltipGrantedSkillsText = 物品提示框状态.itemTooltipGrantedSkillsText;
+        itemTooltipGrantedSkillsIconRoot = 物品提示框状态.itemTooltipGrantedSkillsIconRoot;
+        hoveredTooltipSlot = 物品提示框状态.hoveredTooltipSlot;
+        pendingTooltipShownAt = 物品提示框状态.pendingTooltipShownAt;
+        runtimeTooltipRootInstance = 物品提示框状态.runtimeTooltipRootInstance;
+        runtimeTooltipSourcePrefab = 物品提示框状态.runtimeTooltipSourcePrefab;
+    }
+
+    private Sprite ResolveTooltipItemIconSprite(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.prefab == null)
+        {
+            return null;
+        }
+
+        Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
+        Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
+        return iconImage != null ? iconImage.sprite : null;
+    }
+
+    private Vector2 ResolveTooltipItemIconSize(ItemDatabase.ItemEntry entry)
+    {
+        if (itemTooltipItemIconImage == null)
+        {
+            return Vector2.zero;
+        }
+
+        Vector2 iconSize = itemTooltipItemIconImage.rectTransform.sizeDelta;
+        if (entry == null || entry.prefab == null)
+        {
+            return iconSize;
+        }
+
+        Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
+        Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
+        if (iconImage == null || iconImage.rectTransform == null)
+        {
+            return iconSize;
+        }
+
+        return iconImage.rectTransform.sizeDelta;
+    }
+
     private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
     {
         return 物品转移规则.TryTransferItem(创建物品转移上下文(), source, target, sourceData);
-    }
-
-    private bool TryMergeStorageStack(SlotRef source, SlotRef target, ItemSlotData sourceData, ItemSlotData targetData)
-    {
-        if (source.kind == SlotKind.Equipment || target.kind == SlotKind.Equipment)
-        {
-            return false;
-        }
-
-        if (sourceData.IsEmpty || targetData.IsEmpty || sourceData.itemId != targetData.itemId)
-        {
-            return false;
-        }
-
-        if (IsFootprintItem(sourceData) || IsFootprintItem(targetData))
-        {
-            return false;
-        }
-
-        int cap = Mathf.Max(1, targetData.maxStack > 0 ? targetData.maxStack : sourceData.maxStack);
-        int canMove = Mathf.Min(sourceData.count, Mathf.Max(0, cap - targetData.count));
-        if (canMove <= 0)
-        {
-            return false;
-        }
-
-        targetData.count += canMove;
-        sourceData.count -= canMove;
-        SetSlotData(target, targetData);
-        SetSlotData(source, sourceData.count > 0 ? sourceData : default);
-        界面刷新中心.请求刷新仓储界面();
-        ItemSoundUtility.PlayForItem(targetData.itemId);
-        return true;
-    }
-
-    private bool CanSwapPlacements(
-        SlotRef source,
-        ItemSlotData sourceData,
-        SlotRef placementTarget,
-        List<SlotRef> displacedTargets,
-        List<ItemSlotData> displacedItems,
-        List<SlotRef> displacedPlacements)
-    {
-        List<ItemSlotData> sourceActual = GetDataList(source.kind);
-        List<ItemSlotData> sourceSim = CloneItemSlotDataList(sourceActual);
-        List<ItemSlotData> targetSim = source.kind == placementTarget.kind
-            ? sourceSim
-            : CloneItemSlotDataList(GetDataList(placementTarget.kind));
-
-        ClearPlacement(source.kind, source.index, sourceData, sourceSim);
-        for (int i = 0; i < displacedTargets.Count; i++)
-        {
-            ClearPlacement(displacedTargets[i].kind, displacedTargets[i].index, displacedItems[i], targetSim);
-        }
-
-        if (!CanPlaceDataAt(placementTarget.kind, placementTarget.index, sourceData, targetSim))
-        {
-            return false;
-        }
-
-        PlaceDataAt(placementTarget.kind, placementTarget.index, sourceData, targetSim);
-
-        displacedPlacements.Clear();
-        if (displacedItems == null || displacedItems.Count == 0)
-        {
-            return true;
-        }
-
-        List<int> sourceCells = GetFootprintCellIndices(source.kind, source.index, sourceData);
-        if (sourceCells.Count == 0)
-        {
-            return false;
-        }
-
-        List<SlotRef> workingPlacements = new List<SlotRef>(displacedItems.Count);
-        if (TryResolveDisplacedPlacementsRecursive(source.kind, displacedItems, 0, sourceCells, sourceSim, workingPlacements))
-        {
-            displacedPlacements.AddRange(workingPlacements);
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool TryResolveDisplacedPlacementsRecursive(
-        SlotKind kind,
-        List<ItemSlotData> displacedItems,
-        int itemIndex,
-        List<int> candidateCells,
-        List<ItemSlotData> workingData,
-        List<SlotRef> resolvedPlacements)
-    {
-        if (itemIndex >= displacedItems.Count)
-        {
-            return true;
-        }
-
-        ItemSlotData item = displacedItems[itemIndex];
-        for (int i = 0; i < candidateCells.Count; i++)
-        {
-            int candidateIndex = candidateCells[i];
-            if (!CanPlaceDataAt(kind, candidateIndex, item, workingData))
-            {
-                continue;
-            }
-
-            List<ItemSlotData> nextData = CloneItemSlotDataList(workingData);
-            PlaceDataAt(kind, candidateIndex, item, nextData);
-            resolvedPlacements.Add(new SlotRef { kind = kind, index = candidateIndex });
-            if (TryResolveDisplacedPlacementsRecursive(kind, displacedItems, itemIndex + 1, candidateCells, nextData, resolvedPlacements))
-            {
-                return true;
-            }
-
-            resolvedPlacements.RemoveAt(resolvedPlacements.Count - 1);
-        }
-
-        return false;
-    }
-
-    private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
-    {
-        return !IsFootprintItem(sourceData) && targetRawData.isFootprintExtension;
-    }
-
-    private List<ItemSlotData> GetResolvedSlotDataList(List<SlotRef> slots)
-    {
-        List<ItemSlotData> result = new List<ItemSlotData>(slots != null ? slots.Count : 0);
-        if (slots == null)
-        {
-            return result;
-        }
-
-        for (int i = 0; i < slots.Count; i++)
-        {
-            result.Add(GetResolvedSlotData(slots[i]));
-        }
-
-        return result;
-    }
-
-    private List<SlotRef> CollectDisplacedTargetsForPlacement(SlotRef source, SlotRef placementTarget, ItemSlotData sourceData)
-    {
-        List<SlotRef> result = new List<SlotRef>();
-        List<ItemSlotData> list = GetDataList(placementTarget.kind);
-        TryAddDisplacedTarget(result, source, placementTarget.kind, placementTarget.index, list);
-
-        int extensionIndex = GetExtensionIndexForData(placementTarget.kind, placementTarget.index, sourceData);
-        if (extensionIndex >= 0)
-        {
-            TryAddDisplacedTarget(result, source, placementTarget.kind, extensionIndex, list);
-        }
-
-        return result;
-    }
-
-    private void TryAddDisplacedTarget(List<SlotRef> targets, SlotRef source, SlotKind kind, int index, List<ItemSlotData> list)
-    {
-        if (targets == null || list == null || index < 0 || index >= list.Count)
-        {
-            return;
-        }
-
-        ItemSlotData data = list[index];
-        if (data.IsEmpty)
-        {
-            return;
-        }
-
-        SlotRef resolved = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (resolved.kind == source.kind && resolved.index == source.index)
-        {
-            return;
-        }
-
-        for (int i = 0; i < targets.Count; i++)
-        {
-            if (targets[i].kind == resolved.kind && targets[i].index == resolved.index)
-            {
-                return;
-            }
-        }
-
-        targets.Add(resolved);
     }
 
     private bool CanPlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
@@ -3818,167 +3685,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshAllRuntimeWeaponModelsInternal()
     {
-        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
-        for (int i = 0; i < units.Length; i++)
-        {
-            RefreshRuntimeWeaponModel(units[i]);
-        }
+        武器模型挂载规则.RefreshAllRuntimeWeaponModels(创建武器模型挂载上下文());
     }
 
     private void RefreshRuntimeWeaponModelForCharacter(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return;
-        }
-
-        BattleUnit[] units = FindObjectsOfType<BattleUnit>(true);
-        for (int i = 0; i < units.Length; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null || !string.Equals(unit.characterId, characterId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            RefreshRuntimeWeaponModel(unit);
-        }
-    }
-
-    private void RefreshRuntimeWeaponModel(BattleUnit unit)
-    {
-        if (unit == null)
-        {
-            return;
-        }
-
-        Transform leftMountPoint = FindWeaponMountPoint(unit.transform, LeftWeaponMountPointName);
-        Transform rightMountPoint = FindWeaponMountPoint(unit.transform, RightWeaponMountPointName);
-        ClearRuntimeWeaponModel(leftMountPoint);
-        ClearRuntimeWeaponModel(rightMountPoint);
-
-        ItemDatabase.ItemEntry weaponEntry = ResolveEquippedWeaponModelEntry(unit.characterId);
-        if (weaponEntry == null || weaponEntry.weaponModelPrefab == null)
-        {
-            return;
-        }
-
-        Transform mountPoint = ResolveWeaponMountPoint(weaponEntry, leftMountPoint, rightMountPoint);
-        if (mountPoint == null)
-        {
-            return;
-        }
-
-        GameObject instance = Instantiate(weaponEntry.weaponModelPrefab, mountPoint, false);
-        instance.name = RuntimeWeaponModelName;
-        ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
-        BattleUnitOutlineBuilder.Apply(instance, Color.black, DefaultOutlineWidth);
-        unit.RefreshOutlineBindings();
-    }
-
-    private static void ClearRuntimeWeaponModel(Transform mountPoint)
-    {
-        if (mountPoint == null)
-        {
-            return;
-        }
-
-        for (int i = mountPoint.childCount - 1; i >= 0; i--)
-        {
-            Transform child = mountPoint.GetChild(i);
-            if (child == null || !string.Equals(child.name, RuntimeWeaponModelName, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            Destroy(child.gameObject);
-        }
-    }
-
-    private static void ApplyMountedModelScaleCompensation(Transform instance, Transform mountPoint)
-    {
-        if (instance == null || mountPoint == null)
-        {
-            return;
-        }
-
-        Vector3 prefabLocalScale = instance.localScale;
-        Vector3 parentLossyScale = mountPoint.lossyScale;
-        instance.localScale = new Vector3(
-            DivideScaleAxis(prefabLocalScale.x, parentLossyScale.x),
-            DivideScaleAxis(prefabLocalScale.y, parentLossyScale.y),
-            DivideScaleAxis(prefabLocalScale.z, parentLossyScale.z));
-    }
-
-    private static float DivideScaleAxis(float value, float parentScale)
-    {
-        return Mathf.Abs(parentScale) <= 0.0001f ? value : value / parentScale;
-    }
-
-    private static Transform FindWeaponMountPoint(Transform root, string mountPointName)
-    {
-        return FindChildByName(root, mountPointName) ?? FindDescendantByName(root, mountPointName);
-    }
-
-    private static Transform ResolveWeaponMountPoint(
-        ItemDatabase.ItemEntry weaponEntry,
-        Transform leftMountPoint,
-        Transform rightMountPoint)
-    {
-        if (weaponEntry == null)
-        {
-            return null;
-        }
-
-        switch (weaponEntry.weaponCategory)
-        {
-            case ItemDatabase.WeaponCategory.Bow:
-            case ItemDatabase.WeaponCategory.Staff:
-                return leftMountPoint;
-            case ItemDatabase.WeaponCategory.OneHanded:
-            case ItemDatabase.WeaponCategory.TwoHanded:
-            default:
-                return rightMountPoint;
-        }
-    }
-
-    private ItemDatabase.ItemEntry ResolveEquippedWeaponModelEntry(string characterId)
-    {
-        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
-        if (equipment == null || equipment.Count == 0)
-        {
-            return null;
-        }
-
-        ItemDatabase.ItemEntry bestEntry = null;
-        int bestPriority = int.MaxValue;
-        for (int i = 0; i < equipment.Count; i++)
-        {
-            ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
-            if (entry == null ||
-                entry.category != ItemDatabase.ItemCategory.Equipment ||
-                entry.weaponModelPrefab == null ||
-                !ItemDatabase.SupportsWeaponModelPrefab(entry.equipmentSlot))
-            {
-                continue;
-            }
-
-            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
-                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
-            if (bestEntry == null || priority < bestPriority)
-            {
-                bestEntry = entry;
-                bestPriority = priority;
-            }
-        }
-
-        return bestEntry;
+        武器模型挂载规则.RefreshRuntimeWeaponModelForCharacter(创建武器模型挂载上下文(), characterId);
     }
 
     private void RefreshExtraBackpackSlots(int index)
@@ -4028,106 +3740,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void CacheItemTooltip(ItemDatabase.WeaponCategory weaponCategory, bool resetTooltipState)
     {
-        itemTooltipRoot = null;
-        EnsureTooltipRootsFromDatabase(weaponCategory);
-        itemTooltipDetailRoot = ResolveItemTooltipDetailRoot(itemTooltipRoot, weaponCategory);
-        itemTooltipLowerBackgroundRoot =
-            FindChildByName(itemTooltipDetailRoot, "下背景") as RectTransform ??
-            FindDescendantByName(itemTooltipDetailRoot, "下背景") as RectTransform;
-        Transform backgroundRoot = FindChildByName(itemTooltipDetailRoot, "背景") ?? FindDescendantByName(itemTooltipDetailRoot, "背景");
-        itemTooltipDetailBackgroundImage = backgroundRoot != null ? backgroundRoot.GetComponent<Image>() : null;
-        Transform iconRoot = FindChildByName(itemTooltipDetailRoot, "物品图标") ?? FindDescendantByName(itemTooltipDetailRoot, "物品图标");
-        itemTooltipItemIconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
-        Transform textContentRoot = FindChildByName(itemTooltipDetailRoot, "文本内容") ?? FindDescendantByName(itemTooltipDetailRoot, "文本内容");
-        itemTooltipTextContentRoot = textContentRoot as RectTransform;
-        itemTooltipExpandHintRoot = textContentRoot != null
-            ? (FindChildByName(textContentRoot, "展开提示") ?? FindDescendantByName(textContentRoot, "展开提示")) as RectTransform
-            : null;
-        itemTooltipLowerContentText = FindTooltipText(itemTooltipLowerBackgroundRoot, "下文本内容");
-        itemTooltipItemNameText = FindTooltipText(textContentRoot, "物品名字");
-        itemTooltipQualityText = FindTooltipText(textContentRoot, "品质");
-        itemTooltipWeaponCategoryText = FindTooltipText(textContentRoot, "武器分类");
-        itemTooltipOwnerText = FindTooltipText(textContentRoot, "装备者");
-        itemTooltipAttackPowerText = FindTooltipText(textContentRoot, "攻击力");
-        itemTooltipFixedDamageText = FindTooltipText(textContentRoot, "固定伤害");
-        itemTooltipAttributeMultiplierText = FindTooltipText(textContentRoot, "属性加成");
-        itemTooltipDescriptionText = FindTooltipText(textContentRoot, "文本介绍");
-        itemTooltipGrantedSkillsText = FindTooltipText(textContentRoot, "附带技能");
-        EnsureTooltipAttackPowerText();
-        Transform grantedSkillRoot = itemTooltipGrantedSkillsText != null
-            ? (FindChildByName(itemTooltipGrantedSkillsText.transform, "技能区域") ?? FindDescendantByName(itemTooltipGrantedSkillsText.transform, "技能区域"))
-            : null;
-        itemTooltipGrantedSkillsIconRoot = grantedSkillRoot as RectTransform;
-        if (resetTooltipState)
-        {
-            HideItemTooltip();
-        }
-    }
-
-    private static RectTransform ResolveItemTooltipDetailRoot(RectTransform tooltipRoot, ItemDatabase.WeaponCategory weaponCategory)
-    {
-        if (tooltipRoot == null)
-        {
-            return null;
-        }
-
-        string[] detailRootNames = GetTooltipDetailRootNames(weaponCategory);
-        for (int i = 0; i < detailRootNames.Length; i++)
-        {
-            string rootName = detailRootNames[i];
-            if (string.IsNullOrWhiteSpace(rootName))
-            {
-                continue;
-            }
-
-            RectTransform detailRoot =
-                FindChildByName(tooltipRoot, rootName) as RectTransform ??
-                FindDescendantByName(tooltipRoot, rootName) as RectTransform;
-            if (detailRoot != null)
-            {
-                return detailRoot;
-            }
-        }
-
-        return tooltipRoot;
-    }
-
-    private static string[] GetTooltipDetailRootNames(ItemDatabase.WeaponCategory weaponCategory)
-    {
-        switch (weaponCategory)
-        {
-            case ItemDatabase.WeaponCategory.OneHanded:
-                return new[] { "单手武器详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
-            case ItemDatabase.WeaponCategory.TwoHanded:
-                return new[] { "双手武器详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
-            case ItemDatabase.WeaponCategory.Bow:
-                return new[] { "弓箭详情", "武器详情", "单_双手武器详情", "单/双手武器详情" };
-            default:
-                return new[] { "武器详情", "单_双手武器详情", "单/双手武器详情" };
-        }
-    }
-
-    private void EnsureTooltipRootsFromDatabase(ItemDatabase.WeaponCategory weaponCategory)
-    {
-        ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
-        if (database == null)
-        {
-            return;
-        }
-
-        Transform parent = FindTooltipParent();
-        if (parent == null)
-        {
-            return;
-        }
-
-        runtimeTooltipRootInstance = EnsureTooltipInstance(
-            runtimeTooltipRootInstance,
-            ref runtimeTooltipSourcePrefab,
-            database.GetWeaponTooltipPrefab(weaponCategory),
-            parent,
-            "物品内容");
-        itemTooltipRoot = runtimeTooltipRootInstance != null ? runtimeTooltipRootInstance.transform as RectTransform : null;
+        物品提示框规则.CacheTooltip(物品提示框状态, 创建物品提示框上下文(), weaponCategory, resetTooltipState);
+        同步物品提示框状态();
     }
 
     private Transform FindTooltipParent()
@@ -4148,204 +3762,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return canvas != null ? canvas.transform : null;
     }
 
-    private static GameObject EnsureTooltipInstance(GameObject currentInstance, ref GameObject sourcePrefab, GameObject prefab, Transform parent, string runtimeName)
-    {
-        if (currentInstance != null && sourcePrefab == prefab)
-        {
-            return currentInstance;
-        }
-
-        if (currentInstance != null)
-        {
-            Destroy(currentInstance);
-            currentInstance = null;
-        }
-
-        if (prefab == null || parent == null)
-        {
-            sourcePrefab = prefab;
-            return null;
-        }
-
-        GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
-        instance.name = runtimeName;
-        instance.SetActive(false);
-        sourcePrefab = prefab;
-        return instance;
-    }
-
-    private static TMP_Text FindTooltipText(Transform root, string childName)
-    {
-        Transform target = FindChildByName(root, childName) ?? FindDescendantByName(root, childName);
-        return target != null ? target.GetComponent<TMP_Text>() : null;
-    }
-
     private void ShowItemTooltip(SlotWidget widget, ItemDatabase.ItemEntry entry)
     {
-        if (entry == null)
-        {
-            return;
-        }
-
-        CacheItemTooltip(entry.weaponCategory, false);
-        if (widget == null || widget.root == null || itemTooltipRoot == null)
-        {
-            return;
-        }
-
         hoveredTooltipWidget = widget;
-        hoveredTooltipSlot = pendingTooltipSlot;
-        SetTooltipItemIcon(entry);
-        SetTooltipText(itemTooltipItemNameText, ResolveItemDisplayName(entry));
-        SetTooltipText(itemTooltipQualityText, GetItemQualityDisplayName(entry.quality));
-        SetTooltipText(itemTooltipWeaponCategoryText, GetWeaponCategoryDisplayName(entry.weaponCategory));
-        SetTooltipText(itemTooltipOwnerText, GetTooltipOwnerDisplayText(entry, hoveredTooltipSlot));
-        SetTooltipAttackPowerText(entry, hoveredTooltipSlot);
-        SetTooltipText(itemTooltipFixedDamageText, GetFixedDamageDisplayText(entry));
-        SetTooltipText(itemTooltipAttributeMultiplierText, GetAttributeMultiplierDisplayText(entry));
-        SetTooltipText(itemTooltipDescriptionText, entry.description ?? string.Empty);
-        SetTooltipText(itemTooltipGrantedSkillsText, "附带技能：");
-        SetTooltipLowerContentText(entry);
-        RebuildTooltipGrantedSkillIcons(entry);
-        RefreshTooltipQualityBackground(entry.quality);
-        itemTooltipRoot.localScale = ItemTooltipScale;
-        PositionTooltip(widget.root);
-        itemTooltipRoot.gameObject.SetActive(true);
-        itemTooltipRoot.SetAsLastSibling();
-        UpdateTooltipLowerBackgroundState();
+        物品提示框规则.ShowTooltip(物品提示框状态, 创建物品提示框上下文(), widget, pendingTooltipSlot, entry);
+        同步物品提示框状态();
     }
 
     private void HideItemTooltip()
     {
         hoveredTooltipWidget = null;
-        hoveredTooltipSlot = default;
         pendingTooltipWidget = null;
         pendingTooltipEntry = null;
         pendingTooltipSlot = default;
-        pendingTooltipShownAt = 0f;
-        ClearTooltipGrantedSkillIcons();
-        HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item);
-        SetTooltipLowerBackgroundVisible(false);
-        if (itemTooltipRoot != null)
-        {
-            itemTooltipRoot.gameObject.SetActive(false);
-        }
+        物品提示框规则.HideTooltip(物品提示框状态, 创建物品提示框上下文());
+        同步物品提示框状态();
     }
 
     private void UpdateTooltipLowerBackgroundState()
     {
-        bool shouldShow = itemTooltipRoot != null &&
-            itemTooltipRoot.gameObject.activeSelf &&
-            (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
-        SetTooltipLowerBackgroundVisible(shouldShow);
-    }
-
-    private void SetTooltipLowerBackgroundVisible(bool visible)
-    {
-        if (itemTooltipLowerBackgroundRoot == null)
-        {
-            SetTooltipExpandHintVisible(!visible);
-            return;
-        }
-
-        if (itemTooltipLowerBackgroundRoot.gameObject.activeSelf == visible)
-        {
-            SetTooltipExpandHintVisible(!visible);
-            return;
-        }
-
-        itemTooltipLowerBackgroundRoot.gameObject.SetActive(visible);
-        SetTooltipExpandHintVisible(!visible);
-    }
-
-    private void SetTooltipExpandHintVisible(bool visible)
-    {
-        if (itemTooltipExpandHintRoot == null)
-        {
-            return;
-        }
-
-        if (itemTooltipExpandHintRoot.gameObject.activeSelf == visible)
-        {
-            return;
-        }
-
-        itemTooltipExpandHintRoot.gameObject.SetActive(visible);
-    }
-
-    private void RefreshTooltipQualityBackground(ItemDatabase.ItemQuality quality)
-    {
-        ItemTooltipPrefabDatabase database = ItemTooltipPrefabDatabase.LoadDefault();
-        if (database == null)
-        {
-            return;
-        }
-
-        GameObject backgroundPrefab = database.GetQualityBackgroundPrefab(quality);
-        if (backgroundPrefab == null)
-        {
-            if (itemTooltipDetailBackgroundImage != null)
-            {
-                itemTooltipDetailBackgroundImage.sprite = null;
-                itemTooltipDetailBackgroundImage.enabled = false;
-            }
-            return;
-        }
-
-        Sprite targetSprite = null;
-        Image image = backgroundPrefab.GetComponent<Image>();
-        if (image == null)
-        {
-            image = backgroundPrefab.GetComponentInChildren<Image>(true);
-        }
-
-        if (image != null)
-        {
-            targetSprite = image.sprite;
-        }
-
-        if (itemTooltipDetailBackgroundImage != null)
-        {
-            itemTooltipDetailBackgroundImage.sprite = targetSprite;
-            itemTooltipDetailBackgroundImage.enabled = targetSprite != null;
-        }
-    }
-
-    private void PositionTooltip(RectTransform source)
-    {
-        PositionTooltipRect(itemTooltipRoot);
-    }
-
-    private static void PositionTooltipRect(RectTransform tooltip)
-    {
-        if (tooltip == null)
-        {
-            return;
-        }
-
-        RectTransform parentRect = tooltip.parent as RectTransform;
-        Canvas canvas = tooltip.GetComponentInParent<Canvas>();
-        Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
-        if (parentRect != null &&
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                parentRect,
-                Input.mousePosition,
-                uiCamera,
-                out Vector2 localPoint))
-        {
-            Vector2 pivotOffset = new Vector2(
-                tooltip.rect.width * tooltip.pivot.x,
-                tooltip.rect.height * tooltip.pivot.y);
-            tooltip.anchoredPosition = localPoint + pivotOffset;
-        }
-    }
-
-    private static void SetTooltipText(TMP_Text text, string value)
-    {
-        if (text != null)
-        {
-            text.text = value ?? string.Empty;
-        }
+        物品提示框规则.UpdateTooltipLowerBackgroundState(物品提示框状态, 创建物品提示框上下文());
+        同步物品提示框状态();
     }
 
     private void SetTooltipAttackPowerText(ItemDatabase.ItemEntry entry, SlotRef slot)
@@ -4361,19 +3798,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         bool hasValue = !string.IsNullOrEmpty(value);
         attackPowerText.gameObject.SetActive(hasValue);
         attackPowerText.text = value ?? string.Empty;
-    }
-
-    private void SetTooltipLowerContentText(ItemDatabase.ItemEntry entry)
-    {
-        if (itemTooltipLowerContentText == null)
-        {
-            return;
-        }
-
-        string value = BuildTooltipLowerContentText(entry);
-        bool hasValue = !string.IsNullOrWhiteSpace(value);
-        itemTooltipLowerContentText.gameObject.SetActive(hasValue);
-        itemTooltipLowerContentText.text = hasValue ? value : string.Empty;
     }
 
     private TMP_Text EnsureTooltipAttackPowerText()
@@ -4716,38 +4140,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private void SetTooltipItemIcon(ItemDatabase.ItemEntry entry)
-    {
-        if (itemTooltipItemIconImage == null)
-        {
-            return;
-        }
-
-        Sprite iconSprite = null;
-        Vector2 iconSize = itemTooltipItemIconImage.rectTransform.sizeDelta;
-        if (entry != null && entry.prefab != null)
-        {
-            Transform iconRoot = FindChildByName(entry.prefab.transform, ItemIconName) ?? FindDescendantByName(entry.prefab.transform, ItemIconName);
-            Image iconImage = iconRoot != null ? iconRoot.GetComponent<Image>() : null;
-            if (iconImage != null)
-            {
-                iconSprite = iconImage.sprite;
-                RectTransform iconRect = iconImage.rectTransform;
-                if (iconRect != null)
-                {
-                    iconSize = iconRect.sizeDelta;
-                }
-            }
-        }
-
-        itemTooltipItemIconImage.sprite = iconSprite;
-        itemTooltipItemIconImage.preserveAspect = true;
-        itemTooltipItemIconImage.rectTransform.sizeDelta = iconSize;
-        itemTooltipItemIconImage.rectTransform.localScale = ItemTooltipIconScale;
-        itemTooltipItemIconImage.material = EnsureItemTooltipIconFadeMaterial();
-        itemTooltipItemIconImage.enabled = iconSprite != null;
-    }
-
     private static Material EnsureItemTooltipIconFadeMaterial()
     {
         if (itemTooltipIconFadeMaterial != null)
@@ -4769,78 +4161,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         itemTooltipIconFadeMaterial.SetFloat("_FadeHeight", 0.2f);
         itemTooltipIconFadeMaterial.SetFloat("_FadePower", 3f);
         return itemTooltipIconFadeMaterial;
-    }
-
-    private void RebuildTooltipGrantedSkillIcons(ItemDatabase.ItemEntry entry)
-    {
-        ClearTooltipGrantedSkillIcons();
-        if (entry == null || entry.grantedSkillIds == null || entry.grantedSkillIds.Count == 0 || itemTooltipGrantedSkillsText == null || itemTooltipGrantedSkillsIconRoot == null)
-        {
-            return;
-        }
-
-        BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
-        if (skillDatabase == null)
-        {
-            return;
-        }
-
-        int createdCount = 0;
-
-        for (int i = 0; i < entry.grantedSkillIds.Count; i++)
-        {
-            string skillId = entry.grantedSkillIds[i];
-            if (string.IsNullOrWhiteSpace(skillId))
-            {
-                continue;
-            }
-
-            BattleSkillDatabase.SkillEntry skillEntry = skillDatabase.FindEntry(skillId);
-            if (skillEntry == null || skillEntry.icon == null)
-            {
-                continue;
-            }
-
-            GameObject go = new GameObject($"附带技能图标_{createdCount}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform rect = go.GetComponent<RectTransform>();
-            rect.SetParent(itemTooltipGrantedSkillsIconRoot, false);
-            rect.anchorMin = new Vector2(0f, 0.5f);
-            rect.anchorMax = new Vector2(0f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.sizeDelta = new Vector2(30f, 30f);
-            rect.anchoredPosition = new Vector2(createdCount * 34f, 0f);
-
-            Image image = go.GetComponent<Image>();
-            image.sprite = skillEntry.icon;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-
-            itemTooltipGrantedSkillIcons.Add(go);
-            createdCount++;
-        }
-    }
-
-    private void ClearTooltipGrantedSkillIcons()
-    {
-        for (int i = 0; i < itemTooltipGrantedSkillIcons.Count; i++)
-        {
-            GameObject go = itemTooltipGrantedSkillIcons[i];
-            if (go == null)
-            {
-                continue;
-            }
-
-            if (Application.isPlaying)
-            {
-                UnityEngine.Object.Destroy(go);
-            }
-            else
-            {
-                UnityEngine.Object.DestroyImmediate(go);
-            }
-        }
-
-        itemTooltipGrantedSkillIcons.Clear();
     }
 
     private static string ResolveItemDisplayName(ItemDatabase.ItemEntry entry)
