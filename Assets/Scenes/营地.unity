@@ -615,6 +615,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 86512827}
   m_CullTransparentMesh: 1
+--- !u!1 &113219340 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7827143863227731748, guid: 24dc2b8832619434293a124da0088a75, type: 3}
+  m_PrefabInstance: {fileID: 3557103265852526534}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &126459230 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1385915554701916045, guid: 845acaa7927db7741be93ad4233536a2, type: 3}
@@ -1276,7 +1281,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 953847830}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
         m_Mode: 6
@@ -6023,9 +6028,9 @@ RectTransform:
   - {fileID: 891833531}
   - {fileID: 2034023455}
   - {fileID: 566908001}
-  - {fileID: 953847831}
   - {fileID: 1300710032}
   - {fileID: 1545427396}
+  - {fileID: 953847831}
   - {fileID: 658729460}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -9747,9 +9752,21 @@ PrefabInstance:
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 748753929324955064, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
+      propertyPath: "\u6807\u8BC6\u5185\u5BB9\u7ED1\u5B9A.Array.data[0].targetPrefab"
+      value: 
+      objectReference: {fileID: 6416395573695176549, guid: 24dc2b8832619434293a124da0088a75, type: 3}
+    - target: {fileID: 748753929324955064, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
+      propertyPath: "\u6807\u8BC6\u5185\u5BB9\u7ED1\u5B9A.Array.data[0].\u5173\u95ED\u6309\u94AE"
+      value: 
+      objectReference: {fileID: 113219340}
+    - target: {fileID: 748753929324955064, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
       propertyPath: "\u6807\u8BC6\u5185\u5BB9\u7ED1\u5B9A.Array.data[0].\u76EE\u6807\u5BF9\u8C61"
       value: 
       objectReference: {fileID: 953847830}
+    - target: {fileID: 748753929324955064, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
+      propertyPath: "\u6807\u8BC6\u5185\u5BB9\u7ED1\u5B9A.Array.data[0].\u5B9E\u4F8B\u5316\u9884\u5236\u4F53"
+      value: 
+      objectReference: {fileID: 6416395573695176549, guid: 24dc2b8832619434293a124da0088a75, type: 3}
     - target: {fileID: 2070539011258567263, guid: bc60d54952ef7eb4b9c96ad072771ebb, type: 3}
       propertyPath: m_Name
       value: "\u526F\u89C6\u89D2\u5BF9\u8BDD\u5185\u5BB9"

@@ -37,6 +37,7 @@ public sealed class DialogueContentDatabase : ScriptableObject
         public GameObject portraitPrefab;
         public DialogueViewSide viewSide = DialogueViewSide.Main;
         [TextArea(3, 8)] public string content = string.Empty;
+        [HideInInspector] public AudioClip voiceClip;
         [HideInInspector] public List<InteractionEntry> interactions = new List<InteractionEntry>();
     }
 

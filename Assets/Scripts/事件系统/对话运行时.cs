@@ -33,6 +33,9 @@ public sealed class 对话运行时 : MonoBehaviour
     private readonly List<触发监听项> 事件触发监听项 = new List<触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
     private readonly List<GameObject> 已生成交互按钮 = new List<GameObject>();
+    private GameObject 当前打开标识目标;
+    private Button 当前标识关闭按钮;
+    private AudioSource 对话语音播放器;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -50,12 +53,14 @@ public sealed class 对话运行时 : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        EnsureDialogueVoiceAudioSource();
         RebindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        StopDialogueVoice();
         UnbindAll();
     }
 
@@ -81,6 +86,7 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        EnsureDialogueVoiceAudioSource();
         RebindScene();
     }
 
@@ -114,6 +120,8 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void UnbindAll()
     {
+        StopDialogueVoice();
+        关闭当前标识内容();
         事件触发监听项.Clear();
         上次事件状态.Clear();
         当前对话组 = null;
@@ -553,14 +561,33 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        GameObject targetObject = ResolveIdentifierTarget(identifierId);
-        if (targetObject == null)
+        DialogueInteractionIdentifierBinding binding = ResolveIdentifierBinding(identifierId);
+        if (binding == null || binding.目标对象 == null)
         {
             Debug.LogError($"对话运行时: 找不到标识ID '{identifierId}' 对应的目标对象。");
             return;
         }
 
-        targetObject.SetActive(true);
+        if (binding.关闭按钮 == null)
+        {
+            Debug.LogError($"对话运行时: 标识ID '{identifierId}' 缺少关闭按钮绑定。");
+            return;
+        }
+
+        Button closeButton = binding.关闭按钮.GetComponent<Button>();
+        if (closeButton == null)
+        {
+            Debug.LogError($"对话运行时: 标识ID '{identifierId}' 的关闭按钮对象 '{binding.关闭按钮.name}' 缺少 Button 组件。");
+            return;
+        }
+
+        关闭当前标识内容();
+
+        binding.目标对象.SetActive(true);
+        当前打开标识目标 = binding.目标对象;
+        当前标识关闭按钮 = closeButton;
+        当前标识关闭按钮.onClick.AddListener(关闭当前标识内容);
+        SetCurrentDialogueControlsInteractable(false);
     }
 
     private void 执行对话跳跃(DialogueContentDatabase.InteractionEntry interaction)
@@ -641,6 +668,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
+        StopDialogueVoice();
         当前对话索引++;
         if (当前对话索引 >= 当前对话组.contentIds.Count)
         {
@@ -654,6 +682,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private void CloseDialogue()
     {
         Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
+        StopDialogueVoice();
         HideCurrentViews();
         当前对话组 = null;
         当前对话索引 = -1;
@@ -662,6 +691,8 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void HideCurrentViews()
     {
+        StopDialogueVoice();
+        关闭当前标识内容();
         ClearGeneratedInteractionButtons();
 
         if (当前主视角绑定 != null)
@@ -681,6 +712,8 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void HideAllViewsInScene()
     {
+        StopDialogueVoice();
+        关闭当前标识内容();
         ClearGeneratedInteractionButtons();
 
         主视角对话绑定[] mainBindings = FindObjectsOfType<主视角对话绑定>(true);
@@ -774,6 +807,7 @@ public sealed class 对话运行时 : MonoBehaviour
             }
 
             ShowOnMainBinding(binding, roleNameEntry.id, contentEntry);
+            PlayDialogueVoice(contentEntry);
             return;
         }
 
@@ -790,6 +824,7 @@ public sealed class 对话运行时 : MonoBehaviour
         }
 
         ShowOnSecondaryBinding(secondaryBinding, roleNameEntry.id, contentEntry);
+        PlayDialogueVoice(contentEntry);
     }
 
     private static 对话框持续显示 Resolve持续显示(GameObject rootObject, string bindingName)
@@ -836,57 +871,63 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private GameObject ResolveIdentifierTarget(string identifierId)
     {
+        DialogueInteractionIdentifierBinding binding = ResolveIdentifierBinding(identifierId);
+        return binding != null ? binding.目标对象 : null;
+    }
+
+    private DialogueInteractionIdentifierBinding ResolveIdentifierBinding(string identifierId)
+    {
         if (string.IsNullOrWhiteSpace(identifierId))
         {
             return null;
         }
 
-        GameObject targetObject = ResolveIdentifierTargetFromBinding(当前主视角绑定, identifierId);
-        if (targetObject != null)
+        DialogueInteractionIdentifierBinding binding = ResolveIdentifierBindingFromBinding(当前主视角绑定, identifierId);
+        if (binding != null)
         {
-            return targetObject;
+            return binding;
         }
 
-        targetObject = ResolveIdentifierTargetFromBinding(当前副视角绑定, identifierId);
-        if (targetObject != null)
+        binding = ResolveIdentifierBindingFromBinding(当前副视角绑定, identifierId);
+        if (binding != null)
         {
-            return targetObject;
+            return binding;
         }
 
         主视角对话绑定[] mainBindings = FindObjectsOfType<主视角对话绑定>(true);
         for (int i = 0; i < mainBindings.Length; i++)
         {
-            targetObject = ResolveIdentifierTargetFromBinding(mainBindings[i], identifierId);
-            if (targetObject != null)
+            binding = ResolveIdentifierBindingFromBinding(mainBindings[i], identifierId);
+            if (binding != null)
             {
-                return targetObject;
+                return binding;
             }
         }
 
         副视角对话绑定[] secondaryBindings = FindObjectsOfType<副视角对话绑定>(true);
         for (int i = 0; i < secondaryBindings.Length; i++)
         {
-            targetObject = ResolveIdentifierTargetFromBinding(secondaryBindings[i], identifierId);
-            if (targetObject != null)
+            binding = ResolveIdentifierBindingFromBinding(secondaryBindings[i], identifierId);
+            if (binding != null)
             {
-                return targetObject;
+                return binding;
             }
         }
 
         return null;
     }
 
-    private static GameObject ResolveIdentifierTargetFromBinding(主视角对话绑定 binding, string identifierId)
+    private static DialogueInteractionIdentifierBinding ResolveIdentifierBindingFromBinding(主视角对话绑定 binding, string identifierId)
     {
-        return ResolveIdentifierTargetFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
+        return ResolveIdentifierBindingFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
     }
 
-    private static GameObject ResolveIdentifierTargetFromBinding(副视角对话绑定 binding, string identifierId)
+    private static DialogueInteractionIdentifierBinding ResolveIdentifierBindingFromBinding(副视角对话绑定 binding, string identifierId)
     {
-        return ResolveIdentifierTargetFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
+        return ResolveIdentifierBindingFromEntries(binding != null ? binding.标识内容绑定 : null, identifierId);
     }
 
-    private static GameObject ResolveIdentifierTargetFromEntries(List<DialogueInteractionIdentifierBinding> entries, string identifierId)
+    private static DialogueInteractionIdentifierBinding ResolveIdentifierBindingFromEntries(List<DialogueInteractionIdentifierBinding> entries, string identifierId)
     {
         if (entries == null || string.IsNullOrWhiteSpace(identifierId))
         {
@@ -904,11 +945,127 @@ public sealed class 对话运行时 : MonoBehaviour
 
             if (string.Equals(entry.标识ID.Trim(), resolvedId, StringComparison.Ordinal))
             {
-                return entry.目标对象;
+                return entry;
             }
         }
 
         return null;
+    }
+
+    private void 关闭当前标识内容()
+    {
+        if (当前标识关闭按钮 != null)
+        {
+            当前标识关闭按钮.onClick.RemoveListener(关闭当前标识内容);
+            当前标识关闭按钮 = null;
+        }
+
+        if (当前打开标识目标 != null)
+        {
+            当前打开标识目标.SetActive(false);
+            当前打开标识目标 = null;
+        }
+
+        SetCurrentDialogueControlsInteractable(true);
+    }
+
+    private void SetCurrentDialogueControlsInteractable(bool interactable)
+    {
+        GameObject continueButtonObject = null;
+        GameObject interactionContainerObject = null;
+
+        switch (当前显示视角)
+        {
+            case 对话显示视角.主视角:
+                continueButtonObject = 当前主视角绑定 != null ? 当前主视角绑定.继续按钮 : null;
+                interactionContainerObject = 当前主视角绑定 != null ? 当前主视角绑定.交互按钮容器 : null;
+                break;
+            case 对话显示视角.副视角:
+                continueButtonObject = 当前副视角绑定 != null ? 当前副视角绑定.继续按钮 : null;
+                interactionContainerObject = 当前副视角绑定 != null ? 当前副视角绑定.交互按钮容器 : null;
+                break;
+        }
+
+        SetButtonInteractable(continueButtonObject, interactable);
+        SetContainerInteractable(interactionContainerObject, interactable);
+    }
+
+    private static void SetButtonInteractable(GameObject buttonObject, bool interactable)
+    {
+        if (buttonObject == null)
+        {
+            return;
+        }
+
+        Button button = buttonObject.GetComponent<Button>();
+        if (button != null)
+        {
+            button.interactable = interactable;
+        }
+    }
+
+    private static void SetContainerInteractable(GameObject containerObject, bool interactable)
+    {
+        if (containerObject == null)
+        {
+            return;
+        }
+
+        CanvasGroup canvasGroup = containerObject.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = containerObject.AddComponent<CanvasGroup>();
+        }
+
+        canvasGroup.interactable = interactable;
+        canvasGroup.blocksRaycasts = interactable;
+    }
+
+    private void EnsureDialogueVoiceAudioSource()
+    {
+        if (对话语音播放器 != null)
+        {
+            return;
+        }
+
+        对话语音播放器 = GetComponent<AudioSource>();
+        if (对话语音播放器 == null)
+        {
+            对话语音播放器 = gameObject.AddComponent<AudioSource>();
+        }
+
+        对话语音播放器.playOnAwake = false;
+        对话语音播放器.loop = false;
+        对话语音播放器.spatialBlend = 0f;
+    }
+
+    private void PlayDialogueVoice(DialogueContentDatabase.DialogueContentEntry contentEntry)
+    {
+        EnsureDialogueVoiceAudioSource();
+        StopDialogueVoice();
+
+        if (对话语音播放器 == null || contentEntry == null || contentEntry.voiceClip == null)
+        {
+            return;
+        }
+
+        对话语音播放器.clip = contentEntry.voiceClip;
+        对话语音播放器.Play();
+    }
+
+    private void StopDialogueVoice()
+    {
+        if (对话语音播放器 == null)
+        {
+            return;
+        }
+
+        if (对话语音播放器.isPlaying)
+        {
+            对话语音播放器.Stop();
+        }
+
+        对话语音播放器.clip = null;
     }
 
     private void ClearGeneratedInteractionButtons()

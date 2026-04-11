@@ -139,6 +139,14 @@ public sealed class DialogueContentEditorWindow : EditorWindow
                 SaveAsset(database);
             }
 
+            AudioClip nextVoiceClip = (AudioClip)EditorGUILayout.ObjectField("语音", entry.voiceClip, typeof(AudioClip), false);
+            if (nextVoiceClip != entry.voiceClip)
+            {
+                Undo.RecordObject(database, "修改语音");
+                entry.voiceClip = nextVoiceClip;
+                SaveAsset(database);
+            }
+
             DialogueContentDatabase.DialogueViewSide nextViewSide =
                 (DialogueContentDatabase.DialogueViewSide)EditorGUILayout.EnumPopup("视角", entry.viewSide);
             if (nextViewSide != entry.viewSide)

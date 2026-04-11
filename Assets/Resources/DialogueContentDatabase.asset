@@ -18,12 +18,14 @@ MonoBehaviour:
     portraitPrefab: {fileID: 6668381433562315157, guid: 4d2551eb28d08be4a8448b60962a4730, type: 3}
     viewSide: 1
     content: "\u771F\u4E3B\u74E6\u9C81\u5179\uFF0C\u4FDD\u4F51\u6211\u4EEC\u627E\u5230\u7231\u4E3D\u4E1D\u5927\u4EBA\u2026\u2026"
+    voiceClip: {fileID: 8300000, guid: 0d232e3617bf7a94fa1b0225c9e4797e, type: 3}
     interactions: []
   - id: "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-2"
     roleNameId: "\u7D22\u62C9\u5A1C"
     portraitPrefab: {fileID: 6668381433562315157, guid: 4d2551eb28d08be4a8448b60962a4730, type: 3}
     viewSide: 1
     content: "\u554A\u2014\u2014\u662F\u65E0\u540D\u5927\u4EBA\uFF0C\u6709\u4EC0\u4E48\u4E8B\u5417"
+    voiceClip: {fileID: 8300000, guid: 9a183600c982f2e49a4b7e57c615e75b, type: 3}
     interactions:
     - buttonText: "\u67E5\u770B\u88C5\u5907"
       interactionType: 0
