@@ -396,7 +396,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return new List<string>();
         }
 
-        return instance.BuildGrantedSkillList(characterId);
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.构建授予技能列表(equipment, ResolveItemEntry);
     }
 
     public static string GetGrantedSkillSourceItemIdForCharacter(string characterId, string skillId)
@@ -406,7 +407,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return string.Empty;
         }
 
-        return instance.FindGrantedSkillSourceItemId(characterId, skillId);
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.查找授予技能来源物品(equipment, ResolveItemEntry, skillId);
     }
 
     public static int AddItem(string itemId, Sprite icon, int count, int maxStack = 99)
@@ -1921,116 +1923,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
         }
 
-        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
-        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
-        if (statEntry == null)
-        {
-            return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
-        }
-
-        ItemDatabase.ItemEntry weaponEntry = null;
-        int bestPriority = int.MaxValue;
-        for (int i = 0; i < equipment.Count; i++)
-        {
-            ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
-            if (!IsAttackPowerWeaponEntry(entry))
-            {
-                continue;
-            }
-
-            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
-                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
-            if (weaponEntry == null || priority < bestPriority)
-            {
-                weaponEntry = entry;
-                bestPriority = priority;
-            }
-        }
-
-        if (weaponEntry != null)
-        {
-            return CalculateWeaponAttackPower(weaponEntry, statEntry);
-        }
-
-        return CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
+        float attackPower = 装备数值服务.获取角色武器攻击力(characterId, equipment, ResolveItemEntry);
+        return attackPower > 0f ? attackPower : CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
     }
 
     public static ItemDatabase.WeaponDamageDistribution GetCharacterWeaponDamageDistribution(string characterId)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        if (weaponEntry == null)
-        {
-            return null;
-        }
-
-        if (!HasValidWeaponDamageDistribution(weaponEntry))
-        {
-            Debug.LogWarning($"[物品数据警告] 武器伤害分布未配置或总和不合法：{weaponEntry.itemId}");
-            return null;
-        }
-
-        return CloneWeaponDamageDistribution(weaponEntry.weaponDamageDistribution);
-    }
-
-    public static int GetCharacterWeaponCriticalChanceBonus(string characterId)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalChanceBonus) : 0;
-    }
-
-    public static int GetCharacterWeaponCriticalDamageBonus(string characterId)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalDamageBonus) : 0;
-    }
-
-    public static int GetCharacterWeaponResistancePenetration(string characterId, ItemDatabase.ResistanceModifierType resistanceType)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        if (weaponEntry == null || weaponEntry.weaponResistancePenetrations == null)
-        {
-            return 0;
-        }
-
-        int total = 0;
-        for (int i = 0; i < weaponEntry.weaponResistancePenetrations.Count; i++)
-        {
-            ItemDatabase.WeaponResistancePenetrationEntry entry = weaponEntry.weaponResistancePenetrations[i];
-            if (entry == null || entry.resistanceType != resistanceType)
-            {
-                continue;
-            }
-
-            total += Mathf.Max(0, entry.value);
-        }
-
-        return total;
-    }
-
-    public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
-    }
-
-    public static float GetCharacterStaffDamageMultiplier(string characterId)
-    {
-        ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
-        if (weaponEntry == null || weaponEntry.weaponCategory != ItemDatabase.WeaponCategory.Staff)
-        {
-            return 1f;
-        }
-
-        return Mathf.Max(0f, weaponEntry.staffDamageMultiplier);
-    }
-
-    private static ItemDatabase.ItemEntry GetCharacterWeaponEntry(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
@@ -2038,141 +1935,62 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
-        if (equipment == null || equipment.Count == 0)
-        {
-            return null;
-        }
-
-        ItemDatabase.ItemEntry weaponEntry = null;
-        int bestPriority = int.MaxValue;
-        for (int i = 0; i < equipment.Count; i++)
-        {
-            ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
-            if (!IsAttackPowerWeaponEntry(entry))
-            {
-                continue;
-            }
-
-            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
-                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
-            if (weaponEntry == null || priority < bestPriority)
-            {
-                weaponEntry = entry;
-                bestPriority = priority;
-            }
-        }
-
-        return weaponEntry;
+        return 装备数值服务.获取角色武器伤害分布(equipment, ResolveItemEntry);
     }
 
-    private static ItemDatabase.WeaponDamageDistribution CloneWeaponDamageDistribution(ItemDatabase.WeaponDamageDistribution distribution)
+    public static int GetCharacterWeaponCriticalChanceBonus(string characterId)
     {
-        if (distribution == null)
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return null;
+            return 0;
         }
 
-        return new ItemDatabase.WeaponDamageDistribution
-        {
-            physical = distribution.physical,
-            fire = distribution.fire,
-            corruption = distribution.corruption,
-            cold = distribution.cold
-        };
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取角色武器暴击率加成(equipment, ResolveItemEntry);
     }
 
-    private static bool HasValidWeaponDamageDistribution(ItemDatabase.ItemEntry entry)
+    public static int GetCharacterWeaponCriticalDamageBonus(string characterId)
     {
-        if (entry == null || entry.weaponDamageDistribution == null)
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return false;
+            return 0;
         }
 
-        ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
-        return distribution.physical >= 0 &&
-            distribution.fire >= 0 &&
-            distribution.corruption >= 0 &&
-            distribution.cold >= 0 &&
-            distribution.Total == 100;
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取角色武器暴击伤害加成(equipment, ResolveItemEntry);
     }
 
-    private List<string> BuildGrantedSkillList(string characterId)
+    public static int GetCharacterWeaponResistancePenetration(string characterId, ItemDatabase.ResistanceModifierType resistanceType)
     {
-        List<string> result = new List<string>();
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
-        if (equipment == null)
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return result;
+            return 0;
         }
 
-        for (int i = 0; i < equipment.Count; i++)
-        {
-            ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(slot.itemId);
-            if (itemEntry == null || itemEntry.grantedSkillIds == null)
-            {
-                continue;
-            }
-
-            for (int s = 0; s < itemEntry.grantedSkillIds.Count; s++)
-            {
-                string skillId = itemEntry.grantedSkillIds[s];
-                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
-                {
-                    continue;
-                }
-
-                result.Add(skillId);
-            }
-        }
-
-        return result;
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取角色武器抗性穿透(equipment, ResolveItemEntry, resistanceType);
     }
 
-    private string FindGrantedSkillSourceItemId(string characterId, string skillId)
+    public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
     {
-        List<ItemSlotData> equipment = GetEquipmentDataForCharacter(characterId, createIfMissing: false);
-        if (equipment == null)
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            return string.Empty;
+            return ItemDatabase.WeaponCategory.None;
         }
 
-        for (int i = 0; i < equipment.Count; i++)
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取角色已装备武器类型(equipment, ResolveItemEntry);
+    }
+
+    public static float GetCharacterStaffDamageMultiplier(string characterId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId))
         {
-            ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(slot.itemId);
-            if (itemEntry == null || itemEntry.grantedSkillIds == null)
-            {
-                continue;
-            }
-
-            for (int s = 0; s < itemEntry.grantedSkillIds.Count; s++)
-            {
-                if (string.Equals(itemEntry.grantedSkillIds[s], skillId, StringComparison.Ordinal))
-                {
-                    return slot.itemId;
-                }
-            }
+            return 1f;
         }
 
-        return string.Empty;
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取角色法杖伤害倍率(equipment, ResolveItemEntry);
     }
 
     private void RefreshByRef(SlotRef slot)
@@ -2470,7 +2288,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private string GetAttackPowerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot, string ownerCharacterId, TMP_Text attackPowerText, out List<AttackPowerSegment> segments)
     {
         segments = null;
-        if (!IsAttackPowerWeaponEntry(entry) || slot.kind != SlotKind.Equipment)
+        if (!装备数值服务.是攻击力武器条目(entry) || slot.kind != SlotKind.Equipment)
         {
             return string.Empty;
         }
@@ -2481,7 +2299,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static string BuildAttackPowerDisplayText(ItemDatabase.ItemEntry entry, string ownerCharacterId, TMP_Text attackPowerText, out List<AttackPowerSegment> segments)
     {
         segments = null;
-        if (!IsAttackPowerWeaponEntry(entry))
+        if (!装备数值服务.是攻击力武器条目(entry))
         {
             return string.Empty;
         }
@@ -2506,7 +2324,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (segments.Count == 0)
         {
-            float attackPower = CalculateWeaponAttackPower(entry, statEntry);
+            float attackPower = 装备数值服务.计算武器攻击力(entry, statEntry);
             return $"攻击力：{attackPower:0.##}";
         }
 
@@ -2596,12 +2414,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static List<AttackPowerSegment> BuildAttackPowerSegments(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
     {
         List<AttackPowerSegment> segments = new List<AttackPowerSegment>();
-        if (!IsAttackPowerWeaponEntry(entry) || statEntry == null)
+        if (!装备数值服务.是攻击力武器条目(entry) || statEntry == null)
         {
             return segments;
         }
 
-        float attackPower = CalculateWeaponAttackPower(entry, statEntry);
+        float attackPower = 装备数值服务.计算武器攻击力(entry, statEntry);
         if (attackPower <= 0f)
         {
             return segments;
@@ -2677,50 +2495,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return database != null ? database.spriteAsset : null;
     }
 
-    private static float CalculateWeaponAttackPower(ItemDatabase.ItemEntry entry, CharacterStatDatabase.StatEntry statEntry)
-    {
-        if (!IsAttackPowerWeaponEntry(entry) || statEntry == null)
-        {
-            return 0f;
-        }
-
-        float attackPower = Mathf.Max(0f, entry.fixedDamage);
-        if (entry.weaponAttributeMultipliers == null)
-        {
-            return attackPower;
-        }
-
-        for (int i = 0; i < entry.weaponAttributeMultipliers.Count; i++)
-        {
-            ItemDatabase.WeaponAttributeMultiplierEntry multiplier = entry.weaponAttributeMultipliers[i];
-            if (multiplier == null || multiplier.attributeType == ItemDatabase.WeaponAttributeType.None)
-            {
-                continue;
-            }
-
-            attackPower += GetCharacterAttributeValue(statEntry, multiplier.attributeType) * multiplier.multiplier;
-        }
-
-        return attackPower;
-    }
-
-    private static bool IsAttackPowerWeaponEntry(ItemDatabase.ItemEntry entry)
-    {
-        if (entry == null || entry.category != ItemDatabase.ItemCategory.Equipment)
-        {
-            return false;
-        }
-
-        bool isWeaponCategory = entry.weaponCategory != ItemDatabase.WeaponCategory.None;
-        if (!isWeaponCategory)
-        {
-            return false;
-        }
-
-        return entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ||
-            entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand;
-    }
-
     private string ResolveTooltipEquipmentOwnerCharacterId()
     {
         string activeCharacterId = ResolveEquipmentCharacterId();
@@ -2729,7 +2503,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string GetTooltipOwnerDisplayText(ItemDatabase.ItemEntry entry, SlotRef slot)
     {
-        if (!IsAttackPowerWeaponEntry(entry) || slot.kind != SlotKind.Equipment)
+        if (!装备数值服务.是攻击力武器条目(entry) || slot.kind != SlotKind.Equipment)
         {
             return string.Empty;
         }
@@ -2743,28 +2517,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
         return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无";
-    }
-
-    private static float GetCharacterAttributeValue(
-        CharacterStatDatabase.StatEntry statEntry,
-        ItemDatabase.WeaponAttributeType attributeType)
-    {
-        if (statEntry == null)
-        {
-            return 0f;
-        }
-
-        switch (attributeType)
-        {
-            case ItemDatabase.WeaponAttributeType.Strength:
-                return statEntry.strength;
-            case ItemDatabase.WeaponAttributeType.Agility:
-                return statEntry.agility;
-            case ItemDatabase.WeaponAttributeType.Intelligence:
-                return statEntry.intelligence;
-            default:
-                return 0f;
-        }
     }
 
     private static Material EnsureItemTooltipIconFadeMaterial()
