@@ -35,7 +35,9 @@ public class OpenCharacterSelect : MonoBehaviour
         RectTransform panel = characterPanel.GetComponent<RectTransform>();
         if (slot != null && panel != null)
         {
-            panel.position = slot.position + (Vector3)offset;
+            panel.pivot = new Vector2(0f, 0.5f);
+            Vector3 slotRightCenter = slot.TransformPoint(new Vector3(slot.rect.xMax, 0f, 0f));
+            panel.position = slotRightCenter + new Vector3(offset.x - 20f, offset.y, 0f);
         }
 
         isPanelOpen = true;

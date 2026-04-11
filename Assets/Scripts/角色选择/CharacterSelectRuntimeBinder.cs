@@ -23,6 +23,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private bool modalSelectionActive;
     private GameObject currentCharacterPanel;
     private EventDatabase eventDatabase;
+    private string lastCurrentId = string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -57,6 +58,13 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
+        string currentId = 界面ID列表.当前ID ?? string.Empty;
+        if (!string.Equals(lastCurrentId, currentId, StringComparison.Ordinal))
+        {
+            lastCurrentId = currentId;
+            RefreshDisplayByActiveToggle();
+        }
+
         if (modalSelectionActive)
         {
             if (currentCharacterPanel == null || !currentCharacterPanel.activeInHierarchy)
@@ -96,6 +104,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
             SetCurrentSlot(slots[0]);
         }
 
+        lastCurrentId = 界面ID列表.当前ID ?? string.Empty;
         RefreshEntryAvailabilityVisuals();
         RefreshDisplayByActiveToggle();
         SyncSelectionState();
@@ -444,17 +453,69 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
     private void RefreshDisplayByActiveToggle()
     {
         RefreshEntryAvailabilityVisuals();
+        SyncToggleFromCurrentId();
 
         CharacterSlotView activeSlot = FindToggleOnSlot();
         if (activeSlot == null)
         {
-            ShowBackgroundPortrait(string.Empty);
             SyncSelectionState();
             return;
         }
 
-        UpdateBackgroundPortraitForSlot(activeSlot);
         SyncSelectionState();
+    }
+
+    private void SyncToggleFromCurrentId()
+    {
+        string currentCharacterId = 界面ID列表.当前ID;
+        if (string.IsNullOrWhiteSpace(currentCharacterId))
+        {
+            return;
+        }
+
+        CharacterSlotView matchedSlot = null;
+        Toggle matchedToggle = null;
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            CharacterSlotView slot = slots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            string slotCharacterId = ResolveCharacterIdForSlot(slot);
+            if (!string.Equals(slotCharacterId, currentCharacterId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            for (int t = 0; t < slot.selectToggles.Count; t++)
+            {
+                Toggle toggle = slot.selectToggles[t];
+                if (toggle == null)
+                {
+                    continue;
+                }
+
+                matchedSlot = slot;
+                matchedToggle = toggle;
+                break;
+            }
+
+            if (matchedToggle != null)
+            {
+                break;
+            }
+        }
+
+        if (matchedSlot == null || matchedToggle == null || matchedToggle.isOn)
+        {
+            return;
+        }
+
+        matchedToggle.SetIsOnWithoutNotify(true);
+        currentSlot = matchedSlot;
     }
 
     private CharacterSlotView FindToggleOnSlot()
@@ -475,18 +536,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         return currentSlot;
     }
 
-    private void UpdateBackgroundPortraitForSlot(CharacterSlotView slot)
-    {
-        if (slot == null)
-        {
-            ShowBackgroundPortrait(string.Empty);
-            return;
-        }
-
-        string characterId = ResolveCharacterIdForSlot(slot);
-        ShowBackgroundPortrait(characterId);
-    }
-
     private string ResolveCharacterIdForSlot(CharacterSlotView slot)
     {
         if (!string.IsNullOrEmpty(slot.selectedCharacterId))
@@ -505,28 +554,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         }
 
         return string.Empty;
-    }
-
-    private void ShowBackgroundPortrait(string characterId)
-    {
-        for (int i = 0; i < entries.Count; i++)
-        {
-            CharacterSelectEntry entry = entries[i];
-            if (entry == null)
-            {
-                continue;
-            }
-
-            bool shouldShow = !string.IsNullOrEmpty(characterId) && string.Equals(entry.characterId, characterId, StringComparison.Ordinal);
-            for (int j = 0; j < entry.backgroundPortraits.Count; j++)
-            {
-                GameObject go = entry.backgroundPortraits[j];
-                if (go != null)
-                {
-                    go.SetActive(shouldShow);
-                }
-            }
-        }
     }
 
     private CharacterSlotView FindOtherSlotByCharacter(string characterId, CharacterSlotView targetSlot)
@@ -684,7 +711,6 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
         {
             CharacterSelectEntry entry = entries[i];
             if (entry != null &&
-                entry.gameObject.activeInHierarchy &&
                 string.Equals(entry.characterId, characterId, StringComparison.Ordinal))
             {
                 return entry;

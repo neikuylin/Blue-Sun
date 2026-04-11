@@ -235,11 +235,11 @@ public class BattleBootstrap : MonoBehaviour
         turnSystem.enemyTimelineColor = enemyTimelineColor;
         turnSystem.activePlayerTimelineColor = activePlayerTimelineColor;
         turnSystem.Initialize(grid, mainCamera, units);
-        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacterForBattle();
+        界面ID列表.清空当前ID();
         InventoryShortcutRuntimeBinder.RefreshRuntimeWeaponModels();
         turnSystem.SetSkillCostHintText(skillCostHintText);
         RefreshPartyPortraits(GetSelectedPlayers());
-        RefreshSkillPagination(turnSystem);
+        RefreshBattleSkillBar(turnSystem);
         RefreshActionPointUi(turnSystem);
         RefreshVitalBars(turnSystem);
     }
@@ -889,20 +889,21 @@ public class BattleBootstrap : MonoBehaviour
         binder.Initialize(turnSystem);
     }
 
-    private void RefreshSkillPagination(BattleTurnSystem turnSystem)
+    private void RefreshBattleSkillBar(BattleTurnSystem turnSystem)
     {
         if (turnSystem == null)
         {
             return;
         }
 
-        BattleSkillPaginationBinder binder = GetComponent<BattleSkillPaginationBinder>();
+        战斗技能栏绑定 binder = FindObjectOfType<战斗技能栏绑定>(true);
         if (binder == null)
         {
-            binder = gameObject.AddComponent<BattleSkillPaginationBinder>();
+            Debug.LogWarning("BattleBootstrap: 场景中未找到战斗技能栏绑定，战斗下方技能栏不会刷新。");
+            return;
         }
 
-        binder.Initialize(turnSystem);
+        binder.初始化(turnSystem);
     }
 
     private void RefreshVitalBars(BattleTurnSystem turnSystem)

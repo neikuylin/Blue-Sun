@@ -147,13 +147,13 @@ public sealed class BattleVitalBarBinder : MonoBehaviour
 
     private BattleUnit ResolveDisplayedUnit()
     {
-        string equipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(equipmentCharacterId))
+        string characterId = 界面ID列表.当前ID;
+        if (!string.IsNullOrWhiteSpace(characterId))
         {
-            BattleUnit equipmentUnit = FindBattleUnitByCharacterId(equipmentCharacterId);
-            if (equipmentUnit != null)
+            BattleUnit displayedUnit = FindBattleUnitByCharacterId(characterId);
+            if (displayedUnit != null)
             {
-                return equipmentUnit;
+                return displayedUnit;
             }
         }
 

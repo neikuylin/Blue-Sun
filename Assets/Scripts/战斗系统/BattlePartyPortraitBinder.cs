@@ -59,7 +59,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         CachePortraitButtons();
         RefreshPortraits(force: true);
         HookPortraitButtons();
-        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        界面ID列表.清空当前ID();
         SetEquipmentPanelVisible(false);
     }
 
@@ -71,7 +71,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         }
 
         instance.SetEquipmentPanelVisible(false);
-        InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+        界面ID列表.清空当前ID();
     }
 
     public static string GetDisplayedCharacterIdAtSlot(int slotIndex)
@@ -94,7 +94,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (equipmentPanelVisible && equipmentPanel != null && !equipmentPanel.gameObject.activeInHierarchy)
         {
             equipmentPanelVisible = false;
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
         }
 
         RefreshPortraits(force: false);
@@ -586,33 +586,28 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         if (string.IsNullOrWhiteSpace(characterId))
         {
             SetEquipmentPanelVisible(false);
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
             return;
         }
         bool isSameCharacter = string.Equals(
-            InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId,
+            界面ID列表.当前ID,
             characterId,
             StringComparison.Ordinal);
 
         if (equipmentPanelVisible && isSameCharacter)
         {
             SetEquipmentPanelVisible(false);
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
+            界面ID列表.清空当前ID();
             return;
         }
 
-        InventoryShortcutRuntimeBinder.SetDisplayedEquipmentCharacter(characterId);
+        界面ID列表.设置当前ID(characterId);
         SetEquipmentPanelVisible(true);
     }
 
     private void SetEquipmentPanelVisible(bool visible)
     {
         equipmentPanelVisible = visible;
-        if (!visible)
-        {
-            InventoryShortcutRuntimeBinder.ClearDisplayedEquipmentCharacter();
-        }
-
         SyncEquipmentPanelVisibility();
     }
 

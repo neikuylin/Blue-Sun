@@ -1,4 +1,3 @@
-﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,7 +12,4 @@ public class CharacterSelectEntry : MonoBehaviour
 
     [Header("头像源（用于填入栏位头像）")]
     public Image portraitSource;
-
-    [Header("背景框立绘（该角色激活时显示）")]
-    public List<GameObject> backgroundPortraits = new List<GameObject>();
 }

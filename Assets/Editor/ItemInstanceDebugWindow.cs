@@ -15,6 +15,9 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
     private Vector2 scroll;
     private int selectedSection;
     private int selectedCharacterIndex;
+    private int warehouseSlotCountDraft;
+    private int backpackSlotCountDraft;
+    private readonly Dictionary<string, int> equipmentSlotCountDrafts = new Dictionary<string, int>();
 
     [MenuItem("Tools/\u7269\u54c1/\u73b0\u6709\u7269\u54c1\u5b9e\u4f8b")]
     private static void Open()
@@ -109,6 +112,28 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             return;
         }
 
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            int slotCountDraft = GetSlotCountDraft(ownerCharacterId, snapshots != null ? snapshots.Count : 0);
+            bool isBackpackSection = string.IsNullOrWhiteSpace(ownerCharacterId) && selectedSection == 1;
+            using (new EditorGUI.DisabledScope(isBackpackSection))
+            {
+                EditorGUI.BeginChangeCheck();
+                slotCountDraft = EditorGUILayout.IntField("\u66F4\u6539\u69FD\u4F4D\u6570\u91CF", slotCountDraft);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SetSlotCountDraft(ownerCharacterId, Mathf.Max(0, slotCountDraft));
+                }
+            }
+
+            if (isBackpackSection)
+            {
+                EditorGUILayout.HelpBox("\u80cc\u5305\u69FD\u4F4D\u6570\u91CF\u7531 Tools/\u4E8B\u4EF6/\u4E8B\u4EF6\u7F16\u8F91\u5668 \u4E2D\u7684\u80CC\u5305lv1~lv5 \u4E8B\u4EF6\u51B3\u5B9A\u3002", MessageType.Info);
+            }
+        }
+
+        EditorGUILayout.Space(6f);
+
         for (int i = 0; i < snapshots.Count; i++)
         {
             InventoryShortcutRuntimeBinder.ItemSlotSnapshot snapshot = snapshots[i];
@@ -146,5 +171,58 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
     {
         string value = InventoryShortcutRuntimeBinder.GetAttackPowerDisplayTextForCharacter(itemId, ownerCharacterId);
         return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private int GetSlotCountDraft(string ownerCharacterId, int fallbackValue)
+    {
+        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        {
+            if (selectedSection == 0)
+            {
+                warehouseSlotCountDraft = InventoryShortcutRuntimeBinder.GetWarehouseUsableSlotCount();
+                if (warehouseSlotCountDraft < 0 && fallbackValue > 0)
+                {
+                    warehouseSlotCountDraft = fallbackValue;
+                }
+                return warehouseSlotCountDraft;
+            }
+
+            backpackSlotCountDraft = InventoryShortcutRuntimeBinder.GetBackpackUsableSlotCount();
+            if (backpackSlotCountDraft < 0 && fallbackValue > 0)
+            {
+                backpackSlotCountDraft = fallbackValue;
+            }
+
+            return backpackSlotCountDraft;
+        }
+
+        int value = InventoryShortcutRuntimeBinder.GetEquipmentUsableSlotCount(ownerCharacterId);
+        if (value < 0 && fallbackValue > 0)
+        {
+            value = fallbackValue;
+        }
+
+        equipmentSlotCountDrafts[ownerCharacterId] = value;
+        return value;
+    }
+
+    private void SetSlotCountDraft(string ownerCharacterId, int value)
+    {
+        if (string.IsNullOrWhiteSpace(ownerCharacterId))
+        {
+            if (selectedSection == 0)
+            {
+                warehouseSlotCountDraft = value;
+                InventoryShortcutRuntimeBinder.SetWarehouseUsableSlotCount(value);
+                return;
+            }
+
+            backpackSlotCountDraft = value;
+            InventoryShortcutRuntimeBinder.SetBackpackUsableSlotCount(value);
+            return;
+        }
+
+        equipmentSlotCountDrafts[ownerCharacterId] = value;
+        InventoryShortcutRuntimeBinder.SetEquipmentUsableSlotCount(ownerCharacterId, value);
     }
 }

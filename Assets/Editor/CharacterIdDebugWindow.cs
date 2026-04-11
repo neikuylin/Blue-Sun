@@ -43,6 +43,11 @@ public sealed class CharacterIdDebugWindow : EditorWindow
                 Repaint();
             }
 
+            if (GUILayout.Button("输出界面ID到Console"))
+            {
+                PrintInterfaceIdsToConsole();
+            }
+
             if (GUILayout.Button("同步已知ID到绑定表"))
             {
                 SyncKnownIds(bindingDatabase);
@@ -51,6 +56,8 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         DrawRuntimeState();
+        EditorGUILayout.Space(8f);
+        DrawInterfaceIdState();
         EditorGUILayout.Space(8f);
         DrawCharacterSlots();
         EditorGUILayout.Space(8f);
@@ -84,6 +91,25 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
             EditorGUILayout.LabelField(label, string.IsNullOrEmpty(slot.characterId) ? "（空）" : slot.characterId);
         }
+    }
+
+    private static void DrawInterfaceIdState()
+    {
+        EditorGUILayout.LabelField("界面ID列表", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("当前ID", string.IsNullOrEmpty(界面ID列表.当前ID) ? "（空）" : 界面ID列表.当前ID);
+
+        List<string> selectableIds = 界面ID列表.可选ID;
+        EditorGUILayout.LabelField("可选ID数量", selectableIds.Count.ToString());
+        for (int i = 0; i < selectableIds.Count; i++)
+        {
+            string selectableId = selectableIds[i];
+            EditorGUILayout.LabelField($"可选ID {i + 1}", string.IsNullOrWhiteSpace(selectableId) ? "（空）" : selectableId);
+        }
+    }
+
+    private static void PrintInterfaceIdsToConsole()
+    {
+        Debug.Log("界面ID列表调试\n" + 界面ID列表.构建调试文本());
     }
 
     private static void DrawCharacterSlots()
@@ -213,8 +239,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("characterId"), new GUIContent("角色ID"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("displayName"), new GUIContent("显示名"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitSprite"), new GUIContent("背景立绘"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("backgroundPortraitPrefab"), new GUIContent("背景立绘预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelPrefab"), new GUIContent("模型预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("animatorController"), new GUIContent("Animator Controller"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("modelScale"), new GUIContent("模型缩放"));
@@ -229,8 +253,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
             added.FindPropertyRelative("characterId").stringValue = string.Empty;
             added.FindPropertyRelative("displayName").stringValue = string.Empty;
-            added.FindPropertyRelative("backgroundPortraitSprite").objectReferenceValue = null;
-            added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;
@@ -347,8 +369,6 @@ public sealed class CharacterIdDebugWindow : EditorWindow
             SerializedProperty added = entries.GetArrayElementAtIndex(entries.arraySize - 1);
             added.FindPropertyRelative("characterId").stringValue = knownIds[i];
             added.FindPropertyRelative("displayName").stringValue = knownIds[i];
-            added.FindPropertyRelative("backgroundPortraitSprite").objectReferenceValue = null;
-            added.FindPropertyRelative("backgroundPortraitPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("modelPrefab").objectReferenceValue = null;
             added.FindPropertyRelative("animatorController").objectReferenceValue = null;
             added.FindPropertyRelative("modelScale").vector3Value = Vector3.one;

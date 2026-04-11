@@ -150,7 +150,6 @@ public class BattleTurnSystem : MonoBehaviour
     private AudioSource modeMusicSource;
     private Coroutine explorationMoveAudioStopRoutine;
     private bool pendingExplorationModeEnter;
-    private string lastDisplayedEquipmentCharacterId = string.Empty;
 
     private sealed class EnemySkillChoice
     {
@@ -411,7 +410,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        RefreshActiveUnitIdForDisplayedEquipmentCharacter();
         RefreshTargetPanelUi();
     }
 
@@ -1074,36 +1072,6 @@ public class BattleTurnSystem : MonoBehaviour
             sceneBindings.actionPointPanel.gameObject.SetActive(visible);
         }
 
-        if (sceneBindings != null)
-        {
-            for (int i = 0; i < sceneBindings.skillPageButtons.Count; i++)
-            {
-                Button button = sceneBindings.skillPageButtons[i];
-                if (button != null)
-                {
-                    button.gameObject.SetActive(visible);
-                }
-            }
-
-            for (int i = 0; i < sceneBindings.skillPageIcons.Count; i++)
-            {
-                Image image = sceneBindings.skillPageIcons[i];
-                if (image != null)
-                {
-                    image.gameObject.SetActive(visible);
-                }
-            }
-
-            if (sceneBindings.spellCurrentPageText != null)
-            {
-                sceneBindings.spellCurrentPageText.gameObject.SetActive(visible);
-            }
-
-            if (sceneBindings.spellTotalPageText != null)
-            {
-                sceneBindings.spellTotalPageText.gameObject.SetActive(visible);
-            }
-        }
     }
 
     private void AdvanceTurn()
@@ -1818,14 +1786,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        string displayedEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (!string.IsNullOrWhiteSpace(displayedEquipmentCharacterId))
-        {
-            activeUnitIdText.enabled = true;
-            activeUnitIdText.text = displayedEquipmentCharacterId;
-            return;
-        }
-
         bool shouldShow = activeUnit != null &&
             activeUnit.IsAlive &&
             activeUnit.isPlayerControlled &&
@@ -1840,18 +1800,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         activeUnitIdText.text = string.IsNullOrWhiteSpace(activeUnit.characterId) ? activeUnit.unitName : activeUnit.characterId;
-    }
-
-    private void RefreshActiveUnitIdForDisplayedEquipmentCharacter()
-    {
-        string currentEquipmentCharacterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-        if (string.Equals(lastDisplayedEquipmentCharacterId, currentEquipmentCharacterId, System.StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        lastDisplayedEquipmentCharacterId = currentEquipmentCharacterId;
-        RefreshActiveUnitUi();
     }
 
     private void RefreshTimeline()
@@ -3858,23 +3806,21 @@ public class BattleTurnSystem : MonoBehaviour
         BattleUnit target)
     {
         components.Clear();
-        if (totalDamage <= 0f)
+        if (totalDamage <= 0f || distribution == null)
         {
             return;
         }
 
-        ItemDatabase.WeaponDamageDistribution resolvedDistribution = distribution ?? ItemDatabase.CreateDefaultWeaponDamageDistribution();
-        int distributionTotal = Mathf.Max(0, resolvedDistribution.Total);
+        int distributionTotal = Mathf.Max(0, distribution.Total);
         if (distributionTotal <= 0)
         {
-            resolvedDistribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
-            distributionTotal = resolvedDistribution.Total;
+            return;
         }
 
-        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, resolvedDistribution.physical, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, resolvedDistribution.fire, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, resolvedDistribution.corruption, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, resolvedDistribution.cold, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target);
+        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target);
     }
 
     private void AddDamageComponent(
@@ -4017,6 +3963,21 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         List<BattleDamageNumberPopup.DamageSegment> segments = BuildDamageSegments(damageResult);
+        if (damageResult.isCritical)
+        {
+            string criticalDamageText = BuildPopupDamageText(segments, damageResult.appliedDamage);
+            if (!string.IsNullOrWhiteSpace(criticalDamageText))
+            {
+                BattleDamageNumberPopup.ShowConfiguredText(
+                    target,
+                    "<color=#FFD700>暴击</color>\n" + criticalDamageText,
+                    BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
+                    Color.white,
+                    battleCamera);
+                return;
+            }
+        }
+
         if (segments.Count > 0)
         {
             BattleDamageNumberPopup.ShowSegments(target, segments, battleCamera);
@@ -4069,6 +4030,40 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return segments;
+    }
+
+    private string BuildPopupDamageText(IList<BattleDamageNumberPopup.DamageSegment> segments, int appliedDamage)
+    {
+        if (segments != null && segments.Count > 0)
+        {
+            System.Text.StringBuilder builder = new System.Text.StringBuilder();
+            for (int i = 0; i < segments.Count; i++)
+            {
+                BattleDamageNumberPopup.DamageSegment segment = segments[i];
+                if (string.IsNullOrWhiteSpace(segment.text))
+                {
+                    continue;
+                }
+
+                if (builder.Length > 0)
+                {
+                    builder.Append("<color=#FFFFFF>+</color>");
+                }
+
+                builder.Append("<color=#");
+                builder.Append(ColorUtility.ToHtmlStringRGB(segment.color));
+                builder.Append(">");
+                builder.Append(segment.text);
+                builder.Append("</color>");
+            }
+
+            if (builder.Length > 0)
+            {
+                return builder.ToString();
+            }
+        }
+
+        return appliedDamage > 0 ? appliedDamage.ToString() : string.Empty;
     }
 
     private static List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
@@ -4305,6 +4300,17 @@ public class BattleTurnSystem : MonoBehaviour
         {
             BattleSkillDatabase.SkillEntry.AttachedEffectEntry attachedEffect = skill.attachedEffects[i];
             if (attachedEffect == null || string.IsNullOrWhiteSpace(attachedEffect.effectId) || attachedEffect.durationTurns <= 0)
+            {
+                continue;
+            }
+
+            int applyChancePercent = Mathf.Clamp(attachedEffect.applyChancePercent, 0, 100);
+            if (applyChancePercent <= 0)
+            {
+                continue;
+            }
+
+            if (applyChancePercent < 100 && Random.Range(0, 100) >= applyChancePercent)
             {
                 continue;
             }
@@ -5254,16 +5260,16 @@ public class BattleTurnSystem : MonoBehaviour
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry =
             loadoutDatabase != null ? loadoutDatabase.FindEntry(caster.characterId) : null;
 
-        if (skillEntry != null && skillEntry.skillIds != null)
+        if (skillEntry != null && skillEntry.memorizedSkillIds != null)
         {
-            CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, skillEntry.skillIds.Count);
-            for (int i = 0; i < skillEntry.skillIds.Count; i++)
+            CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(skillEntry, skillEntry.memorizedSkillIds.Count);
+            for (int i = 0; i < skillEntry.memorizedSkillIds.Count; i++)
             {
                 TryAddEnemySkillChoice(
                     result,
                     seenSkillIds,
-                    skillEntry.skillIds[i],
-                    CharacterSkillLoadoutDatabase.GetSkillWeightAt(skillEntry, i),
+                    skillEntry.memorizedSkillIds[i],
+                    CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(skillEntry, i),
                     i);
             }
         }

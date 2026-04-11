@@ -312,6 +312,7 @@ MonoBehaviour:
     attachedEffects:
     - effectId: "\u71C3\u70E7"
       durationTurns: 2
+      applyChancePercent: 30
     attachedEffectIds:
     - "\u71C3\u70E7"
     requiredWeaponCategories: 
@@ -349,6 +350,7 @@ MonoBehaviour:
     attachedEffects:
     - effectId: "\u96C6\u4E2D"
       durationTurns: 2
+      applyChancePercent: 100
     attachedEffectIds:
     - "\u96C6\u4E2D"
     requiredWeaponCategories: 

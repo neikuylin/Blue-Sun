@@ -122,7 +122,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         EnemyEquipmentDatabase.EnemyEquipmentEntry entry = equipmentDatabase.GetOrCreateEntry(enemyId);
         EnemyEquipmentDatabase.EnsureValidItemList(entry);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry = skillLoadoutDatabase.GetOrCreateEntry(enemyId);
-        CharacterSkillLoadoutDatabase.EnsureSlotDataSize(skillEntry, DefaultSkillSlotCount);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(skillEntry, DefaultSkillSlotCount);
         BattleCharacterBindingDatabase.BindingEntry bindingEntry = GetOrCreateBinding(bindingDatabase, enemyId);
         TurnTimelineButtonDatabase.Entry timelineEntry = GetOrCreateTimelineEntry(timelineDatabase, enemyId);
 
@@ -270,9 +270,9 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             : new List<BattleSkillDatabase.SkillEntry>();
         string[] options = BuildSkillOptions(skills);
 
-        for (int i = 0; i < skillEntry.skillIds.Count; i++)
+        for (int i = 0; i < skillEntry.memorizedSkillIds.Count; i++)
         {
-            string currentSkillId = skillEntry.skillIds[i];
+            string currentSkillId = skillEntry.memorizedSkillIds[i];
             int selectedIndex = 0;
             for (int s = 0; s < skills.Count; s++)
             {
@@ -292,7 +292,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             using (new EditorGUILayout.HorizontalScope())
             {
                 int newIndex = EditorGUILayout.Popup($"\u6280\u80FD{i + 1}", selectedIndex, options);
-                int currentWeight = CharacterSkillLoadoutDatabase.GetSkillWeightAt(skillEntry, i);
+                int currentWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(skillEntry, i);
                 int newWeight = EditorGUILayout.IntField("\u6743\u91CD", currentWeight, GUILayout.Width(180f));
 
                 if (newIndex != selectedIndex || newWeight != currentWeight)
@@ -300,8 +300,8 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                     Undo.RecordObject(skillLoadoutDatabase, "\u7F16\u8F91\u654C\u4EBA\u6280\u80FD");
                 }
 
-                skillEntry.skillIds[i] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
-                skillEntry.skillWeights[i] = newWeight;
+                skillEntry.memorizedSkillIds[i] = newIndex <= 0 ? string.Empty : skills[newIndex - 1].skillId;
+                skillEntry.memorizedSkillWeights[i] = newWeight;
             }
         }
     }
@@ -477,7 +477,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             }
 
             equipmentDatabase.GetOrCreateEntry(enemy.enemyId.Trim());
-            CharacterSkillLoadoutDatabase.EnsureSlotDataSize(
+            CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(
                 skillLoadoutDatabase.GetOrCreateEntry(enemy.enemyId.Trim()),
                 DefaultSkillSlotCount);
             GetOrCreateBinding(bindingDatabase, enemy.enemyId.Trim());

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -13,6 +12,7 @@ public static class SceneReferenceAutoBinder
 
     private const string AutoBindMenu = "Tools/UI References/Auto Bind Active Scene";
     private const string AutoBindJourneyMenu = "Tools/UI References/Auto Bind Journey Scene";
+    private const string AutoBindBattleSceneMenu = "Tools/UI References/Auto Bind 战斗副本 Scene";
     private const string AutoBindBattleMenu = "Tools/UI References/Auto Bind 战斗副本 Scene";
 
     private const string DialogTitle = "\u81ea\u52a8\u7ed1\u5b9a";
@@ -29,10 +29,6 @@ public static class SceneReferenceAutoBinder
     private const string BattleTimelinePath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u56de\u5408\u65f6\u95f4\u8f74";
     private const string BattleEndTurnButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u7ed3\u675f\u56de\u5408\u6309\u94ae";
     private const string BattleMoveButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u79fb\u52a8\u6309\u94ae";
-    private const string PreviousPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u524d\u7ffb\u9875";
-    private const string NextPageButtonPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u7ffb\u9875\u7cfb\u7edf/\u5f80\u540e\u7ffb\u9875";
-    private const string SpellCurrentPagePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u6cd5\u672f\u5f53\u524d\u9875";
-    private const string SpellTotalPagePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u9875\u7cfb\u7edf/\u6570\u5b57\u663e\u793a/\u603b\u9875";
     private const string BattleCurrentPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u5f53\u524d\u89d2\u8272/\u5f53\u524d\u89d2\u8272\u56fe";
     private const string BattleSecondPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e8c\u89d2\u8272/\u7b2c\u4e8c\u89d2\u8272\u56fe";
     private const string BattleThirdPortraitPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u89d2\u8272\u64cd\u4f5c\u680f/\u89d2\u8272\u680f/\u7b2c\u4e09\u89d2\u8272/\u7b2c\u4e09\u89d2\u8272\u56fe";
@@ -48,7 +44,6 @@ public static class SceneReferenceAutoBinder
     private const string BattleBackpackContentPath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9";
     private const string BattleBackpackDragHandlePath = "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u80cc\u5305/\u80cc\u5305\u5185\u5bb9/\u80cc\u5305\u80cc\u666f\u677f";
     private const string BattleEquipmentPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d";
-    private const string BattleLeftPanelPortraitPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u89d2\u8272\u80cc\u666f\u6846\u7acb\u7ed8";
     private const string BattleLeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
     private const string CanvasPath = "Canvas";
 
@@ -87,7 +82,7 @@ public static class SceneReferenceAutoBinder
         }
     }
 
-    [MenuItem(AutoBindBattleMenu)]
+    [MenuItem(AutoBindBattleSceneMenu)]
     private static void AutoBindBattleOnly()
     {
         Scene scene = SceneManager.GetActiveScene();
@@ -122,9 +117,9 @@ public static class SceneReferenceAutoBinder
 
         if (skill != null)
         {
-            JourneySkillGridBinding skillBinding = GetOrCreateRootComponent<JourneySkillGridBinding>(scene, nameof(JourneySkillGridBinding));
+            技能栏位绑定 skillBinding = GetOrCreateRootComponent<技能栏位绑定>(scene, nameof(技能栏位绑定));
             Undo.RecordObject(skillBinding, "Auto Bind Journey Skill Grid");
-            skillBinding.skillSlotContainer = skill;
+            skillBinding.SetAutoBindReferences(skill.parent as RectTransform, skill);
             EditorUtility.SetDirty(skillBinding);
         }
 
@@ -136,8 +131,6 @@ public static class SceneReferenceAutoBinder
         Transform timeline = FindTransform(scene, BattleTimelinePath);
         Button endTurnButton = FindButton(scene, BattleEndTurnButtonPath);
         Button moveSkillButton = FindButton(scene, BattleMoveButtonPath);
-        Button previousSkillPageButton = FindButton(scene, PreviousPageButtonPath);
-        Button nextSkillPageButton = FindButton(scene, NextPageButtonPath);
         Image currentPortrait = FindImage(scene, BattleCurrentPortraitPath);
         Image secondPortrait = FindImage(scene, BattleSecondPortraitPath);
         Image thirdPortrait = FindImage(scene, BattleThirdPortraitPath);
@@ -149,14 +142,10 @@ public static class SceneReferenceAutoBinder
         Image manaSlot = FindImage(scene, BattleManaSlotPath);
         Image manaFill = FindImage(scene, BattleManaFillPath);
         TMP_Text manaText = FindText(scene, BattleManaTextPath);
-        TMP_Text spellCurrentPageText = FindText(scene, SpellCurrentPagePath);
-        TMP_Text spellTotalPageText = FindText(scene, SpellTotalPagePath);
-        RectTransform skillContainer = FindRectTransform(scene, "Canvas/\u4e0b\u65b9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df");
         RectTransform battleBackpackContainer = FindRectTransform(scene, BattleBackpackContainerPath);
         RectTransform battleBackpackContent = FindRectTransform(scene, BattleBackpackContentPath);
         RectTransform battleBackpackDragHandle = FindRectTransform(scene, BattleBackpackDragHandlePath);
         RectTransform equipmentContainer = FindRectTransform(scene, BattleEquipmentPath);
-        Image leftPanelPortraitImage = FindImage(scene, BattleLeftPanelPortraitPath);
         RectTransform leftPanelSkillSlotContainer = FindRectTransform(scene, BattleLeftPanelSkillPath);
         RectTransform overlayCanvas = FindRectTransform(scene, CanvasPath);
 
@@ -179,8 +168,6 @@ public static class SceneReferenceAutoBinder
         bindings.timelineAnchor = timeline;
         bindings.endTurnButton = endTurnButton;
         bindings.moveSkillButton = moveSkillButton;
-        bindings.previousSkillPageButton = previousSkillPageButton;
-        bindings.nextSkillPageButton = nextSkillPageButton;
         bindings.currentPortrait = currentPortrait;
         bindings.secondPortrait = secondPortrait;
         bindings.thirdPortrait = thirdPortrait;
@@ -196,46 +183,10 @@ public static class SceneReferenceAutoBinder
         bindings.battleBackpackContent = battleBackpackContent;
         bindings.battleBackpackDragHandle = battleBackpackDragHandle;
         bindings.equipmentContainer = equipmentContainer;
-        bindings.leftPanelPortraitImage = leftPanelPortraitImage;
         bindings.leftPanelSkillSlotContainer = leftPanelSkillSlotContainer;
         bindings.overlayCanvas = overlayCanvas;
-        bindings.spellCurrentPageText = spellCurrentPageText;
-        bindings.spellTotalPageText = spellTotalPageText;
-        CollectBattleSkillPageWidgets(skillContainer, bindings.skillPageButtons, bindings.skillPageIcons);
         EditorUtility.SetDirty(bindings);
         return 1;
-    }
-
-    private static void CollectBattleSkillPageWidgets(RectTransform container, List<Button> buttons, List<Image> icons)
-    {
-        if (buttons == null || icons == null)
-        {
-            return;
-        }
-
-        buttons.Clear();
-        icons.Clear();
-        if (container == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < container.childCount; i++)
-        {
-            RectTransform child = container.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            Button button = child.GetComponent<Button>();
-            Image icon = FindBestSkillIcon(child);
-            if (button != null)
-            {
-                buttons.Add(button);
-                icons.Add(icon);
-            }
-        }
     }
 
     private static T GetOrCreateRootComponent<T>(Scene scene, string rootName) where T : Component
@@ -305,34 +256,4 @@ public static class SceneReferenceAutoBinder
         return SceneHierarchyPathUtility.Find(scene, path);
     }
 
-    private static Image FindBestSkillIcon(RectTransform root)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        Transform explicitPattern = SceneHierarchyPathUtility.FindDirectChildByName(root, "\u6280\u80fd\u56fe\u6848");
-        if (explicitPattern != null)
-        {
-            Image explicitImage = explicitPattern.GetComponent<Image>();
-            if (explicitImage != null)
-            {
-                return explicitImage;
-            }
-        }
-
-        Image[] images = root.GetComponentsInChildren<Image>(true);
-        Image rootImage = root.GetComponent<Image>();
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image image = images[i];
-            if (image != null && image != rootImage)
-            {
-                return image;
-            }
-        }
-
-        return rootImage;
-    }
 }

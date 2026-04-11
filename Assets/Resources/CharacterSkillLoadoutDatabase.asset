@@ -14,38 +14,64 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    skillIds:
-    - 
-    - "\u56DE\u65CB\u65A9"
+    memorizedSkillIds:
     - 
     - 
     - 
-    skillWeights: 0000000000000000000000000000000000000000
-  - characterId: "\u7D22\u62C9\u5A1C"
-    skillIds:
-    - 
-    skillWeights: 00000000
-  - characterId: "\u5E93\u9C81\u65AF"
-    skillIds:
-    - 
+    memorizedSkillWeights: 000000000000000000000000
+    warehouseSkillIds:
     - "\u706B\u7403"
+    warehouseSkillWeights: 00000000
+    legacySkillIds: []
+    legacySkillWeights: 
+  - characterId: "\u7D22\u62C9\u5A1C"
+    memorizedSkillIds:
     - 
-    skillWeights: 000000000000000000000000
+    memorizedSkillWeights: 00000000
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+    legacySkillIds: []
+    legacySkillWeights: 
+  - characterId: "\u5E93\u9C81\u65AF"
+    memorizedSkillIds:
+    - 
+    memorizedSkillWeights: 00000000
+    warehouseSkillIds:
+    - "\u706B\u7403"
+    warehouseSkillWeights: 00000000
+    legacySkillIds: []
+    legacySkillWeights: 
   - characterId: "\u5047\u4EBA"
-    skillIds: []
-    skillWeights: 
+    memorizedSkillIds: []
+    memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+    legacySkillIds: []
+    legacySkillWeights: 
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
-    skillIds: []
-    skillWeights: 
+    memorizedSkillIds: []
+    memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+    legacySkillIds: []
+    legacySkillWeights: 
   - characterId: "\u7231\u4E3D\u4E1D"
-    skillIds:
+    memorizedSkillIds: []
+    memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+    legacySkillIds:
     - "\u56DE\u65CB\u65A9"
     - 
     - "\u96C6\u4E2D"
     - 
     - 
-    skillWeights: 0000000000000000000000000000000000000000
+    legacySkillWeights: 0000000000000000000000000000000000000000
   - characterId: "\u745F\u838E"
-    skillIds:
+    memorizedSkillIds: []
+    memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+    legacySkillIds:
     - 
-    skillWeights: 00000000
+    legacySkillWeights: 00000000

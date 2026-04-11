@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    strength: 3
-    agility: 3
-    intelligence: 3
+    strength: 4
+    agility: 4
+    intelligence: 10
     actionPoints: 4
     hitRate: 100
     physicalResistance: 0
@@ -46,8 +46,8 @@ MonoBehaviour:
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u5E93\u9C81\u65AF"
-    strength: 4
-    agility: 3
+    strength: 5
+    agility: 4
     intelligence: 3
     actionPoints: 4
     hitRate: 100
@@ -62,8 +62,8 @@ MonoBehaviour:
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u745F\u838E"
-    strength: 3
-    agility: 6
+    strength: 4
+    agility: 5
     intelligence: 3
     actionPoints: 4
     hitRate: 100

@@ -42,20 +42,12 @@ public sealed class CharacterSelectionState : MonoBehaviour
         public float attackPower;
     }
 
-    [Serializable]
-    private struct BackgroundPortraitSnapshot
-    {
-        public string characterId;
-        public Sprite portraitSprite;
-    }
-
     private static CharacterSelectionState instance;
 
     [SerializeField] private string activeCharacterId = string.Empty;
     [SerializeField] private List<SlotSelection> slotSelections = new List<SlotSelection>();
     [SerializeField] private List<GrantedSkillSnapshot> grantedSkillSnapshots = new List<GrantedSkillSnapshot>();
     [SerializeField] private List<WeaponAttackPowerSnapshot> weaponAttackPowerSnapshots = new List<WeaponAttackPowerSnapshot>();
-    [SerializeField] private List<BackgroundPortraitSnapshot> backgroundPortraitSnapshots = new List<BackgroundPortraitSnapshot>();
 
     public static string ActiveCharacterId => instance != null ? instance.activeCharacterId : string.Empty;
     public static IReadOnlyList<SlotSelection> SlotSelections => instance != null ? instance.slotSelections : Array.Empty<SlotSelection>();
@@ -103,25 +95,6 @@ public sealed class CharacterSelectionState : MonoBehaviour
         return 0f;
     }
 
-    public static Sprite GetCapturedBackgroundPortraitSprite(string characterId)
-    {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        for (int i = 0; i < instance.backgroundPortraitSnapshots.Count; i++)
-        {
-            BackgroundPortraitSnapshot snapshot = instance.backgroundPortraitSnapshots[i];
-            if (string.Equals(snapshot.characterId, characterId, StringComparison.Ordinal))
-            {
-                return snapshot.portraitSprite;
-            }
-        }
-
-        return null;
-    }
-
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
     {
@@ -149,6 +122,10 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
         instance.slotSelections.Clear();
         instance.activeCharacterId = ResolveCharacterId(activeSlot);
+        if (!string.IsNullOrWhiteSpace(instance.activeCharacterId))
+        {
+            界面ID列表.设置当前ID(instance.activeCharacterId);
+        }
 
         List<CharacterSlotView> orderedSlots = OrderSlots(slots);
         for (int i = 0; i < orderedSlots.Count; i++)
@@ -172,7 +149,6 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
         instance.CaptureGrantedSkills(orderedSlots);
         instance.CaptureWeaponAttackPower(orderedSlots);
-        instance.CaptureBackgroundPortraits(orderedSlots);
     }
 
     public static void CaptureFromCurrentScene()
@@ -311,7 +287,7 @@ public sealed class CharacterSelectionState : MonoBehaviour
                 continue;
             }
 
-            if (image.name.Contains("\u5934\u50cf", StringComparison.Ordinal))
+            if (image.name.Contains("头像", StringComparison.Ordinal))
             {
                 return image;
             }
@@ -383,7 +359,6 @@ public sealed class CharacterSelectionState : MonoBehaviour
         }
     }
 
-
     private void CaptureWeaponAttackPower(List<CharacterSlotView> orderedSlots)
     {
         weaponAttackPowerSnapshots.Clear();
@@ -408,90 +383,6 @@ public sealed class CharacterSelectionState : MonoBehaviour
                 attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(characterId)
             });
         }
-    }
-
-    private void CaptureBackgroundPortraits(List<CharacterSlotView> orderedSlots)
-    {
-        backgroundPortraitSnapshots.Clear();
-        if (orderedSlots == null)
-        {
-            return;
-        }
-
-        Dictionary<string, CharacterSelectEntry> entriesById = BuildCharacterEntryLookup();
-        HashSet<string> seenCharacterIds = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < orderedSlots.Count; i++)
-        {
-            CharacterSlotView slot = orderedSlots[i];
-            string characterId = ResolveCharacterId(slot);
-            if (string.IsNullOrWhiteSpace(characterId) || !seenCharacterIds.Add(characterId))
-            {
-                continue;
-            }
-
-            Sprite portrait = ResolveBackgroundPortraitSprite(entriesById, characterId) ?? ResolvePortraitSprite(slot);
-            backgroundPortraitSnapshots.Add(new BackgroundPortraitSnapshot
-            {
-                characterId = characterId,
-                portraitSprite = portrait
-            });
-        }
-    }
-
-    private static Dictionary<string, CharacterSelectEntry> BuildCharacterEntryLookup()
-    {
-        Dictionary<string, CharacterSelectEntry> result = new Dictionary<string, CharacterSelectEntry>(StringComparer.Ordinal);
-        CharacterSelectEntry[] entries = FindObjectsOfType<CharacterSelectEntry>(true);
-        for (int i = 0; i < entries.Length; i++)
-        {
-            CharacterSelectEntry entry = entries[i];
-            if (entry == null || string.IsNullOrWhiteSpace(entry.characterId))
-            {
-                continue;
-            }
-
-            result[entry.characterId] = entry;
-        }
-
-        return result;
-    }
-
-    private static Sprite ResolveBackgroundPortraitSprite(Dictionary<string, CharacterSelectEntry> entriesById, string characterId)
-    {
-        if (entriesById == null || string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        CharacterSelectEntry entry;
-        if (!entriesById.TryGetValue(characterId, out entry) || entry == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < entry.backgroundPortraits.Count; i++)
-        {
-            GameObject backgroundPortrait = entry.backgroundPortraits[i];
-            Image image = ResolvePreferredImage(backgroundPortrait, requireActive: true) ??
-                ResolvePreferredImage(backgroundPortrait, requireActive: false);
-            if (image != null && image.sprite != null)
-            {
-                return image.sprite;
-            }
-        }
-
-        return null;
-    }
-
-    private static Image ResolvePreferredImage(GameObject root, bool requireActive)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        Image[] images = root.GetComponentsInChildren<Image>(true);
-        return FindPreferredPortraitImage(images, requireActive);
     }
 
     private static int CompareSlotOrder(CharacterSlotView left, CharacterSlotView right)

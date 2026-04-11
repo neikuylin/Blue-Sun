@@ -25,6 +25,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public Sprite icon;
         public int count;
         public int maxStack;
+        public bool isRotated;
         public bool isFootprintExtension;
         public int primarySlotIndex;
 
@@ -42,9 +43,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         Warehouse,
         WarehouseBackpack,
-        QuickBackpack,
-        BattleBackpack,
         Equipment
+    }
+
+    private enum StorageRightClickTarget
+    {
+        Backpack,
+        Warehouse,
+        TargetIdEquipment
     }
 
     private struct SlotRef
@@ -73,6 +79,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public GameObject runtimeBackgroundVisual;
         public GameObject runtimeIconVisual;
         public ItemDatabase.EquipmentSlotType equipmentSlotType;
+        public StorageRightClickTarget rightClickTarget;
     }
 
     private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
@@ -126,20 +133,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private const string WarehouseContainerPath = "Canvas/UI控制器/目录/仓库页面/仓库面板/格子区域/格子容器";
-    private const string BackpackContainerPath = "Canvas/UI控制器/目录/仓库页面/背包面板/格子区域/格子容器";
-    private const string EquipmentContainerPath = "Canvas/UI控制器/目录/角色页面/装备栏位";
-    private const string BattleEquipmentContainerPath = "Canvas/弹窗/左边栏位";
-    private const string QuickAnchorPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域";
-    private const string QuickContainerPath = "Canvas/UI控制器/目录/角色页面/右边栏位/格子区域/格子容器";
-    private const string BattleBackpackContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域";
-    private const string BattleBackpackMirrorContainerPath = "Canvas/下方栏位/背包/背包内容/格子区域/格子容器";
-    private const string BattleBackpackContentPath = "Canvas/下方栏位/背包/背包内容";
-    private const string BattleBackpackDragHandlePath = "Canvas/下方栏位/背包/背包内容/背包背景板";
     private const string LeftWeaponMountPointName = "武器挂载点（左）";
     private const string RightWeaponMountPointName = "武器挂载点（右）";
     private const string RuntimeWeaponModelName = "__RuntimeWeaponModel";
     private const float DefaultOutlineWidth = 0.025f;
+    private const int FixedStorageSlotCount = 42;
     private const string SlotNameKeyword = "格子";
     private const string SlotContainerName = "格子容器";
     private const string ItemBackgroundName = "物品底背景";
@@ -148,19 +146,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private const string ItemTooltipIconFadeShaderName = "UI/BottomFadeImage";
     private static readonly Vector3 ItemTooltipScale = Vector3.one;
     private static readonly Vector3 ItemTooltipIconScale = new Vector3(1.5f, 1.5f, 1f);
-    private static readonly string[] EquipmentSlotNames =
+    private static readonly Color DisabledSlotColor = new Color32(100, 100, 100, 255);
+    private static readonly string[] BackpackLevelEventIds =
     {
-        "主手",
-        "副手",
-        "主副手",
-        "头盔",
-        "胸甲",
-        "手套",
-        "鞋子",
-        "腿甲",
-        "饰品"
+        "背包lv1",
+        "背包lv2",
+        "背包lv3",
+        "背包lv4",
+        "背包lv5"
     };
-
+    private static readonly int[] BackpackLevelSlotCounts = { 14, 21, 28, 35, 42 };
     private static InventoryShortcutRuntimeBinder instance;
     private static Material itemTooltipIconFadeMaterial;
 
@@ -172,9 +167,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private readonly List<SlotWidget> warehouseSlots = new List<SlotWidget>();
     private readonly List<SlotWidget> backpackSlots = new List<SlotWidget>();
+    private readonly List<List<SlotWidget>> extraBackpackSlots = new List<List<SlotWidget>>();
     private readonly List<SlotWidget> equipmentSlots = new List<SlotWidget>();
-    private readonly List<SlotWidget> quickSlots = new List<SlotWidget>();
-    private readonly List<SlotWidget> battleBackpackSlots = new List<SlotWidget>();
+    private readonly List<List<SlotWidget>> extraEquipmentSlots = new List<List<SlotWidget>>();
     private readonly List<Action> categoryFilterUnbindActions = new List<Action>();
 
     private bool isDragging;
@@ -194,11 +189,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private TextAnchor cachedBackpackChildAlignment;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
-    private string currentEquipmentCharacterId = string.Empty;
-    private string manualEquipmentCharacterId = string.Empty;
-    private int equipmentSkillRevision;
-    private JourneySceneBindings journeyBindings;
-    private BattleSceneBindings battleBindings;
+    private int warehouseUsableSlotCount = -1;
+    private int backpackUsableSlotCount = -1;
+    private readonly Dictionary<string, int> equipmentUsableSlotCounts = new Dictionary<string, int>(StringComparer.Ordinal);
     private readonly CategoryFilterBinding warehouseFilter = new CategoryFilterBinding();
     private readonly CategoryFilterBinding backpackFilter = new CategoryFilterBinding();
     private RectTransform itemTooltipRoot;
@@ -225,6 +218,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private ItemDatabase.ItemEntry pendingTooltipEntry;
     private SlotRef pendingTooltipSlot;
     private SlotRef hoveredTooltipSlot;
+    private SlotRef hoveredRotateSlot;
+    private bool hasHoveredRotateSlot;
     private float pendingTooltipShownAt;
     private GameObject runtimeTooltipRootInstance;
     private GameObject runtimeTooltipSourcePrefab;
@@ -232,41 +227,34 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     public static int BackpackSlotCount => instance != null ? instance.backpackData.Count : 0;
     public static int WarehouseSlotCount => instance != null ? instance.warehouseData.Count : 0;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
-    public static int EquipmentSkillRevision => instance != null ? instance.equipmentSkillRevision : 0;
-
-    public static string CurrentEquipmentCharacterId => instance != null ? instance.currentEquipmentCharacterId : string.Empty;
-
-    public static void SetDisplayedEquipmentCharacter(string characterId)
+    public static int GetWarehouseUsableSlotCount()
     {
-        if (instance == null)
-        {
-            return;
-        }
-
-        instance.manualEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        instance.SetCurrentEquipmentCharacter(instance.ResolveEquipmentCharacterId());
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Warehouse, null) : 0;
     }
 
-    public static void ClearDisplayedEquipmentCharacter()
+    public static void SetWarehouseUsableSlotCount(int count)
     {
-        if (instance == null)
-        {
-            return;
-        }
-
-        instance.manualEquipmentCharacterId = string.Empty;
-        instance.SetCurrentEquipmentCharacter(string.Empty);
+        instance?.SetUsableSlotCount(SlotKind.Warehouse, null, count);
     }
 
-    public static void ClearDisplayedEquipmentCharacterForBattle()
+    public static int GetBackpackUsableSlotCount()
     {
-        if (instance == null)
-        {
-            return;
-        }
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Backpack, null) : 0;
+    }
 
-        instance.manualEquipmentCharacterId = string.Empty;
-        instance.SetCurrentEquipmentCharacter(string.Empty);
+    public static void SetBackpackUsableSlotCount(int count)
+    {
+        instance?.SetUsableSlotCount(SlotKind.Backpack, null, count);
+    }
+
+    public static int GetEquipmentUsableSlotCount(string characterId)
+    {
+        return instance != null ? instance.GetResolvedUsableSlotCount(SlotKind.Equipment, characterId) : 0;
+    }
+
+    public static void SetEquipmentUsableSlotCount(string characterId, int count)
+    {
+        instance?.SetUsableSlotCount(SlotKind.Equipment, characterId, count);
     }
 
     public static void RefreshRuntimeWeaponModels()
@@ -362,10 +350,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        instance.backpackData[index] = NormalizeItemSlotData(data);
+        instance.backpackData[index] = PrepareItemSlotDataForStorage(data, $"背包格 {index}");
         instance.RefreshBackpackSlot(index);
-        instance.RefreshQuickSlot(index);
-        instance.RefreshBattleBackpackSlot(index);
+        instance.RefreshExtraBackpackSlots(index);
         return true;
     }
 
@@ -376,7 +363,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        instance.warehouseData[index] = NormalizeItemSlotData(data);
+        instance.warehouseData[index] = PrepareItemSlotDataForStorage(data, $"仓库格 {index}");
         instance.RefreshWarehouseSlot(index);
         return true;
     }
@@ -407,21 +394,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: true);
-        EnsureDataSize(equipment, Mathf.Max(instance.equipmentSlots.Count, index + 1));
+        EnsureDataSize(equipment, Mathf.Max(instance.GetExpectedEquipmentSlotCount(), index + 1));
         if (index >= equipment.Count)
         {
             return false;
         }
 
-        equipment[index] = NormalizeItemSlotData(data);
+        equipment[index] = PrepareItemSlotDataForStorage(data, $"装备栏 {characterId}:{index}");
         instance.RebuildEquipmentFootprintOccupancy(equipment);
-        instance.MarkEquipmentSkillsDirty();
-        if (string.Equals(instance.currentEquipmentCharacterId, characterId, StringComparison.Ordinal))
-        {
-            instance.RefreshEquipmentSlots();
-        }
-
-        instance.RefreshRuntimeWeaponModelForCharacter(characterId);
+        界面刷新中心.请求装备变更(characterId);
 
         return true;
     }
@@ -479,8 +460,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             instance.backpackData[i] = slot;
             remain -= add;
             instance.RefreshBackpackSlot(i);
-            instance.RefreshQuickSlot(i);
-            instance.RefreshBattleBackpackSlot(i);
+            instance.RefreshExtraBackpackSlots(i);
         }
 
         while (remain > 0)
@@ -546,6 +526,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static int ResolveMaxStack(string itemId, int fallback)
     {
         ItemDatabase.ItemEntry entry = ResolveItemEntry(itemId);
+        if (entry == null)
+        {
+            Debug.LogWarning($"[物品数据警告] 未找到物品定义，无法确认堆叠上限：{itemId}");
+        }
+
         return ResolveMaxStack(entry, fallback);
     }
 
@@ -559,16 +544,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return entry.category == ItemDatabase.ItemCategory.Equipment ? 1 : 5;
     }
 
-    private static ItemSlotData NormalizeItemSlotData(ItemSlotData data)
+    private static ItemSlotData PrepareItemSlotDataForStorage(ItemSlotData data, string context)
     {
         if (data.isFootprintExtension)
         {
-            data.itemId = string.Empty;
-            data.icon = null;
-            data.count = 0;
-            data.maxStack = 0;
-            data.primarySlotIndex = Mathf.Max(0, data.primarySlotIndex);
-            return data;
+            return new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = Mathf.Max(0, data.primarySlotIndex)
+            };
         }
 
         if (data.IsEmpty)
@@ -576,15 +560,41 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return default;
         }
 
+        ValidateItemSlotData(data, context);
         data.primarySlotIndex = -1;
-        data.count = Mathf.Max(1, data.count);
-        data.maxStack = ResolveMaxStack(data.itemId, data.maxStack);
-        if (data.count > data.maxStack)
+        return data;
+    }
+
+    private static void ValidateItemSlotData(ItemSlotData data, string context)
+    {
+        string area = string.IsNullOrWhiteSpace(context) ? "未知位置" : context;
+        if (string.IsNullOrWhiteSpace(data.itemId))
         {
-            data.count = data.maxStack;
+            Debug.LogWarning($"[物品数据警告] {area} 的格子数据缺少物品ID。");
         }
 
-        return data;
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (entry == null)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 引用了不存在的物品：{data.itemId}");
+            return;
+        }
+
+        int expectedMaxStack = ResolveMaxStack(entry, data.maxStack);
+        if (data.count <= 0)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的物品数量不合法：{data.itemId}，当前数量 {data.count}");
+        }
+
+        if (data.maxStack != expectedMaxStack)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的堆叠上限不匹配：{data.itemId}，当前 {data.maxStack}，应为 {expectedMaxStack}");
+        }
+
+        if (data.count > expectedMaxStack)
+        {
+            Debug.LogWarning($"[物品数据警告] {area} 的物品数量超过上限：{data.itemId}，数量 {data.count} / 上限 {expectedMaxStack}");
+        }
     }
 
     private static Sprite ResolveDisplaySpriteFromPrefab(GameObject prefab)
@@ -621,8 +631,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         instance.backpackData[slotIndex] = slot;
         instance.RefreshBackpackSlot(slotIndex);
-        instance.RefreshQuickSlot(slotIndex);
-        instance.RefreshBattleBackpackSlot(slotIndex);
+        instance.RefreshExtraBackpackSlots(slotIndex);
         return true;
     }
 
@@ -654,12 +663,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        界面刷新中心.全部界面刷新 += OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 += OnCurrentCharacterRefreshRequested;
+        界面刷新中心.仓储界面刷新 += OnStorageRefreshRequested;
+        界面刷新中心.装备变更 += OnEquipmentChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        界面刷新中心.全部界面刷新 -= OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 -= OnCurrentCharacterRefreshRequested;
+        界面刷新中心.仓储界面刷新 -= OnStorageRefreshRequested;
+        界面刷新中心.装备变更 -= OnEquipmentChanged;
         UnbindAll();
     }
 
@@ -670,14 +687,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void Update()
     {
-        string targetCharacterId = ResolveEquipmentCharacterId();
-        if (!string.Equals(currentEquipmentCharacterId, targetCharacterId, StringComparison.Ordinal))
-        {
-            SetCurrentEquipmentCharacter(targetCharacterId);
-        }
-
+        HandleHoveredItemRotation();
         UpdatePendingTooltip();
         UpdateTooltipLowerBackgroundState();
+    }
+
+    private void HandleHoveredItemRotation()
+    {
+        if (isDragging || !Input.GetKeyDown(KeyCode.R) || !hasHoveredRotateSlot)
+        {
+            return;
+        }
+
+        TryRotateHoveredOneByTwoItem();
     }
 
     private void UpdatePendingTooltip()
@@ -686,111 +708,139 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
-        journeyBindings = JourneySceneBindings.FindInActiveScene();
-        battleBindings = BattleSceneBindings.FindInActiveScene();
         CacheQualityBackgroundPrefabs();
         CacheItemTooltip(ItemDatabase.WeaponCategory.OneHanded, true);
-        CacheBackpackSlotTemplate();
         UnbindAll();
-
-        CollectWarehouseSlots();
-        CollectBackpackSlots();
+        CollectStorageSlots();
         CollectEquipmentSlots();
-        CollectBattleBackpackSlots();
 
-        EnsureDataSize(warehouseData, warehouseSlots.Count);
-        SetCurrentEquipmentCharacter(ResolveEquipmentCharacterId());
-
-        int backpackWidgetCount = Mathf.Max(backpackSlots.Count, quickSlots.Count);
-        backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
+        EnsureWarehouseDataSize();
+        int backpackWidgetCount = backpackSlots.Count;
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            backpackWidgetCount = Mathf.Max(backpackWidgetCount, extraBackpackSlots[i].Count);
+        }
         EnsureBackpackDataSize(backpackWidgetCount);
-
-        RectTransform quickAnchor = FindQuickAnchor();
-        RectTransform quickContainer = ResolveMirrorContainer(quickAnchor, QuickContainerPath);
-        if (quickContainer != null)
-        {
-            ApplyBackpackLayoutToMirrorAnchor(quickContainer);
-            EnsureMirrorSlots(quickContainer, quickSlots, "快捷格子");
-            CollectSlotsFromContainer(quickContainer, quickSlots);
-            backpackWidgetCount = Mathf.Max(backpackWidgetCount, quickSlots.Count);
-            EnsureBackpackDataSize(backpackWidgetCount);
-        }
-
-        RectTransform battleBackpackAnchor = FindBattleBackpackAnchor();
-        RectTransform battleContainer = ResolveMirrorContainer(battleBackpackAnchor, BattleBackpackMirrorContainerPath);
-        if (battleContainer != null)
-        {
-            ApplyBackpackLayoutToMirrorAnchor(battleContainer);
-            EnsureMirrorSlots(battleContainer, battleBackpackSlots, "战斗背包格子");
-            CollectSlotsFromContainer(battleContainer, battleBackpackSlots);
-            backpackWidgetCount = Mathf.Max(backpackWidgetCount, battleBackpackSlots.Count);
-            EnsureBackpackDataSize(backpackWidgetCount);
-        }
-
-        EnsureBattleBackpackDrag();
         BindCategoryFilters();
 
         BindDragRelays();
+    }
+
+    private void OnGlobalRefreshRequested()
+    {
         RefreshAll();
         RefreshAllRuntimeWeaponModelsInternal();
     }
 
-    private void CollectWarehouseSlots()
+    private void OnCurrentCharacterRefreshRequested(string characterId)
+    {
+        RefreshEquipmentSlots();
+    }
+
+    private void OnStorageRefreshRequested()
+    {
+        RefreshAll();
+    }
+
+    private void OnEquipmentChanged(string characterId)
+    {
+        RefreshAll();
+        RefreshRuntimeWeaponModelForCharacter(characterId);
+    }
+
+    private void CollectStorageSlots()
     {
         warehouseSlots.Clear();
-        Transform container = journeyBindings != null && journeyBindings.warehouseContainer != null
-            ? journeyBindings.warehouseContainer
-            : FindTransformByPath(WarehouseContainerPath);
-        if (container != null)
+        backpackSlots.Clear();
+        extraBackpackSlots.Clear();
+
+        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
+        for (int i = 0; i < bindings.Length; i++)
         {
-            CollectSlotsFromContainer(container, warehouseSlots);
+            物品格子区域绑定 binding = bindings[i];
+            if (binding == null)
+            {
+                continue;
+            }
+
+            RectTransform container = EnsureBoundSlotContainer(binding);
+            if (container == null)
+            {
+                continue;
+            }
+
+            int targetCount = Mathf.Max(FixedStorageSlotCount, binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库 ? warehouseData.Count : backpackData.Count);
+            EnsureBoundSlots(binding, container, targetCount);
+
+            if (binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库)
+            {
+                if (warehouseSlots.Count == 0)
+                {
+                    CollectSlotsFromContainer(container, warehouseSlots);
+                    ApplyStorageRightClickTarget(warehouseSlots, MapRightClickTarget(binding.右键拖拽目标));
+                }
+
+                continue;
+            }
+
+            if (backpackSlots.Count == 0)
+            {
+                CollectSlotsFromContainer(container, backpackSlots);
+                ApplyStorageRightClickTarget(backpackSlots, MapRightClickTarget(binding.右键拖拽目标));
+                CacheBackpackSlotTemplate();
+                continue;
+            }
+
+            List<SlotWidget> extraGroup = new List<SlotWidget>();
+            CollectSlotsFromContainer(container, extraGroup);
+            if (extraGroup.Count > 0)
+            {
+                ApplyStorageRightClickTarget(extraGroup, MapRightClickTarget(binding.右键拖拽目标));
+                extraBackpackSlots.Add(extraGroup);
+            }
         }
     }
 
-    private void CollectBackpackSlots()
+    private static StorageRightClickTarget MapRightClickTarget(物品格子区域绑定.右键拖拽目标类型 target)
     {
-        backpackSlots.Clear();
-        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
-            ? journeyBindings.backpackContainer
-            : FindTransformByPath(BackpackContainerPath);
-        if (container != null)
+        switch (target)
         {
-            CollectSlotsFromContainer(container, backpackSlots);
+            case 物品格子区域绑定.右键拖拽目标类型.背包:
+                return StorageRightClickTarget.Backpack;
+            case 物品格子区域绑定.右键拖拽目标类型.目标ID装备栏:
+                return StorageRightClickTarget.TargetIdEquipment;
+            case 物品格子区域绑定.右键拖拽目标类型.仓库:
+            default:
+                return StorageRightClickTarget.Warehouse;
+        }
+    }
+
+    private static void ApplyStorageRightClickTarget(List<SlotWidget> slots, StorageRightClickTarget target)
+    {
+        if (slots == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i] == null)
+            {
+                continue;
+            }
+
+            slots[i].rightClickTarget = target;
         }
     }
 
     private void CacheBackpackSlotTemplate()
     {
-        if (backpackSlots.Count > 0 && backpackSlots[0].root != null)
-        {
-            StoreBackpackTemplate(backpackSlots[0].root.gameObject);
-            return;
-        }
-
-        Transform container = journeyBindings != null && journeyBindings.backpackContainer != null
-            ? journeyBindings.backpackContainer
-            : FindTransformByPath(BackpackContainerPath);
-        if (container == null || container.childCount == 0)
+        if (backpackSlots.Count <= 0 || backpackSlots[0].root == null)
         {
             return;
         }
 
-        for (int i = 0; i < container.childCount; i++)
-        {
-            RectTransform child = container.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            if (!child.name.Contains(SlotNameKeyword) && child.GetComponent<Button>() == null)
-            {
-                continue;
-            }
-
-            StoreBackpackTemplate(child.gameObject);
-            return;
-        }
+        StoreBackpackTemplate(backpackSlots[0].root.gameObject);
     }
 
     private void StoreBackpackTemplate(GameObject source)
@@ -840,116 +890,149 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void CollectEquipmentSlots()
     {
         equipmentSlots.Clear();
-        Transform container = battleBindings != null && battleBindings.equipmentContainer != null
-            ? battleBindings.equipmentContainer
-            : journeyBindings != null && journeyBindings.equipmentContainer != null
-                ? journeyBindings.equipmentContainer
-                : FindTransformByPath(BattleEquipmentContainerPath) ?? FindTransformByPath(EquipmentContainerPath);
-        if (container != null)
+        extraEquipmentSlots.Clear();
+
+        装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
+        for (int i = 0; i < panelBindings.Length; i++)
         {
-            CollectEquipmentSlotsFromNamedChildren(container, equipmentSlots);
+            装备面板绑定 binding = panelBindings[i];
+            if (binding == null)
+            {
+                continue;
+            }
+
+            List<SlotWidget> collected = new List<SlotWidget>();
+            CollectEquipmentSlotsFromBinding(binding, collected);
+            if (collected.Count == 0)
+            {
+                continue;
+            }
+
+            ApplyStorageRightClickTarget(collected, MapEquipmentReturnTarget(binding.ReturnTarget));
+
+            if (equipmentSlots.Count == 0)
+            {
+                equipmentSlots.AddRange(collected);
+                continue;
+            }
+
+            extraEquipmentSlots.Add(collected);
         }
     }
 
-    private void CollectBattleBackpackSlots()
+    private static StorageRightClickTarget MapEquipmentReturnTarget(装备面板绑定.回流目标类型 target)
     {
-        battleBackpackSlots.Clear();
-        Transform container = battleBindings != null && battleBindings.battleBackpackContainer != null
-            ? battleBindings.battleBackpackContainer
-            : FindTransformByPath(BattleBackpackContainerPath);
-        if (container != null)
+        return target == 装备面板绑定.回流目标类型.仓库
+            ? StorageRightClickTarget.Warehouse
+            : StorageRightClickTarget.Backpack;
+    }
+
+    private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
+    {
+        if (binding == null)
         {
-            CollectSlotsFromContainer(container, battleBackpackSlots);
+            return null;
+        }
+
+        return binding.已绑定格子容器;
+    }
+
+    private void EnsureBoundSlots(物品格子区域绑定 binding, RectTransform container, int desiredCount)
+    {
+        if (binding == null || container == null)
+        {
+            return;
+        }
+
+        int normalizedCount = Mathf.Max(0, desiredCount);
+        if (normalizedCount <= 0)
+        {
+            return;
+        }
+
+        GameObject template = ResolveBoundSlotTemplate(binding, container);
+        if (template == null)
+        {
+            return;
+        }
+
+        int currentCount = CountRecognizableSlots(container);
+        if (currentCount == normalizedCount)
+        {
+            return;
+        }
+
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            Destroy(container.GetChild(i).gameObject);
+        }
+
+        for (int i = 0; i < normalizedCount; i++)
+        {
+            GameObject go = Instantiate(template, container, false);
+            go.name = "格子 (" + (i + 1) + ")";
+            SetActiveRecursively(go, true);
+            if (go.transform is RectTransform rt)
+            {
+                rt.localScale = Vector3.one;
+            }
         }
     }
 
-    private RectTransform FindQuickAnchor()
+    private static GameObject ResolveBoundSlotTemplate(物品格子区域绑定 binding, RectTransform container)
     {
-        RectTransform resolvedByPath = FindTransformByPath(QuickAnchorPath) as RectTransform;
-        if (resolvedByPath != null)
+        if (binding != null && binding.格子模板 != null)
         {
-            return resolvedByPath;
+            return binding.格子模板;
         }
 
-        if (journeyBindings != null && journeyBindings.quickSlotAnchor != null)
+        if (container == null)
         {
-            return journeyBindings.quickSlotAnchor;
+            return null;
+        }
+
+        for (int i = 0; i < container.childCount; i++)
+        {
+            Transform child = container.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            bool looksLikeSlot = child.name.Contains(SlotNameKeyword);
+            bool hasButton = child.GetComponent<Button>() != null;
+            if (looksLikeSlot || hasButton)
+            {
+                return child.gameObject;
+            }
         }
 
         return null;
     }
 
-    private RectTransform FindBattleBackpackAnchor()
+    private static int CountRecognizableSlots(RectTransform container)
     {
-        if (battleBindings != null && battleBindings.battleBackpackContainer != null)
+        if (container == null)
         {
-            return battleBindings.battleBackpackContainer;
+            return 0;
         }
 
-        return FindTransformByPath(BattleBackpackContainerPath) as RectTransform;
-    }
-
-    private static RectTransform EnsureSlotContainer(RectTransform anchor)
-    {
-        if (anchor == null)
+        int count = 0;
+        for (int i = 0; i < container.childCount; i++)
         {
-            return null;
+            Transform child = container.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (child.name.Contains(SlotNameKeyword) || child.GetComponent<Button>() != null)
+            {
+                count++;
+            }
         }
 
-        if (string.Equals(anchor.name, SlotContainerName, StringComparison.Ordinal))
-        {
-            return anchor;
-        }
-
-        Transform existing = FindChildByName(anchor, SlotContainerName);
-        if (existing is RectTransform existingRect)
-        {
-            return existingRect;
-        }
-
-        GameObject go = new GameObject(SlotContainerName, typeof(RectTransform));
-        RectTransform container = go.GetComponent<RectTransform>();
-        container.SetParent(anchor, false);
-        container.anchorMin = Vector2.zero;
-        container.anchorMax = Vector2.one;
-        container.pivot = new Vector2(0.5f, 0.5f);
-        container.anchoredPosition = Vector2.zero;
-        container.sizeDelta = Vector2.zero;
-        container.localScale = Vector3.one;
-        return container;
-    }
-
-    private RectTransform ResolveMirrorContainer(RectTransform anchor, string containerPath)
-    {
-        RectTransform existingByPath = FindTransformByPath(containerPath) as RectTransform;
-        if (existingByPath != null)
-        {
-            return existingByPath;
-        }
-
-        return EnsureSlotContainer(anchor);
-    }
-
-    private void EnsureBattleBackpackDrag()
-    {
-        RectTransform dragTarget = battleBindings != null && battleBindings.battleBackpackContent != null
-            ? battleBindings.battleBackpackContent
-            : FindTransformByPath(BattleBackpackContentPath) as RectTransform;
-        RectTransform dragHandle = battleBindings != null && battleBindings.battleBackpackDragHandle != null
-            ? battleBindings.battleBackpackDragHandle
-            : FindTransformByPath(BattleBackpackDragHandlePath) as RectTransform;
-        if (dragTarget == null || dragHandle == null)
-        {
-            return;
-        }
-
-        UIDragPanel dragPanel = dragHandle.GetComponent<UIDragPanel>();
-        if (dragPanel == null)
-        {
-            dragPanel = dragHandle.gameObject.AddComponent<UIDragPanel>();
-        }
-
-        dragPanel.SetDragTarget(dragTarget);
+        return count;
     }
 
     private static Transform FindTransformByPath(string path)
@@ -1236,88 +1319,52 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private static void CollectEquipmentSlotsFromNamedChildren(Transform container, List<SlotWidget> target)
+    private static void CollectEquipmentSlotsFromBinding(装备面板绑定 binding, List<SlotWidget> target)
     {
         target.Clear();
-        if (container == null)
+        if (binding == null)
         {
             return;
         }
 
-        for (int i = 0; i < EquipmentSlotNames.Length; i++)
-        {
-            string slotName = EquipmentSlotNames[i];
-            Transform slotTransform = FindEquipmentSlotTransform(container, slotName);
-            RectTransform slotRoot = slotTransform as RectTransform;
-            if (slotRoot == null)
-            {
-                continue;
-            }
-
-            Button button = slotRoot.GetComponent<Button>();
-            RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
-            RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
-            Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
-            if (icon == null)
-            {
-                continue;
-            }
-
-            target.Add(new SlotWidget
-            {
-                root = slotRoot,
-                button = button,
-                backgroundAnchor = backgroundAnchor,
-                iconAnchor = iconAnchor,
-                icon = icon,
-                iconIsRoot = icon.transform == slotRoot,
-                iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite,
-                equipmentSlotType = ResolveEquipmentSlotType(EquipmentSlotNames[i])
-            });
-        }
+        AddEquipmentSlotWidget(target, binding.HelmetSlot, ItemDatabase.EquipmentSlotType.Helmet);
+        AddEquipmentSlotWidget(target, binding.ArmorSlot, ItemDatabase.EquipmentSlotType.Armor);
+        AddEquipmentSlotWidget(target, binding.GlovesSlot, ItemDatabase.EquipmentSlotType.Gloves);
+        AddEquipmentSlotWidget(target, binding.ShoesSlot, ItemDatabase.EquipmentSlotType.Shoes);
+        AddEquipmentSlotWidget(target, binding.LegArmorSlot, ItemDatabase.EquipmentSlotType.LegArmor);
+        AddEquipmentSlotWidget(target, binding.AccessorySlot, ItemDatabase.EquipmentSlotType.Accessory);
+        AddEquipmentSlotWidget(target, binding.MainHandSlot, ItemDatabase.EquipmentSlotType.MainHand);
+        AddEquipmentSlotWidget(target, binding.OffHandSlot, ItemDatabase.EquipmentSlotType.OffHand);
     }
 
-    private static Transform FindEquipmentSlotTransform(Transform container, string slotName)
+    private static void AddEquipmentSlotWidget(List<SlotWidget> target, RectTransform slotRoot, ItemDatabase.EquipmentSlotType slotType)
     {
-        if (container == null || string.IsNullOrWhiteSpace(slotName))
+        if (target == null || slotRoot == null)
         {
-            return null;
+            return;
         }
 
-        string slotNameWithSuffix = slotName + "栏位";
-
-        return FindChildByName(container, slotName) ??
-            FindChildByName(container, slotNameWithSuffix) ??
-            FindDescendantByName(container, slotName) ??
-            FindDescendantByName(container, slotNameWithSuffix);
-    }
-
-    private static ItemDatabase.EquipmentSlotType ResolveEquipmentSlotType(string slotName)
-    {
-        switch (slotName)
+        Button button = slotRoot.GetComponent<Button>();
+        RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
+        RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
+        Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
+        if (icon == null)
         {
-            case "主手":
-                return ItemDatabase.EquipmentSlotType.MainHand;
-            case "副手":
-                return ItemDatabase.EquipmentSlotType.OffHand;
-            case "主副手":
-                return ItemDatabase.EquipmentSlotType.MainOrOffHand;
-            case "头盔":
-                return ItemDatabase.EquipmentSlotType.Helmet;
-            case "胸甲":
-                return ItemDatabase.EquipmentSlotType.Armor;
-            case "手套":
-                return ItemDatabase.EquipmentSlotType.Gloves;
-            case "鞋子":
-                return ItemDatabase.EquipmentSlotType.Shoes;
-            case "腿甲":
-                return ItemDatabase.EquipmentSlotType.LegArmor;
-            case "饰品":
-                return ItemDatabase.EquipmentSlotType.Accessory;
-            default:
-                return ItemDatabase.EquipmentSlotType.None;
+            return;
         }
+
+        target.Add(new SlotWidget
+        {
+            root = slotRoot,
+            button = button,
+            backgroundAnchor = backgroundAnchor,
+            iconAnchor = iconAnchor,
+            icon = icon,
+            iconIsRoot = icon.transform == slotRoot,
+            iconOriginalColor = icon.color,
+            iconOriginalSprite = icon.sprite,
+            equipmentSlotType = slotType
+        });
     }
 
     private static Image FindBestIconImage(RectTransform slotRoot)
@@ -1408,23 +1455,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string ResolveEquipmentCharacterId()
     {
-        if (!string.IsNullOrWhiteSpace(manualEquipmentCharacterId))
+        string currentId = 界面ID列表.当前ID;
+        if (!string.IsNullOrWhiteSpace(currentId))
         {
-            return manualEquipmentCharacterId;
-        }
-
-        if (FindObjectOfType<BattleTurnSystem>(true) == null)
-        {
-            string characterId = CharacterSelectionState.ActiveCharacterId;
-            if (!string.IsNullOrWhiteSpace(characterId))
-            {
-                return characterId;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
-        {
-            return currentEquipmentCharacterId;
+            return currentId;
         }
 
         return string.Empty;
@@ -1501,13 +1535,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            result[i] = NormalizeItemSlotData(new ItemSlotData
+            result[i] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 itemId = itemId,
                 icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab),
                 count = 1,
                 maxStack = 1
-            });
+            }, $"敌人装备栏 {characterId}:{i}");
         }
 
         boundEnemyEquipmentDataCache[characterId] = result;
@@ -1516,7 +1550,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private int GetExpectedEquipmentSlotCount()
     {
-        return equipmentSlots.Count > 0 ? equipmentSlots.Count : EquipmentSlotNames.Length;
+        if (equipmentSlots.Count > 0)
+        {
+            return equipmentSlots.Count;
+        }
+
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            List<SlotWidget> slotGroup = extraEquipmentSlots[i];
+            if (slotGroup != null && slotGroup.Count > 0)
+            {
+                return slotGroup.Count;
+            }
+        }
+
+        return 8;
     }
 
     private static List<ItemSlotData> CloneItemSlotDataList(List<ItemSlotData> source)
@@ -1526,25 +1574,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private List<ItemSlotData> GetCurrentEquipmentData(bool createIfMissing)
     {
-        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        string equipmentCharacterId = ResolveEquipmentCharacterId();
+        if (string.IsNullOrWhiteSpace(equipmentCharacterId))
         {
             return null;
         }
 
-        return GetEquipmentDataForCharacter(currentEquipmentCharacterId, createIfMissing);
-    }
-
-    private void SetCurrentEquipmentCharacter(string characterId)
-    {
-        currentEquipmentCharacterId = string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        List<ItemSlotData> currentData = GetCurrentEquipmentData(true);
-        if (currentData != null)
-        {
-            EnsureDataSize(currentData, equipmentSlots.Count);
-        }
-
-        RefreshEquipmentSlots();
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        return GetEquipmentDataForCharacter(equipmentCharacterId, createIfMissing);
     }
 
     private void EnsureBackpackDataSize(int size)
@@ -1555,13 +1591,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
     }
 
+    private void EnsureWarehouseDataSize()
+    {
+        while (warehouseData.Count < FixedStorageSlotCount)
+        {
+            warehouseData.Add(default);
+        }
+    }
+
     private void BindDragRelays()
     {
         BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse, SlotSurface.Warehouse);
         BindDragRelaysForList(backpackSlots, SlotKind.Backpack, SlotSurface.WarehouseBackpack);
-        BindDragRelaysForList(quickSlots, SlotKind.Backpack, SlotSurface.QuickBackpack);
-        BindDragRelaysForList(battleBackpackSlots, SlotKind.Backpack, SlotSurface.BattleBackpack);
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            BindDragRelaysForList(extraBackpackSlots[i], SlotKind.Backpack, SlotSurface.WarehouseBackpack);
+        }
         BindDragRelaysForList(equipmentSlots, SlotKind.Equipment, SlotSurface.Equipment);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            BindDragRelaysForList(extraEquipmentSlots[i], SlotKind.Equipment, SlotSurface.Equipment);
+        }
     }
 
     private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind, SlotSurface surface)
@@ -1587,6 +1637,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void HandleBeginDrag(SlotKind kind, int index, PointerEventData eventData)
     {
         if (isDragging)
+        {
+            return;
+        }
+
+        if (!IsSlotUsable(kind, index))
         {
             return;
         }
@@ -1640,6 +1695,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!IsSlotUsable(kind, index))
+        {
+            return;
+        }
+
         SlotRef rawTarget = new SlotRef { kind = kind, index = index };
         if (!TryGetSlotData(rawTarget, out _))
         {
@@ -1658,7 +1718,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        TryTransferItem(draggingSource, rawTarget, sourceData);
+        if (TryTransferItem(draggingSource, rawTarget, sourceData))
+        {
+            hoveredRotateSlot = ResolvePrimarySlotRef(rawTarget);
+            hasHoveredRotateSlot = true;
+        }
     }
 
     private void HandlePointerEnter(SlotKind kind, int index, PointerEventData eventData)
@@ -1668,12 +1732,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
+        if (!IsSlotUsable(kind, index))
         {
+            ClearHoveredRotateSlot();
             HideItemTooltip();
             return;
         }
+
+        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
+        if (!TryGetSlotData(slot, out ItemSlotData data) || string.IsNullOrWhiteSpace(data.itemId))
+        {
+            ClearHoveredRotateSlot();
+            HideItemTooltip();
+            return;
+        }
+
+        hoveredRotateSlot = slot;
+        hasHoveredRotateSlot = true;
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
         if (!ShouldShowWeaponTooltip(entry))
@@ -1703,6 +1778,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void HandlePointerExit(SlotKind kind, int index, PointerEventData eventData)
     {
+        SlotRef slot = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
+        if (hasHoveredRotateSlot &&
+            hoveredRotateSlot.kind == slot.kind &&
+            hoveredRotateSlot.index == slot.index)
+        {
+            ClearHoveredRotateSlot();
+        }
+
         SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(new SlotRef { kind = kind, index = index });
         if (widget == null || widget.root == null)
         {
@@ -1720,13 +1803,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        if (!IsSlotUsable(kind, index))
+        {
+            return;
+        }
+
         SlotRef source = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
         if (!TryGetSlotData(source, out ItemSlotData sourceData) || sourceData.IsEmpty)
         {
             return;
         }
 
-        if (!TryHandleRightClickMove(source, surface, sourceData))
+        SlotWidget widget = ResolveHoveredWidget(new SlotRef { kind = kind, index = index }, eventData) ?? GetWidget(source);
+        if (!TryHandleRightClickMove(source, surface, widget != null ? widget.rightClickTarget : StorageRightClickTarget.Warehouse, sourceData))
         {
             return;
         }
@@ -1734,19 +1823,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         eventData.Use();
     }
 
-    private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, ItemSlotData sourceData)
+    private bool TryHandleRightClickMove(SlotRef source, SlotSurface surface, StorageRightClickTarget target, ItemSlotData sourceData)
     {
         switch (surface)
         {
             case SlotSurface.Warehouse:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
             case SlotSurface.WarehouseBackpack:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
-            case SlotSurface.QuickBackpack:
-            case SlotSurface.BattleBackpack:
-                return TryAutoEquipFromBackpack(source, sourceData);
+                switch (target)
+                {
+                    case StorageRightClickTarget.Backpack:
+                        return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+                    case StorageRightClickTarget.TargetIdEquipment:
+                        return TryAutoEquipToTargetEquipment(source, sourceData);
+                    case StorageRightClickTarget.Warehouse:
+                    default:
+                        return TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData);
+                }
             case SlotSurface.Equipment:
-                return TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
+                return target == StorageRightClickTarget.Warehouse
+                    ? TryAutoMoveToFirstEmpty(source, SlotKind.Warehouse, sourceData)
+                    : TryAutoMoveToFirstEmpty(source, SlotKind.Backpack, sourceData);
             default:
                 return false;
         }
@@ -1756,7 +1852,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         source = ResolvePrimarySlotRef(source);
         sourceData = GetResolvedSlotData(source);
-        int targetIndex = FindFirstAvailableSlotIndex(targetKind, ResolveItemEntry(sourceData.itemId));
+        int targetIndex = FindFirstAvailableSlotIndex(targetKind, sourceData);
         if (targetIndex < 0)
         {
             return false;
@@ -1766,9 +1862,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return TryTransferItem(source, target, sourceData);
     }
 
-    private bool TryAutoEquipFromBackpack(SlotRef source, ItemSlotData sourceData)
+    private bool TryAutoEquipToTargetEquipment(SlotRef source, ItemSlotData sourceData)
     {
-        if (string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
+        string targetCharacterId = ResolveEquipmentCharacterId();
+        if (string.IsNullOrWhiteSpace(targetCharacterId))
         {
             return false;
         }
@@ -1828,7 +1925,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         List<ItemSlotData> dataList = GetDataList(kind);
         for (int i = dataList.Count - 1; i >= 0; i--)
         {
-            if (dataList[i].IsEmpty)
+            if (IsSlotUsable(kind, i) && dataList[i].IsEmpty)
             {
                 return i;
             }
@@ -1843,6 +1940,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         for (int i = dataList.Count - 1; i >= 0; i--)
         {
             if (CanPlaceItemAtIndex(kind, i, entry, dataList))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindFirstAvailableSlotIndex(SlotKind kind, ItemSlotData data)
+    {
+        List<ItemSlotData> dataList = GetDataList(kind);
+        for (int i = dataList.Count - 1; i >= 0; i--)
+        {
+            if (CanPlaceDataAt(kind, i, data, dataList))
             {
                 return i;
             }
@@ -2062,11 +2173,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        list[slot.index] = NormalizeItemSlotData(data);
+        list[slot.index] = PrepareItemSlotDataForStorage(data, $"{slot.kind} {slot.index}");
         if (slot.kind == SlotKind.Equipment)
         {
             RebuildEquipmentFootprintOccupancy(list);
-            MarkEquipmentSkillsDirty();
         }
     }
 
@@ -2244,13 +2354,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return matched;
             }
 
-            matched = FindWidgetByTransform(quickSlots, target);
-            if (matched != null)
+            for (int i = 0; i < extraBackpackSlots.Count; i++)
             {
-                return matched;
+                matched = FindWidgetByTransform(extraBackpackSlots[i], target);
+                if (matched != null)
+                {
+                    return matched;
+                }
             }
 
-            return FindWidgetByTransform(battleBackpackSlots, target);
+            return null;
         }
 
         if (kind == SlotKind.Warehouse)
@@ -2258,7 +2371,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return FindWidgetByTransform(warehouseSlots, target);
         }
 
-        return FindWidgetByTransform(equipmentSlots, target);
+        SlotWidget equipmentWidget = FindWidgetByTransform(equipmentSlots, target);
+        if (equipmentWidget != null)
+        {
+            return equipmentWidget;
+        }
+
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            equipmentWidget = FindWidgetByTransform(extraEquipmentSlots[i], target);
+            if (equipmentWidget != null)
+            {
+                return equipmentWidget;
+            }
+        }
+
+        return null;
     }
 
     private static SlotWidget FindWidgetByTransform(List<SlotWidget> widgets, Transform target)
@@ -2344,7 +2472,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             PlaceDataAt(displacedPlacements[i], displacedItems[i]);
         }
 
-        RefreshAll();
+        if (source.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Equipment)
+        {
+            界面刷新中心.请求装备变更(ResolveEquipmentCharacterId());
+        }
+        else
+        {
+            界面刷新中心.请求刷新仓储界面();
+        }
         ItemSoundUtility.PlayForItem(sourceData.itemId);
         return true;
     }
@@ -2377,7 +2512,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         sourceData.count -= canMove;
         SetSlotData(target, targetData);
         SetSlotData(source, sourceData.count > 0 ? sourceData : default);
-        RefreshAll();
+        界面刷新中心.请求刷新仓储界面();
         ItemSoundUtility.PlayForItem(targetData.itemId);
         return true;
     }
@@ -2428,20 +2563,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        if (!ShouldUseBackpackFallbackForDisplacedItems(source, placementTarget, displacedItems))
-        {
-            return false;
-        }
-
-        List<int> fallbackCells = GetBackpackFallbackCandidateCells(sourceCells, sourceSim);
-        workingPlacements.Clear();
-        if (!TryResolveDisplacedPlacementsRecursive(SlotKind.Backpack, displacedItems, 0, fallbackCells, sourceSim, workingPlacements))
-        {
-            return false;
-        }
-
-        displacedPlacements.AddRange(workingPlacements);
-        return true;
+        return false;
     }
 
     private bool TryResolveDisplacedPlacementsRecursive(
@@ -2478,42 +2600,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return false;
-    }
-
-    private bool ShouldUseBackpackFallbackForDisplacedItems(SlotRef source, SlotRef placementTarget, List<ItemSlotData> displacedItems)
-    {
-        return source.kind == SlotKind.Backpack
-            && (placementTarget.kind == SlotKind.Equipment || placementTarget.kind == SlotKind.Backpack)
-            && displacedItems != null
-            && displacedItems.Count > 0;
-    }
-
-    private List<int> GetBackpackFallbackCandidateCells(List<int> preferredCells, List<ItemSlotData> backpackData)
-    {
-        List<int> candidates = new List<int>();
-        HashSet<int> seen = new HashSet<int>();
-
-        if (preferredCells != null)
-        {
-            for (int i = 0; i < preferredCells.Count; i++)
-            {
-                int index = preferredCells[i];
-                if (index >= 0 && index < backpackData.Count && seen.Add(index))
-                {
-                    candidates.Add(index);
-                }
-            }
-        }
-
-        for (int i = backpackData.Count - 1; i >= 0; i--)
-        {
-            if (seen.Add(i))
-            {
-                candidates.Add(i);
-            }
-        }
-
-        return candidates;
     }
 
     private bool ShouldUseRawTargetSlotForDrop(ItemSlotData sourceData, ItemSlotData targetRawData)
@@ -2611,7 +2697,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return CanUseEquipmentSlotIndex(index, widget.equipmentSlotType, requireEmpty: false, entry, list);
         }
 
-        return CanPlaceItemAtIndex(kind, index, ResolveItemEntry(data.itemId), list);
+        if (index < 0 || index >= list.Count || !IsSlotUsable(kind, index) || !list[index].IsEmpty)
+        {
+            return false;
+        }
+
+        ItemDatabase.ItemEntry storageEntry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(storageEntry))
+        {
+            return true;
+        }
+
+        int extensionIndex = GetExtensionIndexForData(kind, index, data);
+        return extensionIndex >= 0 &&
+            extensionIndex < list.Count &&
+            IsSlotUsable(kind, extensionIndex) &&
+            list[extensionIndex].IsEmpty;
     }
 
     private void PlaceDataAt(SlotRef target, ItemSlotData data)
@@ -2624,6 +2725,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (target.kind == SlotKind.Equipment)
         {
+            data.isRotated = false;
             SetFootprintDataAt(target.kind, target.index, data);
             return;
         }
@@ -2649,16 +2751,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {index}");
         list[index] = normalizedPrimary;
         int extensionIndex = GetExtensionIndexForData(kind, index, normalizedPrimary);
         if (extensionIndex >= 0 && extensionIndex < list.Count)
         {
-            list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+            list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 isFootprintExtension = true,
                 primarySlotIndex = index
-            });
+            }, $"{kind} 扩展格 {extensionIndex}");
         }
 
         if (kind == SlotKind.Equipment)
@@ -2714,7 +2816,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex) : -1;
+        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated) : -1;
     }
 
     private List<int> GetFootprintCellIndices(SlotKind kind, int primaryIndex, ItemSlotData data)
@@ -2773,8 +2875,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(sourceData.itemId);
-        if (!CanPlaceItemAtIndex(target.kind, target.index, entry, targetList))
+        if (!CanPlaceDataAt(target.kind, target.index, sourceData, targetList))
         {
             return false;
         }
@@ -2813,6 +2914,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             SetSlotData(source, targetData);
         }
 
+        sourceData.isRotated = false;
         SetSlotData(target, sourceData);
         RefreshFootprintSlots(source.kind, source.index, sourceData);
         RefreshByRef(target);
@@ -2906,11 +3008,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return;
             }
 
-            equipmentData[offHandIndex] = NormalizeItemSlotData(new ItemSlotData
+            equipmentData[offHandIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
             {
                 isFootprintExtension = true,
                 primarySlotIndex = i
-            });
+            }, $"装备栏扩展格 {offHandIndex}");
             return;
         }
     }
@@ -2951,7 +3053,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
     {
         dataList = dataList ?? GetDataList(kind);
-        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !dataList[primaryIndex].IsEmpty)
+        if (primaryIndex < 0 || primaryIndex >= dataList.Count || !IsSlotUsable(kind, primaryIndex) || !dataList[primaryIndex].IsEmpty)
         {
             return false;
         }
@@ -2961,8 +3063,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return true;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, false);
         return extensionIndex >= 0 &&
+            IsSlotUsable(kind, extensionIndex) &&
             extensionIndex < dataList.Count &&
             dataList[extensionIndex].IsEmpty;
     }
@@ -2975,7 +3078,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        ItemSlotData normalizedPrimary = NormalizeItemSlotData(data);
+        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {primaryIndex}");
         list[primaryIndex] = normalizedPrimary;
 
         ItemDatabase.ItemEntry entry = ResolveItemEntry(normalizedPrimary.itemId);
@@ -2984,17 +3087,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, normalizedPrimary.isRotated);
         if (extensionIndex < 0 || extensionIndex >= list.Count)
         {
             return;
         }
 
-        list[extensionIndex] = NormalizeItemSlotData(new ItemSlotData
+        list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
         {
             isFootprintExtension = true,
             primarySlotIndex = primaryIndex
-        });
+        }, $"{kind} 扩展格 {extensionIndex}");
     }
 
     private void ClearFootprintAt(SlotKind kind, int primaryIndex, ItemSlotData data)
@@ -3012,7 +3115,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
+        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated);
         if (extensionIndex >= 0 && extensionIndex < list.Count)
         {
             list[extensionIndex] = default;
@@ -3022,20 +3125,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private void RefreshFootprintSlots(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
         RefreshByRef(new SlotRef { kind = kind, index = primaryIndex });
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (!IsOneByTwoItem(entry))
+        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
+        if (extensionIndex < 0)
         {
             return;
         }
 
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex);
-        if (extensionIndex >= 0)
-        {
-            RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
-        }
+        RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
     }
 
-    private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex)
+    private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex, bool isRotated)
     {
         if (kind == SlotKind.Equipment)
         {
@@ -3046,6 +3145,13 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (columnCount <= 0)
         {
             return -1;
+        }
+
+        if (isRotated)
+        {
+            int rowStart = primaryIndex - (primaryIndex % columnCount);
+            int horizontalExtensionIndex = primaryIndex - 1;
+            return horizontalExtensionIndex >= rowStart ? horizontalExtensionIndex : -1;
         }
 
         int verticalStep = UsesLowerStartCorner(kind) ? -columnCount : columnCount;
@@ -3134,6 +3240,71 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return IsOneByTwoItem(ResolveItemEntry(data.itemId));
     }
 
+    private void ClearHoveredRotateSlot()
+    {
+        hasHoveredRotateSlot = false;
+        hoveredRotateSlot = default;
+    }
+
+    private void TryRotateHoveredOneByTwoItem()
+    {
+        SlotRef source = ResolvePrimarySlotRef(hoveredRotateSlot);
+        if (!TryGetSlotData(source, out ItemSlotData data) || data.IsEmpty || source.kind == SlotKind.Equipment)
+        {
+            return;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
+        if (!IsOneByTwoItem(entry))
+        {
+            return;
+        }
+
+        List<ItemSlotData> list = GetDataList(source.kind);
+        if (list == null)
+        {
+            return;
+        }
+
+        ItemSlotData rotatedData = data;
+        rotatedData.isRotated = !rotatedData.isRotated;
+
+        List<ItemSlotData> working = CloneItemSlotDataList(list);
+        ClearPlacement(source.kind, source.index, data, working);
+        if (!CanPlaceDataAt(source.kind, source.index, rotatedData, working))
+        {
+            return;
+        }
+
+        int oldExtensionIndex = GetExtensionIndexForData(source.kind, source.index, data);
+        int newExtensionIndex = GetExtensionIndexForData(source.kind, source.index, rotatedData);
+        List<ItemSlotData> liveData = GetDataList(source.kind);
+        if (liveData == null || source.index < 0 || source.index >= liveData.Count)
+        {
+            return;
+        }
+
+        liveData[source.index] = PrepareItemSlotDataForStorage(rotatedData, $"{source.kind} {source.index}");
+        if (newExtensionIndex >= 0 && newExtensionIndex < liveData.Count)
+        {
+            liveData[newExtensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = source.index
+            }, $"{source.kind} 扩展格 {newExtensionIndex}");
+        }
+
+        if (oldExtensionIndex >= 0 &&
+            oldExtensionIndex < liveData.Count &&
+            oldExtensionIndex != newExtensionIndex)
+        {
+            liveData[oldExtensionIndex] = default;
+        }
+
+        RefreshFootprintSlots(source.kind, source.index, rotatedData);
+        ItemSoundUtility.PlayForItem(rotatedData.itemId);
+    }
+
     private List<SlotWidget> GetWidgetList(SlotKind kind)
     {
         if (kind == SlotKind.Warehouse)
@@ -3148,20 +3319,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return backpackSlots;
             }
 
-            if (quickSlots.Count > 0)
+            if (extraBackpackSlots.Count > 0)
             {
-                return quickSlots;
+                return extraBackpackSlots[0];
             }
 
-            return battleBackpackSlots;
+            return backpackSlots;
         }
 
         return equipmentSlots;
-    }
-
-    private void MarkEquipmentSkillsDirty()
-    {
-        equipmentSkillRevision++;
     }
 
     private static bool ShouldShowWeaponTooltip(ItemDatabase.ItemEntry entry)
@@ -3234,10 +3400,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ItemDatabase.ItemEntry weaponEntry = GetCharacterWeaponEntry(characterId);
         if (weaponEntry == null)
         {
-            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            return null;
         }
 
-        ItemDatabase.EnsureValidWeaponDamageDistribution(weaponEntry);
+        if (!HasValidWeaponDamageDistribution(weaponEntry))
+        {
+            Debug.LogWarning($"[物品数据警告] 武器伤害分布未配置或总和不合法：{weaponEntry.itemId}");
+            return null;
+        }
+
         return CloneWeaponDamageDistribution(weaponEntry.weaponDamageDistribution);
     }
 
@@ -3338,7 +3509,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         if (distribution == null)
         {
-            return ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            return null;
         }
 
         return new ItemDatabase.WeaponDamageDistribution
@@ -3348,6 +3519,21 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             corruption = distribution.corruption,
             cold = distribution.cold
         };
+    }
+
+    private static bool HasValidWeaponDamageDistribution(ItemDatabase.ItemEntry entry)
+    {
+        if (entry == null || entry.weaponDamageDistribution == null)
+        {
+            return false;
+        }
+
+        ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
+        return distribution.physical >= 0 &&
+            distribution.fire >= 0 &&
+            distribution.corruption >= 0 &&
+            distribution.cold >= 0 &&
+            distribution.Total == 100;
     }
 
     private List<string> BuildGrantedSkillList(string characterId)
@@ -3434,8 +3620,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (slot.kind == SlotKind.Backpack)
         {
             RefreshBackpackSlot(slot.index);
-            RefreshQuickSlot(slot.index);
-            RefreshBattleBackpackSlot(slot.index);
+            RefreshExtraBackpackSlots(slot.index);
             return;
         }
 
@@ -3454,19 +3639,152 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             RefreshBackpackSlot(i);
         }
 
+        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
+        {
+            List<SlotWidget> group = extraBackpackSlots[groupIndex];
+            int count = Mathf.Min(group.Count, backpackData.Count);
+            for (int i = 0; i < count; i++)
+            {
+                RefreshExtraBackpackSlot(group, i);
+            }
+        }
+
         RefreshEquipmentSlots();
+    }
 
-        int mirrorCount = Mathf.Min(quickSlots.Count, backpackData.Count);
-        for (int i = 0; i < mirrorCount; i++)
+    private void SetUsableSlotCount(SlotKind kind, string characterId, int count)
+    {
+        int normalized = Mathf.Max(0, count);
+        switch (kind)
         {
-            RefreshQuickSlot(i);
+            case SlotKind.Warehouse:
+                warehouseUsableSlotCount = normalized;
+                break;
+            case SlotKind.Backpack:
+                backpackUsableSlotCount = normalized;
+                break;
+            case SlotKind.Equipment:
+                equipmentUsableSlotCounts[ResolveEquipmentCountCharacterKey(characterId)] = normalized;
+                break;
         }
 
-        int battleMirrorCount = Mathf.Min(battleBackpackSlots.Count, backpackData.Count);
-        for (int i = 0; i < battleMirrorCount; i++)
+        RefreshAll();
+    }
+
+    private int GetResolvedUsableSlotCount(SlotKind kind, string characterId)
+    {
+        int totalCount = GetSlotCountForKind(kind);
+        if (totalCount <= 0)
         {
-            RefreshBattleBackpackSlot(i);
+            return 0;
         }
+
+        int configuredCount;
+        switch (kind)
+        {
+            case SlotKind.Warehouse:
+                configuredCount = warehouseUsableSlotCount;
+                break;
+            case SlotKind.Backpack:
+                configuredCount = ResolveBackpackUsableSlotCountFromEvents(totalCount);
+                break;
+            case SlotKind.Equipment:
+                if (!equipmentUsableSlotCounts.TryGetValue(ResolveEquipmentCountCharacterKey(characterId), out configuredCount))
+                {
+                    configuredCount = totalCount;
+                }
+                break;
+            default:
+                configuredCount = totalCount;
+                break;
+        }
+
+        if (configuredCount < 0)
+        {
+            configuredCount = totalCount;
+        }
+
+        return Mathf.Clamp(configuredCount, 0, totalCount);
+    }
+
+    private int ResolveBackpackUsableSlotCountFromEvents(int totalCount)
+    {
+        EventDatabase eventDatabase = EventDatabase.LoadDefault();
+        if (eventDatabase == null)
+        {
+            return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
+        }
+
+        bool foundAnyMatchingEvent = false;
+        int resolvedCount = -1;
+        for (int i = 0; i < BackpackLevelEventIds.Length && i < BackpackLevelSlotCounts.Length; i++)
+        {
+            EventDatabase.EventEntry entry = eventDatabase.FindEntry(BackpackLevelEventIds[i]);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            foundAnyMatchingEvent = true;
+            if (entry.enabled)
+            {
+                resolvedCount = BackpackLevelSlotCounts[i];
+            }
+        }
+
+        if (resolvedCount >= 0)
+        {
+            return resolvedCount;
+        }
+
+        if (foundAnyMatchingEvent)
+        {
+            return 0;
+        }
+
+        return backpackUsableSlotCount >= 0 ? backpackUsableSlotCount : totalCount;
+    }
+
+    private int GetSlotCountForKind(SlotKind kind)
+    {
+        switch (kind)
+        {
+            case SlotKind.Warehouse:
+                return Mathf.Max(warehouseSlots.Count, warehouseData.Count);
+            case SlotKind.Backpack:
+                return Mathf.Max(backpackSlots.Count, backpackData.Count);
+            case SlotKind.Equipment:
+                return GetExpectedEquipmentSlotCount();
+            default:
+                return 0;
+        }
+    }
+
+    private bool IsSlotUsable(SlotKind kind, int index)
+    {
+        int totalCount = GetSlotCountForKind(kind);
+        if (index < 0 || index >= totalCount)
+        {
+            return false;
+        }
+
+        int usableCount = GetResolvedUsableSlotCount(kind, kind == SlotKind.Equipment ? ResolveEquipmentCharacterId() : null);
+        if (usableCount <= 0)
+        {
+            return false;
+        }
+
+        if (kind == SlotKind.Equipment)
+        {
+            return index < usableCount;
+        }
+
+        return index >= totalCount - usableCount;
+    }
+
+    private static string ResolveEquipmentCountCharacterKey(string characterId)
+    {
+        return string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId.Trim();
     }
 
     private void RefreshWarehouseSlot(int index)
@@ -3479,6 +3797,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ApplyItemToWidget(
             warehouseSlots[index],
             ShouldDisplayItem(warehouseFilter, warehouseData[index]) ? warehouseData[index] : default);
+        ApplyWidgetAvailability(warehouseSlots[index], IsSlotUsable(SlotKind.Warehouse, index));
     }
 
     private void RefreshBackpackSlot(int index)
@@ -3491,42 +3810,55 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         ApplyItemToWidget(
             backpackSlots[index],
             ShouldDisplayItem(backpackFilter, backpackData[index]) ? backpackData[index] : default);
+        ApplyWidgetAvailability(backpackSlots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private void RefreshEquipmentSlot(int index)
     {
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (index < 0 || index >= equipmentSlots.Count)
+        if (index < 0 || index >= GetExpectedEquipmentSlotCount())
         {
             return;
         }
 
-        if (equipmentData == null || index >= equipmentData.Count)
-        {
-            ApplyItemToWidget(equipmentSlots[index], default);
-            return;
-        }
-
-        ApplyItemToWidget(equipmentSlots[index], equipmentData[index]);
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
+        bool isUsable = IsSlotUsable(SlotKind.Equipment, index);
+        ItemSlotData data = equipmentData != null && index < equipmentData.Count ? equipmentData[index] : default;
+        ApplyEquipmentSlotData(index, data, isUsable);
+        RefreshRuntimeWeaponModelForCharacter(ResolveEquipmentCharacterId());
     }
 
     private void RefreshEquipmentSlots()
     {
+        string equipmentCharacterId = ResolveEquipmentCharacterId();
         List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        for (int i = 0; i < equipmentSlots.Count; i++)
+        int slotCount = GetExpectedEquipmentSlotCount();
+        for (int i = 0; i < slotCount; i++)
         {
-            if (equipmentData == null || i >= equipmentData.Count)
-            {
-                ApplyItemToWidget(equipmentSlots[i], default);
-                continue;
-            }
-
-            ApplyItemToWidget(equipmentSlots[i], equipmentData[i]);
+            ItemSlotData data = equipmentData != null && i < equipmentData.Count ? equipmentData[i] : default;
+            ApplyEquipmentSlotData(i, data, IsSlotUsable(SlotKind.Equipment, i));
         }
 
-        RefreshRuntimeWeaponModelForCharacter(currentEquipmentCharacterId);
-        SkillLoadoutRuntimeBinder.ForceRefresh();
+        RefreshRuntimeWeaponModelForCharacter(equipmentCharacterId);
+    }
+
+    private void ApplyEquipmentSlotData(int index, ItemSlotData data, bool isUsable)
+    {
+        ApplyEquipmentSlotDataToList(equipmentSlots, index, data, isUsable);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            ApplyEquipmentSlotDataToList(extraEquipmentSlots[i], index, data, isUsable);
+        }
+    }
+
+    private void ApplyEquipmentSlotDataToList(List<SlotWidget> slots, int index, ItemSlotData data, bool isUsable)
+    {
+        if (slots == null || index < 0 || index >= slots.Count)
+        {
+            return;
+        }
+
+        ApplyItemToWidget(slots[index], data);
+        ApplyWidgetAvailability(slots[index], isUsable);
     }
 
     private void RefreshAllRuntimeWeaponModelsInternal()
@@ -3694,24 +4026,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return bestEntry;
     }
 
-    private void RefreshQuickSlot(int index)
+    private void RefreshExtraBackpackSlots(int index)
     {
-        if (index < 0 || index >= quickSlots.Count || index >= backpackData.Count)
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
         {
-            return;
+            RefreshExtraBackpackSlot(extraBackpackSlots[i], index);
         }
-
-        ApplyItemToWidget(quickSlots[index], backpackData[index]);
     }
 
-    private void RefreshBattleBackpackSlot(int index)
+    private void RefreshExtraBackpackSlot(List<SlotWidget> slots, int index)
     {
-        if (index < 0 || index >= battleBackpackSlots.Count || index >= backpackData.Count)
+        if (slots == null || index < 0 || index >= slots.Count || index >= backpackData.Count)
         {
             return;
         }
 
-        ApplyItemToWidget(battleBackpackSlots[index], backpackData[index]);
+        ApplyItemToWidget(slots[index], backpackData[index]);
+        ApplyWidgetAvailability(slots[index], IsSlotUsable(SlotKind.Backpack, index));
     }
 
     private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
@@ -3721,16 +4052,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        bool hasItem = !string.IsNullOrWhiteSpace(data.itemId);
+        RebuildItemVisual(widget, data);
+    }
+
+    private void ApplyWidgetAvailability(SlotWidget widget, bool isUsable)
+    {
+        if (widget == null)
+        {
+            return;
+        }
+
         if (widget.button != null)
         {
             ColorBlock colors = widget.button.colors;
-            colors.disabledColor = colors.normalColor;
+            colors.disabledColor = DisabledSlotColor;
             widget.button.colors = colors;
-            widget.button.interactable = true;
+            widget.button.interactable = isUsable;
         }
-
-        RebuildItemVisual(widget, data);
     }
 
     private void CacheItemTooltip(ItemDatabase.WeaponCategory weaponCategory, bool resetTooltipState)
@@ -4144,18 +4482,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(ownerCharacterId))
         {
-            return "攻击力：无装备者";
+            return "攻击力：无";
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
         if (statEntry == null)
         {
-            return "攻击力：无装备者";
+            return "攻击力：无";
         }
 
         segments = BuildAttackPowerSegments(entry, statEntry);
-        if (segments == null || segments.Count == 0)
+        if (segments == null)
+        {
+            return "<color=#E6C229>攻击力：伤害分布未配置</color>";
+        }
+
+        if (segments.Count == 0)
         {
             float attackPower = CalculateWeaponAttackPower(entry, statEntry);
             return $"攻击力：{attackPower:0.##}";
@@ -4259,9 +4602,11 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         ItemDatabase.WeaponDamageDistribution distribution = entry.weaponDamageDistribution;
-        if (distribution == null || distribution.Total <= 0)
+        if (distribution == null || distribution.physical < 0 || distribution.fire < 0 ||
+            distribution.corruption < 0 || distribution.cold < 0 || distribution.Total != 100)
         {
-            distribution = ItemDatabase.CreateDefaultWeaponDamageDistribution();
+            Debug.LogWarning($"[物品数据警告] 武器提示读取到未配置伤害分布：{entry.itemId}");
+            return null;
         }
 
         int total = Mathf.Max(1, distribution.Total);
@@ -4372,12 +4717,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private string ResolveTooltipEquipmentOwnerCharacterId()
     {
-        if (!string.IsNullOrWhiteSpace(currentEquipmentCharacterId))
-        {
-            return currentEquipmentCharacterId;
-        }
-
-        string activeCharacterId = CharacterSelectionState.ActiveCharacterId;
+        string activeCharacterId = ResolveEquipmentCharacterId();
         return string.IsNullOrWhiteSpace(activeCharacterId) ? string.Empty : activeCharacterId;
     }
 
@@ -4391,12 +4731,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
         if (string.IsNullOrWhiteSpace(ownerCharacterId))
         {
-            return "装备者：\n无装备者";
+            return "装备者：\n无";
         }
 
         CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
         CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(ownerCharacterId) : null;
-        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无装备者";
+        return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无";
     }
 
     private static float GetCharacterAttributeValue(
@@ -4708,6 +5048,32 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry) : null;
         widget.runtimeBackgroundVisual = TryCreateRuntimePrefabVisual(qualityBackgroundPrefab, widget.backgroundAnchor ?? widget.root);
         widget.runtimeIconVisual = TryCreateRuntimeVisual(entry.prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
+        bool shouldRotate = data.isRotated && instance != null && instance.IsOneByTwoItem(entry);
+        ApplyRuntimeVisualRotation(widget.runtimeBackgroundVisual, shouldRotate);
+        ApplyRuntimeVisualRotation(widget.runtimeIconVisual, shouldRotate);
+    }
+
+    private static void ApplyRuntimeVisualRotation(GameObject target, bool rotated)
+    {
+        RectTransform rect = target != null ? target.transform as RectTransform : null;
+        if (rect == null)
+        {
+            return;
+        }
+
+        if (rotated)
+        {
+            RectTransform parentRect = rect.parent as RectTransform;
+            float halfCellWidth = parentRect != null ? parentRect.rect.width * 0.5f : 0f;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(halfCellWidth, 0f);
+            rect.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            return;
+        }
+
+        rect.localRotation = Quaternion.identity;
     }
 
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
@@ -4999,21 +5365,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        Transform direct = FindTransformByPath("Canvas/UI控制器/目录/仓库页面/" + panelName);
-        if (direct != null)
+        物品格子区域绑定.数据来源类型 sourceType = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
+            ? 物品格子区域绑定.数据来源类型.仓库
+            : 物品格子区域绑定.数据来源类型.背包;
+
+        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
+        for (int i = 0; i < bindings.Length; i++)
         {
-            return direct;
+            物品格子区域绑定 binding = bindings[i];
+            if (binding == null ||
+                binding.数据来源 != sourceType)
+            {
+                continue;
+            }
+
+            Transform panelRoot = FindAncestorByName(binding.已绑定格子容器, panelName);
+            if (panelRoot != null)
+            {
+                return panelRoot;
+            }
         }
 
-        RectTransform container = null;
-        if (journeyBindings != null)
-        {
-            container = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
-                ? journeyBindings.warehouseContainer
-                : journeyBindings.backpackContainer;
-        }
-
-        return FindAncestorByName(container, panelName);
+        return null;
     }
 
     private void BindCategoryFilterForPanel(Transform panelRoot, CategoryFilterBinding binding, Action refreshAction)
@@ -5241,6 +5614,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             RefreshBackpackSlot(i);
         }
+
+        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
+        {
+            List<SlotWidget> group = extraBackpackSlots[groupIndex];
+            int count = Mathf.Min(group.Count, backpackData.Count);
+            for (int i = 0; i < count; i++)
+            {
+                RefreshExtraBackpackSlot(group, i);
+            }
+        }
     }
 
     private void UnbindAll()
@@ -5262,14 +5645,20 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         HideItemTooltip();
         ClearRuntimeVisuals(warehouseSlots);
         ClearRuntimeVisuals(backpackSlots);
+        for (int i = 0; i < extraBackpackSlots.Count; i++)
+        {
+            ClearRuntimeVisuals(extraBackpackSlots[i]);
+        }
         ClearRuntimeVisuals(equipmentSlots);
-        ClearRuntimeVisuals(quickSlots);
-        ClearRuntimeVisuals(battleBackpackSlots);
+        for (int i = 0; i < extraEquipmentSlots.Count; i++)
+        {
+            ClearRuntimeVisuals(extraEquipmentSlots[i]);
+        }
         warehouseSlots.Clear();
         backpackSlots.Clear();
+        extraBackpackSlots.Clear();
         equipmentSlots.Clear();
-        quickSlots.Clear();
-        battleBackpackSlots.Clear();
+        extraEquipmentSlots.Clear();
     }
 
     private static void ClearRuntimeVisuals(List<SlotWidget> widgets)

@@ -6,13 +6,16 @@ using UnityEngine;
 public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "CharacterSkillLoadoutDatabase";
+    private const string DefaultCharacterId = "玩家";
 
     [Serializable]
     public sealed class CharacterSkillEntry
     {
         public string characterId = string.Empty;
-        public List<string> skillIds = new List<string>();
-        public List<int> skillWeights = new List<int>();
+        public List<string> memorizedSkillIds = new List<string>();
+        public List<int> memorizedSkillWeights = new List<int>();
+        public List<string> warehouseSkillIds = new List<string>();
+        public List<int> warehouseSkillWeights = new List<int>();
     }
 
     [SerializeField] private List<CharacterSkillEntry> entries = new List<CharacterSkillEntry>();
@@ -40,10 +43,11 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
 
     public CharacterSkillEntry GetOrCreateEntry(string characterId)
     {
-        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? "玩家" : characterId;
+        string resolvedCharacterId = string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
         CharacterSkillEntry entry = FindEntry(resolvedCharacterId);
         if (entry != null)
         {
+            EnsureListsInitialized(entry);
             return entry;
         }
 
@@ -51,30 +55,98 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             characterId = resolvedCharacterId
         };
-        EnsureSlotDataSize(entry, CharacterStatDatabase.StatEntry.BaseSkillMemorySlots);
+        EnsureListsInitialized(entry);
         entries.Add(entry);
         return entry;
     }
 
-    public static void EnsureSlotDataSize(CharacterSkillEntry entry, int size)
+    public static void EnsureMemorizedSlotCapacity(CharacterSkillEntry entry, int size)
     {
         if (entry == null)
         {
             return;
         }
 
-        EnsureStringListSize(entry.skillIds, size);
-        EnsureIntListSize(entry.skillWeights, size);
+        EnsureListsInitialized(entry);
+        EnsureStringListSize(entry.memorizedSkillIds, size);
+        EnsureIntListSize(entry.memorizedSkillWeights, size);
     }
 
-    public static int GetSkillWeightAt(CharacterSkillEntry entry, int index)
+    public static void EnsureMemorizedSlotMinSize(CharacterSkillEntry entry, int size)
     {
-        if (entry == null || entry.skillWeights == null || index < 0 || index >= entry.skillWeights.Count)
+        if (entry == null)
+        {
+            return;
+        }
+
+        EnsureListsInitialized(entry);
+        EnsureStringListMinSize(entry.memorizedSkillIds, size);
+        EnsureIntListMinSize(entry.memorizedSkillWeights, size);
+    }
+
+    public static void EnsureWarehouseSlotCapacity(CharacterSkillEntry entry, int size)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        EnsureListsInitialized(entry);
+        EnsureStringListMinSize(entry.warehouseSkillIds, size);
+        EnsureIntListMinSize(entry.warehouseSkillWeights, size);
+    }
+
+    public static int GetMemorizedSkillWeightAt(CharacterSkillEntry entry, int index)
+    {
+        if (entry == null || entry.memorizedSkillWeights == null || index < 0 || index >= entry.memorizedSkillWeights.Count)
         {
             return 0;
         }
 
-        return entry.skillWeights[index];
+        return entry.memorizedSkillWeights[index];
+    }
+
+    public static int GetWarehouseSkillWeightAt(CharacterSkillEntry entry, int index)
+    {
+        if (entry == null || entry.warehouseSkillWeights == null || index < 0 || index >= entry.warehouseSkillWeights.Count)
+        {
+            return 0;
+        }
+
+        return entry.warehouseSkillWeights[index];
+    }
+
+    public static CharacterSkillLoadoutDatabase LoadDefault()
+    {
+        return Resources.Load<CharacterSkillLoadoutDatabase>(DefaultResourcePath);
+    }
+
+    private static void EnsureListsInitialized(CharacterSkillEntry entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        if (entry.memorizedSkillIds == null)
+        {
+            entry.memorizedSkillIds = new List<string>();
+        }
+
+        if (entry.memorizedSkillWeights == null)
+        {
+            entry.memorizedSkillWeights = new List<int>();
+        }
+
+        if (entry.warehouseSkillIds == null)
+        {
+            entry.warehouseSkillIds = new List<string>();
+        }
+
+        if (entry.warehouseSkillWeights == null)
+        {
+            entry.warehouseSkillWeights = new List<int>();
+        }
     }
 
     private static void EnsureStringListSize(List<string> values, int size)
@@ -92,6 +164,19 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         while (values.Count > size)
         {
             values.RemoveAt(values.Count - 1);
+        }
+    }
+
+    private static void EnsureStringListMinSize(List<string> values, int size)
+    {
+        if (values == null)
+        {
+            return;
+        }
+
+        while (values.Count < size)
+        {
+            values.Add(string.Empty);
         }
     }
 
@@ -113,8 +198,16 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         }
     }
 
-    public static CharacterSkillLoadoutDatabase LoadDefault()
+    private static void EnsureIntListMinSize(List<int> values, int size)
     {
-        return Resources.Load<CharacterSkillLoadoutDatabase>(DefaultResourcePath);
+        if (values == null)
+        {
+            return;
+        }
+
+        while (values.Count < size)
+        {
+            values.Add(0);
+        }
     }
 }

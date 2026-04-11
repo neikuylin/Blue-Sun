@@ -362,6 +362,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(i);
             SerializedProperty effectIdProperty = attachedEffectProperty.FindPropertyRelative("effectId");
             SerializedProperty durationTurnsProperty = attachedEffectProperty.FindPropertyRelative("durationTurns");
+            SerializedProperty applyChancePercentProperty = attachedEffectProperty.FindPropertyRelative("applyChancePercent");
             using (new EditorGUILayout.VerticalScope("box"))
             {
                 string label = "效果 " + (i + 1);
@@ -387,6 +388,11 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                         durationTurnsProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("持续回合", Mathf.Max(0, durationTurnsProperty.intValue)));
                     }
 
+                    if (applyChancePercentProperty != null)
+                    {
+                        applyChancePercentProperty.intValue = Mathf.Clamp(EditorGUILayout.IntField("附着概率(%)", Mathf.Clamp(applyChancePercentProperty.intValue, 0, 100)), 0, 100);
+                    }
+
                     GUILayout.FlexibleSpace();
                     if (GUILayout.Button("删除", GUILayout.Width(60f)))
                     {
@@ -409,6 +415,11 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(index);
                     attachedEffectProperty.FindPropertyRelative("effectId").stringValue = ResolveAttachedEffectIdByIndex(effectEntries, 0);
                     attachedEffectProperty.FindPropertyRelative("durationTurns").intValue = 1;
+                    SerializedProperty applyChancePercentProperty = attachedEffectProperty.FindPropertyRelative("applyChancePercent");
+                    if (applyChancePercentProperty != null)
+                    {
+                        applyChancePercentProperty.intValue = 100;
+                    }
                 }
             }
         }

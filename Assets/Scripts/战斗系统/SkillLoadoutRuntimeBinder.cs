@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -12,14 +13,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const float DragIconSize = 100f;
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
     private const string GrantedCornerMarkerName = "__GrantedSkillCornerMarker";
+    private const string GrantedSlotNamePrefix = "__GrantedSkillSlot_";
+    private const string MemorizedSlotNamePrefix = "__MemorizedSkillSlot_";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
-
-    private static readonly string[] JourneySkillContainerChain =
-    {
-        "\u89d2\u8272\u9875\u9762",
-        "\u6280\u80fd\u680f\u4f4d",
-        "\u6280\u80fd\u683c\u5b50\u533a\u57df"
-    };
 
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
@@ -103,15 +99,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private readonly List<SkillSlotWidget> warehouseSkillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
     private string currentCharacterId = string.Empty;
-    private int lastEquipmentSkillRevision = -1;
     private RectTransform journeySkillContainer;
-    private JourneySkillGridBinding journeySkillGridBinding;
-    private JourneySkillWarehouseBinding warehouseBinding;
+    private SkillBarBinding skillBarBinding;
+    private SkillWarehouseBinding skillWarehouseBinding;
     private RectTransform warehouseContainer;
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
     private Image dragIconImage;
     private bool isDragging;
+    private Coroutine deferredRefreshCoroutine;
     private DragRef dragSource;
     private SkillSlotWidget dragSourceWidget;
 
@@ -131,30 +127,28 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        界面刷新中心.全部界面刷新 += OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 += OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 += OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 += OnEquipmentChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        界面刷新中心.全部界面刷新 -= OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 -= OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 -= OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 -= OnEquipmentChanged;
+        if (deferredRefreshCoroutine != null)
+        {
+            StopCoroutine(deferredRefreshCoroutine);
+            deferredRefreshCoroutine = null;
+        }
         HandleEndDrag();
         journeySkillSlots.Clear();
         warehouseSkillSlots.Clear();
-    }
-
-    private void Update()
-    {
-        string targetCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
-        int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
-            lastEquipmentSkillRevision == equipmentSkillRevision)
-        {
-            return;
-        }
-
-        currentCharacterId = targetCharacterId;
-        lastEquipmentSkillRevision = equipmentSkillRevision;
-        RefreshAll();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -165,27 +159,50 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        journeySkillGridBinding = JourneySkillGridBinding.FindBindingInActiveScene();
-        warehouseBinding = JourneySkillWarehouseBinding.FindBindingInActiveScene();
+        skillBarBinding = SkillBarBinding.FindBindingInActiveScene();
+        skillWarehouseBinding = SkillWarehouseBinding.FindBindingInActiveScene();
         journeySkillContainer = ResolveJourneySkillContainer();
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
-        currentCharacterId = ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
-        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        if (deferredRefreshCoroutine != null)
+        {
+            StopCoroutine(deferredRefreshCoroutine);
+        }
+        deferredRefreshCoroutine = StartCoroutine(DeferredRefreshAfterBinding());
+    }
+
+    private IEnumerator DeferredRefreshAfterBinding()
+    {
+        yield return null;
+        deferredRefreshCoroutine = null;
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
         RefreshAll();
     }
 
-    public static void ForceRefresh()
+    private void OnGlobalRefreshRequested()
     {
-        if (instance == null)
-        {
-            return;
-        }
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        RefreshAll();
+    }
 
-        instance.currentCharacterId = instance.ResolveCharacterId(CharacterSelectionState.ActiveCharacterId);
-        instance.lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        instance.RefreshAll();
+    private void OnCurrentCharacterRefreshRequested(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        RefreshAll();
+    }
+
+    private void OnSkillLoadoutChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        RefreshAll();
+    }
+
+    private void OnEquipmentChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        RefreshAll();
     }
 
     private void RefreshAll()
@@ -197,13 +214,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void CollectJourneySkillSlots()
     {
         journeySkillSlots.Clear();
-        RectTransform container = journeySkillContainer != null ? journeySkillContainer : ResolveJourneySkillContainer();
+        RectTransform container = journeySkillContainer;
         if (container == null)
         {
             return;
         }
-
-        EnsureGridLayout(container);
         for (int i = 0; i < container.childCount; i++)
         {
             RectTransform child = container.GetChild(i) as RectTransform;
@@ -231,13 +246,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void CollectWarehouseSkillSlots()
     {
         warehouseSkillSlots.Clear();
-        warehouseContainer = warehouseContainer != null ? warehouseContainer : ResolveWarehouseContainer();
+        warehouseContainer = ResolveWarehouseContainer();
         if (warehouseContainer == null)
         {
             return;
         }
-
-        EnsureGridLayout(warehouseContainer);
         for (int i = 0; i < warehouseContainer.childCount; i++)
         {
             RectTransform child = warehouseContainer.GetChild(i) as RectTransform;
@@ -263,17 +276,17 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void RefreshJourneySkillSlots()
     {
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        List<string> grantedSkillIds = CharacterSkillListUtility.BuildGrantedSkillIds(currentCharacterId);
+        int grantedSkillCount = grantedSkillIds.Count;
+        int memorizedSlotCapacity = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
+        int visibleSlotCount = grantedSkillCount + memorizedSlotCapacity;
+        EnsureJourneySkillSlotCapacity(grantedSkillCount, memorizedSlotCapacity);
+        CollectJourneySkillSlots();
         if (journeySkillSlots.Count == 0)
         {
             return;
         }
-
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
-        List<CharacterSkillListUtility.DisplaySkillEntry> displayEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
-        int grantedSkillCount = CountGrantedSkills(displayEntries);
-        int visibleSlotCount = grantedSkillCount + memorySlotCount;
-        List<int> memorizedDataIndices = BuildDisplayedMemorizedDataIndices(entry, memorySlotCount);
 
         for (int i = 0; i < journeySkillSlots.Count; i++)
         {
@@ -284,20 +297,24 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 widget.root.gameObject.SetActive(shouldDisplay);
             }
 
-            CharacterSkillListUtility.DisplaySkillEntry displayEntry =
-                shouldDisplay && i < displayEntries.Count ? displayEntries[i] : default;
-            string skillId = shouldDisplay && i < displayEntries.Count ? displayEntry.SkillId : string.Empty;
+            bool isGrantedSlot = shouldDisplay && i < grantedSkillCount;
+            int memorizedIndex = i - grantedSkillCount;
+            string skillId = string.Empty;
+            if (isGrantedSlot)
+            {
+                skillId = i < grantedSkillIds.Count ? grantedSkillIds[i] : string.Empty;
+            }
+            else if (shouldDisplay && memorizedIndex >= 0 && entry != null && entry.memorizedSkillIds != null && memorizedIndex < entry.memorizedSkillIds.Count)
+            {
+                skillId = entry.memorizedSkillIds[memorizedIndex];
+            }
+
             widget.skillId = skillId;
-            widget.isGranted = shouldDisplay && i < displayEntries.Count && displayEntry.IsGranted;
-            int memorizedDisplayIndex = i - grantedSkillCount;
-            widget.slotIndex = widget.isGranted
-                ? -1
-                : memorizedDisplayIndex >= 0 && memorizedDisplayIndex < memorizedDataIndices.Count
-                    ? memorizedDataIndices[memorizedDisplayIndex]
-                    : memorizedDisplayIndex;
+            widget.isGranted = isGrantedSlot;
+            widget.slotIndex = isGrantedSlot ? -1 : memorizedIndex;
 
             EnsureRelay(widget, SlotSurface.Loadout, i);
-            RefreshSlotVisual(widget, shouldDisplay, skillId, widget.isGranted);
+            RefreshSlotVisual(widget, shouldDisplay, skillId, isGrantedSlot);
             RefreshGrantedCornerMarker(widget);
         }
     }
@@ -305,9 +322,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void RefreshWarehouseSkillSlots()
     {
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
-        int warehouseCount = entry != null && entry.skillIds != null
-            ? Mathf.Max(0, entry.skillIds.Count - memorySlotCount)
+        int warehouseCount = entry != null && entry.warehouseSkillIds != null
+            ? entry.warehouseSkillIds.Count
             : 0;
         int visibleSlotCount = warehouseCount;
 
@@ -323,8 +339,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 widget.root.gameObject.SetActive(shouldDisplay);
             }
 
-            string skillId = i < warehouseCount && entry != null && entry.skillIds != null
-                ? entry.skillIds[memorySlotCount + i]
+            string skillId = i < warehouseCount && entry != null && entry.warehouseSkillIds != null
+                ? entry.warehouseSkillIds[i]
                 : string.Empty;
             widget.skillId = skillId;
             widget.isGranted = false;
@@ -463,7 +479,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        RefreshAll();
+        界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
 
@@ -481,7 +497,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         eventData.Use();
-        RefreshAll();
+        界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
 
@@ -498,78 +514,53 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return false;
         }
 
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
-        int sourceDataIndex = ResolveDataIndex(widget, memorySlotCount);
-        if (sourceDataIndex < 0)
-        {
-            return false;
-        }
-
-        int targetDataIndex = widget.surface == SlotSurface.Warehouse
-            ? FindFirstEmptyMemorizedSlotIndex(entry, memorySlotCount)
-            : FindFirstEmptyWarehouseSlotIndex(entry, memorySlotCount);
-        if (targetDataIndex < 0)
-        {
-            return false;
-        }
-
-        return TryMoveSkillSlot(entry, sourceDataIndex, targetDataIndex);
+        return widget.surface == SlotSurface.Warehouse
+            ? TryMoveWarehouseToMemorized(entry, widget.slotIndex)
+            : TryMoveMemorizedToWarehouse(entry, widget.slotIndex);
     }
 
     private bool TrySwapSkillSlots(SkillSlotWidget sourceWidget, SkillSlotWidget targetWidget)
     {
+        if (sourceWidget == null || targetWidget == null)
+        {
+            return false;
+        }
+
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
-        if (entry == null || entry.skillIds == null)
+        if (entry == null)
         {
             return false;
         }
 
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
-        int sourceDataIndex = ResolveDataIndex(sourceWidget, memorySlotCount);
-        int targetDataIndex = ResolveDataIndex(targetWidget, memorySlotCount);
-        if (sourceDataIndex < 0 || targetDataIndex < 0 || sourceDataIndex >= entry.skillIds.Count)
+        if (sourceWidget.surface == SlotSurface.Loadout && targetWidget.surface == SlotSurface.Loadout)
         {
-            return false;
+            return TrySwapWithinMemorized(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
         }
 
-        EnsureSkillDataCapacity(entry, Mathf.Max(sourceDataIndex, targetDataIndex) + 1);
-
-        string tempSkillId = entry.skillIds[sourceDataIndex];
-        entry.skillIds[sourceDataIndex] = entry.skillIds[targetDataIndex];
-        entry.skillIds[targetDataIndex] = tempSkillId;
-
-        if (sourceDataIndex < entry.skillWeights.Count && targetDataIndex < entry.skillWeights.Count)
+        if (sourceWidget.surface == SlotSurface.Warehouse && targetWidget.surface == SlotSurface.Warehouse)
         {
-            int tempWeight = entry.skillWeights[sourceDataIndex];
-            entry.skillWeights[sourceDataIndex] = entry.skillWeights[targetDataIndex];
-            entry.skillWeights[targetDataIndex] = tempWeight;
+            return TrySwapWithinWarehouse(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
         }
-        return true;
+
+        if (sourceWidget.surface == SlotSurface.Warehouse)
+        {
+            return TryMoveWarehouseIntoMemorizedSlot(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
+        }
+
+        return TryMoveMemorizedIntoWarehouseSlot(entry, sourceWidget.slotIndex, targetWidget.slotIndex);
     }
 
-    private static int ResolveDataIndex(SkillSlotWidget widget, int memorySlotCount)
+    private static int FindFirstEmptyMemorizedSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
     {
-        if (widget == null || widget.slotIndex < 0)
+        if (entry == null || entry.memorizedSkillIds == null)
         {
             return -1;
         }
 
-        return widget.surface == SlotSurface.Loadout
-            ? widget.slotIndex
-            : memorySlotCount + widget.slotIndex;
-    }
-
-    private static int FindFirstEmptyMemorizedSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
-    {
-        if (entry == null || entry.skillIds == null || memorySlotCount <= 0)
+        int visibleSlotCount = ResolveVisibleSkillMemorySlotCount(entry.characterId);
+        for (int i = 0; i < visibleSlotCount; i++)
         {
-            return -1;
-        }
-
-        int count = Mathf.Min(memorySlotCount, entry.skillIds.Count);
-        for (int i = 0; i < count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(entry.skillIds[i]))
+            if (i >= entry.memorizedSkillIds.Count || string.IsNullOrWhiteSpace(entry.memorizedSkillIds[i]))
             {
                 return i;
             }
@@ -578,95 +569,221 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         return -1;
     }
 
-    private static int FindFirstEmptyWarehouseSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorySlotCount)
+    private static int FindFirstEmptyWarehouseSlotIndex(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry)
     {
-        if (entry == null)
+        if (entry == null || entry.warehouseSkillIds == null)
         {
             return -1;
         }
 
-        EnsureSkillDataCapacity(entry, Mathf.Max(memorySlotCount, entry.skillIds != null ? entry.skillIds.Count : 0));
-        for (int i = memorySlotCount; i < entry.skillIds.Count; i++)
+        for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
         {
-            if (string.IsNullOrWhiteSpace(entry.skillIds[i]))
+            if (string.IsNullOrWhiteSpace(entry.warehouseSkillIds[i]))
             {
                 return i;
             }
         }
 
-        int appendedIndex = entry.skillIds.Count;
-        EnsureSkillDataCapacity(entry, appendedIndex + 1);
-        return appendedIndex;
+        return -1;
     }
 
-    private static bool TryMoveSkillSlot(
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
-        int sourceDataIndex,
-        int targetDataIndex)
+    private static bool TryMoveWarehouseToMemorized(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int warehouseIndex)
     {
-        if (entry == null || sourceDataIndex < 0 || targetDataIndex < 0)
+        if (entry == null || warehouseIndex < 0 || entry.warehouseSkillIds == null || warehouseIndex >= entry.warehouseSkillIds.Count)
         {
             return false;
         }
 
-        EnsureSkillDataCapacity(entry, Mathf.Max(sourceDataIndex, targetDataIndex) + 1);
-        if (sourceDataIndex >= entry.skillIds.Count || targetDataIndex >= entry.skillIds.Count)
+        int memorizedIndex = FindFirstEmptyMemorizedSlotIndex(entry);
+        if (memorizedIndex < 0)
         {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(entry.skillIds[sourceDataIndex]) || !string.IsNullOrWhiteSpace(entry.skillIds[targetDataIndex]))
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
+        string movedSkillId = entry.warehouseSkillIds[warehouseIndex];
+        if (string.IsNullOrWhiteSpace(movedSkillId))
         {
             return false;
         }
 
-        entry.skillIds[targetDataIndex] = entry.skillIds[sourceDataIndex];
-        entry.skillIds[sourceDataIndex] = string.Empty;
-
-        if (entry.skillWeights != null)
+        int movedWeight = CharacterSkillLoadoutDatabase.GetWarehouseSkillWeightAt(entry, warehouseIndex);
+        entry.memorizedSkillIds[memorizedIndex] = movedSkillId;
+        entry.memorizedSkillWeights[memorizedIndex] = movedWeight;
+        entry.warehouseSkillIds[warehouseIndex] = string.Empty;
+        if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
         {
-            int movedWeight = sourceDataIndex < entry.skillWeights.Count ? entry.skillWeights[sourceDataIndex] : 0;
-            if (targetDataIndex < entry.skillWeights.Count)
-            {
-                entry.skillWeights[targetDataIndex] = movedWeight;
-            }
-
-            if (sourceDataIndex < entry.skillWeights.Count)
-            {
-                entry.skillWeights[sourceDataIndex] = 0;
-            }
+            entry.warehouseSkillWeights[warehouseIndex] = 0;
         }
         return true;
     }
 
-    private static List<int> BuildDisplayedMemorizedDataIndices(
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry,
-        int memorySlotCount)
+    private static bool TryMoveMemorizedToWarehouse(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorizedIndex)
     {
-        List<int> result = new List<int>();
-        if (entry == null || entry.skillIds == null || memorySlotCount <= 0)
+        if (entry == null || memorizedIndex < 0 || entry.memorizedSkillIds == null || memorizedIndex >= entry.memorizedSkillIds.Count)
         {
-            return result;
+            return false;
         }
 
-        int count = Mathf.Min(memorySlotCount, entry.skillIds.Count);
-        for (int i = 0; i < count; i++)
+        string movedSkillId = entry.memorizedSkillIds[memorizedIndex];
+        if (string.IsNullOrWhiteSpace(movedSkillId))
         {
-            if (!string.IsNullOrWhiteSpace(entry.skillIds[i]))
-            {
-                result.Add(i);
-            }
+            return false;
         }
 
-        for (int i = 0; i < count && result.Count < memorySlotCount; i++)
+        int warehouseIndex = FindFirstEmptyWarehouseSlotIndex(entry);
+        if (warehouseIndex < 0)
         {
-            if (!result.Contains(i))
-            {
-                result.Add(i);
-            }
+            return false;
         }
 
-        return result;
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
+        entry.memorizedSkillIds[memorizedIndex] = string.Empty;
+        int movedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
+        entry.warehouseSkillIds[warehouseIndex] = movedSkillId;
+        if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
+        {
+            entry.warehouseSkillWeights[warehouseIndex] = movedWeight;
+        }
+        if (entry.memorizedSkillWeights != null && memorizedIndex < entry.memorizedSkillWeights.Count)
+        {
+            entry.memorizedSkillWeights[memorizedIndex] = 0;
+        }
+        return true;
+    }
+
+    private static bool TrySwapWithinMemorized(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int sourceIndex, int targetIndex)
+    {
+        if (entry == null || entry.memorizedSkillIds == null || sourceIndex < 0 || targetIndex < 0)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, Mathf.Max(sourceIndex, targetIndex) + 1);
+        if (sourceIndex >= entry.memorizedSkillIds.Count || targetIndex >= entry.memorizedSkillIds.Count)
+        {
+            return false;
+        }
+
+        string tempSkillId = entry.memorizedSkillIds[sourceIndex];
+        entry.memorizedSkillIds[sourceIndex] = entry.memorizedSkillIds[targetIndex];
+        entry.memorizedSkillIds[targetIndex] = tempSkillId;
+
+        if (entry.memorizedSkillWeights != null &&
+            sourceIndex < entry.memorizedSkillWeights.Count &&
+            targetIndex < entry.memorizedSkillWeights.Count)
+        {
+            int tempWeight = entry.memorizedSkillWeights[sourceIndex];
+            entry.memorizedSkillWeights[sourceIndex] = entry.memorizedSkillWeights[targetIndex];
+            entry.memorizedSkillWeights[targetIndex] = tempWeight;
+        }
+        return true;
+    }
+
+    private static bool TrySwapWithinWarehouse(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int sourceIndex, int targetIndex)
+    {
+        if (entry == null || sourceIndex < 0 || targetIndex < 0)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, Mathf.Max(sourceIndex, targetIndex) + 1);
+        if (entry.warehouseSkillIds == null || sourceIndex >= entry.warehouseSkillIds.Count || targetIndex >= entry.warehouseSkillIds.Count)
+        {
+            return false;
+        }
+
+        string tempSkillId = entry.warehouseSkillIds[sourceIndex];
+        entry.warehouseSkillIds[sourceIndex] = entry.warehouseSkillIds[targetIndex];
+        entry.warehouseSkillIds[targetIndex] = tempSkillId;
+
+        if (entry.warehouseSkillWeights != null &&
+            sourceIndex < entry.warehouseSkillWeights.Count &&
+            targetIndex < entry.warehouseSkillWeights.Count)
+        {
+            int tempWeight = entry.warehouseSkillWeights[sourceIndex];
+            entry.warehouseSkillWeights[sourceIndex] = entry.warehouseSkillWeights[targetIndex];
+            entry.warehouseSkillWeights[targetIndex] = tempWeight;
+        }
+        return true;
+    }
+
+    private static bool TryMoveWarehouseIntoMemorizedSlot(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int warehouseIndex, int memorizedIndex)
+    {
+        if (entry == null || warehouseIndex < 0 || memorizedIndex < 0)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
+        if (entry.warehouseSkillIds == null ||
+            entry.memorizedSkillIds == null ||
+            warehouseIndex >= entry.warehouseSkillIds.Count ||
+            memorizedIndex >= entry.memorizedSkillIds.Count)
+        {
+            return false;
+        }
+
+        string warehouseSkillId = entry.warehouseSkillIds[warehouseIndex];
+        if (string.IsNullOrWhiteSpace(warehouseSkillId) ||
+            !string.IsNullOrWhiteSpace(entry.memorizedSkillIds[memorizedIndex]))
+        {
+            return false;
+        }
+
+        int warehouseWeight = CharacterSkillLoadoutDatabase.GetWarehouseSkillWeightAt(entry, warehouseIndex);
+        entry.memorizedSkillIds[memorizedIndex] = warehouseSkillId;
+        entry.warehouseSkillIds[warehouseIndex] = string.Empty;
+        if (entry.memorizedSkillWeights != null && memorizedIndex < entry.memorizedSkillWeights.Count)
+        {
+            entry.memorizedSkillWeights[memorizedIndex] = warehouseWeight;
+        }
+        if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
+        {
+            entry.warehouseSkillWeights[warehouseIndex] = 0;
+        }
+        return true;
+    }
+
+    private static bool TryMoveMemorizedIntoWarehouseSlot(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int memorizedIndex, int warehouseIndex)
+    {
+        if (entry == null || warehouseIndex < 0 || memorizedIndex < 0)
+        {
+            return false;
+        }
+
+        CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
+        CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
+        if (entry.warehouseSkillIds == null ||
+            entry.memorizedSkillIds == null ||
+            warehouseIndex >= entry.warehouseSkillIds.Count ||
+            memorizedIndex >= entry.memorizedSkillIds.Count)
+        {
+            return false;
+        }
+
+        string memorizedSkillId = entry.memorizedSkillIds[memorizedIndex];
+        if (string.IsNullOrWhiteSpace(memorizedSkillId) ||
+            !string.IsNullOrWhiteSpace(entry.warehouseSkillIds[warehouseIndex]))
+        {
+            return false;
+        }
+
+        int memorizedWeight = CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(entry, memorizedIndex);
+        entry.warehouseSkillIds[warehouseIndex] = memorizedSkillId;
+        entry.memorizedSkillIds[memorizedIndex] = string.Empty;
+        if (entry.warehouseSkillWeights != null && warehouseIndex < entry.warehouseSkillWeights.Count)
+        {
+            entry.warehouseSkillWeights[warehouseIndex] = memorizedWeight;
+        }
+        if (entry.memorizedSkillWeights != null && memorizedIndex < entry.memorizedSkillWeights.Count)
+        {
+            entry.memorizedSkillWeights[memorizedIndex] = 0;
+        }
+
+        return true;
     }
 
     private void HandleEndDrag()
@@ -694,7 +811,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private static bool CanReorderWidget(SkillSlotWidget widget)
     {
-        // 技能能不能在战斗中使用，和能不能在启程界面里整理位置是两回事。
+        // 鎶€鑳借兘涓嶈兘鍦ㄦ垬鏂椾腑浣跨敤锛屽拰鑳戒笉鑳藉湪鍚▼鐣岄潰閲屾暣鐞嗕綅缃槸涓ゅ洖浜嬨€?
         return widget != null &&
                !string.IsNullOrWhiteSpace(widget.skillId) &&
                !widget.isGranted &&
@@ -717,8 +834,6 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         string resolvedCharacterId = ResolveCharacterId(characterId);
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
-        int memorySlotCount = ResolveVisibleSkillMemorySlotCount(resolvedCharacterId);
-        CharacterSkillLoadoutDatabase.EnsureSlotDataSize(entry, Mathf.Max(memorySlotCount, entry.skillIds != null ? entry.skillIds.Count : 0));
         return entry;
     }
 
@@ -729,12 +844,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        RectTransform template = warehouseBinding != null ? warehouseBinding.ResolveWarehouseSlotTemplate() : null;
-        if (template == null && warehouseContainer.childCount > 0)
-        {
-            template = warehouseContainer.GetChild(0) as RectTransform;
-        }
-
+        RectTransform template = skillWarehouseBinding != null ? skillWarehouseBinding.ResolveWarehouseSlotTemplate() : null;
         if (template == null)
         {
             return;
@@ -748,163 +858,97 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
     }
 
-    private static RectTransform CreateFallbackWarehouseSlot(RectTransform parent)
+    private void EnsureJourneySkillSlotCapacity(int grantedCount, int memorizedCount)
     {
-        if (parent == null)
-        {
-            return null;
-        }
-
-        GameObject rootObject = new GameObject("技能仓库格子", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        rootObject.transform.SetParent(parent, false);
-
-        RectTransform root = rootObject.GetComponent<RectTransform>();
-        root.sizeDelta = new Vector2(96f, 96f);
-
-        Image background = rootObject.GetComponent<Image>();
-        background.color = Color.white;
-        background.raycastTarget = true;
-
-        GameObject iconObject = new GameObject(OverlayIconName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-        iconRect.SetParent(root, false);
-        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
-        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-        iconRect.pivot = new Vector2(0.5f, 0.5f);
-        iconRect.sizeDelta = new Vector2(72f, 72f);
-
-        Image icon = iconObject.GetComponent<Image>();
-        icon.preserveAspect = true;
-        icon.raycastTarget = false;
-        icon.enabled = false;
-        return root;
-    }
-
-    private static void EnsureSkillDataCapacity(CharacterSkillLoadoutDatabase.CharacterSkillEntry entry, int requiredCount)
-    {
-        if (entry == null)
+        if (journeySkillContainer == null)
         {
             return;
         }
 
-        if (entry.skillIds == null)
+        RectTransform memorizedTemplate = skillBarBinding != null ? skillBarBinding.ResolveSkillSlotTemplate() : null;
+        RectTransform grantedTemplate = skillBarBinding != null ? skillBarBinding.ResolveGrantedSkillSlotTemplate() : null;
+        if (memorizedTemplate == null || grantedTemplate == null)
         {
-            entry.skillIds = new List<string>();
+            return;
         }
 
-        if (entry.skillWeights == null)
+        int requiredCount = grantedCount + memorizedCount;
+        bool requiresRebuild = journeySkillContainer.childCount != requiredCount;
+        if (!requiresRebuild)
         {
-            entry.skillWeights = new List<int>();
+            for (int i = 0; i < grantedCount; i++)
+            {
+                Transform child = journeySkillContainer.GetChild(i);
+                if (child == null || !child.name.StartsWith(GrantedSlotNamePrefix, StringComparison.Ordinal))
+                {
+                    requiresRebuild = true;
+                    break;
+                }
+            }
+
+            if (!requiresRebuild)
+            {
+                for (int i = 0; i < memorizedCount; i++)
+                {
+                    int childIndex = grantedCount + i;
+                    Transform child = journeySkillContainer.GetChild(childIndex);
+                    if (child == null || !child.name.StartsWith(MemorizedSlotNamePrefix, StringComparison.Ordinal))
+                    {
+                        requiresRebuild = true;
+                        break;
+                    }
+                }
+            }
         }
 
-        while (entry.skillIds.Count < requiredCount)
+        if (!requiresRebuild)
         {
-            entry.skillIds.Add(string.Empty);
+            return;
         }
 
-        while (entry.skillWeights.Count < requiredCount)
+        for (int i = journeySkillContainer.childCount - 1; i >= 0; i--)
         {
-            entry.skillWeights.Add(0);
+            Transform child = journeySkillContainer.GetChild(i);
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(child.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(child.gameObject);
+            }
+        }
+
+        for (int i = 0; i < grantedCount; i++)
+        {
+            RectTransform clone = Instantiate(grantedTemplate, journeySkillContainer, false);
+            clone.name = GrantedSlotNamePrefix + i;
+            clone.gameObject.SetActive(true);
+            clone.SetSiblingIndex(i);
+        }
+
+        for (int i = 0; i < memorizedCount; i++)
+        {
+            RectTransform clone = Instantiate(memorizedTemplate, journeySkillContainer, false);
+            clone.name = MemorizedSlotNamePrefix + i;
+            clone.gameObject.SetActive(true);
+            clone.SetSiblingIndex(grantedCount + i);
         }
     }
 
     private RectTransform ResolveJourneySkillContainer()
     {
-        RectTransform explicitContainer = warehouseBinding != null ? warehouseBinding.ResolveSkillSlotContainer() : null;
-        if (explicitContainer != null)
-        {
-            return explicitContainer;
-        }
-
-        RectTransform boundContainer = JourneySkillGridBinding.FindInActiveScene();
-        if (boundContainer != null)
-        {
-            return boundContainer;
-        }
-
-        return FindJourneySkillContainer();
+        return skillBarBinding != null ? skillBarBinding.ResolveSkillSlotContainer() : null;
     }
 
     private RectTransform ResolveWarehouseContainer()
     {
-        return warehouseBinding != null ? warehouseBinding.ResolveWarehouseContainer() : null;
-    }
-
-    private static RectTransform FindJourneySkillContainer()
-    {
-        Scene activeScene = SceneManager.GetActiveScene();
-        if (!activeScene.IsValid())
-        {
-            return null;
-        }
-
-        GameObject[] roots = activeScene.GetRootGameObjects();
-        for (int i = 0; i < roots.Length; i++)
-        {
-            RectTransform found = FindContainerRecursive(roots[i] != null ? roots[i].transform : null, 0);
-            if (found != null)
-            {
-                return found;
-            }
-        }
-
-        return null;
-    }
-
-    private static RectTransform FindContainerRecursive(Transform current, int matchedDepth)
-    {
-        if (current == null)
-        {
-            return null;
-        }
-
-        if (string.Equals(current.name, JourneySkillContainerChain[matchedDepth], StringComparison.Ordinal))
-        {
-            if (matchedDepth == JourneySkillContainerChain.Length - 1)
-            {
-                return current as RectTransform;
-            }
-
-            for (int i = 0; i < current.childCount; i++)
-            {
-                RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth + 1);
-                if (nested != null)
-                {
-                    return nested;
-                }
-            }
-        }
-
-        for (int i = 0; i < current.childCount; i++)
-        {
-            RectTransform nested = FindContainerRecursive(current.GetChild(i), matchedDepth);
-            if (nested != null)
-            {
-                return nested;
-            }
-        }
-
-        return null;
-    }
-
-    private static void EnsureGridLayout(RectTransform container)
-    {
-        if (container == null)
-        {
-            return;
-        }
-
-        GridLayoutGroup grid = container.GetComponent<GridLayoutGroup>();
-        if (grid == null)
-        {
-            grid = container.gameObject.AddComponent<GridLayoutGroup>();
-            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
-            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-            grid.childAlignment = TextAnchor.UpperLeft;
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            int childCount = Mathf.Max(1, container.childCount);
-            grid.constraintCount = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(childCount)));
-        }
+        return skillWarehouseBinding != null ? skillWarehouseBinding.ResolveWarehouseContainer() : null;
     }
 
     private void EnsureDragVisual(RectTransform fromRoot)
@@ -1116,7 +1160,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Sprite cornerSprite = journeySkillGridBinding != null ? journeySkillGridBinding.grantedSkillCornerSprite : null;
+        Sprite cornerSprite = skillBarBinding != null ? skillBarBinding.GrantedMarkerSprite : null;
         bool shouldShow = widget.isGranted && cornerSprite != null && !string.IsNullOrWhiteSpace(widget.skillId);
 
         widget.grantedCornerMarker.sprite = cornerSprite;
@@ -1129,8 +1173,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        Vector2 anchoredPosition = journeySkillGridBinding != null
-            ? journeySkillGridBinding.grantedSkillCornerAnchoredPosition
+        Vector2 anchoredPosition = skillBarBinding != null
+            ? skillBarBinding.GrantedMarkerPosition
             : new Vector2(-6f, -6f);
 
         markerRect.sizeDelta = cornerSprite != null ? cornerSprite.rect.size : Vector2.zero;

@@ -9,7 +9,6 @@ using UnityEngine.UI;
 public sealed class BattleLeftPanelBinder : MonoBehaviour
 {
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
-    private const string LeftPanelPortraitPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u89d2\u8272\u80cc\u666f\u6846\u7acb\u7ed8";
     private const string LeftPanelPreviewPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u6444\u50cf\u5934\u6355\u6349";
     private const string LeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
     private const string PreviewImageName = "__ModelPreviewImage";
@@ -53,16 +52,10 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private readonly List<SkillSlotWidget> skillSlots = new List<SkillSlotWidget>();
     private BattleSkillDatabase skillDatabase;
-    private BattleCharacterBindingDatabase characterBindingDatabase;
     private BattleSceneBindings battleBindings;
-    private Image leftPanelPortraitImage;
-    private RectTransform leftPanelPortraitAnchor;
     private RectTransform leftPanelPreviewAnchor;
     private RectTransform leftPanelSkillContainer;
     private string currentCharacterId = string.Empty;
-    private int lastEquipmentSkillRevision = -1;
-    private GameObject activePortraitPrefabInstance;
-    private string activePortraitPrefabCharacterId = string.Empty;
     private RawImage previewImage;
     private Camera previewCamera;
     private RenderTexture previewTexture;
@@ -87,12 +80,20 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        界面刷新中心.全部界面刷新 += OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 += OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 += OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 += OnEquipmentChanged;
         BindScene();
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        界面刷新中心.全部界面刷新 -= OnGlobalRefreshRequested;
+        界面刷新中心.当前角色切换刷新 -= OnCurrentCharacterRefreshRequested;
+        界面刷新中心.技能装配变更 -= OnSkillLoadoutChanged;
+        界面刷新中心.装备变更 -= OnEquipmentChanged;
         skillSlots.Clear();
         ClearPreviewTargetUnit();
     }
@@ -107,17 +108,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         UpdatePreviewCameraFollow();
 
-        string targetCharacterId = ResolveCharacterId();
-        int equipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
-        if (string.Equals(currentCharacterId, targetCharacterId, StringComparison.Ordinal) &&
-            lastEquipmentSkillRevision == equipmentSkillRevision)
-        {
-            return;
-        }
-
-        currentCharacterId = targetCharacterId;
-        lastEquipmentSkillRevision = equipmentSkillRevision;
-        RefreshLeftPanel();
     }
 
     private void UpdatePreviewCameraFollow()
@@ -152,15 +142,35 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private void BindScene()
     {
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
         battleBindings = BattleSceneBindings.FindInActiveScene();
-        leftPanelPortraitImage = ResolveLeftPanelPortrait();
-        leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
         leftPanelPreviewAnchor = ResolveLeftPanelPreviewAnchor();
         leftPanelSkillContainer = ResolveLeftPanelSkillContainer();
         CollectSkillSlots();
         currentCharacterId = ResolveCharacterId();
-        lastEquipmentSkillRevision = InventoryShortcutRuntimeBinder.EquipmentSkillRevision;
+        RefreshLeftPanel();
+    }
+
+    private void OnGlobalRefreshRequested()
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnCurrentCharacterRefreshRequested(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnSkillLoadoutChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
+        RefreshLeftPanel();
+    }
+
+    private void OnEquipmentChanged(string characterId)
+    {
+        currentCharacterId = ResolveCharacterId();
         RefreshLeftPanel();
     }
 
@@ -204,49 +214,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private void RefreshPortrait()
     {
-        if (leftPanelPortraitImage == null)
-        {
-            leftPanelPortraitImage = ResolveLeftPanelPortrait();
-        }
-
-        if (leftPanelPortraitAnchor == null)
-        {
-            leftPanelPortraitAnchor = ResolveLeftPanelPortraitAnchor();
-        }
-
-        if (leftPanelPortraitImage == null && leftPanelPortraitAnchor == null)
-        {
-            return;
-        }
-
-        if (characterBindingDatabase == null)
-        {
-            characterBindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
-        }
-
-        if (TryShowBackgroundPortraitPrefab(currentCharacterId))
-        {
-            if (leftPanelPortraitImage != null)
-            {
-                leftPanelPortraitImage.enabled = false;
-                leftPanelPortraitImage.color = new Color(1f, 1f, 1f, 0f);
-            }
-
-            return;
-        }
-
-        DestroyActivePortraitPrefabInstance();
-
-        if (leftPanelPortraitImage == null)
-        {
-            return;
-        }
-
-        leftPanelPortraitImage.sprite = null;
-        leftPanelPortraitImage.enabled = false;
-        leftPanelPortraitImage.preserveAspect = true;
-        leftPanelPortraitImage.color = new Color(1f, 1f, 1f, 0f);
-        leftPanelPortraitImage.gameObject.SetActive(true);
+        // Background portrait display is handled by 角色背景框立绘同步器.
     }
 
     private void RefreshSkillSlots()
@@ -350,58 +318,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
         BattleSkillDatabase.SkillEntry entry = skillDatabase != null ? skillDatabase.FindEntry(skillId) : null;
         return entry != null ? entry.icon : null;
-    }
-
-    private Sprite ResolveBackgroundPortraitSprite(string characterId)
-    {
-        if (!string.IsNullOrWhiteSpace(characterId) && characterBindingDatabase != null)
-        {
-            BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
-            if (binding != null && binding.backgroundPortraitSprite != null)
-            {
-                return binding.backgroundPortraitSprite;
-            }
-        }
-
-        return CharacterSelectionState.GetCapturedBackgroundPortraitSprite(characterId);
-    }
-
-    private bool TryShowBackgroundPortraitPrefab(string characterId)
-    {
-        if (string.IsNullOrWhiteSpace(characterId) || characterBindingDatabase == null || leftPanelPortraitAnchor == null)
-        {
-            return false;
-        }
-
-        BattleCharacterBindingDatabase.BindingEntry binding = characterBindingDatabase.FindBinding(characterId);
-        if (binding == null || binding.backgroundPortraitPrefab == null)
-        {
-            return false;
-        }
-
-        if (activePortraitPrefabInstance != null &&
-            string.Equals(activePortraitPrefabCharacterId, characterId, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        DestroyActivePortraitPrefabInstance();
-        activePortraitPrefabInstance = Instantiate(binding.backgroundPortraitPrefab, leftPanelPortraitAnchor, false);
-        activePortraitPrefabInstance.name = binding.backgroundPortraitPrefab.name;
-        activePortraitPrefabInstance.SetActive(true);
-        activePortraitPrefabCharacterId = characterId;
-        return true;
-    }
-
-    private void DestroyActivePortraitPrefabInstance()
-    {
-        if (activePortraitPrefabInstance != null)
-        {
-            Destroy(activePortraitPrefabInstance);
-            activePortraitPrefabInstance = null;
-        }
-
-        activePortraitPrefabCharacterId = string.Empty;
     }
 
     private void RefreshModelPreview()
@@ -711,19 +627,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return string.Empty;
         }
 
-        string characterId = InventoryShortcutRuntimeBinder.CurrentEquipmentCharacterId;
-
-        BattleTurnSystem battleTurnSystem = FindObjectOfType<BattleTurnSystem>(true);
-        if (battleTurnSystem != null)
-        {
-            return string.IsNullOrWhiteSpace(characterId) ? string.Empty : characterId;
-        }
-
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            characterId = CharacterSelectionState.ActiveCharacterId;
-        }
-        return characterId;
+        return 界面ID列表.当前ID;
     }
 
     private bool IsEquipmentPanelVisible()
@@ -738,44 +642,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     {
         Transform target = SceneHierarchyPathUtility.FindInActiveScene("Canvas/弹窗/左边栏位");
         return target as RectTransform;
-    }
-
-    private Image ResolveLeftPanelPortrait()
-    {
-        if (battleBindings != null && battleBindings.leftPanelPortraitImage != null)
-        {
-            return battleBindings.leftPanelPortraitImage;
-        }
-
-        Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPortraitPath);
-        if (target == null)
-        {
-            return null;
-        }
-
-        Image image = target.GetComponent<Image>();
-        if (image != null)
-        {
-            return image;
-        }
-
-        return target.GetComponentInChildren<Image>(true);
-    }
-
-    private RectTransform ResolveLeftPanelPortraitAnchor()
-    {
-        Transform target = SceneHierarchyPathUtility.FindInActiveScene(LeftPanelPortraitPath);
-        if (target is RectTransform targetRect)
-        {
-            return targetRect;
-        }
-
-        if (leftPanelPortraitImage != null)
-        {
-            return leftPanelPortraitImage.rectTransform;
-        }
-
-        return null;
     }
 
     private RectTransform ResolveLeftPanelPreviewAnchor()
@@ -851,7 +717,6 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private void OnDestroy()
     {
-        DestroyActivePortraitPrefabInstance();
         ClearPreviewTargetUnit();
         ReleasePreviewTexture();
 

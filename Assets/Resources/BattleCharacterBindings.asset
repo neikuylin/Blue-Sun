@@ -14,57 +14,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - characterId: "\u73A9\u5BB6"
-    displayName: "\u73A9\u5BB6"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 3909657848871030816, guid: 38ef5fbb49dd1c346bb817fafabd5919, type: 3}
+    displayName: "\u65E0\u540D"
     modelPrefab: {fileID: 0}
     animatorController: {fileID: 9100000, guid: c309a5bf0fab12248965ac32a969e9b3, type: 2}
     modelScale: {x: 1, y: 1, z: 1}
     useAutoVisualAnchor: 1
   - characterId: "\u5E93\u9C81\u65AF"
     displayName: "\u5E93\u9C81\u65AF"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 4082435748922320322, guid: 9b21b2782894be340b19d8ee27e7570c, type: 3}
     modelPrefab: {fileID: 1270907211640003584, guid: 79b0b5b04cb352747909406b8b789741, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u7231\u4E3D\u4E1D"
     displayName: "\u7231\u4E3D\u4E1D"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 5265599817728760209, guid: 446390109c5fed64f9d117168b22bb6f, type: 3}
     modelPrefab: {fileID: 2090111222257796701, guid: 6f8a9eaecbb143447ab46203ee3cdf6c, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u745F\u838E"
     displayName: "\u745F\u838E"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 5778285519912401917, guid: c73f5a36b47341849aa25cf69de44aa8, type: 3}
     modelPrefab: {fileID: 0}
     animatorController: {fileID: 0}
     modelScale: {x: 1, y: 1, z: 1}
     useAutoVisualAnchor: 1
   - characterId: "\u7D22\u62C9\u5A1C"
     displayName: "\u7D22\u62C9\u5A1C"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 8562986201867390498, guid: 2641662197c178140aa019a92845b384, type: 3}
     modelPrefab: {fileID: 5538131438774278257, guid: 5dde469eb5331714583a2b80715f86e5, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u5047\u4EBA"
     displayName: "\u5047\u4EBA"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 0}
     modelPrefab: {fileID: 0}
     animatorController: {fileID: 0}
     modelScale: {x: 1, y: 1, z: 1}
     useAutoVisualAnchor: 1
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
     displayName: "\u5965\u624E\u514B\u58EB\u5175"
-    backgroundPortraitSprite: {fileID: 0}
-    backgroundPortraitPrefab: {fileID: 0}
     modelPrefab: {fileID: 919132149155446097, guid: f9042e345460ab244b5aba86096e5dbf, type: 3}
     animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 33, y: 33, z: 33}

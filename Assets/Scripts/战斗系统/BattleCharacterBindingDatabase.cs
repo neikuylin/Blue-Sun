@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "BattleCharacterBindings", menuName = "\u6218\u6597/\u89d2\u8272\u6a21\u578b\u7ed1\u5b9a\u5e93")]
+[CreateAssetMenu(fileName = "BattleCharacterBindings", menuName = "战斗/角色模型绑定库")]
 public sealed class BattleCharacterBindingDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "BattleCharacterBindings";
@@ -12,8 +12,6 @@ public sealed class BattleCharacterBindingDatabase : ScriptableObject
     {
         public string characterId;
         public string displayName;
-        public Sprite backgroundPortraitSprite;
-        public GameObject backgroundPortraitPrefab;
         public GameObject modelPrefab;
         public RuntimeAnimatorController animatorController;
         public Vector3 modelScale = Vector3.one;

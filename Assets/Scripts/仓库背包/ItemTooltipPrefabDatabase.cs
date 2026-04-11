@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "ItemTooltipPrefabDatabase", menuName = "\u80cc\u5305/\u7269\u54c1\u8be6\u60c5\u9884\u5236\u4f53\u6570\u636e\u5e93")]
 public sealed class ItemTooltipPrefabDatabase : ScriptableObject
@@ -15,8 +14,6 @@ public sealed class ItemTooltipPrefabDatabase : ScriptableObject
         public GameObject tooltipPrefab;
     }
 
-    [FormerlySerializedAs("oneHandedTwoHandedTooltipPrefab")]
-    [SerializeField] private GameObject legacyWeaponTooltipPrefab;
     [SerializeField] private List<WeaponTooltipPrefabEntry> weaponTooltipPrefabs = new List<WeaponTooltipPrefabEntry>();
 
     public GameObject commonBackgroundPrefab;
@@ -53,10 +50,10 @@ public sealed class ItemTooltipPrefabDatabase : ScriptableObject
                 continue;
             }
 
-            return entry.tooltipPrefab != null ? entry.tooltipPrefab : legacyWeaponTooltipPrefab;
+            return entry.tooltipPrefab;
         }
 
-        return legacyWeaponTooltipPrefab;
+        return null;
     }
 
     public void SetWeaponTooltipPrefab(ItemDatabase.WeaponCategory weaponCategory, GameObject prefab)
@@ -115,7 +112,7 @@ public sealed class ItemTooltipPrefabDatabase : ScriptableObject
             syncedEntries.Add(new WeaponTooltipPrefabEntry
             {
                 weaponCategory = category,
-                tooltipPrefab = prefab != null ? prefab : legacyWeaponTooltipPrefab
+                tooltipPrefab = prefab
             });
         }
 
