@@ -161,6 +161,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 仓储界面绑定服务 仓储界面绑定规则 = new 仓储界面绑定服务();
     private readonly 仓储交互服务 仓储交互规则 = new 仓储交互服务();
     private readonly 仓储交互服务.State 仓储交互状态 = new 仓储交互服务.State();
+    private readonly 物品占格服务 物品占格规则 = new 物品占格服务();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -1313,7 +1314,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return CanUseEquipmentSlotIndex(targetIndex, widget.equipmentSlotType, requireEmpty: false, entry, GetCurrentEquipmentData(true));
     }
 
-    private static bool IsEquipmentSlotCompatible(
+    internal static bool IsEquipmentSlotCompatible(
         ItemDatabase.EquipmentSlotType itemSlot,
         ItemDatabase.EquipmentSlotType targetSlot)
     {
@@ -1554,6 +1555,26 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         };
     }
 
+    private 物品占格服务.Context 创建物品占格上下文()
+    {
+        return new 物品占格服务.Context
+        {
+            GetDataList = GetDataList,
+            GetWidgetList = GetWidgetList,
+            ResolveItemEntry = ResolveItemEntry,
+            IsOneByTwoItem = IsOneByTwoItem,
+            PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
+            IsSlotUsable = IsSlotUsable,
+            GetOffHandEquipmentSlotIndex = GetOffHandEquipmentSlotIndex,
+            RebuildEquipmentFootprintOccupancy = RebuildEquipmentFootprintOccupancy,
+            RefreshByRef = RefreshByRef,
+            HasCachedBackpackLayout = () => hasCachedBackpackLayout,
+            GetCachedBackpackStartCorner = () => cachedBackpackStartCorner,
+            GetCachedBackpackConstraint = () => cachedBackpackConstraint,
+            GetCachedBackpackConstraintCount = () => cachedBackpackConstraintCount
+        };
+    }
+
     private void 同步物品提示框状态()
     {
         itemTooltipRoot = 物品提示框状态.itemTooltipRoot;
@@ -1620,200 +1641,47 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool CanPlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
     {
-        if (data.IsEmpty)
-        {
-            return true;
-        }
-
-        if (kind == SlotKind.Equipment)
-        {
-            if (index < 0 || index >= equipmentSlots.Count)
-            {
-                return false;
-            }
-
-            SlotWidget widget = equipmentSlots[index];
-            if (widget == null)
-            {
-                return false;
-            }
-
-            ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-            if (entry == null || !IsEquipmentSlotCompatible(entry.equipmentSlot, widget.equipmentSlotType))
-            {
-                return false;
-            }
-
-            return CanUseEquipmentSlotIndex(index, widget.equipmentSlotType, requireEmpty: false, entry, list);
-        }
-
-        if (index < 0 || index >= list.Count || !IsSlotUsable(kind, index) || !list[index].IsEmpty)
-        {
-            return false;
-        }
-
-        ItemDatabase.ItemEntry storageEntry = ResolveItemEntry(data.itemId);
-        if (!IsOneByTwoItem(storageEntry))
-        {
-            return true;
-        }
-
-        int extensionIndex = GetExtensionIndexForData(kind, index, data);
-        return extensionIndex >= 0 &&
-            extensionIndex < list.Count &&
-            IsSlotUsable(kind, extensionIndex) &&
-            list[extensionIndex].IsEmpty;
+        return 物品占格规则.CanPlaceDataAt(创建物品占格上下文(), kind, index, data, list);
     }
 
     private void PlaceDataAt(SlotRef target, ItemSlotData data)
     {
-        if (data.IsEmpty)
-        {
-            SetSlotData(target, default);
-            return;
-        }
-
-        if (target.kind == SlotKind.Equipment)
-        {
-            data.isRotated = false;
-            SetFootprintDataAt(target.kind, target.index, data);
-            return;
-        }
-
-        SetFootprintDataAt(target.kind, target.index, data);
+        物品占格规则.PlaceDataAt(创建物品占格上下文(), target, data);
     }
 
     private void PlaceDataAt(SlotKind kind, int index, ItemSlotData data, List<ItemSlotData> list)
     {
-        if (list == null || index < 0 || index >= list.Count)
-        {
-            return;
-        }
-
-        if (data.IsEmpty)
-        {
-            list[index] = default;
-            if (kind == SlotKind.Equipment)
-            {
-                RebuildEquipmentFootprintOccupancy(list);
-            }
-
-            return;
-        }
-
-        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {index}");
-        list[index] = normalizedPrimary;
-        int extensionIndex = GetExtensionIndexForData(kind, index, normalizedPrimary);
-        if (extensionIndex >= 0 && extensionIndex < list.Count)
-        {
-            list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
-            {
-                isFootprintExtension = true,
-                primarySlotIndex = index
-            }, $"{kind} 扩展格 {extensionIndex}");
-        }
-
-        if (kind == SlotKind.Equipment)
-        {
-            RebuildEquipmentFootprintOccupancy(list);
-        }
+        物品占格规则.PlaceDataAt(创建物品占格上下文(), kind, index, data, list);
     }
 
     private void ClearPlacement(SlotRef slot, ItemSlotData data)
     {
-        if (data.IsEmpty)
-        {
-            return;
-        }
-
-        ClearPlacement(slot.kind, slot.index, data, GetDataList(slot.kind));
-        if (slot.kind == SlotKind.Equipment)
-        {
-            RebuildEquipmentFootprintOccupancy(GetDataList(slot.kind));
-        }
+        物品占格规则.ClearPlacement(创建物品占格上下文(), slot, data);
     }
 
     private void ClearPlacement(SlotKind kind, int primaryIndex, ItemSlotData data, List<ItemSlotData> list)
     {
-        if (data.IsEmpty || list == null || primaryIndex < 0 || primaryIndex >= list.Count)
-        {
-            return;
-        }
-
-        list[primaryIndex] = default;
-        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
-        if (extensionIndex >= 0 && extensionIndex < list.Count)
-        {
-            list[extensionIndex] = default;
-        }
-
-        if (kind == SlotKind.Equipment)
-        {
-            RebuildEquipmentFootprintOccupancy(list);
-        }
+        物品占格规则.ClearPlacement(创建物品占格上下文(), kind, primaryIndex, data, list);
     }
 
     private int GetExtensionIndexForData(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
-        if (data.IsEmpty)
-        {
-            return -1;
-        }
-
-        if (kind == SlotKind.Equipment)
-        {
-            return IsFootprintItem(data) ? GetOffHandEquipmentSlotIndex() : -1;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        return IsOneByTwoItem(entry) ? GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated) : -1;
+        return 物品占格规则.GetExtensionIndexForData(创建物品占格上下文(), kind, primaryIndex, data);
     }
 
     private List<int> GetFootprintCellIndices(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
-        List<int> result = new List<int>();
-        if (data.IsEmpty)
-        {
-            return result;
-        }
-
-        result.Add(primaryIndex);
-        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
-        if (extensionIndex >= 0)
-        {
-            result.Add(extensionIndex);
-        }
-
-        return result;
+        return 物品占格规则.GetFootprintCellIndices(创建物品占格上下文(), kind, primaryIndex, data);
     }
 
     private SlotRef ResolvePrimarySlotRef(SlotRef slot)
     {
-        List<ItemSlotData> list = GetDataList(slot.kind);
-        if (slot.index < 0 || slot.index >= list.Count)
-        {
-            return slot;
-        }
-
-        ItemSlotData data = list[slot.index];
-        if (!data.isFootprintExtension)
-        {
-            return slot;
-        }
-
-        if (data.primarySlotIndex < 0 || data.primarySlotIndex >= list.Count)
-        {
-            return slot;
-        }
-
-        slot.index = data.primarySlotIndex;
-        return slot;
+        return 物品占格规则.ResolvePrimarySlotRef(创建物品占格上下文(), slot);
     }
 
     private int ResolvePrimarySlotIndex(SlotKind kind, int index)
     {
-        SlotRef resolved = ResolvePrimarySlotRef(new SlotRef { kind = kind, index = index });
-        return resolved.index;
+        return 物品占格规则.ResolvePrimarySlotIndex(创建物品占格上下文(), kind, index);
     }
 
     private bool TryMoveItemToEmptyStorageSlot(SlotRef source, SlotRef target, ItemSlotData sourceData)
@@ -1918,86 +1786,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RebuildEquipmentFootprintOccupancy(List<ItemSlotData> equipmentData)
     {
-        if (equipmentData == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < equipmentData.Count; i++)
-        {
-            if (!equipmentData[i].isFootprintExtension)
-            {
-                continue;
-            }
-
-            equipmentData[i] = default;
-        }
-
-        int offHandIndex = GetOffHandEquipmentSlotIndex();
-        if (offHandIndex < 0 || offHandIndex >= equipmentData.Count)
-        {
-            return;
-        }
-
-        for (int i = 0; i < equipmentData.Count; i++)
-        {
-            ItemSlotData data = equipmentData[i];
-            if (data.isFootprintExtension || string.IsNullOrWhiteSpace(data.itemId))
-            {
-                continue;
-            }
-
-            if (!ShouldOccupyOffHandSlot(i, data))
-            {
-                continue;
-            }
-
-            ItemSlotData offHandData = equipmentData[offHandIndex];
-            if (!offHandData.IsEmpty && !(offHandData.isFootprintExtension && offHandData.primarySlotIndex == i))
-            {
-                return;
-            }
-
-            equipmentData[offHandIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
-            {
-                isFootprintExtension = true,
-                primarySlotIndex = i
-            }, $"装备栏扩展格 {offHandIndex}");
-            return;
-        }
+        物品占格规则.RebuildEquipmentFootprintOccupancy(创建物品占格上下文(), equipmentData);
     }
 
     private bool ShouldOccupyOffHandSlot(int primaryIndex, ItemSlotData data)
     {
-        if (!IsFootprintItem(data))
-        {
-            return false;
-        }
-
-        if (primaryIndex < 0 || primaryIndex >= equipmentSlots.Count)
-        {
-            return false;
-        }
-
-        ItemDatabase.EquipmentSlotType slotType = equipmentSlots[primaryIndex] != null
-            ? equipmentSlots[primaryIndex].equipmentSlotType
-            : ItemDatabase.EquipmentSlotType.None;
-        return slotType == ItemDatabase.EquipmentSlotType.MainHand ||
-            slotType == ItemDatabase.EquipmentSlotType.MainOrOffHand;
+        return 物品占格规则.ShouldOccupyOffHandSlot(创建物品占格上下文(), primaryIndex, data);
     }
 
     private int GetOffHandEquipmentSlotIndex()
     {
-        for (int i = 0; i < equipmentSlots.Count; i++)
-        {
-            SlotWidget widget = equipmentSlots[i];
-            if (widget != null && widget.equipmentSlotType == ItemDatabase.EquipmentSlotType.OffHand)
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return 物品占格规则.GetOffHandEquipmentSlotIndex(创建物品占格上下文());
     }
 
     private bool CanPlaceItemAtIndex(SlotKind kind, int primaryIndex, ItemDatabase.ItemEntry entry, List<ItemSlotData> dataList = null)
@@ -2022,150 +1821,37 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void SetFootprintDataAt(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
-        List<ItemSlotData> list = GetDataList(kind);
-        if (primaryIndex < 0 || primaryIndex >= list.Count)
-        {
-            return;
-        }
-
-        ItemSlotData normalizedPrimary = PrepareItemSlotDataForStorage(data, $"{kind} {primaryIndex}");
-        list[primaryIndex] = normalizedPrimary;
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(normalizedPrimary.itemId);
-        if (!IsOneByTwoItem(entry))
-        {
-            return;
-        }
-
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, normalizedPrimary.isRotated);
-        if (extensionIndex < 0 || extensionIndex >= list.Count)
-        {
-            return;
-        }
-
-        list[extensionIndex] = PrepareItemSlotDataForStorage(new ItemSlotData
-        {
-            isFootprintExtension = true,
-            primarySlotIndex = primaryIndex
-        }, $"{kind} 扩展格 {extensionIndex}");
+        物品占格规则.SetFootprintDataAt(创建物品占格上下文(), kind, primaryIndex, data);
     }
 
     private void ClearFootprintAt(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
-        List<ItemSlotData> list = GetDataList(kind);
-        if (primaryIndex < 0 || primaryIndex >= list.Count)
-        {
-            return;
-        }
-
-        list[primaryIndex] = default;
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (!IsOneByTwoItem(entry))
-        {
-            return;
-        }
-
-        int extensionIndex = GetOneByTwoExtensionIndex(kind, primaryIndex, data.isRotated);
-        if (extensionIndex >= 0 && extensionIndex < list.Count)
-        {
-            list[extensionIndex] = default;
-        }
+        物品占格规则.ClearPlacement(创建物品占格上下文(), kind, primaryIndex, data, GetDataList(kind));
     }
 
     private void RefreshFootprintSlots(SlotKind kind, int primaryIndex, ItemSlotData data)
     {
-        RefreshByRef(new SlotRef { kind = kind, index = primaryIndex });
-        int extensionIndex = GetExtensionIndexForData(kind, primaryIndex, data);
-        if (extensionIndex < 0)
-        {
-            return;
-        }
-
-        RefreshByRef(new SlotRef { kind = kind, index = extensionIndex });
+        物品占格规则.RefreshFootprintSlots(创建物品占格上下文(), kind, primaryIndex, data);
     }
 
     private int GetOneByTwoExtensionIndex(SlotKind kind, int primaryIndex, bool isRotated)
     {
-        if (kind == SlotKind.Equipment)
-        {
-            return GetOffHandEquipmentSlotIndex();
-        }
-
-        int columnCount = GetGridColumnCount(kind);
-        if (columnCount <= 0)
-        {
-            return -1;
-        }
-
-        if (isRotated)
-        {
-            int rowStart = primaryIndex - (primaryIndex % columnCount);
-            int horizontalExtensionIndex = primaryIndex - 1;
-            return horizontalExtensionIndex >= rowStart ? horizontalExtensionIndex : -1;
-        }
-
-        int verticalStep = UsesLowerStartCorner(kind) ? -columnCount : columnCount;
-        int extensionIndex = primaryIndex + verticalStep;
-        if (extensionIndex < 0)
-        {
-            return -1;
-        }
-
-        return extensionIndex;
+        return 物品占格规则.GetOneByTwoExtensionIndex(创建物品占格上下文(), kind, primaryIndex, isRotated);
     }
 
     private int GetGridColumnCount(SlotKind kind)
     {
-        GridLayoutGroup layout = GetGridLayout(kind);
-        if (layout == null)
-        {
-            if (kind == SlotKind.Backpack && hasCachedBackpackLayout && cachedBackpackConstraint == GridLayoutGroup.Constraint.FixedColumnCount)
-            {
-                return Mathf.Max(1, cachedBackpackConstraintCount);
-            }
-
-            return 0;
-        }
-
-        if (layout.constraint == GridLayoutGroup.Constraint.FixedColumnCount)
-        {
-            return Mathf.Max(1, layout.constraintCount);
-        }
-
-        return 0;
+        return 物品占格规则.GetGridColumnCount(创建物品占格上下文(), kind);
     }
 
     private bool UsesLowerStartCorner(SlotKind kind)
     {
-        GridLayoutGroup layout = GetGridLayout(kind);
-        if (layout == null)
-        {
-            if (kind == SlotKind.Backpack && hasCachedBackpackLayout)
-            {
-                return cachedBackpackStartCorner == GridLayoutGroup.Corner.LowerLeft ||
-                    cachedBackpackStartCorner == GridLayoutGroup.Corner.LowerRight;
-            }
-
-            return true;
-        }
-
-        return layout.startCorner == GridLayoutGroup.Corner.LowerLeft ||
-            layout.startCorner == GridLayoutGroup.Corner.LowerRight;
+        return 物品占格规则.UsesLowerStartCorner(创建物品占格上下文(), kind);
     }
 
     private GridLayoutGroup GetGridLayout(SlotKind kind)
     {
-        List<SlotWidget> widgets = GetWidgetList(kind);
-        if (widgets.Count > 0 && widgets[0] != null && widgets[0].root != null && widgets[0].root.parent != null)
-        {
-            GridLayoutGroup layout = widgets[0].root.parent.GetComponent<GridLayoutGroup>();
-            if (layout != null)
-            {
-                return layout;
-            }
-        }
-
-        return null;
+        return 物品占格规则.GetGridLayout(创建物品占格上下文(), kind);
     }
 
     private bool IsOneByTwoItem(ItemDatabase.ItemEntry entry)
@@ -2182,12 +1868,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool IsFootprintItem(ItemSlotData data)
     {
-        if (data.isFootprintExtension || string.IsNullOrWhiteSpace(data.itemId))
-        {
-            return false;
-        }
-
-        return IsOneByTwoItem(ResolveItemEntry(data.itemId));
+        return 物品占格规则.IsFootprintItem(创建物品占格上下文(), data);
     }
 
     private List<SlotWidget> GetWidgetList(SlotKind kind)
