@@ -158,6 +158,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 物品提示框服务 物品提示框规则 = new 物品提示框服务();
     private readonly 物品提示框服务.State 物品提示框状态 = new 物品提示框服务.State();
     private readonly 武器模型挂载服务 武器模型挂载规则 = new 武器模型挂载服务();
+    private readonly 仓储界面刷新服务 仓储界面刷新规则 = new 仓储界面刷新服务();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -2424,6 +2425,33 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         };
     }
 
+    private 仓储界面刷新服务.Context 创建仓储界面刷新上下文()
+    {
+        return new 仓储界面刷新服务.Context
+        {
+            WarehouseSlots = warehouseSlots,
+            BackpackSlots = backpackSlots,
+            ExtraBackpackSlots = extraBackpackSlots,
+            EquipmentSlots = equipmentSlots,
+            ExtraEquipmentSlots = extraEquipmentSlots,
+            WarehouseData = warehouseData,
+            BackpackData = backpackData,
+            GetCurrentEquipmentData = () => GetCurrentEquipmentData(true),
+            GetExpectedEquipmentSlotCount = GetExpectedEquipmentSlotCount,
+            ResolveEquipmentCharacterId = ResolveEquipmentCharacterId,
+            IsSlotUsable = IsSlotUsable,
+            ShouldDisplayWarehouseItem = data => ShouldDisplayItem(warehouseFilter, data),
+            ShouldDisplayBackpackItem = data => ShouldDisplayItem(backpackFilter, data),
+            RefreshRuntimeWeaponModelForCharacter = RefreshRuntimeWeaponModelForCharacter,
+            ResolveItemEntry = ResolveItemEntry,
+            ResolveQualityBackgroundPrefab = ResolveQualityBackgroundPrefab,
+            IsOneByTwoItem = IsOneByTwoItem,
+            FindChildByName = FindChildByName,
+            FindDescendantByName = FindDescendantByName,
+            DisabledSlotColor = DisabledSlotColor
+        };
+    }
+
     private void 同步物品提示框状态()
     {
         itemTooltipRoot = 物品提示框状态.itemTooltipRoot;
@@ -3451,26 +3479,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshAll()
     {
-        for (int i = 0; i < warehouseSlots.Count; i++)
-        {
-            RefreshWarehouseSlot(i);
-        }
-
-        for (int i = 0; i < backpackSlots.Count; i++)
-        {
-            RefreshBackpackSlot(i);
-        }
-
-        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
-        {
-            List<SlotWidget> group = extraBackpackSlots[groupIndex];
-            int count = Mathf.Min(group.Count, backpackData.Count);
-            for (int i = 0; i < count; i++)
-            {
-                RefreshExtraBackpackSlot(group, i);
-            }
-        }
-
+        仓储界面刷新规则.RefreshWarehouseFilteredView(创建仓储界面刷新上下文());
+        仓储界面刷新规则.RefreshBackpackFilteredView(创建仓储界面刷新上下文());
         RefreshEquipmentSlots();
     }
 
@@ -3611,76 +3621,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshWarehouseSlot(int index)
     {
-        if (index < 0 || index >= warehouseSlots.Count || index >= warehouseData.Count)
-        {
-            return;
-        }
-
-        ApplyItemToWidget(
-            warehouseSlots[index],
-            ShouldDisplayItem(warehouseFilter, warehouseData[index]) ? warehouseData[index] : default);
-        ApplyWidgetAvailability(warehouseSlots[index], IsSlotUsable(SlotKind.Warehouse, index));
+        仓储界面刷新规则.RefreshWarehouseSlot(创建仓储界面刷新上下文(), index);
     }
 
     private void RefreshBackpackSlot(int index)
     {
-        if (index < 0 || index >= backpackSlots.Count || index >= backpackData.Count)
-        {
-            return;
-        }
-
-        ApplyItemToWidget(
-            backpackSlots[index],
-            ShouldDisplayItem(backpackFilter, backpackData[index]) ? backpackData[index] : default);
-        ApplyWidgetAvailability(backpackSlots[index], IsSlotUsable(SlotKind.Backpack, index));
+        仓储界面刷新规则.RefreshBackpackSlot(创建仓储界面刷新上下文(), index);
     }
 
     private void RefreshEquipmentSlot(int index)
     {
-        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        if (index < 0 || index >= GetExpectedEquipmentSlotCount())
-        {
-            return;
-        }
-
-        bool isUsable = IsSlotUsable(SlotKind.Equipment, index);
-        ItemSlotData data = equipmentData != null && index < equipmentData.Count ? equipmentData[index] : default;
-        ApplyEquipmentSlotData(index, data, isUsable);
-        RefreshRuntimeWeaponModelForCharacter(ResolveEquipmentCharacterId());
+        仓储界面刷新规则.RefreshEquipmentSlot(创建仓储界面刷新上下文(), index);
     }
 
     private void RefreshEquipmentSlots()
     {
-        string equipmentCharacterId = ResolveEquipmentCharacterId();
-        List<ItemSlotData> equipmentData = GetCurrentEquipmentData(true);
-        int slotCount = GetExpectedEquipmentSlotCount();
-        for (int i = 0; i < slotCount; i++)
-        {
-            ItemSlotData data = equipmentData != null && i < equipmentData.Count ? equipmentData[i] : default;
-            ApplyEquipmentSlotData(i, data, IsSlotUsable(SlotKind.Equipment, i));
-        }
-
-        RefreshRuntimeWeaponModelForCharacter(equipmentCharacterId);
-    }
-
-    private void ApplyEquipmentSlotData(int index, ItemSlotData data, bool isUsable)
-    {
-        ApplyEquipmentSlotDataToList(equipmentSlots, index, data, isUsable);
-        for (int i = 0; i < extraEquipmentSlots.Count; i++)
-        {
-            ApplyEquipmentSlotDataToList(extraEquipmentSlots[i], index, data, isUsable);
-        }
-    }
-
-    private void ApplyEquipmentSlotDataToList(List<SlotWidget> slots, int index, ItemSlotData data, bool isUsable)
-    {
-        if (slots == null || index < 0 || index >= slots.Count)
-        {
-            return;
-        }
-
-        ApplyItemToWidget(slots[index], data);
-        ApplyWidgetAvailability(slots[index], isUsable);
+        仓储界面刷新规则.RefreshEquipmentSlots(创建仓储界面刷新上下文());
     }
 
     private void RefreshAllRuntimeWeaponModelsInternal()
@@ -3695,47 +3651,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshExtraBackpackSlots(int index)
     {
-        for (int i = 0; i < extraBackpackSlots.Count; i++)
-        {
-            RefreshExtraBackpackSlot(extraBackpackSlots[i], index);
-        }
-    }
-
-    private void RefreshExtraBackpackSlot(List<SlotWidget> slots, int index)
-    {
-        if (slots == null || index < 0 || index >= slots.Count || index >= backpackData.Count)
-        {
-            return;
-        }
-
-        ApplyItemToWidget(slots[index], backpackData[index]);
-        ApplyWidgetAvailability(slots[index], IsSlotUsable(SlotKind.Backpack, index));
-    }
-
-    private static void ApplyItemToWidget(SlotWidget widget, ItemSlotData data)
-    {
-        if (widget == null || widget.icon == null)
-        {
-            return;
-        }
-
-        RebuildItemVisual(widget, data);
-    }
-
-    private void ApplyWidgetAvailability(SlotWidget widget, bool isUsable)
-    {
-        if (widget == null)
-        {
-            return;
-        }
-
-        if (widget.button != null)
-        {
-            ColorBlock colors = widget.button.colors;
-            colors.disabledColor = DisabledSlotColor;
-            widget.button.colors = colors;
-            widget.button.interactable = isUsable;
-        }
+        仓储界面刷新规则.RefreshExtraBackpackSlots(创建仓储界面刷新上下文(), index);
     }
 
     private void CacheItemTooltip(ItemDatabase.WeaponCategory weaponCategory, bool resetTooltipState)
@@ -4299,58 +4215,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return "S";
     }
 
-    private static void RebuildItemVisual(SlotWidget widget, ItemSlotData data)
-    {
-        if (widget == null || widget.icon == null)
-        {
-            return;
-        }
-
-        ClearRuntimeVisual(widget, ref widget.runtimeBackgroundVisual);
-        ClearRuntimeVisual(widget, ref widget.runtimeIconVisual);
-
-        if (string.IsNullOrWhiteSpace(data.itemId))
-        {
-            return;
-        }
-
-        ItemDatabase.ItemEntry entry = ResolveItemEntry(data.itemId);
-        if (entry == null || entry.prefab == null)
-        {
-            return;
-        }
-
-        GameObject qualityBackgroundPrefab = instance != null ? instance.ResolveQualityBackgroundPrefab(entry) : null;
-        widget.runtimeBackgroundVisual = TryCreateRuntimePrefabVisual(qualityBackgroundPrefab, widget.backgroundAnchor ?? widget.root);
-        widget.runtimeIconVisual = TryCreateRuntimeVisual(entry.prefab.transform, ItemIconName, widget.iconAnchor ?? widget.root);
-        bool shouldRotate = data.isRotated && instance != null && instance.IsOneByTwoItem(entry);
-        ApplyRuntimeVisualRotation(widget.runtimeBackgroundVisual, shouldRotate);
-        ApplyRuntimeVisualRotation(widget.runtimeIconVisual, shouldRotate);
-    }
-
-    private static void ApplyRuntimeVisualRotation(GameObject target, bool rotated)
-    {
-        RectTransform rect = target != null ? target.transform as RectTransform : null;
-        if (rect == null)
-        {
-            return;
-        }
-
-        if (rotated)
-        {
-            RectTransform parentRect = rect.parent as RectTransform;
-            float halfCellWidth = parentRect != null ? parentRect.rect.width * 0.5f : 0f;
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(halfCellWidth, 0f);
-            rect.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            return;
-        }
-
-        rect.localRotation = Quaternion.identity;
-    }
-
     private static Sprite ResolveDisplaySprite(ItemSlotData data)
     {
         if (data.icon != null)
@@ -4407,91 +4271,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return widget.icon != null ? widget.icon.sprite : null;
-    }
-
-    private static GameObject TryCreateRuntimeVisual(Transform prefabRoot, string childName, RectTransform anchor)
-    {
-        if (prefabRoot == null || anchor == null)
-        {
-            return null;
-        }
-
-        Transform source = FindChildByName(prefabRoot, childName) ?? FindDescendantByName(prefabRoot, childName);
-        if (source == null)
-        {
-            return null;
-        }
-
-        GameObject instance = UnityEngine.Object.Instantiate(source.gameObject, anchor, false);
-        instance.name = source.gameObject.name;
-
-        RectTransform sourceRect = source as RectTransform;
-        RectTransform instanceRect = instance.transform as RectTransform;
-        if (instanceRect != null && sourceRect != null)
-        {
-            instanceRect.anchorMin = sourceRect.anchorMin;
-            instanceRect.anchorMax = sourceRect.anchorMax;
-            instanceRect.pivot = sourceRect.pivot;
-            instanceRect.anchoredPosition = sourceRect.anchoredPosition;
-            instanceRect.sizeDelta = sourceRect.sizeDelta;
-            instanceRect.localRotation = sourceRect.localRotation;
-            instanceRect.localScale = sourceRect.localScale;
-            instanceRect.offsetMin = sourceRect.offsetMin;
-            instanceRect.offsetMax = sourceRect.offsetMax;
-        }
-        else if (instanceRect != null)
-        {
-            instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
-            instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
-            instanceRect.pivot = new Vector2(0.5f, 0.5f);
-            instanceRect.anchoredPosition3D = Vector3.zero;
-            instanceRect.localRotation = Quaternion.identity;
-            instanceRect.localScale = Vector3.one;
-        }
-
-        DisableRaycasts(instance);
-        instance.transform.SetAsLastSibling();
-        return instance;
-    }
-
-    private static GameObject TryCreateRuntimePrefabVisual(GameObject prefab, RectTransform anchor)
-    {
-        if (prefab == null || anchor == null)
-        {
-            return null;
-        }
-
-        GameObject instance = UnityEngine.Object.Instantiate(prefab, anchor, false);
-        RectTransform instanceRect = instance.transform as RectTransform;
-        RectTransform prefabRect = prefab.transform as RectTransform;
-        if (instanceRect != null)
-        {
-            if (prefabRect != null)
-            {
-                instanceRect.anchorMin = prefabRect.anchorMin;
-                instanceRect.anchorMax = prefabRect.anchorMax;
-                instanceRect.pivot = prefabRect.pivot;
-                instanceRect.anchoredPosition = prefabRect.anchoredPosition;
-                instanceRect.sizeDelta = prefabRect.sizeDelta;
-                instanceRect.localRotation = prefabRect.localRotation;
-                instanceRect.localScale = prefabRect.localScale;
-                instanceRect.offsetMin = prefabRect.offsetMin;
-                instanceRect.offsetMax = prefabRect.offsetMax;
-            }
-            else
-            {
-                instanceRect.anchorMin = new Vector2(0.5f, 0.5f);
-                instanceRect.anchorMax = new Vector2(0.5f, 0.5f);
-                instanceRect.pivot = new Vector2(0.5f, 0.5f);
-                instanceRect.anchoredPosition3D = Vector3.zero;
-                instanceRect.localRotation = Quaternion.identity;
-                instanceRect.localScale = Vector3.one;
-            }
-        }
-
-        DisableRaycasts(instance);
-        instance.transform.SetAsLastSibling();
-        return instance;
     }
 
     private void CacheQualityBackgroundPrefabs()
@@ -4552,39 +4331,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private static string BuildQualityBackgroundCacheKey(ItemDatabase.ItemQuality quality, bool useOneByTwo)
     {
         return quality.ToString() + (useOneByTwo ? "_1x2" : "_1x1");
-    }
-
-    private static void DisableRaycasts(GameObject root)
-    {
-        if (root == null)
-        {
-            return;
-        }
-
-        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            graphics[i].raycastTarget = false;
-        }
-    }
-
-    private static void ClearRuntimeVisual(SlotWidget widget, ref GameObject visual)
-    {
-        if (widget == null || visual == null)
-        {
-            return;
-        }
-
-        if (Application.isPlaying)
-        {
-            UnityEngine.Object.Destroy(visual);
-        }
-        else
-        {
-            UnityEngine.Object.DestroyImmediate(visual);
-        }
-
-        visual = null;
     }
 
     private static Image ResolveDisplayImage(Transform root)
@@ -4877,28 +4623,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private void RefreshWarehouseFilteredView()
     {
-        for (int i = 0; i < warehouseSlots.Count; i++)
-        {
-            RefreshWarehouseSlot(i);
-        }
+        仓储界面刷新规则.RefreshWarehouseFilteredView(创建仓储界面刷新上下文());
     }
 
     private void RefreshBackpackFilteredView()
     {
-        for (int i = 0; i < backpackSlots.Count; i++)
-        {
-            RefreshBackpackSlot(i);
-        }
-
-        for (int groupIndex = 0; groupIndex < extraBackpackSlots.Count; groupIndex++)
-        {
-            List<SlotWidget> group = extraBackpackSlots[groupIndex];
-            int count = Mathf.Min(group.Count, backpackData.Count);
-            for (int i = 0; i < count; i++)
-            {
-                RefreshExtraBackpackSlot(group, i);
-            }
-        }
+        仓储界面刷新规则.RefreshBackpackFilteredView(创建仓储界面刷新上下文());
     }
 
     private void UnbindAll()
@@ -4918,16 +4648,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         HandleEndDrag();
         HideItemTooltip();
-        ClearRuntimeVisuals(warehouseSlots);
-        ClearRuntimeVisuals(backpackSlots);
+        仓储界面刷新规则.ClearRuntimeVisuals(warehouseSlots);
+        仓储界面刷新规则.ClearRuntimeVisuals(backpackSlots);
         for (int i = 0; i < extraBackpackSlots.Count; i++)
         {
-            ClearRuntimeVisuals(extraBackpackSlots[i]);
+            仓储界面刷新规则.ClearRuntimeVisuals(extraBackpackSlots[i]);
         }
-        ClearRuntimeVisuals(equipmentSlots);
+        仓储界面刷新规则.ClearRuntimeVisuals(equipmentSlots);
         for (int i = 0; i < extraEquipmentSlots.Count; i++)
         {
-            ClearRuntimeVisuals(extraEquipmentSlots[i]);
+            仓储界面刷新规则.ClearRuntimeVisuals(extraEquipmentSlots[i]);
         }
         warehouseSlots.Clear();
         backpackSlots.Clear();
@@ -4936,25 +4666,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         extraEquipmentSlots.Clear();
     }
 
-    private static void ClearRuntimeVisuals(List<SlotWidget> widgets)
-    {
-        if (widgets == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < widgets.Count; i++)
-        {
-            SlotWidget widget = widgets[i];
-            if (widget == null)
-            {
-                continue;
-            }
-
-            ClearRuntimeVisual(widget, ref widget.runtimeBackgroundVisual);
-            ClearRuntimeVisual(widget, ref widget.runtimeIconVisual);
-        }
-    }
 }
 
 
