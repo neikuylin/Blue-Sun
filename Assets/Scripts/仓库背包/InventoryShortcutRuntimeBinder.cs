@@ -59,7 +59,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public int index;
     }
 
-    private sealed class CategoryFilterBinding
+    internal sealed class CategoryFilterBinding
     {
         public Transform panelRoot;
         public readonly List<Toggle> toggles = new List<Toggle>();
@@ -82,7 +82,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public StorageRightClickTarget rightClickTarget;
     }
 
-    private sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    internal sealed class SlotDragRelay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         private InventoryShortcutRuntimeBinder owner;
         private SlotKind kind;
@@ -159,6 +159,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private readonly 物品提示框服务.State 物品提示框状态 = new 物品提示框服务.State();
     private readonly 武器模型挂载服务 武器模型挂载规则 = new 武器模型挂载服务();
     private readonly 仓储界面刷新服务 仓储界面刷新规则 = new 仓储界面刷新服务();
+    private readonly 仓储界面绑定服务 仓储界面绑定规则 = new 仓储界面绑定服务();
 
     private readonly List<ItemSlotData> warehouseData = new List<ItemSlotData>();
     private readonly List<ItemSlotData> backpackData = new List<ItemSlotData>();
@@ -179,15 +180,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private Canvas dragCanvas;
     private RectTransform dragIconRoot;
     private Image dragIconImage;
-    private GameObject backpackSlotTemplate;
     private bool hasCachedBackpackLayout;
-    private Vector2 cachedBackpackContainerSize;
-    private RectOffset cachedBackpackPadding = new RectOffset();
-    private Vector2 cachedBackpackCellSize;
-    private Vector2 cachedBackpackSpacing;
     private GridLayoutGroup.Corner cachedBackpackStartCorner;
-    private GridLayoutGroup.Axis cachedBackpackStartAxis;
-    private TextAnchor cachedBackpackChildAlignment;
     private GridLayoutGroup.Constraint cachedBackpackConstraint;
     private int cachedBackpackConstraintCount;
     private int warehouseUsableSlotCount = -1;
@@ -711,8 +705,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         CacheQualityBackgroundPrefabs();
         CacheItemTooltip(ItemDatabase.WeaponCategory.OneHanded, true);
         UnbindAll();
-        CollectStorageSlots();
-        CollectEquipmentSlots();
+        仓储界面绑定规则.CollectStorageSlots(创建仓储界面绑定上下文());
+        仓储界面绑定规则.CollectEquipmentSlots(创建仓储界面绑定上下文());
 
         EnsureWarehouseDataSize();
         int backpackWidgetCount = backpackSlots.Count;
@@ -721,9 +715,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, extraBackpackSlots[i].Count);
         }
         EnsureBackpackDataSize(backpackWidgetCount);
-        BindCategoryFilters();
-
-        BindDragRelays();
+        仓储界面绑定规则.BindCategoryFilters(创建仓储界面绑定上下文());
+        仓储界面绑定规则.BindDragRelays(创建仓储界面绑定上下文());
     }
 
     private void OnGlobalRefreshRequested()
@@ -746,293 +739,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     {
         RefreshAll();
         RefreshRuntimeWeaponModelForCharacter(characterId);
-    }
-
-    private void CollectStorageSlots()
-    {
-        warehouseSlots.Clear();
-        backpackSlots.Clear();
-        extraBackpackSlots.Clear();
-
-        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
-        for (int i = 0; i < bindings.Length; i++)
-        {
-            物品格子区域绑定 binding = bindings[i];
-            if (binding == null)
-            {
-                continue;
-            }
-
-            RectTransform container = EnsureBoundSlotContainer(binding);
-            if (container == null)
-            {
-                continue;
-            }
-
-            int targetCount = Mathf.Max(FixedStorageSlotCount, binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库 ? warehouseData.Count : backpackData.Count);
-            EnsureBoundSlots(binding, container, targetCount);
-
-            if (binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库)
-            {
-                if (warehouseSlots.Count == 0)
-                {
-                    CollectSlotsFromContainer(container, warehouseSlots);
-                    ApplyStorageRightClickTarget(warehouseSlots, MapRightClickTarget(binding.右键拖拽目标));
-                }
-
-                continue;
-            }
-
-            if (backpackSlots.Count == 0)
-            {
-                CollectSlotsFromContainer(container, backpackSlots);
-                ApplyStorageRightClickTarget(backpackSlots, MapRightClickTarget(binding.右键拖拽目标));
-                CacheBackpackSlotTemplate();
-                continue;
-            }
-
-            List<SlotWidget> extraGroup = new List<SlotWidget>();
-            CollectSlotsFromContainer(container, extraGroup);
-            if (extraGroup.Count > 0)
-            {
-                ApplyStorageRightClickTarget(extraGroup, MapRightClickTarget(binding.右键拖拽目标));
-                extraBackpackSlots.Add(extraGroup);
-            }
-        }
-    }
-
-    private static StorageRightClickTarget MapRightClickTarget(物品格子区域绑定.右键拖拽目标类型 target)
-    {
-        switch (target)
-        {
-            case 物品格子区域绑定.右键拖拽目标类型.背包:
-                return StorageRightClickTarget.Backpack;
-            case 物品格子区域绑定.右键拖拽目标类型.目标ID装备栏:
-                return StorageRightClickTarget.TargetIdEquipment;
-            case 物品格子区域绑定.右键拖拽目标类型.仓库:
-            default:
-                return StorageRightClickTarget.Warehouse;
-        }
-    }
-
-    private static void ApplyStorageRightClickTarget(List<SlotWidget> slots, StorageRightClickTarget target)
-    {
-        if (slots == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < slots.Count; i++)
-        {
-            if (slots[i] == null)
-            {
-                continue;
-            }
-
-            slots[i].rightClickTarget = target;
-        }
-    }
-
-    private void CacheBackpackSlotTemplate()
-    {
-        if (backpackSlots.Count <= 0 || backpackSlots[0].root == null)
-        {
-            return;
-        }
-
-        StoreBackpackTemplate(backpackSlots[0].root.gameObject);
-    }
-
-    private void StoreBackpackTemplate(GameObject source)
-    {
-        if (source == null)
-        {
-            return;
-        }
-
-        if (backpackSlotTemplate != null)
-        {
-            Destroy(backpackSlotTemplate);
-        }
-
-        backpackSlotTemplate = Instantiate(source);
-        backpackSlotTemplate.name = "BackpackSlotTemplate";
-        backpackSlotTemplate.SetActive(false);
-        DontDestroyOnLoad(backpackSlotTemplate);
-        CacheBackpackLayout(source.transform.parent as RectTransform);
-    }
-
-    private void CacheBackpackLayout(RectTransform sourceContainer)
-    {
-        if (sourceContainer == null)
-        {
-            return;
-        }
-
-        cachedBackpackContainerSize = sourceContainer.sizeDelta;
-        GridLayoutGroup source = sourceContainer.GetComponent<GridLayoutGroup>();
-        if (source == null)
-        {
-            return;
-        }
-
-        hasCachedBackpackLayout = true;
-        cachedBackpackPadding = new RectOffset(source.padding.left, source.padding.right, source.padding.top, source.padding.bottom);
-        cachedBackpackCellSize = source.cellSize;
-        cachedBackpackSpacing = source.spacing;
-        cachedBackpackStartCorner = source.startCorner;
-        cachedBackpackStartAxis = source.startAxis;
-        cachedBackpackChildAlignment = source.childAlignment;
-        cachedBackpackConstraint = source.constraint;
-        cachedBackpackConstraintCount = source.constraintCount;
-    }
-
-    private void CollectEquipmentSlots()
-    {
-        equipmentSlots.Clear();
-        extraEquipmentSlots.Clear();
-
-        装备面板绑定[] panelBindings = FindObjectsOfType<装备面板绑定>(true);
-        for (int i = 0; i < panelBindings.Length; i++)
-        {
-            装备面板绑定 binding = panelBindings[i];
-            if (binding == null)
-            {
-                continue;
-            }
-
-            List<SlotWidget> collected = new List<SlotWidget>();
-            CollectEquipmentSlotsFromBinding(binding, collected);
-            if (collected.Count == 0)
-            {
-                continue;
-            }
-
-            ApplyStorageRightClickTarget(collected, MapEquipmentReturnTarget(binding.ReturnTarget));
-
-            if (equipmentSlots.Count == 0)
-            {
-                equipmentSlots.AddRange(collected);
-                continue;
-            }
-
-            extraEquipmentSlots.Add(collected);
-        }
-    }
-
-    private static StorageRightClickTarget MapEquipmentReturnTarget(装备面板绑定.回流目标类型 target)
-    {
-        return target == 装备面板绑定.回流目标类型.仓库
-            ? StorageRightClickTarget.Warehouse
-            : StorageRightClickTarget.Backpack;
-    }
-
-    private RectTransform EnsureBoundSlotContainer(物品格子区域绑定 binding)
-    {
-        if (binding == null)
-        {
-            return null;
-        }
-
-        return binding.已绑定格子容器;
-    }
-
-    private void EnsureBoundSlots(物品格子区域绑定 binding, RectTransform container, int desiredCount)
-    {
-        if (binding == null || container == null)
-        {
-            return;
-        }
-
-        int normalizedCount = Mathf.Max(0, desiredCount);
-        if (normalizedCount <= 0)
-        {
-            return;
-        }
-
-        GameObject template = ResolveBoundSlotTemplate(binding, container);
-        if (template == null)
-        {
-            return;
-        }
-
-        int currentCount = CountRecognizableSlots(container);
-        if (currentCount == normalizedCount)
-        {
-            return;
-        }
-
-        for (int i = container.childCount - 1; i >= 0; i--)
-        {
-            Destroy(container.GetChild(i).gameObject);
-        }
-
-        for (int i = 0; i < normalizedCount; i++)
-        {
-            GameObject go = Instantiate(template, container, false);
-            go.name = "格子 (" + (i + 1) + ")";
-            SetActiveRecursively(go, true);
-            if (go.transform is RectTransform rt)
-            {
-                rt.localScale = Vector3.one;
-            }
-        }
-    }
-
-    private static GameObject ResolveBoundSlotTemplate(物品格子区域绑定 binding, RectTransform container)
-    {
-        if (binding != null && binding.格子模板 != null)
-        {
-            return binding.格子模板;
-        }
-
-        if (container == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < container.childCount; i++)
-        {
-            Transform child = container.GetChild(i);
-            if (child == null)
-            {
-                continue;
-            }
-
-            bool looksLikeSlot = child.name.Contains(SlotNameKeyword);
-            bool hasButton = child.GetComponent<Button>() != null;
-            if (looksLikeSlot || hasButton)
-            {
-                return child.gameObject;
-            }
-        }
-
-        return null;
-    }
-
-    private static int CountRecognizableSlots(RectTransform container)
-    {
-        if (container == null)
-        {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = 0; i < container.childCount; i++)
-        {
-            Transform child = container.GetChild(i);
-            if (child == null)
-            {
-                continue;
-            }
-
-            if (child.name.Contains(SlotNameKeyword) || child.GetComponent<Button>() != null)
-            {
-                count++;
-            }
-        }
-
-        return count;
     }
 
     private static Transform FindTransformByPath(string path)
@@ -1174,270 +880,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return null;
     }
 
-    private void ApplyBackpackLayoutToMirrorAnchor(RectTransform anchor)
+    private void CacheBackpackLayout(RectTransform sourceContainer)
     {
-        if (anchor == null)
+        if (sourceContainer == null)
         {
             return;
         }
 
-        RectTransform sourceContainer = backpackSlots.Count > 0 && backpackSlots[0].root != null
-            ? backpackSlots[0].root.parent as RectTransform
-            : null;
-        GridLayoutGroup source = sourceContainer != null ? sourceContainer.GetComponent<GridLayoutGroup>() : null;
-
-        if (sourceContainer == null && !hasCachedBackpackLayout)
+        GridLayoutGroup source = sourceContainer.GetComponent<GridLayoutGroup>();
+        if (source == null)
         {
             return;
         }
 
-        anchor.sizeDelta = sourceContainer != null ? sourceContainer.sizeDelta : cachedBackpackContainerSize;
-
-        GridLayoutGroup target = anchor.GetComponent<GridLayoutGroup>();
-        if (target == null)
-        {
-            target = anchor.gameObject.AddComponent<GridLayoutGroup>();
-        }
-
-        if (source != null)
-        {
-            target.padding = source.padding;
-            target.cellSize = source.cellSize;
-            target.spacing = source.spacing;
-            target.startCorner = source.startCorner;
-            target.startAxis = source.startAxis;
-            target.childAlignment = source.childAlignment;
-            target.constraint = source.constraint;
-            target.constraintCount = source.constraintCount;
-            CacheBackpackLayout(sourceContainer);
-            return;
-        }
-
-        target.padding = new RectOffset(cachedBackpackPadding.left, cachedBackpackPadding.right, cachedBackpackPadding.top, cachedBackpackPadding.bottom);
-        target.cellSize = cachedBackpackCellSize;
-        target.spacing = cachedBackpackSpacing;
-        target.startCorner = cachedBackpackStartCorner;
-        target.startAxis = cachedBackpackStartAxis;
-        target.childAlignment = cachedBackpackChildAlignment;
-        target.constraint = cachedBackpackConstraint;
-        target.constraintCount = cachedBackpackConstraintCount;
-    }
-
-    private void EnsureMirrorSlots(RectTransform anchor, List<SlotWidget> cache, string slotNamePrefix)
-    {
-        cache.Clear();
-        int desiredCount = backpackSlots.Count > 0 ? backpackSlots.Count : backpackData.Count;
-
-        for (int i = anchor.childCount - 1; i >= 0; i--)
-        {
-            Destroy(anchor.GetChild(i).gameObject);
-        }
-
-        if (desiredCount <= 0 || (backpackSlots.Count == 0 && backpackSlotTemplate == null))
-        {
-            return;
-        }
-
-        GameObject template = backpackSlots.Count > 0 && backpackSlots[0].root != null
-            ? backpackSlots[0].root.gameObject
-            : backpackSlotTemplate;
-        if (template == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < desiredCount; i++)
-        {
-            GameObject go = Instantiate(template, anchor, false);
-            go.name = slotNamePrefix + " (" + (i + 1) + ")";
-            SetActiveRecursively(go, true);
-            RectTransform rt = go.transform as RectTransform;
-            if (rt != null)
-            {
-                rt.localScale = Vector3.one;
-            }
-        }
-    }
-
-    private static void SetActiveRecursively(GameObject target, bool active)
-    {
-        if (target == null)
-        {
-            return;
-        }
-
-        target.SetActive(active);
-        Transform root = target.transform;
-        for (int i = 0; i < root.childCount; i++)
-        {
-            SetActiveRecursively(root.GetChild(i).gameObject, active);
-        }
-    }
-
-    private static void CollectSlotsFromContainer(Transform container, List<SlotWidget> target)
-    {
-        target.Clear();
-        if (container == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < container.childCount; i++)
-        {
-            RectTransform child = container.GetChild(i) as RectTransform;
-            if (child == null)
-            {
-                continue;
-            }
-
-            bool looksLikeSlot = child.name.Contains(SlotNameKeyword);
-            Button button = child.GetComponent<Button>();
-            if (!looksLikeSlot && button == null)
-            {
-                continue;
-            }
-
-            RectTransform backgroundAnchor = FindNamedRectTransform(child, ItemBackgroundName);
-            RectTransform iconAnchor = FindNamedRectTransform(child, ItemIconName);
-            Image icon = ResolveSlotDisplayImage(child, iconAnchor);
-            if (icon == null)
-            {
-                continue;
-            }
-
-            target.Add(new SlotWidget
-            {
-                root = child,
-                button = button,
-                backgroundAnchor = backgroundAnchor,
-                iconAnchor = iconAnchor,
-                icon = icon,
-                iconIsRoot = icon.transform == child,
-                iconOriginalColor = icon.color,
-                iconOriginalSprite = icon.sprite
-            });
-        }
-    }
-
-    private static void CollectEquipmentSlotsFromBinding(装备面板绑定 binding, List<SlotWidget> target)
-    {
-        target.Clear();
-        if (binding == null)
-        {
-            return;
-        }
-
-        AddEquipmentSlotWidget(target, binding.HelmetSlot, ItemDatabase.EquipmentSlotType.Helmet);
-        AddEquipmentSlotWidget(target, binding.ArmorSlot, ItemDatabase.EquipmentSlotType.Armor);
-        AddEquipmentSlotWidget(target, binding.GlovesSlot, ItemDatabase.EquipmentSlotType.Gloves);
-        AddEquipmentSlotWidget(target, binding.ShoesSlot, ItemDatabase.EquipmentSlotType.Shoes);
-        AddEquipmentSlotWidget(target, binding.LegArmorSlot, ItemDatabase.EquipmentSlotType.LegArmor);
-        AddEquipmentSlotWidget(target, binding.AccessorySlot, ItemDatabase.EquipmentSlotType.Accessory);
-        AddEquipmentSlotWidget(target, binding.MainHandSlot, ItemDatabase.EquipmentSlotType.MainHand);
-        AddEquipmentSlotWidget(target, binding.OffHandSlot, ItemDatabase.EquipmentSlotType.OffHand);
-    }
-
-    private static void AddEquipmentSlotWidget(List<SlotWidget> target, RectTransform slotRoot, ItemDatabase.EquipmentSlotType slotType)
-    {
-        if (target == null || slotRoot == null)
-        {
-            return;
-        }
-
-        Button button = slotRoot.GetComponent<Button>();
-        RectTransform backgroundAnchor = FindNamedRectTransform(slotRoot, ItemBackgroundName);
-        RectTransform iconAnchor = FindNamedRectTransform(slotRoot, ItemIconName);
-        Image icon = ResolveSlotDisplayImage(slotRoot, iconAnchor) ?? FindEquipmentIconImage(slotRoot);
-        if (icon == null)
-        {
-            return;
-        }
-
-        target.Add(new SlotWidget
-        {
-            root = slotRoot,
-            button = button,
-            backgroundAnchor = backgroundAnchor,
-            iconAnchor = iconAnchor,
-            icon = icon,
-            iconIsRoot = icon.transform == slotRoot,
-            iconOriginalColor = icon.color,
-            iconOriginalSprite = icon.sprite,
-            equipmentSlotType = slotType
-        });
-    }
-
-    private static Image FindBestIconImage(RectTransform slotRoot)
-    {
-        Image[] images = slotRoot.GetComponentsInChildren<Image>(true);
-        Image rootImage = slotRoot.GetComponent<Image>();
-
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image img = images[i];
-            if (img == null)
-            {
-                continue;
-            }
-
-            string n = img.gameObject.name;
-            if (n.Contains("图标") || n.Contains("Icon") || n.Contains("icon"))
-            {
-                return img;
-            }
-        }
-
-        for (int i = 0; i < images.Length; i++)
-        {
-            Image img = images[i];
-            if (img != null && img != rootImage)
-            {
-                return img;
-            }
-        }
-
-        return rootImage;
-    }
-
-    private static Image FindEquipmentIconImage(RectTransform slotRoot)
-    {
-        Transform explicitIcon = FindChildByName(slotRoot, ItemIconName) ?? FindDescendantByName(slotRoot, ItemIconName);
-        if (explicitIcon != null)
-        {
-            Image explicitImage = explicitIcon.GetComponent<Image>();
-            if (explicitImage != null)
-            {
-                return explicitImage;
-            }
-        }
-
-        return FindBestIconImage(slotRoot);
-    }
-
-    private static Image ResolveSlotDisplayImage(RectTransform slotRoot, RectTransform iconAnchor)
-    {
-        if (iconAnchor != null)
-        {
-            Image anchorImage = iconAnchor.GetComponent<Image>();
-            if (anchorImage != null)
-            {
-                return anchorImage;
-            }
-        }
-
-        Image rootImage = slotRoot != null ? slotRoot.GetComponent<Image>() : null;
-        if (rootImage != null)
-        {
-            return rootImage;
-        }
-
-        return slotRoot != null ? FindBestIconImage(slotRoot) : null;
-    }
-
-    private static RectTransform FindNamedRectTransform(RectTransform root, string childName)
-    {
-        Transform target = FindChildByName(root, childName) ?? FindDescendantByName(root, childName);
-        return target as RectTransform;
+        hasCachedBackpackLayout = true;
+        cachedBackpackStartCorner = source.startCorner;
+        cachedBackpackConstraint = source.constraint;
+        cachedBackpackConstraintCount = source.constraintCount;
     }
 
     private static void EnsureDataSize(List<ItemSlotData> data, int size)
@@ -1596,41 +1055,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         while (warehouseData.Count < FixedStorageSlotCount)
         {
             warehouseData.Add(default);
-        }
-    }
-
-    private void BindDragRelays()
-    {
-        BindDragRelaysForList(warehouseSlots, SlotKind.Warehouse, SlotSurface.Warehouse);
-        BindDragRelaysForList(backpackSlots, SlotKind.Backpack, SlotSurface.WarehouseBackpack);
-        for (int i = 0; i < extraBackpackSlots.Count; i++)
-        {
-            BindDragRelaysForList(extraBackpackSlots[i], SlotKind.Backpack, SlotSurface.WarehouseBackpack);
-        }
-        BindDragRelaysForList(equipmentSlots, SlotKind.Equipment, SlotSurface.Equipment);
-        for (int i = 0; i < extraEquipmentSlots.Count; i++)
-        {
-            BindDragRelaysForList(extraEquipmentSlots[i], SlotKind.Equipment, SlotSurface.Equipment);
-        }
-    }
-
-    private void BindDragRelaysForList(List<SlotWidget> slots, SlotKind kind, SlotSurface surface)
-    {
-        for (int i = 0; i < slots.Count; i++)
-        {
-            RectTransform root = slots[i].root;
-            if (root == null)
-            {
-                continue;
-            }
-
-            SlotDragRelay relay = root.GetComponent<SlotDragRelay>();
-            if (relay == null)
-            {
-                relay = root.gameObject.AddComponent<SlotDragRelay>();
-            }
-
-            relay.Configure(this, kind, surface, i);
         }
     }
 
@@ -2449,6 +1873,28 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             FindChildByName = FindChildByName,
             FindDescendantByName = FindDescendantByName,
             DisabledSlotColor = DisabledSlotColor
+        };
+    }
+
+    private 仓储界面绑定服务.Context 创建仓储界面绑定上下文()
+    {
+        return new 仓储界面绑定服务.Context
+        {
+            Owner = this,
+            FixedStorageSlotCount = FixedStorageSlotCount,
+            WarehouseData = warehouseData,
+            BackpackData = backpackData,
+            WarehouseSlots = warehouseSlots,
+            BackpackSlots = backpackSlots,
+            ExtraBackpackSlots = extraBackpackSlots,
+            EquipmentSlots = equipmentSlots,
+            ExtraEquipmentSlots = extraEquipmentSlots,
+            WarehouseFilter = warehouseFilter,
+            BackpackFilter = backpackFilter,
+            CategoryFilterUnbindActions = categoryFilterUnbindActions,
+            CacheBackpackLayout = CacheBackpackLayout,
+            RefreshWarehouseFilteredView = RefreshWarehouseFilteredView,
+            RefreshBackpackFilteredView = RefreshBackpackFilteredView
         };
     }
 
@@ -4371,243 +3817,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         ItemDatabase database = ItemDatabase.LoadDefault();
         return database != null ? database.FindEntry(itemId) : null;
-    }
-
-    private void BindCategoryFilters()
-    {
-        BindCategoryFilterForPanel(FindCategoryFilterPanel("仓库面板"), warehouseFilter, RefreshWarehouseFilteredView);
-        BindCategoryFilterForPanel(FindCategoryFilterPanel("背包面板"), backpackFilter, RefreshBackpackFilteredView);
-    }
-
-    private Transform FindCategoryFilterPanel(string panelName)
-    {
-        if (string.IsNullOrWhiteSpace(panelName))
-        {
-            return null;
-        }
-
-        物品格子区域绑定.数据来源类型 sourceType = string.Equals(panelName, "仓库面板", StringComparison.Ordinal)
-            ? 物品格子区域绑定.数据来源类型.仓库
-            : 物品格子区域绑定.数据来源类型.背包;
-
-        物品格子区域绑定[] bindings = FindObjectsOfType<物品格子区域绑定>(true);
-        for (int i = 0; i < bindings.Length; i++)
-        {
-            物品格子区域绑定 binding = bindings[i];
-            if (binding == null ||
-                binding.数据来源 != sourceType)
-            {
-                continue;
-            }
-
-            Transform panelRoot = FindAncestorByName(binding.已绑定格子容器, panelName);
-            if (panelRoot != null)
-            {
-                return panelRoot;
-            }
-        }
-
-        return null;
-    }
-
-    private void BindCategoryFilterForPanel(Transform panelRoot, CategoryFilterBinding binding, Action refreshAction)
-    {
-        binding.panelRoot = panelRoot;
-        binding.toggles.Clear();
-        binding.selectedCategories.Clear();
-
-        if (panelRoot == null || refreshAction == null)
-        {
-            return;
-        }
-
-        BindCategoryToggle(panelRoot, binding, "装备", refreshAction);
-        BindCategoryToggle(panelRoot, binding, "消耗品", refreshAction);
-        BindCategoryToggle(panelRoot, binding, "材料", refreshAction);
-        BindCategoryToggle(panelRoot, binding, "补给", refreshAction);
-
-        RebuildSelectedCategories(binding);
-    }
-
-    private void BindCategoryToggle(
-        Transform panelRoot,
-        CategoryFilterBinding binding,
-        string categoryName,
-        Action refreshAction)
-    {
-        Toggle toggle = FindCategoryToggle(panelRoot, categoryName);
-        if (toggle == null)
-        {
-            return;
-        }
-
-        if (!binding.toggles.Contains(toggle))
-        {
-            binding.toggles.Add(toggle);
-        }
-
-        UnityEngine.Events.UnityAction<bool> onChanged = _ =>
-        {
-            RebuildSelectedCategories(binding);
-            refreshAction();
-        };
-
-        toggle.onValueChanged.AddListener(onChanged);
-        categoryFilterUnbindActions.Add(() =>
-        {
-            if (toggle != null)
-            {
-                toggle.onValueChanged.RemoveListener(onChanged);
-            }
-        });
-    }
-
-    private static Toggle FindCategoryToggle(Transform panelRoot, string categoryName)
-    {
-        if (panelRoot == null || string.IsNullOrWhiteSpace(categoryName))
-        {
-            return null;
-        }
-
-        Transform header = FindChildByName(panelRoot, "头部区域") ?? FindDescendantByName(panelRoot, "头部区域") ?? panelRoot;
-        Transform namedTransform = FindChildByName(header, categoryName) ?? FindDescendantByName(header, categoryName);
-        if (namedTransform != null)
-        {
-            Toggle directToggle = namedTransform.GetComponent<Toggle>();
-            if (directToggle != null)
-            {
-                return directToggle;
-            }
-
-            Toggle childToggle = namedTransform.GetComponentInChildren<Toggle>(true);
-            if (childToggle != null)
-            {
-                return childToggle;
-            }
-        }
-
-        Toggle[] toggles = header.GetComponentsInChildren<Toggle>(true);
-        for (int i = 0; i < toggles.Length; i++)
-        {
-            Toggle toggle = toggles[i];
-            if (toggle == null)
-            {
-                continue;
-            }
-
-            if (!string.IsNullOrEmpty(toggle.name) && toggle.name.IndexOf(categoryName, StringComparison.Ordinal) >= 0)
-            {
-                return toggle;
-            }
-
-            if (GetToggleCategoryLabel(toggle).IndexOf(categoryName, StringComparison.Ordinal) >= 0)
-            {
-                return toggle;
-            }
-        }
-
-        return null;
-    }
-
-    private static Transform FindAncestorByName(Transform child, string ancestorName)
-    {
-        if (child == null || string.IsNullOrWhiteSpace(ancestorName))
-        {
-            return null;
-        }
-
-        Transform current = child;
-        while (current != null)
-        {
-            if (string.Equals(current.name, ancestorName, StringComparison.Ordinal))
-            {
-                return current;
-            }
-
-            current = current.parent;
-        }
-
-        return null;
-    }
-
-    private static void RebuildSelectedCategories(CategoryFilterBinding binding)
-    {
-        if (binding == null)
-        {
-            return;
-        }
-
-        binding.selectedCategories.Clear();
-        for (int i = 0; i < binding.toggles.Count; i++)
-        {
-            Toggle toggle = binding.toggles[i];
-            if (toggle == null || !toggle.isOn)
-            {
-                continue;
-            }
-
-            if (TryResolveCategoryFromLabel(GetToggleCategoryLabel(toggle), out ItemDatabase.ItemCategory category))
-            {
-                binding.selectedCategories.Add(category);
-            }
-        }
-    }
-
-    private static string GetToggleCategoryLabel(Toggle toggle)
-    {
-        if (toggle == null)
-        {
-            return string.Empty;
-        }
-
-        TMP_Text tmpText = toggle.GetComponentInChildren<TMP_Text>(true);
-        if (tmpText != null && !string.IsNullOrWhiteSpace(tmpText.text))
-        {
-            return tmpText.text;
-        }
-
-        Text text = toggle.GetComponentInChildren<Text>(true);
-        if (text != null && !string.IsNullOrWhiteSpace(text.text))
-        {
-            return text.text;
-        }
-
-        return toggle.name ?? string.Empty;
-    }
-
-    private static bool TryResolveCategoryFromLabel(string label, out ItemDatabase.ItemCategory category)
-    {
-        category = ItemDatabase.ItemCategory.Consumable;
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return false;
-        }
-
-        if (label.IndexOf("装备", StringComparison.Ordinal) >= 0)
-        {
-            category = ItemDatabase.ItemCategory.Equipment;
-            return true;
-        }
-
-        if (label.IndexOf("消耗品", StringComparison.Ordinal) >= 0)
-        {
-            category = ItemDatabase.ItemCategory.Consumable;
-            return true;
-        }
-
-        if (label.IndexOf("材料", StringComparison.Ordinal) >= 0)
-        {
-            category = ItemDatabase.ItemCategory.Material;
-            return true;
-        }
-
-        if (label.IndexOf("补给", StringComparison.Ordinal) >= 0)
-        {
-            category = ItemDatabase.ItemCategory.Supply;
-            return true;
-        }
-
-        return false;
     }
 
     private static bool ShouldDisplayItem(CategoryFilterBinding binding, ItemSlotData data)
