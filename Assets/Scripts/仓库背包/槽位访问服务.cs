@@ -183,6 +183,6 @@ internal sealed class 槽位访问服务
             : target.index;
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipmentData = context.GetCurrentEquipmentData != null ? context.GetCurrentEquipmentData() : null;
         return context.CanUseEquipmentSlotIndex != null &&
-            context.CanUseEquipmentSlotIndex(targetIndex, widget.equipmentSlotType, requireEmpty: false, entry, equipmentData);
+            context.CanUseEquipmentSlotIndex(targetIndex, widget.equipmentSlotType, false, entry, equipmentData);
     }
 }
