@@ -90,16 +90,12 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
     private bool isResolvingSkillExecution;
-    private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
-    private Coroutine explorationFollowerRoutine;
-    private bool explorationFollowerInProgress;
     private AudioSource modeMusicSource;
-    private Coroutine explorationMoveAudioStopRoutine;
     private bool pendingExplorationModeEnter;
     private BattleInputService inputService;
     private BattleTargetPanelService targetPanelService;
@@ -119,6 +115,8 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗技能指向表现服务 skillTargetingPresentationService;
     private 战斗信息文本服务 battleInfoTextService;
     private 战斗技能表现服务 skillPresentationService;
+    private 战斗技能动作解析服务 skillActionResolverService;
+    private 战斗探索移动服务 explorationMoveService;
 
     public BattleUnit ActiveUnit
     {
@@ -286,6 +284,16 @@ public class BattleTurnSystem : MonoBehaviour
             skillPresentationService = new 战斗技能表现服务();
         }
 
+        if (skillActionResolverService == null)
+        {
+            skillActionResolverService = new 战斗技能动作解析服务();
+        }
+
+        if (explorationMoveService == null)
+        {
+            explorationMoveService = new 战斗探索移动服务();
+        }
+
         battleInfoTextService.绑定显示器(BattleInfoWindowPresenter.FindInActiveScene());
 
         skillPreviewService.重置状态();
@@ -361,11 +369,10 @@ public class BattleTurnSystem : MonoBehaviour
     private void OnDestroy()
     {
         timelineService?.Dispose();
-        StopExplorationFollowerRoutine();
+        explorationMoveService?.停止全部(this);
         skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
         UnbindEndTurnButton();
         UnbindSkillButton();
-        StopTrackedAudio(currentExplorationMoveAudioHandle);
         StopModeMusic();
     }
 
@@ -500,9 +507,9 @@ public class BattleTurnSystem : MonoBehaviour
                 GetSkillManaCost,
                 GetMoveActionPointCost,
                 GetMoveMaxRange,
-                ResolveSkillActionStateName,
+                (skill, battleUnit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, battleUnit) : string.Empty,
                 ResolveIdleStateName,
-                ResolveSkillCompensateActionMotion,
+                (skill, battleUnit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, battleUnit),
                 PlayTrackedSkillAudioRoutine);
         }
 
@@ -597,10 +604,10 @@ public class BattleTurnSystem : MonoBehaviour
         {
             StartCoroutine(PlayTrackedSkillAudioRoutine(unit, moveSkill, moveDuration));
             unit.PlayTimedAnimation(
-                unit.GetMoveAnimationStateName(ResolveSkillActionStateName(moveSkill, unit)),
+                unit.GetMoveAnimationStateName(skillActionResolverService != null ? skillActionResolverService.解析动作状态名(moveSkill, unit) : string.Empty),
                 moveDuration,
                 unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)),
-                ResolveSkillCompensateActionMotion(moveSkill, unit));
+                skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(moveSkill, unit));
         }
 
         unit.SpendActionPoints(moveActionPointCost);
@@ -611,269 +618,21 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryMoveFreely(BattleUnit unit, Vector2Int destination)
     {
-        if (unit == null || grid == null)
-        {
-            return;
-        }
-
-        Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
-        if (destination == currentCell)
-        {
-            return;
-        }
-
-        if (!unit.IsMoving)
-        {
-            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
-            if (path == null || path.Count <= 1)
-            {
-                return;
-            }
-        }
-
-        float originalMoveSpeed = unit.moveSpeed;
-        unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        bool redirected = unit.IsMoving;
-        float moveDuration = redirected
-            ? grid.RedirectMovingUnitIgnoringAllies(unit, destination)
-            : grid.MoveUnitIgnoringAllies(unit, destination);
-        unit.moveSpeed = originalMoveSpeed;
-        if (moveDuration <= 0f)
-        {
-            return;
-        }
-
-        string idleStateName = ResolveExplorationIdleStateName();
-        PlayExplorationMoveAudio(unit, moveDuration);
-        unit.PlayTimedAnimation(
-            unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
-            moveDuration,
-            idleStateName,
-            ResolveExplorationMoveCompensateMotion());
-        QueueExplorationFollowerMovement(unit);
-        RefreshHighlights();
-    }
-
-    private void QueueExplorationFollowerMovement(BattleUnit leaderUnit)
-    {
-        if (!IsExplorationMode || leaderUnit == null || !leaderUnit.IsAlive || !leaderUnit.isPlayerControlled)
-        {
-            return;
-        }
-
-        if (!string.Equals(leaderUnit.characterId, "玩家", System.StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        if (explorationFollowerRoutine != null)
-        {
-            StopCoroutine(explorationFollowerRoutine);
-            explorationFollowerRoutine = null;
-        }
-
-        explorationFollowerRoutine = StartCoroutine(RunExplorationFollowerMovementRoutine(leaderUnit));
-    }
-
-    private IEnumerator RunExplorationFollowerMovementRoutine(BattleUnit leaderUnit)
-    {
-        explorationFollowerInProgress = true;
-        WaitForSeconds idleDelay = new WaitForSeconds(2f);
-
-        while (IsExplorationMode && leaderUnit != null && leaderUnit.IsAlive)
-        {
-            bool issuedFollowerMove = false;
-            bool hasPendingFollowerGap = false;
-            float maxMoveDuration = 0f;
-            Vector2Int leaderCell = leaderUnit.IsMoving ? grid.WorldToCell(leaderUnit.transform.position) : leaderUnit.currentCell;
-            List<BattleUnit> followers = GetExplorationFollowersInSlotOrder(leaderUnit);
-            HashSet<Vector2Int> reservedDestinations = new HashSet<Vector2Int>();
-            for (int i = 0; i < followers.Count; i++)
-            {
-                BattleUnit follower = followers[i];
-                if (follower == null || !follower.IsAlive)
-                {
-                    continue;
-                }
-
-                if (follower.IsMoving)
-                {
-                    hasPendingFollowerGap = true;
-                    continue;
-                }
-
-                if (grid.ManhattanDistance(follower.currentCell, leaderCell) <= 10)
-                {
-                    continue;
-                }
-
-                hasPendingFollowerGap = true;
-
-                Vector2Int destination;
-                if (!TryFindExplorationFollowerDestination(follower, leaderCell, reservedDestinations, out destination))
-                {
-                    continue;
-                }
-
-                reservedDestinations.Add(destination);
-                float moveDuration = PlayExplorationFollowerMove(follower, destination);
-                if (moveDuration > 0f)
-                {
-                    issuedFollowerMove = true;
-                    maxMoveDuration = Mathf.Max(maxMoveDuration, moveDuration);
-                }
-            }
-
-            if (issuedFollowerMove)
-            {
-                RefreshHighlights();
-                yield return new WaitForSeconds(maxMoveDuration);
-                continue;
-            }
-
-            if (!leaderUnit.IsMoving && !hasPendingFollowerGap && !issuedFollowerMove)
-            {
-                break;
-            }
-
-            yield return idleDelay;
-        }
-
-        explorationFollowerInProgress = false;
-        explorationFollowerRoutine = null;
-        RefreshHighlights();
-    }
-
-    private List<BattleUnit> GetExplorationFollowersInSlotOrder(BattleUnit leaderUnit)
-    {
-        List<BattleUnit> orderedFollowers = new List<BattleUnit>();
-        HashSet<BattleUnit> added = new HashSet<BattleUnit>();
-        IReadOnlyList<CharacterSelectionState.SlotSelection> slotSelections = CharacterSelectionState.SlotSelections;
-        for (int i = 0; i < slotSelections.Count; i++)
-        {
-            CharacterSelectionState.SlotSelection slot = slotSelections[i];
-            if (string.IsNullOrWhiteSpace(slot.characterId))
-            {
-                continue;
-            }
-
-            BattleUnit unit = FindUnitByCharacterId(slot.characterId);
-            if (unit == null || unit == leaderUnit || !unit.IsAlive || !unit.isPlayerControlled || unit.team != BattleTeam.Player)
-            {
-                continue;
-            }
-
-            if (added.Add(unit))
-            {
-                orderedFollowers.Add(unit);
-            }
-        }
-
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null || unit == leaderUnit || !unit.IsAlive || !unit.isPlayerControlled || unit.team != BattleTeam.Player)
-            {
-                continue;
-            }
-
-            if (added.Add(unit))
-            {
-                orderedFollowers.Add(unit);
-            }
-        }
-
-        return orderedFollowers;
-    }
-
-    private bool TryFindExplorationFollowerDestination(
-        BattleUnit follower,
-        Vector2Int leaderCell,
-        HashSet<Vector2Int> reservedDestinations,
-        out Vector2Int destination)
-    {
-        destination = follower != null ? follower.currentCell : Vector2Int.zero;
-        if (follower == null || grid == null)
-        {
-            return false;
-        }
-
-        int bestDistanceDelta = int.MaxValue;
-        int bestPathLength = int.MaxValue;
-        bool found = false;
-
-        for (int y = 0; y < grid.height; y++)
-        {
-            for (int x = 0; x < grid.width; x++)
-            {
-                Vector2Int candidate = new Vector2Int(x, y);
-                int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
-                if (leaderDistance > 5)
-                {
-                    continue;
-                }
-
-                if (reservedDestinations != null && reservedDestinations.Contains(candidate))
-                {
-                    continue;
-                }
-
-                if (!grid.IsWalkableIgnoringAllies(follower, candidate))
-                {
-                    continue;
-                }
-
-                List<Vector2Int> path = grid.FindPathIgnoringAllies(follower, candidate);
-                if (path == null || path.Count <= 1)
-                {
-                    continue;
-                }
-
-                int distanceDelta = Mathf.Abs(5 - leaderDistance);
-                int pathLength = path.Count - 1;
-                if (distanceDelta > bestDistanceDelta)
-                {
-                    continue;
-                }
-
-                if (distanceDelta == bestDistanceDelta && pathLength >= bestPathLength)
-                {
-                    continue;
-                }
-
-                bestDistanceDelta = distanceDelta;
-                bestPathLength = pathLength;
-                destination = candidate;
-                found = true;
-            }
-        }
-
-        return found;
-    }
-
-    private float PlayExplorationFollowerMove(BattleUnit unit, Vector2Int destination)
-    {
-        if (unit == null || grid == null || destination == unit.currentCell)
-        {
-            return 0f;
-        }
-
-        float originalMoveSpeed = unit.moveSpeed;
-        unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
-        unit.moveSpeed = originalMoveSpeed;
-        if (moveDuration <= 0f)
-        {
-            return 0f;
-        }
-
-        string idleStateName = ResolveExplorationIdleStateName();
-        unit.PlayTimedAnimation(
-            unit.GetMoveAnimationStateName(ResolveExplorationMoveStateName()),
-            moveDuration,
-            idleStateName,
-            ResolveExplorationMoveCompensateMotion());
-        return moveDuration;
+        explorationMoveService?.尝试自由移动(
+            this,
+            unit,
+            destination,
+            IsExplorationMode,
+            grid,
+            units,
+            FindUnitByCharacterId,
+            ResolveExplorationIdleStateName,
+            ResolveExplorationMoveStateName,
+            ResolveExplorationMoveCompensateMotion,
+            ResolveExplorationMoveSound,
+            ResolveExplorationMoveSoundPrefab,
+            battleCamera,
+            RefreshHighlights);
     }
 
     private void EndTurn()
@@ -932,7 +691,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void EnterCombatMode(bool playEnterAnimation)
     {
-        StopExplorationFollowerRoutine();
+        explorationMoveService?.停止全部(this);
         bool switchedFromExploration = currentMode == BattleFlowMode.Exploration;
         currentMode = BattleFlowMode.Combat;
         waitingForEnemyAction = false;
@@ -961,18 +720,6 @@ public class BattleTurnSystem : MonoBehaviour
         {
             StartCoroutine(PlayEnterBattleAnimations());
         }
-    }
-
-    private void StopExplorationFollowerRoutine()
-    {
-        explorationFollowerInProgress = false;
-        if (explorationFollowerRoutine == null)
-        {
-            return;
-        }
-
-        StopCoroutine(explorationFollowerRoutine);
-        explorationFollowerRoutine = null;
     }
 
     private bool HasLivingEnemies()
@@ -1750,10 +1497,10 @@ public class BattleTurnSystem : MonoBehaviour
                 this,
                 activeUnit,
                 activeSkill,
-                ResolveSkillRaiseHandStateName,
-                ResolveSkillRaiseHandYawOffset,
-                ResolveSkillTargetSelectionStateName,
-                ResolveSkillTargetSelectionYawOffset,
+                (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析抬手状态名(skill, unit) : string.Empty,
+                (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析抬手偏航(skill, unit) : 0f,
+                (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析目标选择状态名(skill, unit) : string.Empty,
+                (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析目标选择偏航(skill, unit) : 0f,
                 unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                 TryGetMouseWorldPointNullable,
                 (unit, skill) =>
@@ -1785,7 +1532,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (string.Equals(actionId, ExplorationIdleSkillId, System.StringComparison.Ordinal))
         {
-            StopExplorationMoveAudio();
+            explorationMoveService?.停止移动音效(this);
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(idleStateName))
             {
@@ -1799,7 +1546,7 @@ public class BattleTurnSystem : MonoBehaviour
             string idleStateName = ResolveExplorationIdleStateName();
             if (!string.IsNullOrWhiteSpace(moveStateName))
             {
-                StopExplorationMoveAudio();
+                explorationMoveService?.停止移动音效(this);
                 activeUnit.PlayTimedAnimation(moveStateName, 0.05f, idleStateName, ResolveExplorationMoveCompensateMotion());
             }
         }
@@ -2054,10 +1801,10 @@ public class BattleTurnSystem : MonoBehaviour
                         caster,
                         skill,
                         resolveAction,
-                        ResolveSkillActionStateName,
-                        ResolveSkillCompensateActionMotion,
-                        ResolveSkillActionYawOffset,
-                        ResolveSkillPostUseYawOffset,
+                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
+                        (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
+                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
+                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                         PlayTrackedSkillAudioRoutine,
                         ResolveAnimationStateTotalFrames,
@@ -2338,10 +2085,10 @@ public class BattleTurnSystem : MonoBehaviour
                     caster,
                     skill,
                     resolveAction,
-                    ResolveSkillActionStateName,
-                    ResolveSkillCompensateActionMotion,
-                    ResolveSkillActionYawOffset,
-                    ResolveSkillPostUseYawOffset,
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
+                    (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
                     ResolveAnimationStateTotalFrames,
@@ -2482,10 +2229,10 @@ public class BattleTurnSystem : MonoBehaviour
                     caster,
                     skill,
                     resolveAction,
-                    ResolveSkillActionStateName,
-                    ResolveSkillCompensateActionMotion,
-                    ResolveSkillActionYawOffset,
-                    ResolveSkillPostUseYawOffset,
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
+                    (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
+                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
                     ResolveAnimationStateTotalFrames,
@@ -3111,13 +2858,17 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (totalDuration <= 0.01f)
         {
-            BattleAudioUtility.PlayOnce(ResolveSkillActionSound(skill, unit), ResolveSkillActionSoundPrefab(skill, unit), unit, battleCamera);
+            BattleAudioUtility.PlayOnce(
+                skillActionResolverService != null ? skillActionResolverService.解析动作音效(skill, unit) : null,
+                skillActionResolverService != null ? skillActionResolverService.解析动作音效预制体(skill, unit) : null,
+                unit,
+                battleCamera);
             yield break;
         }
 
         BattleAudioUtility.PlaybackHandle handle = BattleAudioUtility.StartTracked(
-            ResolveSkillActionSound(skill, unit),
-            ResolveSkillActionSoundPrefab(skill, unit),
+            skillActionResolverService != null ? skillActionResolverService.解析动作音效(skill, unit) : null,
+            skillActionResolverService != null ? skillActionResolverService.解析动作音效预制体(skill, unit) : null,
             unit,
             battleCamera);
         if (handle == null)
@@ -3199,7 +2950,7 @@ public class BattleTurnSystem : MonoBehaviour
             return 0f;
         }
 
-        int soundDelayFrame = ResolveSkillSoundDelayFrame(skill, unit);
+        int soundDelayFrame = skillActionResolverService != null ? skillActionResolverService.解析音效延迟帧(skill, unit) : 0;
         if (soundDelayFrame <= 0)
         {
             return 0f;
@@ -3215,17 +2966,6 @@ public class BattleTurnSystem : MonoBehaviour
         return clipDuration * ((float)clampedFrame / totalFrames);
     }
 
-    private static string ResolveSkillActionStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.actionStateName;
-        }
-
-        return string.Empty;
-    }
-
     private static Quaternion ResolvePostSkillIdleRotation(
         Quaternion currentRotation,
         float actionYawOffset,
@@ -3233,133 +2973,6 @@ public class BattleTurnSystem : MonoBehaviour
     {
         float idleYawOffset = ResolveIdleYawOffset();
         return currentRotation * Quaternion.Euler(0f, idleYawOffset - actionYawOffset + postUseYawOffset, 0f);
-    }
-
-    private static string ResolveSkillTargetSelectionStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.targetSelectionStateName;
-        }
-
-        return string.Empty;
-    }
-
-    private static string ResolveSkillRaiseHandStateName(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.raiseHandStateName;
-        }
-
-        return string.Empty;
-    }
-
-    private static float ResolveSkillTargetSelectionYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.targetSelectionYawOffset;
-        }
-
-        return 0f;
-    }
-
-    private static float ResolveSkillRaiseHandYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.raiseHandYawOffset;
-        }
-
-        return 0f;
-    }
-
-    private static float ResolveSkillActionYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.actionYawOffset;
-        }
-
-        return 0f;
-    }
-
-    private static float ResolveSkillPostUseYawOffset(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.postUseYawOffset;
-        }
-
-        return 0f;
-    }
-
-    private static AudioClip ResolveSkillActionSound(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.actionSound;
-        }
-
-        return null;
-    }
-
-    private static GameObject ResolveSkillActionSoundPrefab(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.actionSoundPrefab;
-        }
-
-        return null;
-    }
-
-    private static int ResolveSkillSoundDelayFrame(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return Mathf.Max(0, overrideEntry.soundDelayFrame);
-        }
-
-        return 0;
-    }
-
-    private static bool ResolveSkillCompensateActionMotion(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = ResolveSkillActionOverride(skill, unit);
-        if (overrideEntry != null)
-        {
-            return overrideEntry.compensateActionMotion;
-        }
-
-        return false;
-    }
-
-    private static BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride ResolveSkillActionOverride(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
-    {
-        if (skill == null || unit == null)
-        {
-            return null;
-        }
-
-        ItemDatabase.WeaponCategory weaponCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(unit.characterId);
-        bool isMoveSkill = string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal);
-        if (!isMoveSkill && !skill.HasRequiredWeaponCategory(weaponCategory))
-        {
-            return null;
-        }
-
-        return skill.FindEnabledWeaponActionOverride(weaponCategory);
     }
 
     private bool TryGetMouseWorldPoint(out Vector3 hitPoint)
@@ -3516,7 +3129,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        StopExplorationMoveAudio();
+        explorationMoveService?.停止移动音效(this);
         activeUnit.PlayAnimationState(idleStateName, ResolveExplorationIdleCompensateMotion());
     }
 
@@ -3528,7 +3141,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        StopExplorationMoveAudio();
+        explorationMoveService?.停止移动音效(this);
 
         for (int i = 0; i < units.Count; i++)
         {
@@ -3641,47 +3254,6 @@ public class BattleTurnSystem : MonoBehaviour
         return null;
     }
 
-
-    private void PlayExplorationMoveAudio(BattleUnit unit, float duration)
-    {
-        StopExplorationMoveAudio();
-        currentExplorationMoveAudioHandle = BattleAudioUtility.StartTracked(
-            ResolveExplorationMoveSound(),
-            ResolveExplorationMoveSoundPrefab(),
-            unit,
-            battleCamera);
-
-        if (currentExplorationMoveAudioHandle == null || !currentExplorationMoveAudioHandle.IsValid)
-        {
-            return;
-        }
-
-        if (explorationMoveAudioStopRoutine != null)
-        {
-            StopCoroutine(explorationMoveAudioStopRoutine);
-        }
-
-        explorationMoveAudioStopRoutine = StartCoroutine(StopExplorationMoveAudioAfterDelay(duration));
-    }
-
-    private IEnumerator StopExplorationMoveAudioAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(Mathf.Max(0.01f, delay));
-        StopExplorationMoveAudio();
-        explorationMoveAudioStopRoutine = null;
-    }
-
-    private void StopExplorationMoveAudio()
-    {
-        if (explorationMoveAudioStopRoutine != null)
-        {
-            StopCoroutine(explorationMoveAudioStopRoutine);
-            explorationMoveAudioStopRoutine = null;
-        }
-
-        StopTrackedAudio(currentExplorationMoveAudioHandle);
-        currentExplorationMoveAudioHandle = null;
-    }
 
     private static float ResolveIdleYawOffset()
     {
