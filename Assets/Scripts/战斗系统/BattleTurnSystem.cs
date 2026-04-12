@@ -129,6 +129,7 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗模式服务 modeService;
     private 战斗技能执行服务 skillExecutionService;
     private 战斗伤害结算服务 damageResolutionService;
+    private 战斗技能基础结算服务 skillCoreResolutionService;
 
     private sealed class EnemySkillChoice
     {
@@ -253,6 +254,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (damageResolutionService == null)
         {
             damageResolutionService = new 战斗伤害结算服务();
+        }
+
+        if (skillCoreResolutionService == null)
+        {
+            skillCoreResolutionService = new 战斗技能基础结算服务(MinHitChancePercent, MaxHitChancePercent);
         }
 
         timelineService.Initialize(sceneBindings);
@@ -2584,258 +2590,28 @@ public class BattleTurnSystem : MonoBehaviour
 
     private CombatDamageResult CalculateSkillDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (skill == null)
-        {
-            return null;
-        }
-
-        switch (skill.group)
-        {
-            case BattleSkillDatabase.SkillGroup.CombatArt:
-                return CalculateCombatArtDamage(caster, target, skill);
-            case BattleSkillDatabase.SkillGroup.Spell:
-                return CalculateSpellDamage(caster, target, skill);
-            default:
-                return null;
-        }
+        return skillCoreResolutionService != null
+            ? skillCoreResolutionService.计算技能伤害(caster, target, skill)
+            : null;
     }
 
     private CombatDamageResult CalculateCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
-        {
-            return null;
-        }
-
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId);
-        if (attackPower <= 0f)
-        {
-            return null;
-        }
-
-        float damage = attackPower * Mathf.Max(0f, skill.damageMultiplier);
-        if (damage <= 0f)
-        {
-            return null;
-        }
-
-        CombatDamageResult result = new CombatDamageResult();
-        int totalCriticalChance = caster.CriticalChance + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(caster.characterId);
-        int totalCriticalDamage = caster.CriticalDamage + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(caster.characterId);
-        result.isCritical = RollCriticalHit(totalCriticalChance);
-        if (result.isCritical)
-        {
-            damage *= Mathf.Max(0f, totalCriticalDamage) / 100f;
-        }
-
-        BuildDamageComponents(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), caster, target);
-        for (int i = 0; i < result.components.Count; i++)
-        {
-            result.totalDamage += result.components[i].amount;
-        }
-
-        result.appliedDamage = Mathf.Max(0, Mathf.RoundToInt(result.totalDamage));
-        return result;
+        return skillCoreResolutionService != null
+            ? skillCoreResolutionService.计算战技伤害(caster, target, skill)
+            : null;
     }
 
     private CombatDamageResult CalculateSpellDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
-        {
-            return null;
-        }
-
-        float intelligence = Mathf.Max(0, caster.GetEffectiveIntelligence());
-        float baseDamage = Mathf.Max(0, skill.fixedDamage) +
-            (Mathf.Max(0f, skill.attributeMultiplier) * intelligence);
-        float damage = baseDamage * InventoryShortcutRuntimeBinder.GetCharacterStaffDamageMultiplier(caster.characterId);
-        if (damage <= 0f)
-        {
-            return null;
-        }
-
-        CombatDamageResult result = new CombatDamageResult();
-        BuildSpellDamageComponents(result.components, damage, skill, caster, target);
-        for (int i = 0; i < result.components.Count; i++)
-        {
-            result.totalDamage += result.components[i].amount;
-        }
-
-        result.appliedDamage = Mathf.Max(0, Mathf.RoundToInt(result.totalDamage));
-        return result;
-    }
-
-    private bool RollCriticalHit(int criticalChance)
-    {
-        criticalChance = Mathf.Max(0, criticalChance);
-        if (criticalChance >= MaxHitChancePercent)
-        {
-            return true;
-        }
-
-        if (criticalChance <= MinHitChancePercent)
-        {
-            return false;
-        }
-
-        return Random.Range(0, MaxHitChancePercent) < criticalChance;
-    }
-
-    private void BuildDamageComponents(
-        List<DamageComponent> components,
-        float totalDamage,
-        ItemDatabase.WeaponDamageDistribution distribution,
-        BattleUnit caster,
-        BattleUnit target)
-    {
-        components.Clear();
-        if (totalDamage <= 0f || distribution == null)
-        {
-            return;
-        }
-
-        int distributionTotal = Mathf.Max(0, distribution.Total);
-        if (distributionTotal <= 0)
-        {
-            return;
-        }
-
-        AddDamageComponent(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target);
-        AddDamageComponent(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target);
-    }
-
-    private void AddDamageComponent(
-        List<DamageComponent> components,
-        DamageAttributeType attributeType,
-        float totalDamage,
-        int distributionValue,
-        int distributionTotal,
-        BattleUnit caster,
-        BattleUnit target)
-    {
-        if (components == null || totalDamage <= 0f || distributionValue <= 0 || distributionTotal <= 0)
-        {
-            return;
-        }
-
-        float baseAmount = totalDamage * distributionValue / distributionTotal;
-        float mitigatedAmount = ApplyResistance(baseAmount, caster, target, attributeType);
-        if (mitigatedAmount <= 0f)
-        {
-            return;
-        }
-
-        components.Add(new DamageComponent
-        {
-            attributeType = attributeType,
-            amount = mitigatedAmount
-        });
-    }
-
-    private void BuildSpellDamageComponents(
-        List<DamageComponent> components,
-        float totalDamage,
-        BattleSkillDatabase.SkillEntry skill,
-        BattleUnit caster,
-        BattleUnit target)
-    {
-        components.Clear();
-        if (totalDamage <= 0f || skill == null)
-        {
-            return;
-        }
-
-        AddDamageComponent(
-            components,
-            ConvertSpellDamageType(skill.damageType),
-            totalDamage,
-            100,
-            100,
-            caster,
-            target);
-    }
-
-    private static DamageAttributeType ConvertSpellDamageType(BattleSkillDatabase.DamageType damageType)
-    {
-        switch (damageType)
-        {
-            case BattleSkillDatabase.DamageType.Fire:
-                return DamageAttributeType.Fire;
-            case BattleSkillDatabase.DamageType.Corruption:
-                return DamageAttributeType.Corruption;
-            case BattleSkillDatabase.DamageType.Cold:
-                return DamageAttributeType.Cold;
-            default:
-                return DamageAttributeType.Physical;
-        }
+        return skillCoreResolutionService != null
+            ? skillCoreResolutionService.计算法术伤害(caster, target, skill)
+            : null;
     }
 
     private static float ApplyResistance(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)
     {
-        if (damage <= 0f)
-        {
-            return 0f;
-        }
-
-        int resistance = ResolveResistance(target, attributeType);
-        int penetration = ResolveResistancePenetration(caster, attributeType);
-        int finalResistance = Mathf.Max(0, resistance - penetration);
-        float multiplier = 1f - (Mathf.Clamp(finalResistance, 0, 100) / 100f);
-        return Mathf.Max(0f, damage * multiplier);
-    }
-
-    private static int ResolveResistancePenetration(BattleUnit caster, DamageAttributeType attributeType)
-    {
-        if (caster == null)
-        {
-            return 0;
-        }
-
-        int basePenetration;
-        ItemDatabase.ResistanceModifierType resistanceType;
-        switch (attributeType)
-        {
-            case DamageAttributeType.Fire:
-                basePenetration = caster.FireResistancePenetration;
-                resistanceType = ItemDatabase.ResistanceModifierType.Fire;
-                break;
-            case DamageAttributeType.Corruption:
-                basePenetration = caster.CorruptionResistancePenetration;
-                resistanceType = ItemDatabase.ResistanceModifierType.Corruption;
-                break;
-            case DamageAttributeType.Cold:
-                basePenetration = caster.ColdResistancePenetration;
-                resistanceType = ItemDatabase.ResistanceModifierType.Cold;
-                break;
-            default:
-                basePenetration = caster.PhysicalResistancePenetration;
-                resistanceType = ItemDatabase.ResistanceModifierType.Physical;
-                break;
-        }
-
-        return basePenetration + InventoryShortcutRuntimeBinder.GetCharacterWeaponResistancePenetration(caster.characterId, resistanceType);
-    }
-
-    private static int ResolveResistance(BattleUnit target, DamageAttributeType attributeType)
-    {
-        if (target == null)
-        {
-            return 0;
-        }
-
-        switch (attributeType)
-        {
-            case DamageAttributeType.Fire:
-                return target.FireResistance;
-            case DamageAttributeType.Corruption:
-                return target.CorruptionResistance;
-            case DamageAttributeType.Cold:
-                return target.ColdResistance;
-            default:
-                return target.PhysicalResistance;
-        }
+        return 战斗技能基础结算服务.应用抗性(damage, caster, target, attributeType);
     }
 
     private void ShowDamagePopup(BattleUnit target, CombatDamageResult damageResult)
@@ -3148,156 +2924,55 @@ public class BattleTurnSystem : MonoBehaviour
 
     private bool RollSkillHit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
-        {
-            return false;
-        }
-
-        int hitChance = CalculateSkillHitChance(caster, target, skill);
-        if (hitChance >= MaxHitChancePercent)
-        {
-            return true;
-        }
-
-        if (hitChance <= MinHitChancePercent)
-        {
-            return false;
-        }
-
-        return Random.Range(0, MaxHitChancePercent) < hitChance;
+        return skillCoreResolutionService != null &&
+            skillCoreResolutionService.判定技能命中(caster, target, skill);
     }
 
     private int CalculateSkillHitChance(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
-        {
-            return MinHitChancePercent;
-        }
-
-        return Mathf.Clamp(
-            caster.HitRate + skill.ResolveHitRateModifier() - target.DodgeRate,
-            MinHitChancePercent,
-            MaxHitChancePercent);
+        return skillCoreResolutionService != null
+            ? skillCoreResolutionService.计算技能命中率(caster, target, skill)
+            : MinHitChancePercent;
     }
 
     private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
+        if (skillCoreResolutionService == null)
         {
             return;
         }
 
-        skill.EnsureAttachedEffectsMigrated();
-        if (skill.attachedEffects == null || skill.attachedEffects.Count == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < skill.attachedEffects.Count; i++)
-        {
-            BattleSkillDatabase.SkillEntry.AttachedEffectEntry attachedEffect = skill.attachedEffects[i];
-            if (attachedEffect == null || string.IsNullOrWhiteSpace(attachedEffect.effectId) || attachedEffect.durationTurns <= 0)
-            {
-                continue;
-            }
-
-            int applyChancePercent = Mathf.Clamp(attachedEffect.applyChancePercent, 0, 100);
-            if (applyChancePercent <= 0)
-            {
-                continue;
-            }
-
-            if (applyChancePercent < 100 && Random.Range(0, 100) >= applyChancePercent)
-            {
-                continue;
-            }
-
-            EffectDatabase.EffectEntry appliedEffectEntry;
-            if (!target.ApplyAttachedEffect(attachedEffect.effectId, attachedEffect.durationTurns, caster, out appliedEffectEntry))
-            {
-                continue;
-            }
-
-            if (appliedEffectEntry == null || string.IsNullOrWhiteSpace(appliedEffectEntry.effectId))
-            {
-                continue;
-            }
-
-            BattleDamageNumberPopup.ShowConfiguredText(
-                target,
-                "+" + ResolveEffectDebugName(appliedEffectEntry),
-                BattleDamageNumberPopup.ConfiguredPopupKind.Effect,
-                physicalDamageColor,
-                battleCamera);
-
-            Debug.Log(
-                $"[EffectApplied] {target.unitName} 获得效果 {ResolveEffectDebugName(appliedEffectEntry)} " +
-                $"(来源: {caster.unitName}, 持续: {attachedEffect.durationTurns}回合) | " +
-                $"当前效果: {FormatUnitEffectDebugText(target)}");
-        }
+        skillCoreResolutionService.应用附加效果到单位(
+            caster,
+            target,
+            skill,
+            battleCamera,
+            physicalDamageColor);
     }
 
     private static string FormatUnitEffectDebugText(BattleUnit unit)
     {
-        if (unit == null || unit.ActiveEffects == null || unit.ActiveEffects.Count == 0)
-        {
-            return "无";
-        }
-
-        EffectDatabase database = EffectDatabase.LoadDefault();
-        List<string> parts = new List<string>();
-        for (int i = 0; i < unit.ActiveEffects.Count; i++)
-        {
-            BattleUnit.ActiveEffectState activeEffect = unit.ActiveEffects[i];
-            if (activeEffect == null || string.IsNullOrWhiteSpace(activeEffect.effectId))
-            {
-                continue;
-            }
-
-            string effectName = activeEffect.effectId;
-            if (database != null)
-            {
-                EffectDatabase.EffectEntry effectEntry = database.FindEntry(activeEffect.effectId);
-                if (effectEntry != null)
-                {
-                    effectName = ResolveEffectDebugName(effectEntry);
-                }
-            }
-
-            string stackText = activeEffect.stackCount > 1 ? $" x{activeEffect.stackCount}" : string.Empty;
-            parts.Add($"{effectName}({Mathf.Max(0, activeEffect.remainingTurns)}回合{stackText})");
-        }
-
-        return parts.Count > 0 ? string.Join("，", parts) : "无";
+        return 战斗技能基础结算服务.格式化单位效果调试文本(unit);
     }
 
     private static string ResolveEffectDebugName(EffectDatabase.EffectEntry effectEntry)
     {
-        if (effectEntry == null)
-        {
-            return string.Empty;
-        }
-
-        return !string.IsNullOrWhiteSpace(effectEntry.displayName)
-            ? effectEntry.displayName
-            : effectEntry.effectId;
+        return 战斗技能基础结算服务.解析效果调试名称(effectEntry);
     }
 
     private void ApplyAttachedEffectsToUnits(BattleUnit caster, List<BattleUnit> targets, BattleSkillDatabase.SkillEntry skill)
     {
-        if (targets == null || targets.Count == 0)
+        if (skillCoreResolutionService == null)
         {
             return;
         }
 
-        for (int i = 0; i < targets.Count; i++)
-        {
-            BattleUnit target = targets[i];
-            if (target != null && target.IsAlive)
-            {
-                ApplyAttachedEffectsToUnit(caster, target, skill);
-            }
-        }
+        skillCoreResolutionService.应用附加效果到单位列表(
+            caster,
+            targets,
+            skill,
+            battleCamera,
+            physicalDamageColor);
     }
 
     private void ProcessEffectTurnsForTurnOwner(BattleUnit turnOwner)
