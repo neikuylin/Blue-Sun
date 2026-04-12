@@ -130,21 +130,9 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗技能执行服务 skillExecutionService;
     private 战斗伤害结算服务 damageResolutionService;
     private 战斗技能基础结算服务 skillCoreResolutionService;
-
-    private sealed class EnemySkillChoice
-    {
-        public string skillId = string.Empty;
-        public int weight;
-        public int order;
-        public BattleSkillDatabase.SkillEntry skill;
-    }
-
-    private struct EnemySkillAction
-    {
-        public EnemySkillChoice choice;
-        public BattleUnit targetUnit;
-        public Vector2Int targetCell;
-    }
+    private 战斗效果回合结算服务 effectTurnResolutionService;
+    private 战斗敌方回合服务 enemyTurnService;
+    private 战斗敌方决策服务 enemyDecisionService;
 
     public BattleUnit ActiveUnit
     {
@@ -259,6 +247,21 @@ public class BattleTurnSystem : MonoBehaviour
         if (skillCoreResolutionService == null)
         {
             skillCoreResolutionService = new 战斗技能基础结算服务(MinHitChancePercent, MaxHitChancePercent);
+        }
+
+        if (effectTurnResolutionService == null)
+        {
+            effectTurnResolutionService = new 战斗效果回合结算服务();
+        }
+
+        if (enemyTurnService == null)
+        {
+            enemyTurnService = new 战斗敌方回合服务();
+        }
+
+        if (enemyDecisionService == null)
+        {
+            enemyDecisionService = new 战斗敌方决策服务();
         }
 
         timelineService.Initialize(sceneBindings);
@@ -426,45 +429,20 @@ public class BattleTurnSystem : MonoBehaviour
     private IEnumerator RunEnemyTurn()
     {
         waitingForEnemyAction = true;
-        yield return new WaitForSeconds(0.5f);
-
-        while (activeUnit != null && activeUnit.IsAlive && activeUnit.currentActionPoints > 0)
+        if (enemyTurnService == null)
         {
-            List<EnemySkillChoice> skillChoices = BuildEnemySkillChoices(activeUnit);
-            if (skillChoices.Count == 0)
-            {
-                break;
-            }
-
-            EnemySkillAction action;
-            if (TryFindEnemySkillAction(activeUnit, skillChoices, out action))
-            {
-                yield return ExecuteEnemySkillAction(activeUnit, action);
-                yield return new WaitForSeconds(0.1f);
-                continue;
-            }
-
-            float moveDuration;
-            if (TryMoveEnemyTowardSkillRange(activeUnit, skillChoices, out moveDuration))
-            {
-                if (moveDuration > 0f)
-                {
-                    yield return new WaitForSeconds(moveDuration);
-                }
-                else
-                {
-                    yield return new WaitForSeconds(0.1f);
-                }
-
-                RefreshHighlights();
-
-                continue;
-            }
-
-            break;
+            EndTurn();
+            yield break;
         }
 
-        EndTurn();
+        yield return enemyTurnService.执行敌方回合(
+            activeUnit,
+            BuildEnemySkillChoices,
+            TryFindEnemySkillActionNullable,
+            TryMoveEnemyTowardSkillRangeNullable,
+            ExecuteEnemySkillAction,
+            RefreshHighlights,
+            EndTurn);
     }
 
     private void TryMove(BattleUnit unit, Vector2Int destination)
@@ -2977,158 +2955,17 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ProcessEffectTurnsForTurnOwner(BattleUnit turnOwner)
     {
-        if (turnOwner == null)
+        if (effectTurnResolutionService == null)
         {
             return;
         }
 
-        EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
-        if (effectDatabase == null)
-        {
-            return;
-        }
-
-        Debug.Log($"[EffectTurn] 进入回合: {turnOwner.unitName} | 当前效果: {FormatUnitEffectDebugText(turnOwner)}");
-
-        for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
-        {
-            BattleUnit unit = units[unitIndex];
-            if (unit == null || !unit.IsAlive || unit.ActiveEffects == null || unit.ActiveEffects.Count == 0)
-            {
-                continue;
-            }
-
-            for (int effectIndex = unit.ActiveEffects.Count - 1; effectIndex >= 0; effectIndex--)
-            {
-                BattleUnit.ActiveEffectState activeEffect = unit.ActiveEffects[effectIndex];
-                if (activeEffect == null)
-                {
-                    continue;
-                }
-
-                EffectDatabase.EffectEntry effectEntry = effectDatabase.FindEntry(activeEffect.effectId);
-                if (effectEntry == null)
-                {
-                    unit.RemoveActiveEffect(activeEffect);
-                    continue;
-                }
-
-                if (!unit.ShouldAdvanceEffectOnTurn(turnOwner, activeEffect))
-                {
-                    continue;
-                }
-
-                int beforeTurns = activeEffect.remainingTurns;
-                int beforeHealth = unit.currentHealth;
-                string effectName = ResolveEffectDebugName(effectEntry);
-                ApplyEffectHealthModifiersOnTurn(unit, activeEffect, effectEntry);
-                unit.ConsumeEffectTurn(activeEffect);
-                int healthDelta = unit.currentHealth - beforeHealth;
-
-                Debug.Log(
-                    $"[EffectTurn] {turnOwner.unitName} 的回合推进了 {unit.unitName} 身上的 {effectName} | " +
-                    $"回合: {beforeTurns} -> {activeEffect.remainingTurns} | " +
-                    $"生命变化: {healthDelta} | 当前效果: {FormatUnitEffectDebugText(unit)}");
-
-                if (activeEffect.remainingTurns <= 0)
-                {
-                    Debug.Log($"[EffectExpired] {unit.unitName} 的效果 {effectName} 已移除");
-                    unit.RemoveActiveEffect(activeEffect);
-                }
-            }
-
-            unit.NormalizeRuntimeState();
-        }
-    }
-
-    private void ApplyEffectHealthModifiersOnTurn(
-        BattleUnit target,
-        BattleUnit.ActiveEffectState activeEffect,
-        EffectDatabase.EffectEntry effectEntry)
-    {
-        if (target == null || activeEffect == null || effectEntry == null || effectEntry.statModifiers == null || effectEntry.statModifiers.Count == 0)
-        {
-            return;
-        }
-
-        BattleUnit sourceUnit = FindUnitByInstanceId(activeEffect.sourceUnitInstanceId);
-        int stackCount = Mathf.Max(1, activeEffect.stackCount);
-        for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
-        {
-            EffectDatabase.StatModifier modifier = effectEntry.statModifiers[modifierIndex];
-            if (modifier == null ||
-                (modifier.statField != EffectDatabase.CharacterStatField.TargetHealth &&
-                 modifier.statField != EffectDatabase.CharacterStatField.MaxHealth))
-            {
-                continue;
-            }
-
-            for (int stackIndex = 0; stackIndex < stackCount; stackIndex++)
-            {
-                int delta = ResolveEffectCurrentHealthDelta(target, sourceUnit, modifier);
-                if (delta == 0)
-                {
-                    continue;
-                }
-
-                target.ApplyCurrentHealthDelta(delta);
-                if (delta < 0)
-                {
-                    BattleDamageNumberPopup.ShowConfiguredText(
-                        target,
-                        Mathf.Abs(delta).ToString(),
-                        BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
-                        ResolveEffectDamagePopupColor(modifier.healthDamageType),
-                        battleCamera);
-                }
-
-                Debug.Log(
-                    $"[EffectTick] {target.unitName} 受到效果 {ResolveEffectDebugName(effectEntry)} 影响 | " +
-                    $"生命变化: {delta} | 当前生命: {target.currentHealth}/{target.GetEffectiveMaxHealth()}");
-            }
-        }
-    }
-
-    private int ResolveEffectCurrentHealthDelta(BattleUnit target, BattleUnit sourceUnit, EffectDatabase.StatModifier modifier)
-    {
-        if (target == null || modifier == null)
-        {
-            return 0;
-        }
-
-        float percentBase = modifier.statField == EffectDatabase.CharacterStatField.MaxHealth
-            ? target.GetEffectiveMaxHealth()
-            : target.currentHealth;
-        float rawDelta = modifier.amountMode == EffectDatabase.StatModifier.AmountMode.Percent
-            ? percentBase * modifier.amount / 100f
-            : modifier.amount;
-        int roundedDelta = Mathf.RoundToInt(rawDelta);
-        if (roundedDelta >= 0)
-        {
-            return roundedDelta;
-        }
-
-        float mitigatedDamage = ApplyResistance(
-            Mathf.Abs(roundedDelta),
-            sourceUnit,
-            target,
-            ResolveEffectDamageAttributeType(modifier.healthDamageType));
-        return -Mathf.RoundToInt(mitigatedDamage);
-    }
-
-    private static DamageAttributeType ResolveEffectDamageAttributeType(EffectDatabase.StatModifier.HealthDamageType damageType)
-    {
-        switch (damageType)
-        {
-            case EffectDatabase.StatModifier.HealthDamageType.Fire:
-                return DamageAttributeType.Fire;
-            case EffectDatabase.StatModifier.HealthDamageType.Corruption:
-                return DamageAttributeType.Corruption;
-            case EffectDatabase.StatModifier.HealthDamageType.Cold:
-                return DamageAttributeType.Cold;
-            default:
-                return DamageAttributeType.Physical;
-        }
+        effectTurnResolutionService.处理回合持有效果(
+            turnOwner,
+            units,
+            battleCamera,
+            FindUnitByInstanceId,
+            ResolveEffectDamagePopupColor);
     }
 
     private Color ResolveEffectDamagePopupColor(EffectDatabase.StatModifier.HealthDamageType damageType)
@@ -3783,281 +3620,77 @@ public class BattleTurnSystem : MonoBehaviour
         return best;
     }
 
-    private List<EnemySkillChoice> BuildEnemySkillChoices(BattleUnit caster)
+    private List<战斗敌方回合服务.技能选项> BuildEnemySkillChoices(BattleUnit caster)
     {
-        List<EnemySkillChoice> result = new List<EnemySkillChoice>();
-        if (caster == null)
-        {
-            return result;
-        }
-
-        HashSet<string> seenSkillIds = new HashSet<string>(System.StringComparer.Ordinal);
-        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(caster.characterId) : null;
-
-        if (skillEntry != null && skillEntry.memorizedSkillIds != null)
-        {
-            CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(skillEntry, skillEntry.memorizedSkillIds.Count);
-            for (int i = 0; i < skillEntry.memorizedSkillIds.Count; i++)
-            {
-                TryAddEnemySkillChoice(
-                    result,
-                    seenSkillIds,
-                    skillEntry.memorizedSkillIds[i],
-                    CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(skillEntry, i),
-                    i);
-            }
-        }
-
-        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(caster.characterId);
-        for (int i = 0; i < grantedSkills.Count; i++)
-        {
-            TryAddEnemySkillChoice(result, seenSkillIds, grantedSkills[i], 0, 1000 + i);
-        }
-
-        TryAddEnemySkillChoice(result, seenSkillIds, NormalAttackSkillId, 0, int.MaxValue);
-        result.Sort(CompareEnemySkillChoices);
-        return result;
+        return enemyDecisionService != null
+            ? enemyDecisionService.构建技能选项(caster, NormalAttackSkillId, ResolveSkill)
+            : new List<战斗敌方回合服务.技能选项>();
     }
 
-    private void TryAddEnemySkillChoice(
-        List<EnemySkillChoice> choices,
-        HashSet<string> seenSkillIds,
-        string skillId,
-        int weight,
-        int order)
+    private bool TryFindEnemySkillAction(BattleUnit caster, List<战斗敌方回合服务.技能选项> skillChoices, out 战斗敌方回合服务.技能动作 action)
     {
-        if (choices == null || seenSkillIds == null || string.IsNullOrWhiteSpace(skillId) || !seenSkillIds.Add(skillId))
-        {
-            return;
-        }
-
-        BattleSkillDatabase.SkillEntry skill = ResolveSkill(skillId);
-        if (skill == null)
-        {
-            return;
-        }
-
-        choices.Add(new EnemySkillChoice
-        {
-            skillId = skillId,
-            weight = weight,
-            order = order,
-            skill = skill
-        });
+        战斗敌方回合服务.技能动作? resolvedAction = enemyDecisionService != null
+            ? enemyDecisionService.尝试查找技能动作(
+                caster,
+                units,
+                skillChoices,
+                grid,
+                CanEnemyUseSkill,
+                IsValidEnemySkillTarget,
+                CanEnemyCastSkillAt)
+            : null;
+        action = resolvedAction ?? default;
+        return resolvedAction.HasValue;
     }
 
-    private static int CompareEnemySkillChoices(EnemySkillChoice left, EnemySkillChoice right)
+    private 战斗敌方回合服务.技能动作? TryFindEnemySkillActionNullable(BattleUnit caster, List<战斗敌方回合服务.技能选项> skillChoices)
     {
-        if (ReferenceEquals(left, right))
-        {
-            return 0;
-        }
-
-        if (left == null)
-        {
-            return 1;
-        }
-
-        if (right == null)
-        {
-            return -1;
-        }
-
-        int weightCompare = right.weight.CompareTo(left.weight);
-        if (weightCompare != 0)
-        {
-            return weightCompare;
-        }
-
-        return left.order.CompareTo(right.order);
+        战斗敌方回合服务.技能动作 action;
+        return TryFindEnemySkillAction(caster, skillChoices, out action)
+            ? action
+            : (战斗敌方回合服务.技能动作?)null;
     }
 
-    private bool TryFindEnemySkillAction(BattleUnit caster, List<EnemySkillChoice> skillChoices, out EnemySkillAction action)
+    private bool TryMoveEnemyTowardSkillRange(BattleUnit caster, List<战斗敌方回合服务.技能选项> skillChoices, out float moveDuration)
     {
-        action = new EnemySkillAction();
-        if (caster == null || skillChoices == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < skillChoices.Count; i++)
-        {
-            EnemySkillChoice choice = skillChoices[i];
-            if (!CanEnemyUseSkill(caster, choice))
-            {
-                continue;
-            }
-
-            if (TryFindEnemySkillActionForChoice(caster, choice, out action))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        float? resolvedDuration = enemyDecisionService != null
+            ? enemyDecisionService.尝试向技能范围移动(
+                caster,
+                units,
+                skillChoices,
+                grid,
+                ResolveSkill,
+                GetMoveMaxRange,
+                GetSkillManaCost,
+                GetMoveActionPointCost,
+                GetSkillActionPointCost,
+                CanEnemyUseSkill,
+                IsValidEnemySkillTarget,
+                CanEnemyCastSkillFromCell,
+                FindClosestLivingOpponent,
+                FindBestStepToward,
+                GetSkillRange,
+                TryMoveEnemyToCellNullable,
+                FaceTowardTargetUnit)
+            : null;
+        moveDuration = resolvedDuration ?? 0f;
+        return resolvedDuration.HasValue;
     }
 
-    private bool TryFindEnemySkillActionForChoice(BattleUnit caster, EnemySkillChoice choice, out EnemySkillAction action)
+    private float? TryMoveEnemyTowardSkillRangeNullable(BattleUnit caster, List<战斗敌方回合服务.技能选项> skillChoices)
     {
-        action = new EnemySkillAction();
-        if (caster == null || choice == null || choice.skill == null)
-        {
-            return false;
-        }
-
-        BattleUnit bestTarget = null;
-        int bestDistance = int.MaxValue;
-        foreach (BattleUnit unit in units)
-        {
-            if (!IsValidEnemySkillTarget(caster, unit, choice.skill))
-            {
-                continue;
-            }
-
-            Vector2Int targetCell = unit.currentCell;
-            if (!CanEnemyCastSkillAt(caster, targetCell, unit, choice.skill))
-            {
-                continue;
-            }
-
-            int distance = grid.ManhattanDistance(caster.currentCell, unit.currentCell);
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                bestTarget = unit;
-                action = new EnemySkillAction
-                {
-                    choice = choice,
-                    targetUnit = unit,
-                    targetCell = targetCell
-                };
-            }
-        }
-
-        return bestTarget != null;
+        float moveDuration;
+        return TryMoveEnemyTowardSkillRange(caster, skillChoices, out moveDuration)
+            ? moveDuration
+            : (float?)null;
     }
 
-    private bool TryMoveEnemyTowardSkillRange(BattleUnit caster, List<EnemySkillChoice> skillChoices, out float moveDuration)
+    private float? TryMoveEnemyToCellNullable(BattleUnit unit, Vector2Int destination)
     {
-        moveDuration = 0f;
-        if (caster == null || grid == null || skillChoices == null || skillChoices.Count == 0)
-        {
-            return false;
-        }
-
-        BattleSkillDatabase.SkillEntry moveSkill = ResolveSkill(BattleSkillDatabase.MoveSkillId);
-        int maxMoveRange = GetMoveMaxRange(caster, moveSkill);
-        int moveManaCost = GetSkillManaCost(moveSkill);
-        if (maxMoveRange <= 0 || !caster.CanSpendMana(moveManaCost))
-        {
-            return false;
-        }
-
-        Vector2Int bestCell = caster.currentCell;
-        BattleUnit bestTarget = null;
-        int bestWeight = int.MinValue;
-        int bestDistanceAfterMove = int.MaxValue;
-        int bestPathLength = int.MaxValue;
-
-        for (int skillIndex = 0; skillIndex < skillChoices.Count; skillIndex++)
-        {
-            EnemySkillChoice choice = skillChoices[skillIndex];
-            if (!CanEnemyUseSkill(caster, choice))
-            {
-                continue;
-            }
-
-            foreach (BattleUnit unit in units)
-            {
-                if (!IsValidEnemySkillTarget(caster, unit, choice.skill))
-                {
-                    continue;
-                }
-
-                for (int y = 0; y < grid.height; y++)
-                {
-                    for (int x = 0; x < grid.width; x++)
-                    {
-                        Vector2Int candidate = new Vector2Int(x, y);
-                        if (candidate == caster.currentCell)
-                        {
-                            continue;
-                        }
-
-                        List<Vector2Int> path = grid.FindPath(caster, candidate);
-                        if (path == null || path.Count <= 1)
-                        {
-                            continue;
-                        }
-
-                        int stepCount = path.Count - 1;
-                        if (stepCount > maxMoveRange)
-                        {
-                            continue;
-                        }
-
-                        int moveActionPointCost = GetMoveActionPointCost(caster, path, moveSkill);
-                        if (!caster.CanSpendActionPoints(moveActionPointCost))
-                        {
-                            continue;
-                        }
-
-                        if (caster.currentActionPoints - moveActionPointCost < GetSkillActionPointCost(choice.skill))
-                        {
-                            continue;
-                        }
-
-                        if (caster.currentMana - moveManaCost < GetSkillManaCost(choice.skill))
-                        {
-                            continue;
-                        }
-
-                        if (!CanEnemyCastSkillFromCell(caster, candidate, unit, choice.skill))
-                        {
-                            continue;
-                        }
-
-                        int distanceAfterMove = grid.ManhattanDistance(candidate, unit.currentCell);
-                        if (choice.weight > bestWeight ||
-                            (choice.weight == bestWeight && distanceAfterMove < bestDistanceAfterMove) ||
-                            (choice.weight == bestWeight && distanceAfterMove == bestDistanceAfterMove && stepCount < bestPathLength))
-                        {
-                            bestWeight = choice.weight;
-                            bestDistanceAfterMove = distanceAfterMove;
-                            bestPathLength = stepCount;
-                            bestCell = candidate;
-                            bestTarget = unit;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (bestTarget == null)
-        {
-            BattleUnit fallbackTarget = FindClosestLivingOpponent(caster);
-            if (fallbackTarget == null)
-            {
-                return false;
-            }
-
-            bestCell = FindBestStepToward(caster, fallbackTarget, GetSkillRange(skillChoices[0].skill, caster));
-            bestTarget = fallbackTarget;
-            if (bestCell == caster.currentCell)
-            {
-                return false;
-            }
-        }
-
-        if (!TryMoveEnemyToCell(caster, bestCell, out moveDuration))
-        {
-            return false;
-        }
-
-        caster.FaceToward(bestTarget.transform.position);
-        return true;
+        float moveDuration;
+        return TryMoveEnemyToCell(unit, destination, out moveDuration)
+            ? moveDuration
+            : (float?)null;
     }
 
     private bool TryMoveEnemyToCell(BattleUnit unit, Vector2Int destination, out float moveDuration)
@@ -4109,7 +3742,7 @@ public class BattleTurnSystem : MonoBehaviour
         return true;
     }
 
-    private bool CanEnemyUseSkill(BattleUnit caster, EnemySkillChoice choice)
+    private bool CanEnemyUseSkill(BattleUnit caster, 战斗敌方回合服务.技能选项 choice)
     {
         if (caster == null || choice == null || choice.skill == null)
         {
@@ -4209,7 +3842,7 @@ public class BattleTurnSystem : MonoBehaviour
         return false;
     }
 
-    private IEnumerator ExecuteEnemySkillAction(BattleUnit caster, EnemySkillAction action)
+    private IEnumerator ExecuteEnemySkillAction(BattleUnit caster, 战斗敌方回合服务.技能动作 action)
     {
         if (caster == null || action.choice == null || action.choice.skill == null)
         {
