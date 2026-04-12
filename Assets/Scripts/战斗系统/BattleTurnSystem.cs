@@ -2943,7 +2943,7 @@ public class BattleTurnSystem : MonoBehaviour
         return clipDuration * ((float)clampedFrame / totalFrames);
     }
 
-    private static float ResolveSkillSoundDelaySeconds(BattleSkillDatabase.SkillEntry skill, BattleUnit unit, float clipDuration)
+    private float ResolveSkillSoundDelaySeconds(BattleSkillDatabase.SkillEntry skill, BattleUnit unit, float clipDuration)
     {
         if (skill == null)
         {
