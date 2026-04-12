@@ -127,6 +127,7 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleTargetPanelService targetPanelService;
     private BattleTurnTimelineService timelineService;
     private 战斗模式服务 modeService;
+    private 战斗技能执行服务 skillExecutionService;
 
     private sealed class EnemySkillChoice
     {
@@ -271,6 +272,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (modeService == null)
         {
             modeService = new 战斗模式服务();
+        }
+
+        if (skillExecutionService == null)
+        {
+            skillExecutionService = new 战斗技能执行服务();
         }
 
         timelineService.Initialize(sceneBindings);
@@ -2274,62 +2280,33 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
     {
-        if (!IsSkillModeActive() || isResolvingSkillExecution)
-        {
-            return;
-        }
-
-        if (!skillTargetSelectionReady)
-        {
-            return;
-        }
-
-        if (string.Equals(activeSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
-        {
-            if (target != null && target != unit)
-            {
-                return;
-            }
-
-            TryMove(unit, clickedCell);
-            return;
-        }
-
-        if (activeSkill == null)
-        {
-            return;
-        }
-
-        if (activeSkill.skillType == BattleSkillDatabase.SkillType.Target)
-        {
-            if (!CanCastSkillAt(unit, clickedCell, target, activeSkill, null))
-            {
-                return;
-            }
-
-            if (skillExecutionRoutine != null)
-            {
-                StopCoroutine(skillExecutionRoutine);
-            }
-
-            skillExecutionRoutine = StartCoroutine(ExecuteTargetSkillRoutine(unit, target, activeSkill));
-            return;
-        }
-
-        if (activeSkill.skillType == BattleSkillDatabase.SkillType.Area)
-        {
-            if (!CanCastSkillAt(unit, clickedCell, target, activeSkill, null))
-            {
-                return;
-            }
-
-            if (skillExecutionRoutine != null)
-            {
-                StopCoroutine(skillExecutionRoutine);
-            }
-
-            skillExecutionRoutine = StartCoroutine(ExecuteAreaSkillRoutine(unit, clickedCell, activeSkill));
-        }
+        skillExecutionRoutine = skillExecutionService != null
+            ? skillExecutionService.尝试使用当前技能(
+                this,
+                skillExecutionRoutine,
+                unit,
+                clickedCell,
+                target,
+                IsSkillModeActive(),
+                isResolvingSkillExecution,
+                skillTargetSelectionReady,
+                activeSkillId,
+                activeSkill,
+                (caster, cell, clickedTarget, skill) => CanCastSkillAt(caster, cell, clickedTarget, skill, null),
+                TryMove,
+                GetSkillActionPointCost,
+                GetSkillManaCostForExecution,
+                SetSkillExecutionResolvingState,
+                FaceTowardTargetUnit,
+                FaceTowardTargetCell,
+                PlaySkillAnimationWithResolveRoutine,
+                ResolveTargetSkillInfoAndDamage,
+                ResolveAreaSkillInfoAndDamage,
+                ClearActiveSkillMode,
+                RefreshHighlights,
+                RefreshTimeline,
+                TryEnterPendingExplorationMode)
+            : skillExecutionRoutine;
     }
 
     private int GetSkillRange(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
@@ -2382,6 +2359,45 @@ public class BattleTurnSystem : MonoBehaviour
         return skill.ResolveManaCost();
     }
 
+    private int GetSkillActionPointCost(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        return GetSkillActionPointCost(skill);
+    }
+
+    private int GetSkillManaCostForExecution(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        return GetSkillManaCost(skill);
+    }
+
+    private void SetSkillExecutionResolvingState(bool value)
+    {
+        isResolvingSkillExecution = value;
+        if (!value)
+        {
+            skillExecutionRoutine = null;
+        }
+    }
+
+    private void FaceTowardTargetUnit(BattleUnit caster, BattleUnit target)
+    {
+        if (caster == null || target == null)
+        {
+            return;
+        }
+
+        caster.FaceToward(target.transform.position);
+    }
+
+    private void FaceTowardTargetCell(BattleUnit caster, Vector2Int targetCell)
+    {
+        if (caster == null || grid == null)
+        {
+            return;
+        }
+
+        caster.FaceToward(grid.GetWorldPosition(targetCell));
+    }
+
     private BattleSkillDatabase.SkillEntry ResolveSkill(string skillId)
     {
         if (skillDatabase == null)
@@ -2416,64 +2432,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
-    private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (caster == null || target == null || skill == null)
-        {
-            yield break;
-        }
-
-        int actionPointCost = GetSkillActionPointCost(skill);
-        int manaCost = GetSkillManaCost(skill);
-        if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
-        {
-            yield break;
-        }
-
-        isResolvingSkillExecution = true;
-        caster.SpendActionPoints(actionPointCost);
-        caster.SpendMana(manaCost);
-        caster.FaceToward(target.transform.position);
-        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ResolveTargetSkillInfoAndDamage(caster, target, skill));
-        ClearActiveSkillMode();
-        RefreshHighlights();
-        RefreshTimeline();
-
-        Debug.Log("Target skill selected: " + caster.unitName + " -> " + target.unitName + " using " + skill.skillId);
-        isResolvingSkillExecution = false;
-        skillExecutionRoutine = null;
-        TryEnterPendingExplorationMode();
-    }
-
-    private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (caster == null || skill == null)
-        {
-            yield break;
-        }
-
-        int actionPointCost = GetSkillActionPointCost(skill);
-        int manaCost = GetSkillManaCost(skill);
-        if (!caster.CanSpendActionPoints(actionPointCost) || !caster.CanSpendMana(manaCost))
-        {
-            yield break;
-        }
-
-        isResolvingSkillExecution = true;
-        caster.SpendActionPoints(actionPointCost);
-        caster.SpendMana(manaCost);
-        caster.FaceToward(grid.GetWorldPosition(targetCell));
-        yield return PlaySkillAnimationWithResolveRoutine(caster, skill, () => ResolveAreaSkillInfoAndDamage(caster, targetCell, skill));
-        ClearActiveSkillMode();
-        RefreshHighlights();
-        RefreshTimeline();
-
-        Debug.Log("Area skill selected: " + caster.unitName + " -> " + targetCell + " using " + skill.skillId);
-        isResolvingSkillExecution = false;
-        skillExecutionRoutine = null;
-        TryEnterPendingExplorationMode();
-    }
-
     private void TryEnterPendingExplorationMode()
     {
         if (!pendingExplorationModeEnter || IsExplorationMode || HasLivingEnemies())
@@ -2488,6 +2446,74 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingExplorationModeEnter = false;
         EnterExplorationMode();
+    }
+
+    private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skillExecutionService == null)
+        {
+            yield break;
+        }
+
+        yield return skillExecutionService.尝试使用当前技能(
+            this,
+            null,
+            caster,
+            target != null ? target.currentCell : default,
+            target,
+            true,
+            isResolvingSkillExecution,
+            true,
+            skill != null ? skill.skillId : string.Empty,
+            skill,
+            (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
+            TryMove,
+            GetSkillActionPointCost,
+            GetSkillManaCostForExecution,
+            SetSkillExecutionResolvingState,
+            FaceTowardTargetUnit,
+            FaceTowardTargetCell,
+            PlaySkillAnimationWithResolveRoutine,
+            ResolveTargetSkillInfoAndDamage,
+            ResolveAreaSkillInfoAndDamage,
+            ClearActiveSkillMode,
+            RefreshHighlights,
+            RefreshTimeline,
+            TryEnterPendingExplorationMode);
+    }
+
+    private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skillExecutionService == null)
+        {
+            yield break;
+        }
+
+        yield return skillExecutionService.尝试使用当前技能(
+            this,
+            null,
+            caster,
+            targetCell,
+            null,
+            true,
+            isResolvingSkillExecution,
+            true,
+            skill != null ? skill.skillId : string.Empty,
+            skill,
+            (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
+            TryMove,
+            GetSkillActionPointCost,
+            GetSkillManaCostForExecution,
+            SetSkillExecutionResolvingState,
+            FaceTowardTargetUnit,
+            FaceTowardTargetCell,
+            PlaySkillAnimationWithResolveRoutine,
+            ResolveTargetSkillInfoAndDamage,
+            ResolveAreaSkillInfoAndDamage,
+            ClearActiveSkillMode,
+            RefreshHighlights,
+            RefreshTimeline,
+            TryEnterPendingExplorationMode);
     }
 
     private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)

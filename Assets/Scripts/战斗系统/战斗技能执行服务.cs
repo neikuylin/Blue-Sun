@@ -1,0 +1,185 @@
+using System;
+using System.Collections;
+using UnityEngine;
+
+internal sealed class 战斗技能执行服务
+{
+    public Coroutine 尝试使用当前技能(
+        MonoBehaviour 宿主,
+        Coroutine 当前执行协程,
+        BattleUnit 单位,
+        Vector2Int 点击格子,
+        BattleUnit 目标,
+        bool 技能模式激活,
+        bool 正在结算技能,
+        bool 技能目标选择已就绪,
+        string 当前技能ID,
+        BattleSkillDatabase.SkillEntry 当前技能,
+        Func<BattleUnit, Vector2Int, BattleUnit, BattleSkillDatabase.SkillEntry, bool> 可以在目标释放技能,
+        Action<BattleUnit, Vector2Int> 尝试移动,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<bool> 设置技能结算状态,
+        Action<BattleUnit, BattleUnit> 面向目标单位,
+        Action<BattleUnit, Vector2Int> 面向目标格子,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action, IEnumerator> 播放技能动画并在结算点执行,
+        Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> 结算单体技能,
+        Action<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry> 结算范围技能,
+        Action 清理主动技能模式,
+        Action 刷新高亮,
+        Action 刷新时间轴,
+        Action 尝试进入待处理探索模式)
+    {
+        if (!技能模式激活 || 正在结算技能 || !技能目标选择已就绪 || 宿主 == null || 单位 == null)
+        {
+            return 当前执行协程;
+        }
+
+        if (string.Equals(当前技能ID, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal))
+        {
+            if (目标 != null && 目标 != 单位)
+            {
+                return 当前执行协程;
+            }
+
+            尝试移动?.Invoke(单位, 点击格子);
+            return 当前执行协程;
+        }
+
+        if (当前技能 == null || 可以在目标释放技能 == null || !可以在目标释放技能(单位, 点击格子, 目标, 当前技能))
+        {
+            return 当前执行协程;
+        }
+
+        if (当前执行协程 != null)
+        {
+            宿主.StopCoroutine(当前执行协程);
+        }
+
+        if (当前技能.skillType == BattleSkillDatabase.SkillType.Target)
+        {
+            return 宿主.StartCoroutine(执行单体技能协程(
+                单位,
+                目标,
+                当前技能,
+                获取技能行动点消耗,
+                获取技能法力消耗,
+                设置技能结算状态,
+                面向目标单位,
+                播放技能动画并在结算点执行,
+                结算单体技能,
+                清理主动技能模式,
+                刷新高亮,
+                刷新时间轴,
+                尝试进入待处理探索模式));
+        }
+
+        if (当前技能.skillType == BattleSkillDatabase.SkillType.Area)
+        {
+            return 宿主.StartCoroutine(执行范围技能协程(
+                单位,
+                点击格子,
+                当前技能,
+                获取技能行动点消耗,
+                获取技能法力消耗,
+                设置技能结算状态,
+                面向目标格子,
+                播放技能动画并在结算点执行,
+                结算范围技能,
+                清理主动技能模式,
+                刷新高亮,
+                刷新时间轴,
+                尝试进入待处理探索模式));
+        }
+
+        return 当前执行协程;
+    }
+
+    private IEnumerator 执行单体技能协程(
+        BattleUnit 施法者,
+        BattleUnit 目标,
+        BattleSkillDatabase.SkillEntry 技能,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<bool> 设置技能结算状态,
+        Action<BattleUnit, BattleUnit> 面向目标单位,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action, IEnumerator> 播放技能动画并在结算点执行,
+        Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> 结算单体技能,
+        Action 清理主动技能模式,
+        Action 刷新高亮,
+        Action 刷新时间轴,
+        Action 尝试进入待处理探索模式)
+    {
+        if (施法者 == null || 目标 == null || 技能 == null)
+        {
+            yield break;
+        }
+
+        int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
+        int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
+        if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
+        {
+            yield break;
+        }
+
+        设置技能结算状态?.Invoke(true);
+        施法者.SpendActionPoints(行动点消耗);
+        施法者.SpendMana(法力消耗);
+        面向目标单位?.Invoke(施法者, 目标);
+        if (播放技能动画并在结算点执行 != null)
+        {
+            yield return 播放技能动画并在结算点执行(施法者, 技能, () => 结算单体技能?.Invoke(施法者, 目标, 技能));
+        }
+
+        清理主动技能模式?.Invoke();
+        刷新高亮?.Invoke();
+        刷新时间轴?.Invoke();
+        Debug.Log("Target skill selected: " + 施法者.unitName + " -> " + 目标.unitName + " using " + 技能.skillId);
+        设置技能结算状态?.Invoke(false);
+        尝试进入待处理探索模式?.Invoke();
+    }
+
+    private IEnumerator 执行范围技能协程(
+        BattleUnit 施法者,
+        Vector2Int 目标格子,
+        BattleSkillDatabase.SkillEntry 技能,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<bool> 设置技能结算状态,
+        Action<BattleUnit, Vector2Int> 面向目标格子,
+        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action, IEnumerator> 播放技能动画并在结算点执行,
+        Action<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry> 结算范围技能,
+        Action 清理主动技能模式,
+        Action 刷新高亮,
+        Action 刷新时间轴,
+        Action 尝试进入待处理探索模式)
+    {
+        if (施法者 == null || 技能 == null)
+        {
+            yield break;
+        }
+
+        int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
+        int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
+        if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
+        {
+            yield break;
+        }
+
+        设置技能结算状态?.Invoke(true);
+        施法者.SpendActionPoints(行动点消耗);
+        施法者.SpendMana(法力消耗);
+        面向目标格子?.Invoke(施法者, 目标格子);
+        if (播放技能动画并在结算点执行 != null)
+        {
+            yield return 播放技能动画并在结算点执行(施法者, 技能, () => 结算范围技能?.Invoke(施法者, 目标格子, 技能));
+        }
+
+        清理主动技能模式?.Invoke();
+        刷新高亮?.Invoke();
+        刷新时间轴?.Invoke();
+        Debug.Log("Area skill selected: " + 施法者.unitName + " -> " + 目标格子 + " using " + 技能.skillId);
+        设置技能结算状态?.Invoke(false);
+        尝试进入待处理探索模式?.Invoke();
+    }
+}
