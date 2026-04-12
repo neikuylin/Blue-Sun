@@ -161,6 +161,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
+                EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.Spell)
                 {
@@ -275,6 +276,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
+        entry.FindPropertyRelative("hitEffectPrefab").objectReferenceValue = null;
         entry.FindPropertyRelative("noDamage").boolValue = false;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;

@@ -84,6 +84,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float actionYawOffset;
         public AudioClip actionSound;
         public GameObject actionSoundPrefab;
+        public GameObject hitEffectPrefab;
         public int soundDelayFrame;
         public bool enableHitFeel;
         public bool compensateActionMotion;
