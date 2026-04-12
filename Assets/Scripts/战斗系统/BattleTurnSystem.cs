@@ -126,6 +126,7 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleInputService inputService;
     private BattleTargetPanelService targetPanelService;
     private BattleTurnTimelineService timelineService;
+    private 战斗模式服务 modeService;
 
     private sealed class EnemySkillChoice
     {
@@ -265,6 +266,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (timelineService == null)
         {
             timelineService = new BattleTurnTimelineService(this);
+        }
+
+        if (modeService == null)
+        {
+            modeService = new 战斗模式服务();
         }
 
         timelineService.Initialize(sceneBindings);
@@ -831,27 +837,20 @@ public class BattleTurnSystem : MonoBehaviour
         ClearActiveSkillMode();
         ClearLockedTargetUnit();
         ClearHoveredSkillTarget();
-        activeUnit = FindExplorationPlayerUnit();
-        if (playExitAnimation && switchedFromCombat)
-        {
-            PlayExitBattleAnimations();
-        }
-        else
-        {
-            PlayExplorationIdleAnimations();
-        }
-
-        if (activeUnit != null)
-        {
-            FocusCameraOnActiveUnit();
-        }
-
-        SetCombatUiVisible(false);
-        RefreshModeMusic();
-        RefreshSelectionOutlines();
-        RefreshHighlights();
-        RefreshActiveUnitUi();
-        RefreshTimeline();
+        activeUnit = modeService != null
+            ? modeService.进入探索模式(
+                switchedFromCombat && playExitAnimation,
+                FindExplorationPlayerUnit,
+                PlayExitBattleAnimations,
+                PlayExplorationIdleAnimations,
+                FocusCameraOnUnit,
+                SetCombatUiVisible,
+                RefreshModeMusic,
+                RefreshSelectionOutlines,
+                RefreshHighlights,
+                RefreshActiveUnitUi,
+                RefreshTimeline)
+            : FindExplorationPlayerUnit();
     }
 
     private void EnterCombatMode(bool playEnterAnimation)
@@ -861,34 +860,30 @@ public class BattleTurnSystem : MonoBehaviour
         currentMode = BattleFlowMode.Combat;
         waitingForEnemyAction = false;
         activeExplorationActionId = ExplorationMoveSkillId;
-        SetCombatUiVisible(true);
-        RefreshModeMusic();
-        RefreshSelectionOutlines();
-        RefreshHighlights();
-        RefreshActiveUnitUi();
-        RefreshTimeline();
-        if (playEnterAnimation && switchedFromExploration)
+        战斗模式服务.进入战斗结果 result = modeService.进入战斗模式(
+            switchedFromExploration,
+            playEnterAnimation,
+            GetNextLivingRoundUnit,
+            FocusCameraOnUnit,
+            StopCameraFollow,
+            SetCombatUiVisible,
+            RefreshModeMusic,
+            RefreshSelectionOutlines,
+            RefreshHighlights,
+            RefreshActiveUnitUi,
+            RefreshTimeline);
+        pendingEnterBattleLeadUnit = result.待进入战斗单位;
+        beginTurnAfterEnterBattle = result.进入战斗后开始回合;
+        enterBattleAnimationInProgress = result.进入战斗动画进行中;
+        if (pendingEnterBattleLeadUnit != null)
         {
-            pendingEnterBattleLeadUnit = GetNextLivingRoundUnit();
-            beginTurnAfterEnterBattle = pendingEnterBattleLeadUnit != null;
-            if (pendingEnterBattleLeadUnit != null)
-            {
-                activeUnit = pendingEnterBattleLeadUnit;
-                FocusCameraOnActiveUnit();
-            }
-            else
-            {
-                StopCameraFollow();
-            }
-            enterBattleAnimationInProgress = true;
-            StartCoroutine(PlayEnterBattleAnimations());
-            return;
+            activeUnit = pendingEnterBattleLeadUnit;
         }
 
-        enterBattleAnimationInProgress = false;
-        beginTurnAfterEnterBattle = false;
-        pendingEnterBattleLeadUnit = null;
-        StopCameraFollow();
+        if (enterBattleAnimationInProgress)
+        {
+            StartCoroutine(PlayEnterBattleAnimations());
+        }
     }
 
     private void StopExplorationFollowerRoutine()
@@ -946,23 +941,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void SetCombatUiVisible(bool visible)
     {
-        timelineService?.SetVisible(sceneBindings, visible);
-
-        if (endTurnButton != null)
-        {
-            endTurnButton.gameObject.SetActive(visible);
-        }
-
-        if (moveSkillButton != null)
-        {
-            moveSkillButton.gameObject.SetActive(visible);
-        }
-
-        if (sceneBindings != null && sceneBindings.actionPointPanel != null)
-        {
-            sceneBindings.actionPointPanel.gameObject.SetActive(visible);
-        }
-
+        modeService?.设置战斗界面可见(timelineService, sceneBindings, endTurnButton, moveSkillButton, visible);
     }
 
     private void AdvanceTurn()
@@ -1237,6 +1216,23 @@ public class BattleTurnSystem : MonoBehaviour
         if (activeUnit.team == BattleTeam.Enemy)
         {
             battleCameraController.StartFollowing(activeUnit.transform, snapImmediately: false);
+            return;
+        }
+
+        battleCameraController.StopFollowing();
+    }
+
+    private void FocusCameraOnUnit(BattleUnit unit)
+    {
+        if (battleCameraController == null || unit == null)
+        {
+            return;
+        }
+
+        battleCameraController.SnapToTarget(unit.transform);
+        if (unit.team == BattleTeam.Enemy)
+        {
+            battleCameraController.StartFollowing(unit.transform, snapImmediately: false);
             return;
         }
 
