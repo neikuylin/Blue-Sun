@@ -61,11 +61,6 @@ public class BattleTurnSystem : MonoBehaviour
     private readonly Color skillCostInsufficientColor = new Color(0.95f, 0.25f, 0.25f, 1f);
     private const string PlayerInfoColorHex = BattleInfoTextUtility.PlayerInfoColorHex;
     private const string EnemyInfoColorHex = BattleInfoTextUtility.EnemyInfoColorHex;
-    private const string NeutralInfoColorHex = BattleInfoTextUtility.NeutralInfoColorHex;
-    private const string PhysicalInfoColorHex = BattleInfoTextUtility.PhysicalInfoColorHex;
-    private const string FireInfoColorHex = BattleInfoTextUtility.FireInfoColorHex;
-    private const string CorruptionInfoColorHex = BattleInfoTextUtility.CorruptionInfoColorHex;
-    private const string ColdInfoColorHex = BattleInfoTextUtility.ColdInfoColorHex;
     private const int MinHitChancePercent = 0;
     private const int MaxHitChancePercent = 100;
     private const float HitFeelDurationSeconds = 0.3f;
@@ -80,19 +75,11 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleUnit activeUnit;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
-    private RectTransform overlayCanvasRect;
-    private RectTransform skillCostHintRect;
-    private TMP_Text skillCostHintText;
-    private BattleInfoWindowPresenter battleInfoWindowPresenter;
     private Button endTurnButton;
     private Button moveSkillButton;
     private BattleSceneBindings sceneBindings;
     private BattleSkillDatabase skillDatabase;
     private Coroutine skillExecutionRoutine;
-    private Coroutine hitFeelRoutine;
-    private float hitFeelRestoreTimeScale = 1f;
-    private float hitFeelRestoreFixedDeltaTime = DefaultFixedDeltaTime;
-    private bool hitFeelActive;
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
     private string activeSkillId = string.Empty;
@@ -102,19 +89,10 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverValid;
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
-    private BattleUnit hoveredSkillTarget;
-    private readonly List<BattleUnit> hoveredSkillTargets = new List<BattleUnit>();
     private bool isResolvingSkillExecution;
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
-    private string currentSkillTargetingStateName = string.Empty;
-    private float currentSkillTargetingYawOffset;
-    private bool skillTargetSelectionReady;
-    private Coroutine skillTargetingIntroRoutine;
-    private BattleUnit skillModeRotationAnchorUnit;
-    private Quaternion skillModeRotationAnchorRotation = Quaternion.identity;
-    private bool hasSkillModeRotationAnchor;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
@@ -134,6 +112,13 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗敌方回合服务 enemyTurnService;
     private 战斗敌方决策服务 enemyDecisionService;
     private 战斗敌方执行服务 enemyExecutionService;
+    private 战斗技能预览服务 skillPreviewService;
+    private 战斗技能预览判定服务 skillPreviewJudgeService;
+    private 战斗技能区域预览服务 skillPreviewAreaService;
+    private 战斗技能区域规则服务 skillAreaRuleService;
+    private 战斗技能指向表现服务 skillTargetingPresentationService;
+    private 战斗信息文本服务 battleInfoTextService;
+    private 战斗技能表现服务 skillPresentationService;
 
     public BattleUnit ActiveUnit
     {
@@ -203,10 +188,6 @@ public class BattleTurnSystem : MonoBehaviour
         battleCamera = mainCamera;
         battleCameraController = battleCamera != null ? battleCamera.GetComponent<BattleCameraController>() : null;
         activeUnitIdText = FindActiveUnitIdText();
-        overlayCanvasRect = null;
-        skillCostHintRect = null;
-        skillCostHintText = null;
-        battleInfoWindowPresenter = BattleInfoWindowPresenter.FindInActiveScene();
         sceneBindings = BattleSceneBindings.FindInActiveScene();
         BindEndTurnButton();
         BindSkillButton();
@@ -270,6 +251,69 @@ public class BattleTurnSystem : MonoBehaviour
             enemyExecutionService = new 战斗敌方执行服务();
         }
 
+        if (skillPreviewService == null)
+        {
+            skillPreviewService = new 战斗技能预览服务();
+        }
+
+        if (skillPreviewJudgeService == null)
+        {
+            skillPreviewJudgeService = new 战斗技能预览判定服务();
+        }
+
+        if (skillPreviewAreaService == null)
+        {
+            skillPreviewAreaService = new 战斗技能区域预览服务();
+        }
+
+        if (skillAreaRuleService == null)
+        {
+            skillAreaRuleService = new 战斗技能区域规则服务();
+        }
+
+        if (skillTargetingPresentationService == null)
+        {
+            skillTargetingPresentationService = new 战斗技能指向表现服务();
+        }
+
+        if (battleInfoTextService == null)
+        {
+            battleInfoTextService = new 战斗信息文本服务();
+        }
+
+        if (skillPresentationService == null)
+        {
+            skillPresentationService = new 战斗技能表现服务();
+        }
+
+        battleInfoTextService.绑定显示器(BattleInfoWindowPresenter.FindInActiveScene());
+
+        skillPreviewService.重置状态();
+        skillAreaRuleService.初始化(
+            grid,
+            units,
+            GetDisplayedSkillRange,
+            IsValidSkillTarget);
+        skillPreviewJudgeService.初始化(
+            grid,
+            units,
+            IsValidSkillTarget,
+            GetDisplayedSkillRange,
+            skillAreaRuleService.使用连续圆形区域,
+            skillAreaRuleService.是圆轴区域技能,
+            skillAreaRuleService.是否位于连续圆形区域内,
+            skillAreaRuleService.是否位于圆轴区域内,
+            skillAreaRuleService.收集区域效果格);
+        skillPreviewAreaService.初始化(
+            grid,
+            skillAreaRuleService.使用连续圆形区域,
+            skillAreaRuleService.是圆轴区域技能,
+            skillAreaRuleService.获取连续区域半径世界,
+            skillAreaRuleService.解析轴向方向世界,
+            skillAreaRuleService.获取轴向范围世界,
+            skillAreaRuleService.获取轴向宽度世界,
+            skillAreaRuleService.收集区域效果格);
+
         timelineService.Initialize(sceneBindings);
         units.Clear();
         currentRoundOrder.Clear();
@@ -311,23 +355,14 @@ public class BattleTurnSystem : MonoBehaviour
 
     public void SetSkillCostHintText(TMP_Text hintText)
     {
-        skillCostHintText = hintText;
-        skillCostHintRect = hintText != null ? hintText.rectTransform : null;
-        overlayCanvasRect = skillCostHintRect != null ? skillCostHintRect.GetComponentInParent<Canvas>()?.transform as RectTransform : null;
-
-        if (skillCostHintText != null)
-        {
-            skillCostHintText.raycastTarget = false;
-            skillCostHintText.text = string.Empty;
-            skillCostHintText.gameObject.SetActive(false);
-        }
+        skillPreviewService?.设置行动点提示文本(hintText);
     }
 
     private void OnDestroy()
     {
         timelineService?.Dispose();
         StopExplorationFollowerRoutine();
-        RestoreGlobalTimeScale();
+        skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
         UnbindEndTurnButton();
         UnbindSkillButton();
         StopTrackedAudio(currentExplorationMoveAudioHandle);
@@ -373,7 +408,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (activeUnit.isPlayerControlled)
         {
             UpdateSkillHoverPreview();
-            UpdateHoveredTargetFlash();
+            skillPreviewService?.更新悬停目标闪烁(
+                grid,
+                Time.time,
+                hoveredEnemyFlashColor,
+                hoveredAllyFlashColor);
             inputService?.HandleCombatInput(
                 grid,
                 battleCamera,
@@ -404,7 +443,7 @@ public class BattleTurnSystem : MonoBehaviour
             grid,
             battleCamera,
             activeUnit,
-            hoveredSkillTarget,
+            skillPreviewService != null ? skillPreviewService.HoveredSkillTarget : null,
             IsExplorationMode,
             RefreshSelectionOutlines);
     }
@@ -874,7 +913,7 @@ public class BattleTurnSystem : MonoBehaviour
         absoluteRoundIndex = -1;
         ClearActiveSkillMode();
         ClearLockedTargetUnit();
-        ClearHoveredSkillTarget();
+        skillPreviewService?.清空悬停目标(grid);
         activeUnit = modeService != null
             ? modeService.进入探索模式(
                 switchedFromCombat && playExitAnimation,
@@ -1177,7 +1216,16 @@ public class BattleTurnSystem : MonoBehaviour
                 skillAllyOccupiedColor,
                 skillEnemyOccupiedColor);
         }
-        ApplySkillHoverPreview();
+        skillPreviewAreaService?.应用技能悬停预览(
+            activeUnit,
+            activeSkill,
+            skillHoverCell,
+            hasSkillHoverPreview,
+            skillHoverHasAnyVisibleCells,
+            skillHoverValid,
+            IsMovementSkillActive(),
+            skillPreviewValidColor,
+            skillPreviewInvalidColor);
     }
 
     private void SetLockedTargetUnit(BattleUnit unit)
@@ -1693,12 +1741,26 @@ public class BattleTurnSystem : MonoBehaviour
         }
         else
         {
-            CacheSkillModeRotationAnchor(activeUnit, wasSkillModeActive);
+            skillTargetingPresentationService?.缓存技能模式旋转锚点(activeUnit, wasSkillModeActive);
             activeSkillId = skillId;
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
-            StartSkillTargetingIntro(activeUnit, activeSkill);
+            skillTargetingPresentationService?.开始技能指向引导(
+                this,
+                activeUnit,
+                activeSkill,
+                ResolveSkillRaiseHandStateName,
+                ResolveSkillRaiseHandYawOffset,
+                ResolveSkillTargetSelectionStateName,
+                ResolveSkillTargetSelectionYawOffset,
+                unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+                TryGetMouseWorldPointNullable,
+                (unit, skill) =>
+                    activeUnit == unit &&
+                    activeSkill == skill &&
+                    !string.IsNullOrWhiteSpace(activeSkillId) &&
+                    string.Equals(activeSkillId, skill.skillId, System.StringComparison.Ordinal));
         }
 
         RefreshHighlights();
@@ -1763,8 +1825,8 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
-            ClearHoveredSkillTarget();
+            skillPreviewService?.隐藏行动点提示();
+            skillPreviewService?.清空悬停目标(grid);
             return;
         }
 
@@ -1779,16 +1841,16 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
-            ClearHoveredSkillTarget();
+            skillPreviewService?.隐藏行动点提示();
+            skillPreviewService?.清空悬停目标(grid);
             return;
         }
 
-        if (!skillTargetSelectionReady)
+        if (skillTargetingPresentationService != null && !skillTargetingPresentationService.技能目标选择已就绪)
         {
             if (TryGetMouseWorldPoint(out Vector3 introHitPoint))
             {
-                UpdateSkillTargetingFacing(introHitPoint);
+                skillTargetingPresentationService?.更新技能指向朝向(IsSkillModeActive(), activeUnit, introHitPoint);
             }
 
             if (hasSkillHoverPreview || skillHoverHasAnyVisibleCells || skillHoverValid || skillHoverActionPointCost > 0)
@@ -1800,8 +1862,8 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
-            ClearHoveredSkillTarget();
+            skillPreviewService?.隐藏行动点提示();
+            skillPreviewService?.清空悬停目标(grid);
             return;
         }
 
@@ -1815,10 +1877,17 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
+            skillPreviewService?.隐藏行动点提示();
         }
 
-        UpdateHoveredSkillTarget();
+        skillPreviewService?.更新悬停目标(
+            grid,
+            battleCamera,
+            activeUnit,
+            activeSkill,
+            IsSkillModeActive(),
+            IsPointerBlockedByUi,
+            skillPreviewJudgeService != null ? skillPreviewJudgeService.收集悬停技能目标 : null);
 
         Plane clickPlane = grid.GetInteractionPlane();
         Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
@@ -1834,12 +1903,12 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
+            skillPreviewService?.隐藏行动点提示();
             return;
         }
 
         Vector3 hitPoint = ray.GetPoint(enter);
-        UpdateSkillTargetingFacing(hitPoint);
+        skillTargetingPresentationService?.更新技能指向朝向(IsSkillModeActive(), activeUnit, hitPoint);
         Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
         if (!grid.IsInside(hoveredCell))
         {
@@ -1852,7 +1921,7 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
             }
 
-            HideSkillCostHint();
+            skillPreviewService?.隐藏行动点提示();
             return;
         }
 
@@ -1861,7 +1930,13 @@ public class BattleTurnSystem : MonoBehaviour
         List<Vector2Int> path = IsMovementSkillActive() && footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
         bool canCastAtHover = CanCastSkillAt(activeUnit, hoveredCell, hoveredUnit, activeSkill, path);
         int actionPointCost = canCastAtHover ? GetHoveredSkillActionPointCost(activeUnit, path, activeSkill) : 0;
-        bool hasAnyVisibleCells = shouldShowAreaPreview && HasAnyVisibleSkillPreviewCells(hoveredCell);
+        bool hasAnyVisibleCells = shouldShowAreaPreview &&
+            skillPreviewAreaService != null &&
+            skillPreviewAreaService.是否存在可见技能预览格(
+                activeUnit,
+                activeSkill,
+                hoveredCell,
+                ShouldShowSkillAreaPreview);
 
         if (hasSkillHoverPreview &&
             skillHoverCell == hoveredCell &&
@@ -1869,7 +1944,15 @@ public class BattleTurnSystem : MonoBehaviour
             skillHoverHasAnyVisibleCells == hasAnyVisibleCells &&
             skillHoverActionPointCost == actionPointCost)
         {
-            UpdateSkillCostHint();
+            skillPreviewService?.更新行动点提示(
+                IsSkillModeActive(),
+                skillHoverValid,
+                skillHoverActionPointCost,
+                activeUnit,
+                skillCostInsufficientColor,
+                skillCostNormalColor,
+                ResolveOverlayCanvasTransform,
+                FindChildByName);
             return;
         }
 
@@ -1879,127 +1962,18 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
         skillHoverActionPointCost = actionPointCost;
         RefreshHighlights();
-        UpdateSkillCostHint();
+        skillPreviewService?.更新行动点提示(
+            IsSkillModeActive(),
+            skillHoverValid,
+            skillHoverActionPointCost,
+            activeUnit,
+            skillCostInsufficientColor,
+            skillCostNormalColor,
+            ResolveOverlayCanvasTransform,
+            FindChildByName);
     }
 
-    private void ApplySkillHoverPreview()
-    {
-        if (!IsSkillModeActive() || !hasSkillHoverPreview || !skillHoverHasAnyVisibleCells || activeUnit == null)
-        {
-            return;
-        }
-
-        if (UsesContinuousCircularArea(activeSkill))
-        {
-            if (IsMovementSkillActive())
-            {
-                Color movePreviewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
-                movePreviewColor.a = skillHoverValid ? 0.24f : 0.20f;
-                grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, movePreviewColor);
-                return;
-            }
-
-            Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
-            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
-            grid.HighlightCircleAt(skillHoverCell, GetContinuousAreaRadiusWorld(activeSkill), previewColor);
-            grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, previewColor);
-            return;
-        }
-
-        if (IsCircularAxisAreaSkill(activeSkill))
-        {
-            Color previewColor = skillHoverValid ? skillPreviewValidColor : skillPreviewInvalidColor;
-            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
-
-            Vector3 origin = grid.GetWorldPosition(activeUnit.currentCell);
-            Vector3 direction = ResolveAxisDirectionWorld(activeUnit, skillHoverCell);
-            float rangeWorld = GetAxisRangeWorld(activeUnit, activeSkill);
-            if (activeSkill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
-            {
-                grid.HighlightAxisFan(origin, direction, rangeWorld, activeSkill.axisAngle, previewColor);
-            }
-            else
-            {
-                grid.HighlightAxisRay(origin, direction, rangeWorld, GetAxisWidthWorld(activeSkill), previewColor);
-            }
-
-            return;
-        }
-
-        HashSet<Vector2Int> previewCells = CollectVisibleAreaEffectCells(activeUnit, skillHoverCell, activeSkill);
-        if (previewCells == null || previewCells.Count == 0)
-        {
-            return;
-        }
-
-        if (skillHoverValid)
-        {
-            Color previewColor = skillPreviewValidColor;
-            previewColor.a = 0.18f;
-            grid.HighlightCells(previewCells, previewColor);
-            return;
-        }
-
-        Color invalidColor = skillPreviewInvalidColor;
-        invalidColor.a = 0.16f;
-        grid.HighlightPartialCells(previewCells, activeUnit, invalidColor);
-    }
-
-    private void ApplyHoveredTargetPreview()
-    {
-        if (hoveredSkillTargets.Count == 0)
-        {
-            grid.ClearHoveredFootprint();
-            return;
-        }
-
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
-        HashSet<Vector2Int> hoveredCells = new HashSet<Vector2Int>();
-        Color overlayColor = ResolveHoveredTargetFlashColor(hoveredSkillTarget);
-        overlayColor.a = Mathf.Lerp(0.18f, overlayColor.a, pulse);
-
-        for (int i = 0; i < hoveredSkillTargets.Count; i++)
-        {
-            BattleUnit target = hoveredSkillTargets[i];
-            if (target == null || !target.IsAlive)
-            {
-                continue;
-            }
-
-            int radius = target.FootprintRadius;
-            for (int y = target.currentCell.y - radius; y <= target.currentCell.y + radius; y++)
-            {
-                for (int x = target.currentCell.x - radius; x <= target.currentCell.x + radius; x++)
-                {
-                    Vector2Int cell = new Vector2Int(x, y);
-                    if (grid.IsInside(cell))
-                    {
-                        hoveredCells.Add(cell);
-                    }
-                }
-            }
-        }
-
-        grid.SetHoveredFootprint(hoveredCells, overlayColor);
-    }
-
-    private bool HasAnyVisibleSkillPreviewCells(Vector2Int centerCell)
-    {
-        if (activeUnit == null || !ShouldShowSkillAreaPreview(activeSkill))
-        {
-            return false;
-        }
-
-        if (UsesContinuousCircularArea(activeSkill) || IsCircularAxisAreaSkill(activeSkill))
-        {
-            return grid != null && grid.IsInside(centerCell);
-        }
-
-        HashSet<Vector2Int> visibleCells = CollectVisibleAreaEffectCells(activeUnit, centerCell, activeSkill);
-        return visibleCells != null && visibleCells.Count > 0;
-    }
-
-    private static bool ShouldShowSkillAreaPreview(BattleSkillDatabase.SkillEntry skill)
+    private bool ShouldShowSkillAreaPreview(BattleSkillDatabase.SkillEntry skill)
     {
         if (skill == null)
         {
@@ -2011,7 +1985,7 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
-        if (IsCircularAxisAreaSkill(skill))
+        if (skillAreaRuleService != null && skillAreaRuleService.是圆轴区域技能(skill))
         {
             return true;
         }
@@ -2019,229 +1993,6 @@ public class BattleTurnSystem : MonoBehaviour
         int width = Mathf.Max(1, skill.effectSize.x);
         int height = Mathf.Max(1, skill.effectSize.y);
         return width > 1 || height > 1;
-    }
-
-    private static int GetSkillPreviewFootprintSize(BattleSkillDatabase.SkillEntry skill)
-    {
-        if (skill == null)
-        {
-            return 0;
-        }
-
-        int width = Mathf.Max(1, skill.effectSize.x);
-        int height = Mathf.Max(1, skill.effectSize.y);
-        return Mathf.Max(width, height);
-    }
-
-    private static bool IsCircularAxisAreaSkill(BattleSkillDatabase.SkillEntry skill)
-    {
-        return skill != null &&
-            skill.skillType == BattleSkillDatabase.SkillType.Area &&
-            skill.areaCastType == BattleSkillDatabase.AreaCastType.CircularAxis;
-    }
-
-    private static bool UsesContinuousCircularArea(BattleSkillDatabase.SkillEntry skill)
-    {
-        return skill != null &&
-            skill.skillType == BattleSkillDatabase.SkillType.Area &&
-            !string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal) &&
-            !IsCircularAxisAreaSkill(skill);
-    }
-
-    private float GetContinuousAreaRadiusWorld(BattleSkillDatabase.SkillEntry skill)
-    {
-        if (grid == null || skill == null)
-        {
-            return 0f;
-        }
-
-        return grid.GetAreaRadiusWorld(GetSkillPreviewFootprintSize(skill));
-    }
-
-    private bool IsUnitInsideContinuousArea(BattleUnit target, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (grid == null || target == null || skill == null || !grid.IsInside(centerCell))
-        {
-            return false;
-        }
-
-        Vector3 areaCenter = grid.GetWorldPosition(centerCell);
-        Vector3 targetCenter = grid.GetWorldPosition(target.currentCell);
-        float maxDistance = GetContinuousAreaRadiusWorld(skill) + grid.GetUnitRadiusWorld(target);
-        return Vector3.Distance(areaCenter, targetCenter) <= maxDistance + 0.001f;
-    }
-
-    private Vector3 ResolveAxisDirectionWorld(BattleUnit caster, Vector2Int targetCell)
-    {
-        if (caster == null || grid == null)
-        {
-            return Vector3.right;
-        }
-
-        Vector3 origin = grid.GetWorldPosition(caster.currentCell);
-        Vector3 target = grid.GetWorldPosition(targetCell);
-        Vector3 direction = target - origin;
-        direction.y = 0f;
-        if (direction.sqrMagnitude > 0.0001f)
-        {
-            return direction.normalized;
-        }
-
-        Vector3 forward = caster.transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude > 0.0001f)
-        {
-            return forward.normalized;
-        }
-
-        return Vector3.right;
-    }
-
-    private float GetAxisRangeWorld(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (grid == null || caster == null || skill == null)
-        {
-            return 0f;
-        }
-
-        return grid.GetCastRadiusWorld(caster, GetDisplayedSkillRange(caster, skill));
-    }
-
-    private float GetAxisWidthWorld(BattleSkillDatabase.SkillEntry skill)
-    {
-        return grid == null || skill == null
-            ? 0f
-            : Mathf.Max(1, skill.axisWidth) * grid.cellSize;
-    }
-
-    private bool IsUnitInsideCircularAxisArea(BattleUnit caster, BattleUnit target, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (grid == null || caster == null || target == null || skill == null)
-        {
-            return false;
-        }
-
-        Vector3 origin = grid.GetWorldPosition(caster.currentCell);
-        Vector3 direction = ResolveAxisDirectionWorld(caster, targetCell);
-        Vector3 unitCenter = grid.GetWorldPosition(target.currentCell);
-        float targetRadius = grid.GetUnitRadiusWorld(target);
-        float rangeWorld = GetAxisRangeWorld(caster, skill);
-
-        if (skill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
-        {
-            Vector3 toTarget = unitCenter - origin;
-            toTarget.y = 0f;
-            float distance = toTarget.magnitude;
-            if (distance <= 0.0001f)
-            {
-                return true;
-            }
-
-            if (distance > rangeWorld + targetRadius + 0.001f)
-            {
-                return false;
-            }
-
-            float angleToTarget = Vector3.Angle(direction, toTarget);
-            float extraAngle = distance <= targetRadius
-                ? 180f
-                : Mathf.Rad2Deg * Mathf.Asin(Mathf.Clamp(targetRadius / distance, 0f, 1f));
-            return angleToTarget <= (Mathf.Clamp(skill.axisAngle, 1f, 360f) * 0.5f) + extraAngle + 0.001f;
-        }
-
-        float halfWidth = GetAxisWidthWorld(skill) * 0.5f;
-        Vector3 toTargetOnPlane = unitCenter - origin;
-        toTargetOnPlane.y = 0f;
-        float forwardDistance = Vector3.Dot(toTargetOnPlane, direction);
-        Vector3 right = new Vector3(-direction.z, 0f, direction.x);
-        float lateralDistance = Mathf.Abs(Vector3.Dot(toTargetOnPlane, right));
-        float centerDistance = toTargetOnPlane.magnitude;
-
-        if (forwardDistance < -targetRadius)
-        {
-            return false;
-        }
-
-        if (centerDistance > rangeWorld + targetRadius + 0.001f)
-        {
-            return false;
-        }
-
-        if (lateralDistance > halfWidth + targetRadius + 0.001f)
-        {
-            return false;
-        }
-
-        if (forwardDistance < 0f)
-        {
-            return targetRadius >= -forwardDistance;
-        }
-
-        float arcStartForward = Mathf.Sqrt(Mathf.Max(0f, (rangeWorld * rangeWorld) - (halfWidth * halfWidth)));
-        if (forwardDistance <= arcStartForward)
-        {
-            return lateralDistance <= halfWidth + targetRadius + 0.001f;
-        }
-
-        return centerDistance <= rangeWorld + targetRadius + 0.001f;
-    }
-
-    private HashSet<Vector2Int> CollectAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        HashSet<Vector2Int> result = new HashSet<Vector2Int>();
-        if (grid == null || skill == null || !grid.IsInside(centerCell))
-        {
-            return result;
-        }
-
-        if (IsCircularAxisAreaSkill(skill))
-        {
-            return result;
-        }
-
-        int footprintSize = GetSkillPreviewFootprintSize(skill);
-        if (footprintSize <= 0)
-        {
-            return result;
-        }
-
-        int footprintRadius = Mathf.Max(0, footprintSize / 2);
-        for (int y = centerCell.y - footprintRadius; y <= centerCell.y + footprintRadius; y++)
-        {
-            for (int x = centerCell.x - footprintRadius; x <= centerCell.x + footprintRadius; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                if (grid.IsInside(cell))
-                {
-                    result.Add(cell);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private HashSet<Vector2Int> CollectVisibleAreaEffectCells(BattleUnit caster, Vector2Int centerCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        HashSet<Vector2Int> cells = CollectAreaEffectCells(caster, centerCell, skill);
-        if (cells.Count == 0)
-        {
-            return cells;
-        }
-
-        HashSet<Vector2Int> visibleCells = new HashSet<Vector2Int>();
-        foreach (Vector2Int cell in cells)
-        {
-            BattleUnit occupant = grid.GetUnitAt(cell);
-            if (occupant != null && occupant != caster)
-            {
-                continue;
-            }
-
-            visibleCells.Add(cell);
-        }
-
-        return visibleCells;
     }
 
     private bool IsSkillModeActive()
@@ -2252,37 +2003,17 @@ public class BattleTurnSystem : MonoBehaviour
     private void ClearActiveSkillMode()
     {
         BattleUnit unit = activeUnit;
-        bool shouldRestoreRotation =
-            hasSkillModeRotationAnchor &&
-            skillModeRotationAnchorUnit != null &&
-            !IsExplorationMode &&
-            !isResolvingSkillExecution;
+        bool shouldRestoreRotation = !IsExplorationMode && !isResolvingSkillExecution;
 
         activeSkillId = string.Empty;
         activeSkill = null;
-        currentSkillTargetingStateName = string.Empty;
-        currentSkillTargetingYawOffset = 0f;
-        skillTargetSelectionReady = false;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
-        ClearHoveredSkillTarget();
-        HideSkillCostHint();
-        if (skillTargetingIntroRoutine != null)
-        {
-            StopCoroutine(skillTargetingIntroRoutine);
-            skillTargetingIntroRoutine = null;
-        }
-
-        if (shouldRestoreRotation &&
-            skillModeRotationAnchorUnit.IsAlive &&
-            !skillModeRotationAnchorUnit.IsMoving)
-        {
-            skillModeRotationAnchorUnit.transform.rotation = skillModeRotationAnchorRotation;
-        }
-
-        ClearSkillModeRotationAnchor();
+        skillPreviewService?.清空悬停目标(grid);
+        skillPreviewService?.隐藏行动点提示();
+        skillTargetingPresentationService?.清空技能模式状态(this, shouldRestoreRotation);
 
         if (IsExplorationMode || unit == null || !unit.IsAlive || unit.IsMoving || isResolvingSkillExecution)
         {
@@ -2296,25 +2027,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
     }
 
-    private void CacheSkillModeRotationAnchor(BattleUnit unit, bool wasSkillModeActive)
-    {
-        if (wasSkillModeActive || unit == null)
-        {
-            return;
-        }
-
-        skillModeRotationAnchorUnit = unit;
-        skillModeRotationAnchorRotation = unit.transform.rotation;
-        hasSkillModeRotationAnchor = true;
-    }
-
-    private void ClearSkillModeRotationAnchor()
-    {
-        skillModeRotationAnchorUnit = null;
-        skillModeRotationAnchorRotation = Quaternion.identity;
-        hasSkillModeRotationAnchor = false;
-    }
-
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
     {
         skillExecutionRoutine = skillExecutionService != null
@@ -2326,7 +2038,7 @@ public class BattleTurnSystem : MonoBehaviour
                 target,
                 IsSkillModeActive(),
                 isResolvingSkillExecution,
-                skillTargetSelectionReady,
+                skillTargetingPresentationService != null && skillTargetingPresentationService.技能目标选择已就绪,
                 activeSkillId,
                 activeSkill,
                 (caster, cell, clickedTarget, skill) => CanCastSkillAt(caster, cell, clickedTarget, skill, null),
@@ -2336,9 +2048,119 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                PlaySkillAnimationWithResolveRoutine,
-                ResolveTargetSkillInfoAndDamage,
-                ResolveAreaSkillInfoAndDamage,
+                (caster, skill, resolveAction) => skillPresentationService != null
+                    ? skillPresentationService.播放技能动画并在结算点执行(
+                        this,
+                        caster,
+                        skill,
+                        resolveAction,
+                        ResolveSkillActionStateName,
+                        ResolveSkillCompensateActionMotion,
+                        ResolveSkillActionYawOffset,
+                        ResolveSkillPostUseYawOffset,
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+                        PlayTrackedSkillAudioRoutine,
+                        ResolveAnimationStateTotalFrames,
+                        ResolveSkillResolveDelaySeconds,
+                        HitFeelDurationSeconds,
+                        HitFeelTimeScale,
+                        DefaultFixedDeltaTime)
+                    : null,
+                (caster, targetUnit, skill) => damageResolutionService?.结算单体技能并显示信息(
+                    caster,
+                    targetUnit,
+                    skill,
+                    battleCamera,
+                    战斗技能基础结算服务.格式化单位效果调试文本,
+                    (source, destination, skillEntry) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能命中率(source, destination, skillEntry)
+                        : MinHitChancePercent,
+                    (source, destination, skillEntry) => skillCoreResolutionService != null &&
+                        skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
+                    (source, destination, skillEntry) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry)
+                        : null,
+                    (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
+                        source,
+                        destination,
+                        skillEntry,
+                        battleCamera,
+                        physicalDamageColor),
+                    ShowZeroDamagePopup,
+                    ShowDamagePopup,
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveDodgeSound,
+                        ResolveDodgeSoundPrefab,
+                        unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveHitReactionSound,
+                        ResolveHitReactionSoundPrefab,
+                        unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    HandleUnitDefeat,
+                    uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                    skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                    damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                    unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                    isCritical => battleInfoTextService != null ? battleInfoTextService.构建暴击信息(isCritical) : string.Empty,
+                    (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                    战斗信息文本服务.中性信息颜色,
+                    message => battleInfoTextService?.显示消息(message)),
+                (caster, targetCellValue, skill) => damageResolutionService?.结算范围技能并显示信息(
+                    caster,
+                    targetCellValue,
+                    skill,
+                    battleCamera,
+                    skillAreaRuleService != null ? skillAreaRuleService.收集区域技能目标 : null,
+                    战斗技能基础结算服务.格式化单位效果调试文本,
+                    (source, destination, skillEntry) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能命中率(source, destination, skillEntry)
+                        : MinHitChancePercent,
+                    (source, destination, skillEntry) => skillCoreResolutionService != null &&
+                        skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
+                    (source, destination, skillEntry) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry)
+                        : null,
+                    (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
+                        source,
+                        destination,
+                        skillEntry,
+                        battleCamera,
+                        physicalDamageColor),
+                    ShowZeroDamagePopup,
+                    ShowDamagePopup,
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveDodgeSound,
+                        ResolveDodgeSoundPrefab,
+                        unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveHitReactionSound,
+                        ResolveHitReactionSoundPrefab,
+                        unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    HandleUnitDefeat,
+                    uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                    skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                    damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                    unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                    isCritical => battleInfoTextService != null ? battleInfoTextService.构建范围暴击信息(isCritical) : string.Empty,
+                    (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                    战斗信息文本服务.中性信息颜色,
+                    message => battleInfoTextService?.显示消息(message)),
                 ClearActiveSkillMode,
                 RefreshHighlights,
                 RefreshTimeline,
@@ -2510,9 +2332,119 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            PlaySkillAnimationWithResolveRoutine,
-            ResolveTargetSkillInfoAndDamage,
-            ResolveAreaSkillInfoAndDamage,
+            (caster, skill, resolveAction) => skillPresentationService != null
+                ? skillPresentationService.播放技能动画并在结算点执行(
+                    this,
+                    caster,
+                    skill,
+                    resolveAction,
+                    ResolveSkillActionStateName,
+                    ResolveSkillCompensateActionMotion,
+                    ResolveSkillActionYawOffset,
+                    ResolveSkillPostUseYawOffset,
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+                    PlayTrackedSkillAudioRoutine,
+                    ResolveAnimationStateTotalFrames,
+                    ResolveSkillResolveDelaySeconds,
+                    HitFeelDurationSeconds,
+                    HitFeelTimeScale,
+                    DefaultFixedDeltaTime)
+                : null,
+            (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+                source,
+                targetUnit,
+                skillEntry,
+                battleCamera,
+                战斗技能基础结算服务.格式化单位效果调试文本,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                    : MinHitChancePercent,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                    skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    : null,
+                (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                    attacker,
+                    defender,
+                    currentSkill,
+                    battleCamera,
+                    physicalDamageColor),
+                ShowZeroDamagePopup,
+                ShowDamagePopup,
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveDodgeSound,
+                    ResolveDodgeSoundPrefab,
+                    unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveHitReactionSound,
+                    ResolveHitReactionSoundPrefab,
+                    unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                HandleUnitDefeat,
+                uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                isCritical => battleInfoTextService != null ? battleInfoTextService.构建暴击信息(isCritical) : string.Empty,
+                (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                战斗信息文本服务.中性信息颜色,
+                message => battleInfoTextService?.显示消息(message)),
+            (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+                source,
+                targetCellValue,
+                skillEntry,
+                battleCamera,
+                skillAreaRuleService != null ? skillAreaRuleService.收集区域技能目标 : null,
+                战斗技能基础结算服务.格式化单位效果调试文本,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                    : MinHitChancePercent,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                    skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    : null,
+                (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                    attacker,
+                    defender,
+                    currentSkill,
+                    battleCamera,
+                    physicalDamageColor),
+                ShowZeroDamagePopup,
+                ShowDamagePopup,
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveDodgeSound,
+                    ResolveDodgeSoundPrefab,
+                    unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveHitReactionSound,
+                    ResolveHitReactionSoundPrefab,
+                    unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                HandleUnitDefeat,
+                uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                isCritical => battleInfoTextService != null ? battleInfoTextService.构建范围暴击信息(isCritical) : string.Empty,
+                (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                战斗信息文本服务.中性信息颜色,
+                message => battleInfoTextService?.显示消息(message)),
             ClearActiveSkillMode,
             RefreshHighlights,
             RefreshTimeline,
@@ -2544,129 +2476,123 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            PlaySkillAnimationWithResolveRoutine,
-            ResolveTargetSkillInfoAndDamage,
-            ResolveAreaSkillInfoAndDamage,
+            (caster, skill, resolveAction) => skillPresentationService != null
+                ? skillPresentationService.播放技能动画并在结算点执行(
+                    this,
+                    caster,
+                    skill,
+                    resolveAction,
+                    ResolveSkillActionStateName,
+                    ResolveSkillCompensateActionMotion,
+                    ResolveSkillActionYawOffset,
+                    ResolveSkillPostUseYawOffset,
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+                    PlayTrackedSkillAudioRoutine,
+                    ResolveAnimationStateTotalFrames,
+                    ResolveSkillResolveDelaySeconds,
+                    HitFeelDurationSeconds,
+                    HitFeelTimeScale,
+                    DefaultFixedDeltaTime)
+                : null,
+            (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+                source,
+                targetUnit,
+                skillEntry,
+                battleCamera,
+                战斗技能基础结算服务.格式化单位效果调试文本,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                    : MinHitChancePercent,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                    skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    : null,
+                (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                    attacker,
+                    defender,
+                    currentSkill,
+                    battleCamera,
+                    physicalDamageColor),
+                ShowZeroDamagePopup,
+                ShowDamagePopup,
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveDodgeSound,
+                    ResolveDodgeSoundPrefab,
+                    unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveHitReactionSound,
+                    ResolveHitReactionSoundPrefab,
+                    unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                HandleUnitDefeat,
+                uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                isCritical => battleInfoTextService != null ? battleInfoTextService.构建暴击信息(isCritical) : string.Empty,
+                (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                战斗信息文本服务.中性信息颜色,
+                message => battleInfoTextService?.显示消息(message)),
+            (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+                source,
+                targetCellValue,
+                skillEntry,
+                battleCamera,
+                skillAreaRuleService != null ? skillAreaRuleService.收集区域技能目标 : null,
+                战斗技能基础结算服务.格式化单位效果调试文本,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                    : MinHitChancePercent,
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                    skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    : null,
+                (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                    attacker,
+                    defender,
+                    currentSkill,
+                    battleCamera,
+                    physicalDamageColor),
+                ShowZeroDamagePopup,
+                ShowDamagePopup,
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveDodgeSound,
+                    ResolveDodgeSoundPrefab,
+                    unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                target => skillPresentationService?.播放受击反应(
+                    target,
+                    battleCamera,
+                    ResolveHitReactionSound,
+                    ResolveHitReactionSoundPrefab,
+                    unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
+                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                    ShouldCompensateGlobalMotionForState),
+                HandleUnitDefeat,
+                uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                isCritical => battleInfoTextService != null ? battleInfoTextService.构建范围暴击信息(isCritical) : string.Empty,
+                (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                战斗信息文本服务.中性信息颜色,
+                message => battleInfoTextService?.显示消息(message)),
             ClearActiveSkillMode,
             RefreshHighlights,
             RefreshTimeline,
             TryEnterPendingExplorationMode);
-    }
-
-    private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        damageResolutionService?.应用战技单体伤害(
-            caster,
-            target,
-            skill,
-            battleCamera,
-            RollSkillHit,
-            CalculateCombatArtDamage,
-            ApplyAttachedEffectsToUnit,
-            ShowZeroDamagePopup,
-            ShowDamagePopup,
-            PlayDodgeReaction,
-            PlayHitReaction,
-            HandleUnitDefeat);
-    }
-
-    private void ResolveTargetSkillInfoAndDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        damageResolutionService?.结算单体技能并显示信息(
-            caster,
-            target,
-            skill,
-            battleCamera,
-            FormatUnitEffectDebugText,
-            CalculateSkillHitChance,
-            RollSkillHit,
-            CalculateSkillDamage,
-            ApplyAttachedEffectsToUnit,
-            ShowZeroDamagePopup,
-            ShowDamagePopup,
-            PlayDodgeReaction,
-            PlayHitReaction,
-            HandleUnitDefeat,
-            unit => ResolveBattleInfoUnitName(unit, richText: true),
-            ResolveBattleInfoSkillName,
-            FormatBattleInfoDamageText,
-            BuildUnitDefeatMessage,
-            BuildCriticalBattleInfoText,
-            WrapBattleInfoColor,
-            NeutralInfoColorHex,
-            ShowBattleInfoMessage);
-    }
-
-    private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        damageResolutionService?.应用战技范围伤害(
-            caster,
-            targetCell,
-            skill,
-            battleCamera,
-            CollectAreaSkillTargets,
-            RollSkillHit,
-            CalculateCombatArtDamage,
-            ApplyAttachedEffectsToUnit,
-            ShowZeroDamagePopup,
-            ShowDamagePopup,
-            PlayDodgeReaction,
-            PlayHitReaction,
-            HandleUnitDefeat);
-    }
-
-    private void ResolveAreaSkillInfoAndDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        damageResolutionService?.结算范围技能并显示信息(
-            caster,
-            targetCell,
-            skill,
-            battleCamera,
-            CollectAreaSkillTargets,
-            FormatUnitEffectDebugText,
-            CalculateSkillHitChance,
-            RollSkillHit,
-            CalculateSkillDamage,
-            ApplyAttachedEffectsToUnit,
-            ShowZeroDamagePopup,
-            ShowDamagePopup,
-            PlayDodgeReaction,
-            PlayHitReaction,
-            HandleUnitDefeat,
-            unit => ResolveBattleInfoUnitName(unit, richText: true),
-            ResolveBattleInfoSkillName,
-            FormatBattleInfoDamageText,
-            BuildUnitDefeatMessage,
-            BuildAreaCriticalBattleInfoText,
-            WrapBattleInfoColor,
-            NeutralInfoColorHex,
-            ShowBattleInfoMessage);
-    }
-
-    private CombatDamageResult CalculateSkillDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        return skillCoreResolutionService != null
-            ? skillCoreResolutionService.计算技能伤害(caster, target, skill)
-            : null;
-    }
-
-    private CombatDamageResult CalculateCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        return skillCoreResolutionService != null
-            ? skillCoreResolutionService.计算战技伤害(caster, target, skill)
-            : null;
-    }
-
-    private CombatDamageResult CalculateSpellDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        return skillCoreResolutionService != null
-            ? skillCoreResolutionService.计算法术伤害(caster, target, skill)
-            : null;
-    }
-
-    private static float ApplyResistance(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)
-    {
-        return 战斗技能基础结算服务.应用抗性(damage, caster, target, attributeType);
     }
 
     private void ShowDamagePopup(BattleUnit target, CombatDamageResult damageResult)
@@ -2891,144 +2817,6 @@ public class BattleTurnSystem : MonoBehaviour
         return value.ToString("0.#");
     }
 
-    private static string FormatBattleInfoDamageText(CombatDamageResult damageResult)
-    {
-        if (damageResult == null || damageResult.components.Count == 0)
-        {
-            return $"{WrapBattleInfoColor("0", PhysicalInfoColorHex)}{WrapBattleInfoColor("点伤害", NeutralInfoColorHex)}";
-        }
-
-        List<string> parts = new List<string>();
-        List<DamageDisplayAllocation> allocations = BuildDamageDisplayAllocations(damageResult);
-        for (int i = 0; i < allocations.Count; i++)
-        {
-            DamageDisplayAllocation allocation = allocations[i];
-            if (allocation.displayAmount <= 0)
-            {
-                continue;
-            }
-
-            string attributeColorHex = GetDamageAttributeColorHex(allocation.attributeType);
-            string amountText = WrapBattleInfoColor(allocation.displayAmount.ToString(), attributeColorHex);
-            string attributeText = WrapBattleInfoColor(GetDamageAttributeDisplayName(allocation.attributeType), attributeColorHex);
-            string suffixText = WrapBattleInfoColor("伤害", attributeColorHex);
-            parts.Add($"{amountText}{attributeText}{suffixText}");
-        }
-
-        if (parts.Count == 0)
-        {
-            return $"{WrapBattleInfoColor("0", PhysicalInfoColorHex)}{WrapBattleInfoColor("点伤害", NeutralInfoColorHex)}";
-        }
-
-        return string.Join(WrapBattleInfoColor("和", NeutralInfoColorHex), parts);
-    }
-
-    private static string GetDamageAttributeDisplayName(DamageAttributeType attributeType)
-    {
-        switch (attributeType)
-        {
-            case DamageAttributeType.Fire:
-                return "火焰";
-            case DamageAttributeType.Corruption:
-                return "腐蚀";
-            case DamageAttributeType.Cold:
-                return "寒冷";
-            default:
-                return "物理";
-        }
-    }
-
-    private static string GetDamageAttributeColorHex(DamageAttributeType attributeType)
-    {
-        switch (attributeType)
-        {
-            case DamageAttributeType.Fire:
-                return FireInfoColorHex;
-            case DamageAttributeType.Corruption:
-                return CorruptionInfoColorHex;
-            case DamageAttributeType.Cold:
-                return ColdInfoColorHex;
-            default:
-                return PhysicalInfoColorHex;
-        }
-    }
-
-    private static string BuildUnitDefeatMessage(BattleUnit unit)
-    {
-        if (unit == null || unit.IsAlive)
-        {
-            return string.Empty;
-        }
-
-        return WrapBattleInfoColor($"，{ResolveBattleInfoUnitName(unit, richText: true)}死亡", NeutralInfoColorHex);
-    }
-
-    private static string BuildCriticalBattleInfoText(bool isCritical)
-    {
-        return isCritical
-            ? WrapBattleInfoColor("触发了暴击，", PhysicalInfoColorHex)
-            : string.Empty;
-    }
-
-    private static string BuildAreaCriticalBattleInfoText(bool isCritical)
-    {
-        return isCritical
-            ? WrapBattleInfoColor("触发暴击，", PhysicalInfoColorHex)
-            : string.Empty;
-    }
-
-    private bool RollSkillHit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        return skillCoreResolutionService != null &&
-            skillCoreResolutionService.判定技能命中(caster, target, skill);
-    }
-
-    private int CalculateSkillHitChance(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        return skillCoreResolutionService != null
-            ? skillCoreResolutionService.计算技能命中率(caster, target, skill)
-            : MinHitChancePercent;
-    }
-
-    private void ApplyAttachedEffectsToUnit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (skillCoreResolutionService == null)
-        {
-            return;
-        }
-
-        skillCoreResolutionService.应用附加效果到单位(
-            caster,
-            target,
-            skill,
-            battleCamera,
-            physicalDamageColor);
-    }
-
-    private static string FormatUnitEffectDebugText(BattleUnit unit)
-    {
-        return 战斗技能基础结算服务.格式化单位效果调试文本(unit);
-    }
-
-    private static string ResolveEffectDebugName(EffectDatabase.EffectEntry effectEntry)
-    {
-        return 战斗技能基础结算服务.解析效果调试名称(effectEntry);
-    }
-
-    private void ApplyAttachedEffectsToUnits(BattleUnit caster, List<BattleUnit> targets, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (skillCoreResolutionService == null)
-        {
-            return;
-        }
-
-        skillCoreResolutionService.应用附加效果到单位列表(
-            caster,
-            targets,
-            skill,
-            battleCamera,
-            physicalDamageColor);
-    }
 
     private Color ResolveEffectDamagePopupColor(EffectDatabase.StatModifier.HealthDamageType damageType)
     {
@@ -3043,37 +2831,6 @@ public class BattleTurnSystem : MonoBehaviour
             default:
                 return physicalDamageColor;
         }
-    }
-
-    private void PlayHitReaction(BattleUnit target)
-    {
-        BattleAudioUtility.PlayOnce(ResolveHitReactionSound(target), ResolveHitReactionSoundPrefab(target), target, battleCamera);
-        PlayReactionAnimation(target, target != null ? target.GetHitReactionAnimationStateName(ResolveHitReactionStateName(target)) : ResolveHitReactionStateName(target));
-    }
-
-    private void PlayDodgeReaction(BattleUnit target)
-    {
-        BattleAudioUtility.PlayOnce(ResolveDodgeSound(target), ResolveDodgeSoundPrefab(target), target, battleCamera);
-        PlayReactionAnimation(target, target != null ? target.GetDodgeAnimationStateName(ResolveDodgeStateName(target)) : ResolveDodgeStateName(target));
-    }
-
-    private void PlayReactionAnimation(BattleUnit target, string stateName)
-    {
-        if (target == null || string.IsNullOrWhiteSpace(stateName))
-        {
-            return;
-        }
-
-        Animator animator = target.GetComponentInChildren<Animator>(true);
-        if (animator == null || animator.runtimeAnimatorController == null)
-        {
-            return;
-        }
-
-        target.PlayAnimationStateForCurrentClipDuration(
-            stateName,
-            target.GetIdleAnimationStateName(ResolveIdleStateName(target)),
-            ShouldCompensateGlobalMotionForState(target, stateName));
     }
 
     private bool CanCastSkillAt(
@@ -3110,257 +2867,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return false;
-    }
-
-    private void UpdateHoveredSkillTarget()
-    {
-        if (!IsSkillModeActive() || activeSkill == null || activeUnit == null)
-        {
-            ClearHoveredSkillTarget();
-            return;
-        }
-
-        if (IsPointerBlockedByUi())
-        {
-            ClearHoveredSkillTarget();
-            return;
-        }
-
-        Plane clickPlane = grid.GetInteractionPlane();
-        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
-        float enter;
-        if (!clickPlane.Raycast(ray, out enter))
-        {
-            ClearHoveredSkillTarget();
-            return;
-        }
-
-        Vector3 hitPoint = ray.GetPoint(enter);
-        Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
-        if (!grid.IsInside(hoveredCell))
-        {
-            ClearHoveredSkillTarget();
-            return;
-        }
-
-        BattleUnit target = grid.GetUnitAt(hoveredCell);
-        List<BattleUnit> validTargets = CollectHoveredSkillTargets(activeUnit, hoveredCell, target, activeSkill);
-        if (validTargets.Count == 0)
-        {
-            ClearHoveredSkillTarget();
-            return;
-        }
-
-        ApplyHoveredSkillTargets(validTargets, target);
-    }
-
-    private List<BattleUnit> CollectHoveredSkillTargets(
-        BattleUnit caster,
-        Vector2Int hoveredCell,
-        BattleUnit directTarget,
-        BattleSkillDatabase.SkillEntry skill)
-    {
-        List<BattleUnit> result = new List<BattleUnit>();
-        if (caster == null || skill == null)
-        {
-            return result;
-        }
-
-        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
-        {
-            if (IsHoveredSkillTargetValid(caster, directTarget, skill, hoveredCell))
-            {
-                result.Add(directTarget);
-            }
-
-            return result;
-        }
-
-        if (skill.skillType != BattleSkillDatabase.SkillType.Area)
-        {
-            return result;
-        }
-
-        if (!grid.IsCellWithinCircularRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
-        {
-            return result;
-        }
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null || !unit.IsAlive)
-            {
-                continue;
-            }
-
-            if (!IsValidSkillTarget(caster, unit, skill))
-            {
-                continue;
-            }
-
-            if (UsesContinuousCircularArea(skill))
-            {
-                if (!IsUnitInsideContinuousArea(unit, hoveredCell, skill))
-                {
-                    continue;
-                }
-            }
-            else if (IsCircularAxisAreaSkill(skill))
-            {
-                if (!IsUnitInsideCircularAxisArea(caster, unit, hoveredCell, skill))
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
-                if (!IsUnitInsideAreaCells(unit, affectedCells))
-                {
-                    continue;
-                }
-            }
-
-            result.Add(unit);
-        }
-
-        return result;
-    }
-
-    private void ApplyHoveredSkillTargets(List<BattleUnit> nextTargets, BattleUnit directTarget)
-    {
-        for (int i = 0; i < hoveredSkillTargets.Count; i++)
-        {
-            BattleUnit previous = hoveredSkillTargets[i];
-            if (previous != null && !nextTargets.Contains(previous))
-            {
-                previous.ClearTint();
-            }
-        }
-
-        hoveredSkillTargets.Clear();
-        hoveredSkillTargets.AddRange(nextTargets);
-        hoveredSkillTarget = directTarget != null && nextTargets.Contains(directTarget)
-            ? directTarget
-            : nextTargets[0];
-    }
-
-    private bool IsHoveredSkillTargetValid(
-        BattleUnit caster,
-        BattleUnit target,
-        BattleSkillDatabase.SkillEntry skill,
-        Vector2Int hoveredCell)
-    {
-        if (caster == null || target == null || skill == null)
-        {
-            return false;
-        }
-
-        if (!IsValidSkillTarget(caster, target, skill))
-        {
-            return false;
-        }
-
-        if (skill.skillType == BattleSkillDatabase.SkillType.Target)
-        {
-            return grid.IsUnitWithinCircularRange(caster, target, GetDisplayedSkillRange(caster, skill));
-        }
-
-        if (skill.skillType != BattleSkillDatabase.SkillType.Area)
-        {
-            return false;
-        }
-
-        if (!grid.IsCellWithinCircularRange(caster, hoveredCell, GetDisplayedSkillRange(caster, skill)))
-        {
-            return false;
-        }
-
-        if (UsesContinuousCircularArea(skill))
-        {
-            return IsUnitInsideContinuousArea(target, hoveredCell, skill);
-        }
-
-        if (IsCircularAxisAreaSkill(skill))
-        {
-            return IsUnitInsideCircularAxisArea(caster, target, hoveredCell, skill);
-        }
-
-        HashSet<Vector2Int> affectedCells = CollectAreaEffectCells(caster, hoveredCell, skill);
-        return IsUnitInsideAreaCells(target, affectedCells);
-    }
-
-    private static bool IsUnitInsideAreaCells(BattleUnit target, HashSet<Vector2Int> areaCells)
-    {
-        if (target == null || areaCells == null || areaCells.Count == 0)
-        {
-            return false;
-        }
-
-        int unitRadius = target.FootprintRadius;
-        for (int y = target.currentCell.y - unitRadius; y <= target.currentCell.y + unitRadius; y++)
-        {
-            for (int x = target.currentCell.x - unitRadius; x <= target.currentCell.x + unitRadius; x++)
-            {
-                if (areaCells.Contains(new Vector2Int(x, y)))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private void UpdateHoveredTargetFlash()
-    {
-        if (hoveredSkillTargets.Count == 0)
-        {
-            grid.ClearHoveredFootprint();
-            return;
-        }
-
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 10f);
-        ApplyHoveredTargetPreview();
-        for (int i = 0; i < hoveredSkillTargets.Count; i++)
-        {
-            BattleUnit target = hoveredSkillTargets[i];
-            if (target == null || !target.IsAlive)
-            {
-                continue;
-            }
-
-            Color targetFlashColor = ResolveHoveredTargetFlashColor(target);
-            target.ApplyTint(targetFlashColor, Mathf.Lerp(0.2f, 0.75f, pulse));
-        }
-    }
-
-    private Color ResolveHoveredTargetFlashColor(BattleUnit target)
-    {
-        if (target == null)
-        {
-            return hoveredEnemyFlashColor;
-        }
-
-        return target.team == BattleTeam.Player
-            ? hoveredAllyFlashColor
-            : hoveredEnemyFlashColor;
-    }
-
-    private void ClearHoveredSkillTarget()
-    {
-        for (int i = 0; i < hoveredSkillTargets.Count; i++)
-        {
-            BattleUnit target = hoveredSkillTargets[i];
-            if (target != null)
-            {
-                target.ClearTint();
-            }
-        }
-
-        hoveredSkillTargets.Clear();
-        grid.ClearHoveredFootprint();
-        hoveredSkillTarget = null;
     }
 
     private static bool IsPointerBlockedByUi()
@@ -3423,98 +2929,6 @@ public class BattleTurnSystem : MonoBehaviour
     private static bool IsMovementSkillId(string skillId)
     {
         return string.Equals(skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal);
-    }
-
-    private void UpdateSkillCostHint()
-    {
-        if (!ShouldShowSkillCostHint())
-        {
-            HideSkillCostHint();
-            return;
-        }
-
-        TMP_Text hint = EnsureSkillCostHint();
-        RectTransform canvasRect = overlayCanvasRect;
-        if (hint == null || canvasRect == null)
-        {
-            return;
-        }
-
-        hint.text = "消耗行动点：" + skillHoverActionPointCost;
-        hint.color = activeUnit != null && skillHoverActionPointCost > activeUnit.currentActionPoints
-            ? skillCostInsufficientColor
-            : skillCostNormalColor;
-        hint.gameObject.SetActive(true);
-
-        Vector2 localPoint;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, Input.mousePosition, null, out localPoint);
-        skillCostHintRect.anchoredPosition = localPoint + new Vector2(90f, -28f);
-    }
-
-    private bool ShouldShowSkillCostHint()
-    {
-        if (!IsSkillModeActive() || !skillHoverValid || skillHoverActionPointCost <= 0)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private TMP_Text EnsureSkillCostHint()
-    {
-        if (skillCostHintText != null && overlayCanvasRect != null)
-        {
-            return skillCostHintText;
-        }
-
-        Transform canvasTransform = ResolveOverlayCanvasTransform();
-        if (canvasTransform == null)
-        {
-            return null;
-        }
-
-        overlayCanvasRect = canvasTransform as RectTransform;
-        if (overlayCanvasRect == null)
-        {
-            return null;
-        }
-
-        Transform existing = FindChildByName(canvasTransform, "SkillCostHint");
-        if (existing == null)
-        {
-            GameObject hintObject = new GameObject("SkillCostHint", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            existing = hintObject.transform;
-            existing.SetParent(canvasTransform, false);
-        }
-
-        skillCostHintRect = existing as RectTransform;
-        skillCostHintText = existing.GetComponent<TMP_Text>();
-        if (skillCostHintRect == null || skillCostHintText == null)
-        {
-            return null;
-        }
-
-        skillCostHintRect.anchorMin = new Vector2(0.5f, 0.5f);
-        skillCostHintRect.anchorMax = new Vector2(0.5f, 0.5f);
-        skillCostHintRect.pivot = new Vector2(0f, 0.5f);
-        skillCostHintRect.sizeDelta = new Vector2(260f, 44f);
-
-        skillCostHintText.raycastTarget = false;
-        skillCostHintText.fontSize = 28f;
-        skillCostHintText.alignment = TextAlignmentOptions.Left;
-        skillCostHintText.color = skillCostNormalColor;
-        skillCostHintText.text = string.Empty;
-        skillCostHintText.gameObject.SetActive(false);
-        return skillCostHintText;
-    }
-
-    private void HideSkillCostHint()
-    {
-        if (skillCostHintText != null)
-        {
-            skillCostHintText.gameObject.SetActive(false);
-        }
     }
 
     public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()
@@ -3680,150 +3094,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return best;
-    }
-
-    private IEnumerator PlaySkillAnimationRoutine(BattleUnit caster, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (caster == null || skill == null)
-        {
-            yield break;
-        }
-
-        string actionStateName = ResolveSkillActionStateName(skill, caster);
-        if (string.IsNullOrWhiteSpace(actionStateName))
-        {
-            yield return PlayTrackedSkillAudioRoutine(caster, skill, 0f);
-            yield break;
-        }
-
-        Animator animator = caster.GetComponentInChildren<Animator>(true);
-        if (animator == null || animator.runtimeAnimatorController == null)
-        {
-            yield break;
-        }
-
-        caster.SetAnimationPositionCompensation(ResolveSkillCompensateActionMotion(skill, caster));
-
-        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
-        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
-        Quaternion previousRotation = caster.transform.rotation;
-        float actionYawOffset = ResolveSkillActionYawOffset(skill, caster);
-        if (Mathf.Abs(actionYawOffset) > 0.01f)
-        {
-            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, actionYawOffset, 0f);
-        }
-
-        animator.Play(actionStateName, 0, 0f);
-
-        yield return null;
-
-        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
-        float clipDuration = currentState.length;
-        StartCoroutine(PlayTrackedSkillAudioRoutine(caster, skill, clipDuration));
-        if (clipDuration > 0.01f)
-        {
-            yield return new WaitForSeconds(clipDuration);
-        }
-
-        string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(
-            caster.transform.rotation,
-            actionYawOffset,
-            ResolveSkillPostUseYawOffset(skill, caster));
-        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
-        {
-            animator.Play(idleStateName, 0, 0f);
-            caster.transform.rotation = postSkillIdleRotation;
-        }
-        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
-        {
-            animator.Play(previousStateHash, 0, 0f);
-            caster.transform.rotation = postSkillIdleRotation;
-        }
-
-        caster.SetAnimationPositionCompensation(false);
-    }
-
-    private IEnumerator PlaySkillAnimationWithResolveRoutine(BattleUnit caster, BattleSkillDatabase.SkillEntry skill, System.Action resolveAction)
-    {
-        if (caster == null)
-        {
-            yield break;
-        }
-
-        if (skill == null)
-        {
-            resolveAction?.Invoke();
-            yield break;
-        }
-
-        string actionStateName = ResolveSkillActionStateName(skill, caster);
-        if (string.IsNullOrWhiteSpace(actionStateName))
-        {
-            yield return PlayTrackedSkillAudioRoutine(caster, skill, 0f);
-            resolveAction?.Invoke();
-            yield break;
-        }
-
-        Animator animator = caster.GetComponentInChildren<Animator>(true);
-        if (animator == null || animator.runtimeAnimatorController == null)
-        {
-            yield return PlayTrackedSkillAudioRoutine(caster, skill, 0f);
-            resolveAction?.Invoke();
-            yield break;
-        }
-
-        caster.SetAnimationPositionCompensation(ResolveSkillCompensateActionMotion(skill, caster));
-
-        AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
-        int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
-        Quaternion previousRotation = caster.transform.rotation;
-        float actionYawOffset = ResolveSkillActionYawOffset(skill, caster);
-        if (Mathf.Abs(actionYawOffset) > 0.01f)
-        {
-            caster.transform.rotation = previousRotation * Quaternion.Euler(0f, actionYawOffset, 0f);
-        }
-
-        animator.Play(actionStateName, 0, 0f);
-        yield return null;
-
-        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
-        float clipDuration = currentState.length;
-        StartCoroutine(PlayTrackedSkillAudioRoutine(caster, skill, clipDuration));
-        int totalFrames = ResolveAnimationStateTotalFrames(animator, actionStateName, clipDuration);
-        float resolveDelay = ResolveSkillResolveDelaySeconds(skill, totalFrames, clipDuration);
-
-        if (resolveDelay > 0.01f)
-        {
-            yield return new WaitForSeconds(resolveDelay);
-        }
-
-        TriggerSkillHitFeel(skill);
-        resolveAction?.Invoke();
-
-        float remainingDuration = Mathf.Max(0f, clipDuration - Mathf.Max(0f, resolveDelay));
-        if (remainingDuration > 0.01f)
-        {
-            yield return new WaitForSeconds(remainingDuration);
-        }
-
-        string idleStateName = caster.GetIdleAnimationStateName(ResolveIdleStateName(caster));
-        Quaternion postSkillIdleRotation = ResolvePostSkillIdleRotation(
-            caster.transform.rotation,
-            actionYawOffset,
-            ResolveSkillPostUseYawOffset(skill, caster));
-        if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
-        {
-            animator.Play(idleStateName, 0, 0f);
-            caster.transform.rotation = postSkillIdleRotation;
-        }
-        else if (previousStateHash != 0 && animator.isActiveAndEnabled)
-        {
-            animator.Play(previousStateHash, 0, 0f);
-            caster.transform.rotation = postSkillIdleRotation;
-        }
-
-        caster.SetAnimationPositionCompensation(false);
     }
 
     private IEnumerator PlayTrackedSkillAudioRoutine(BattleUnit unit, BattleSkillDatabase.SkillEntry skill, float totalDuration)
@@ -4092,100 +3362,6 @@ public class BattleTurnSystem : MonoBehaviour
         return skill.FindEnabledWeaponActionOverride(weaponCategory);
     }
 
-    private void StartSkillTargetingIntro(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (skillTargetingIntroRoutine != null)
-        {
-            StopCoroutine(skillTargetingIntroRoutine);
-            skillTargetingIntroRoutine = null;
-        }
-
-        skillTargetingIntroRoutine = StartCoroutine(PlaySkillTargetingIntroRoutine(unit, skill));
-    }
-
-    private IEnumerator PlaySkillTargetingIntroRoutine(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
-    {
-        currentSkillTargetingStateName = string.Empty;
-        currentSkillTargetingYawOffset = 0f;
-        skillTargetSelectionReady = false;
-        if (unit == null || skill == null || !unit.IsAlive)
-        {
-            skillTargetingIntroRoutine = null;
-            yield break;
-        }
-
-        string raiseHandStateName = ResolveSkillRaiseHandStateName(skill, unit);
-        if (!string.IsNullOrWhiteSpace(raiseHandStateName))
-        {
-            unit.SetAnimationPositionCompensation(false);
-            unit.PlayAnimationState(raiseHandStateName);
-            currentSkillTargetingStateName = raiseHandStateName;
-            currentSkillTargetingYawOffset = ResolveSkillRaiseHandYawOffset(skill, unit);
-
-            if (TryGetMouseWorldPoint(out Vector3 raiseHandHitPoint))
-            {
-                UpdateSkillTargetingFacing(raiseHandHitPoint);
-            }
-
-            Animator animator = unit.GetComponentInChildren<Animator>(true);
-            if (animator != null && animator.runtimeAnimatorController != null && animator.isActiveAndEnabled)
-            {
-                yield return null;
-                float duration = animator.GetCurrentAnimatorStateInfo(0).length;
-                if (duration > 0.01f)
-                {
-                    yield return new WaitForSeconds(duration);
-                }
-            }
-        }
-
-        if (activeUnit != unit || activeSkill != skill || !string.Equals(activeSkillId, skill.skillId, System.StringComparison.Ordinal))
-        {
-            skillTargetingIntroRoutine = null;
-            yield break;
-        }
-
-        string targetSelectionStateName = ResolveSkillTargetSelectionStateName(skill, unit);
-        if (string.IsNullOrWhiteSpace(targetSelectionStateName))
-        {
-            string idleStateName = unit.GetIdleAnimationStateName(ResolveIdleStateName(unit));
-            if (!string.IsNullOrWhiteSpace(idleStateName))
-            {
-                unit.PlayAnimationState(idleStateName);
-            }
-
-            skillTargetSelectionReady = true;
-            skillTargetingIntroRoutine = null;
-            yield break;
-        }
-
-        unit.SetAnimationPositionCompensation(false);
-        unit.PlayAnimationState(targetSelectionStateName);
-        currentSkillTargetingStateName = targetSelectionStateName;
-        currentSkillTargetingYawOffset = ResolveSkillTargetSelectionYawOffset(skill, unit);
-        skillTargetSelectionReady = true;
-        skillTargetingIntroRoutine = null;
-    }
-
-    private void UpdateSkillTargetingFacing(Vector3 worldPosition)
-    {
-        if (!IsSkillModeActive() || activeUnit == null || !activeUnit.IsAlive || activeUnit.IsMoving)
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentSkillTargetingStateName))
-        {
-            return;
-        }
-
-        activeUnit.FaceToward(worldPosition);
-        if (Mathf.Abs(currentSkillTargetingYawOffset) > 0.01f)
-        {
-            activeUnit.transform.rotation = activeUnit.transform.rotation * Quaternion.Euler(0f, currentSkillTargetingYawOffset, 0f);
-        }
-    }
-
     private bool TryGetMouseWorldPoint(out Vector3 hitPoint)
     {
         hitPoint = Vector3.zero;
@@ -4205,195 +3381,11 @@ public class BattleTurnSystem : MonoBehaviour
         return true;
     }
 
-    private void TriggerSkillHitFeel(BattleSkillDatabase.SkillEntry skill)
+    private Vector3? TryGetMouseWorldPointNullable()
     {
-        if (skill == null || !skill.enableHitFeel)
-        {
-            return;
-        }
-
-        if (!hitFeelActive)
-        {
-            hitFeelRestoreTimeScale = Time.timeScale;
-            hitFeelRestoreFixedDeltaTime = Time.fixedDeltaTime > 0f ? Time.fixedDeltaTime : DefaultFixedDeltaTime;
-        }
-
-        if (hitFeelRoutine != null)
-        {
-            StopCoroutine(hitFeelRoutine);
-        }
-
-        hitFeelRoutine = StartCoroutine(PlayHitFeelRoutine());
-    }
-
-    private IEnumerator PlayHitFeelRoutine()
-    {
-        hitFeelActive = true;
-        Time.timeScale = HitFeelTimeScale;
-        Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime * HitFeelTimeScale;
-
-        yield return new WaitForSecondsRealtime(HitFeelDurationSeconds);
-
-        if (Mathf.Approximately(Time.timeScale, HitFeelTimeScale))
-        {
-            Time.timeScale = hitFeelRestoreTimeScale;
-        }
-
-        if (Mathf.Approximately(Time.fixedDeltaTime, hitFeelRestoreFixedDeltaTime * HitFeelTimeScale))
-        {
-            Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime;
-        }
-
-        hitFeelActive = false;
-        hitFeelRoutine = null;
-    }
-
-    private void RestoreGlobalTimeScale()
-    {
-        if (hitFeelRoutine != null)
-        {
-            StopCoroutine(hitFeelRoutine);
-            hitFeelRoutine = null;
-        }
-
-        if (Mathf.Approximately(Time.timeScale, HitFeelTimeScale))
-        {
-            Time.timeScale = hitFeelRestoreTimeScale;
-        }
-
-        if (Mathf.Approximately(Time.fixedDeltaTime, hitFeelRestoreFixedDeltaTime * HitFeelTimeScale))
-        {
-            Time.fixedDeltaTime = hitFeelRestoreFixedDeltaTime;
-        }
-
-        hitFeelActive = false;
-    }
-
-    private void ShowBattleInfoMessage(string message)
-    {
-        BattleInfoWindowPresenter presenter = battleInfoWindowPresenter != null
-            ? battleInfoWindowPresenter
-            : BattleInfoWindowPresenter.FindInActiveScene();
-        battleInfoWindowPresenter = presenter;
-        if (presenter == null)
-        {
-            return;
-        }
-
-        presenter.ShowMessage(message);
-    }
-
-    private static string FormatTargetSkillMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        string casterName = ResolveBattleInfoUnitName(caster, richText: true);
-        string targetName = ResolveBattleInfoUnitName(target, richText: true);
-        string skillName = ResolveBattleInfoSkillName(skill);
-        return $"{casterName}对{targetName}使用了{skillName}";
-    }
-
-    private string FormatAreaSkillMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        string casterName = ResolveBattleInfoUnitName(caster, richText: true);
-        string skillName = ResolveBattleInfoSkillName(skill);
-        List<string> targetNames = CollectAreaSkillTargetNames(caster, targetCell, skill);
-        if (targetNames.Count == 1)
-        {
-            return $"{casterName}对{targetNames[0]}使用了{skillName}";
-        }
-
-        if (targetNames.Count > 1)
-        {
-            return $"{casterName}对{string.Join("、", targetNames)}使用了{skillName}";
-        }
-
-        return $"{casterName}在{targetCell}使用了{skillName}";
-    }
-
-    private List<string> CollectAreaSkillTargetNames(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        List<string> names = new List<string>();
-        if (caster == null || skill == null)
-        {
-            return names;
-        }
-
-        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
-        for (int i = 0; i < targets.Count; i++)
-        {
-            BattleUnit unit = targets[i];
-            names.Add(ResolveBattleInfoUnitName(unit, richText: true));
-        }
-
-        return names;
-    }
-
-    private List<BattleUnit> CollectAreaSkillTargets(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        List<BattleUnit> targets = new List<BattleUnit>();
-        if (caster == null || skill == null)
-        {
-            return targets;
-        }
-
-        bool usesContinuousCircularArea = UsesContinuousCircularArea(skill);
-        bool usesCircularAxisArea = IsCircularAxisAreaSkill(skill);
-        HashSet<Vector2Int> affectedCells = null;
-        if (!usesContinuousCircularArea && !usesCircularAxisArea)
-        {
-            affectedCells = CollectAreaEffectCells(caster, targetCell, skill);
-        }
-
-        for (int i = 0; i < units.Count; i++)
-        {
-            BattleUnit unit = units[i];
-            if (unit == null || !unit.IsAlive)
-            {
-                continue;
-            }
-
-            if (!IsValidSkillTarget(caster, unit, skill))
-            {
-                continue;
-            }
-
-            if (usesContinuousCircularArea)
-            {
-                if (!IsUnitInsideContinuousArea(unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else if (usesCircularAxisArea)
-            {
-                if (!IsUnitInsideCircularAxisArea(caster, unit, targetCell, skill))
-                {
-                    continue;
-                }
-            }
-            else if (!IsUnitInsideAreaCells(unit, affectedCells))
-            {
-                continue;
-            }
-
-            targets.Add(unit);
-        }
-
-        return targets;
-    }
-
-    private static string ResolveBattleInfoUnitName(BattleUnit unit, bool richText = false)
-    {
-        return BattleInfoTextUtility.ResolveBattleInfoUnitName(unit, richText);
-    }
-
-    private static string ResolveBattleInfoSkillName(BattleSkillDatabase.SkillEntry skill)
-    {
-        return BattleInfoTextUtility.ResolveBattleInfoSkillName(skill);
-    }
-
-    private static string WrapBattleInfoColor(string content, string colorHex)
-    {
-        return BattleInfoTextUtility.WrapBattleInfoColor(content, colorHex);
+        return TryGetMouseWorldPoint(out Vector3 hitPoint)
+            ? hitPoint
+            : (Vector3?)null;
     }
 
     private static string ResolveIdleStateName(BattleUnit unit = null)
