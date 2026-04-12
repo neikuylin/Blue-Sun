@@ -128,6 +128,7 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleTurnTimelineService timelineService;
     private 战斗模式服务 modeService;
     private 战斗技能执行服务 skillExecutionService;
+    private 战斗伤害结算服务 damageResolutionService;
 
     private sealed class EnemySkillChoice
     {
@@ -137,41 +138,11 @@ public class BattleTurnSystem : MonoBehaviour
         public BattleSkillDatabase.SkillEntry skill;
     }
 
-    private enum DamageAttributeType
-    {
-        Physical,
-        Fire,
-        Corruption,
-        Cold
-    }
-
     private struct EnemySkillAction
     {
         public EnemySkillChoice choice;
         public BattleUnit targetUnit;
         public Vector2Int targetCell;
-    }
-
-    private struct DamageComponent
-    {
-        public DamageAttributeType attributeType;
-        public float amount;
-    }
-
-    private sealed class CombatDamageResult
-    {
-        public readonly List<DamageComponent> components = new List<DamageComponent>();
-        public bool isCritical;
-        public float totalDamage;
-        public int appliedDamage;
-    }
-
-    private struct DamageDisplayAllocation
-    {
-        public DamageAttributeType attributeType;
-        public float amount;
-        public int displayAmount;
-        public float fractionalPart;
     }
 
     public BattleUnit ActiveUnit
@@ -277,6 +248,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (skillExecutionService == null)
         {
             skillExecutionService = new 战斗技能执行服务();
+        }
+
+        if (damageResolutionService == null)
+        {
+            damageResolutionService = new 战斗伤害结算服务();
         }
 
         timelineService.Initialize(sceneBindings);
@@ -2518,208 +2494,92 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ApplyCombatArtDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || target == null || skill == null)
-        {
-            return;
-        }
-
-        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
-        {
-            return;
-        }
-
-        if (!RollSkillHit(caster, target, skill))
-        {
-            PlayDodgeReaction(target);
-            BattleDamageNumberPopup.ShowMiss(target, battleCamera);
-            return;
-        }
-
-        CombatDamageResult damageResult = CalculateCombatArtDamage(caster, target, skill);
-        if (damageResult == null || damageResult.appliedDamage <= 0)
-        {
-            ApplyAttachedEffectsToUnit(caster, target, skill);
-            ShowZeroDamagePopup(target, skill);
-            return;
-        }
-
-        PlayHitReaction(target);
-        target.ApplyDamage(damageResult.appliedDamage);
-        ApplyAttachedEffectsToUnit(caster, target, skill);
-        ShowDamagePopup(target, damageResult);
-        HandleUnitDefeat(target);
+        damageResolutionService?.应用战技单体伤害(
+            caster,
+            target,
+            skill,
+            battleCamera,
+            RollSkillHit,
+            CalculateCombatArtDamage,
+            ApplyAttachedEffectsToUnit,
+            ShowZeroDamagePopup,
+            ShowDamagePopup,
+            PlayDodgeReaction,
+            PlayHitReaction,
+            HandleUnitDefeat);
     }
 
     private void ResolveTargetSkillInfoAndDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        string message = ApplySkillDamageWithMessage(caster, target, skill);
-        ShowBattleInfoMessage(message);
-    }
-
-    private string ApplySkillDamageWithMessage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (caster == null || target == null || skill == null)
-        {
-            return string.Empty;
-        }
-
-        Debug.Log(
-            $"[SkillDebug] {caster.unitName} -> {target.unitName} using {skill.skillId} | " +
-            $"施法者效果: {FormatUnitEffectDebugText(caster)} | " +
-            $"目标效果: {FormatUnitEffectDebugText(target)} | " +
-            $"命中: {CalculateSkillHitChance(caster, target, skill)}%");
-
-        string casterName = ResolveBattleInfoUnitName(caster, richText: true);
-        string targetName = ResolveBattleInfoUnitName(target, richText: true);
-        string skillName = ResolveBattleInfoSkillName(skill);
-
-        if (!RollSkillHit(caster, target, skill))
-        {
-            PlayDodgeReaction(target);
-            BattleDamageNumberPopup.ShowMiss(target, battleCamera);
-            return $"{casterName}对{targetName}使用了{skillName}，被{targetName}闪避了";
-        }
-
-        CombatDamageResult damageResult = CalculateSkillDamage(caster, target, skill);
-        if (damageResult == null || damageResult.appliedDamage <= 0)
-        {
-            ApplyAttachedEffectsToUnit(caster, target, skill);
-            ShowZeroDamagePopup(target, skill);
-            return $"{casterName}对{targetName}使用了{skillName}";
-        }
-
-        PlayHitReaction(target);
-        target.ApplyDamage(damageResult.appliedDamage);
-        ApplyAttachedEffectsToUnit(caster, target, skill);
-        ShowDamagePopup(target, damageResult);
-        HandleUnitDefeat(target);
-        string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发了暴击，", PhysicalInfoColorHex)}" : string.Empty;
-        string damageText = FormatBattleInfoDamageText(damageResult);
-        string deathText = BuildUnitDefeatMessage(target);
-        return WrapBattleInfoColor($"{casterName}对{targetName}使用了{skillName}，{criticalText}对{targetName}造成{damageText}{deathText}", NeutralInfoColorHex);
+        damageResolutionService?.结算单体技能并显示信息(
+            caster,
+            target,
+            skill,
+            battleCamera,
+            FormatUnitEffectDebugText,
+            CalculateSkillHitChance,
+            RollSkillHit,
+            CalculateSkillDamage,
+            ApplyAttachedEffectsToUnit,
+            ShowZeroDamagePopup,
+            ShowDamagePopup,
+            PlayDodgeReaction,
+            PlayHitReaction,
+            HandleUnitDefeat,
+            unit => ResolveBattleInfoUnitName(unit, richText: true),
+            ResolveBattleInfoSkillName,
+            FormatBattleInfoDamageText,
+            BuildUnitDefeatMessage,
+            BuildCriticalBattleInfoText,
+            WrapBattleInfoColor,
+            NeutralInfoColorHex,
+            ShowBattleInfoMessage);
     }
 
     private void ApplyCombatArtAreaDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
-        if (caster == null || skill == null)
-        {
-            return;
-        }
-
-        if (skill.group != BattleSkillDatabase.SkillGroup.CombatArt)
-        {
-            return;
-        }
-
-        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
-        for (int i = 0; i < targets.Count; i++)
-        {
-            BattleUnit unit = targets[i];
-            if (unit == null || !unit.IsAlive)
-            {
-                continue;
-            }
-
-            if (!RollSkillHit(caster, unit, skill))
-            {
-                PlayDodgeReaction(unit);
-                BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
-                continue;
-            }
-
-            CombatDamageResult damageResult = CalculateCombatArtDamage(caster, unit, skill);
-            if (damageResult == null || damageResult.appliedDamage <= 0)
-            {
-                ApplyAttachedEffectsToUnit(caster, unit, skill);
-                ShowZeroDamagePopup(unit, skill);
-                continue;
-            }
-
-            PlayHitReaction(unit);
-            unit.ApplyDamage(damageResult.appliedDamage);
-            ApplyAttachedEffectsToUnit(caster, unit, skill);
-            ShowDamagePopup(unit, damageResult);
-            HandleUnitDefeat(unit);
-        }
+        damageResolutionService?.应用战技范围伤害(
+            caster,
+            targetCell,
+            skill,
+            battleCamera,
+            CollectAreaSkillTargets,
+            RollSkillHit,
+            CalculateCombatArtDamage,
+            ApplyAttachedEffectsToUnit,
+            ShowZeroDamagePopup,
+            ShowDamagePopup,
+            PlayDodgeReaction,
+            PlayHitReaction,
+            HandleUnitDefeat);
     }
 
     private void ResolveAreaSkillInfoAndDamage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
-        string message = ApplySkillAreaDamageWithMessage(caster, targetCell, skill);
-        ShowBattleInfoMessage(message);
-    }
-
-    private string ApplySkillAreaDamageWithMessage(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
-    {
-        if (caster == null || skill == null)
-        {
-            return string.Empty;
-        }
-
-        string casterName = ResolveBattleInfoUnitName(caster, richText: true);
-        string skillName = ResolveBattleInfoSkillName(skill);
-        List<string> hitTargets = new List<string>();
-        List<string> missedTargets = new List<string>();
-        List<BattleUnit> targets = CollectAreaSkillTargets(caster, targetCell, skill);
-        for (int i = 0; i < targets.Count; i++)
-        {
-            BattleUnit unit = targets[i];
-            if (unit == null || !unit.IsAlive)
-            {
-                continue;
-            }
-
-            string unitName = ResolveBattleInfoUnitName(unit, richText: true);
-            Debug.Log(
-                $"[SkillDebug] {caster.unitName} -> {unit.unitName} using {skill.skillId} | " +
-                $"施法者效果: {FormatUnitEffectDebugText(caster)} | " +
-                $"目标效果: {FormatUnitEffectDebugText(unit)} | " +
-                $"命中: {CalculateSkillHitChance(caster, unit, skill)}%");
-            if (!RollSkillHit(caster, unit, skill))
-            {
-                PlayDodgeReaction(unit);
-                BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
-                missedTargets.Add(unitName);
-                continue;
-            }
-
-            CombatDamageResult damageResult = CalculateSkillDamage(caster, unit, skill);
-            if (damageResult == null || damageResult.appliedDamage <= 0)
-            {
-                ApplyAttachedEffectsToUnit(caster, unit, skill);
-                ShowZeroDamagePopup(unit, skill);
-                hitTargets.Add($"{unitName}获得了效果");
-                continue;
-            }
-
-            PlayHitReaction(unit);
-            unit.ApplyDamage(damageResult.appliedDamage);
-            ApplyAttachedEffectsToUnit(caster, unit, skill);
-            ShowDamagePopup(unit, damageResult);
-            HandleUnitDefeat(unit);
-            string criticalText = damageResult.isCritical ? $"{WrapBattleInfoColor("触发暴击，", PhysicalInfoColorHex)}" : string.Empty;
-            string damageText = FormatBattleInfoDamageText(damageResult);
-            string deathText = BuildUnitDefeatMessage(unit);
-            hitTargets.Add($"{unitName}{criticalText}受到{damageText}{deathText}");
-        }
-
-        if (hitTargets.Count > 0)
-        {
-            string message = WrapBattleInfoColor($"{casterName}使用了{skillName}，命中了{string.Join("、", hitTargets)}", NeutralInfoColorHex);
-            if (missedTargets.Count > 0)
-            {
-                message += WrapBattleInfoColor($"，被{string.Join("、", missedTargets)}闪避了", NeutralInfoColorHex);
-            }
-
-            return message;
-        }
-
-        if (missedTargets.Count > 0)
-        {
-            return $"{casterName}对{string.Join("、", missedTargets)}使用了{skillName}，被{string.Join("、", missedTargets)}闪避了";
-        }
-
-        return $"{casterName}在{targetCell}使用了{skillName}";
+        damageResolutionService?.结算范围技能并显示信息(
+            caster,
+            targetCell,
+            skill,
+            battleCamera,
+            CollectAreaSkillTargets,
+            FormatUnitEffectDebugText,
+            CalculateSkillHitChance,
+            RollSkillHit,
+            CalculateSkillDamage,
+            ApplyAttachedEffectsToUnit,
+            ShowZeroDamagePopup,
+            ShowDamagePopup,
+            PlayDodgeReaction,
+            PlayHitReaction,
+            HandleUnitDefeat,
+            unit => ResolveBattleInfoUnitName(unit, richText: true),
+            ResolveBattleInfoSkillName,
+            FormatBattleInfoDamageText,
+            BuildUnitDefeatMessage,
+            BuildAreaCriticalBattleInfoText,
+            WrapBattleInfoColor,
+            NeutralInfoColorHex,
+            ShowBattleInfoMessage);
     }
 
     private CombatDamageResult CalculateSkillDamage(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
@@ -3270,6 +3130,20 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         return WrapBattleInfoColor($"，{ResolveBattleInfoUnitName(unit, richText: true)}死亡", NeutralInfoColorHex);
+    }
+
+    private static string BuildCriticalBattleInfoText(bool isCritical)
+    {
+        return isCritical
+            ? WrapBattleInfoColor("触发了暴击，", PhysicalInfoColorHex)
+            : string.Empty;
+    }
+
+    private static string BuildAreaCriticalBattleInfoText(bool isCritical)
+    {
+        return isCritical
+            ? WrapBattleInfoColor("触发暴击，", PhysicalInfoColorHex)
+            : string.Empty;
     }
 
     private bool RollSkillHit(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
