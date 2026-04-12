@@ -121,6 +121,28 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         return Resources.Load<CharacterSkillLoadoutDatabase>(DefaultResourcePath);
     }
 
+    public static string DescribeEntry(CharacterSkillEntry entry)
+    {
+        if (entry == null)
+        {
+            return "entry=null";
+        }
+
+        return $"characterId={entry.characterId}, memorized=[{FormatSkillList(entry.memorizedSkillIds)}], warehouse=[{FormatSkillList(entry.warehouseSkillIds)}]";
+    }
+
+    public static string DescribeDatabaseEntry(string characterId)
+    {
+        CharacterSkillLoadoutDatabase database = LoadDefault();
+        if (database == null)
+        {
+            return "database=null";
+        }
+
+        CharacterSkillEntry entry = database.FindEntry(characterId);
+        return $"dbInstance={database.GetInstanceID()}, {DescribeEntry(entry)}";
+    }
+
     private static void EnsureListsInitialized(CharacterSkillEntry entry)
     {
         if (entry == null)
@@ -209,5 +231,27 @@ public sealed class CharacterSkillLoadoutDatabase : ScriptableObject
         {
             values.Add(0);
         }
+    }
+
+    private static string FormatSkillList(List<string> values)
+    {
+        if (values == null)
+        {
+            return "null";
+        }
+
+        if (values.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        string[] parts = new string[values.Count];
+        for (int i = 0; i < values.Count; i++)
+        {
+            string skillId = values[i];
+            parts[i] = string.IsNullOrWhiteSpace(skillId) ? $"#{i}:<empty>" : $"#{i}:{skillId}";
+        }
+
+        return string.Join(", ", parts);
     }
 }

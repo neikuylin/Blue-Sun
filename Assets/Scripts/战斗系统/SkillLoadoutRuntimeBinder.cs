@@ -9,6 +9,7 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 {
+    private const string DebugLogPrefix = "[SkillLoadoutDebug]";
     private const float SkillTooltipDelaySeconds = 0.5f;
     private const float DragIconSize = 100f;
     private const string OverlayIconName = "\u6280\u80fd\u56fe\u6848";
@@ -166,6 +167,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        Debug.Log($"{DebugLogPrefix} BindScene scene={SceneManager.GetActiveScene().name}, currentCharacterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
         if (deferredRefreshCoroutine != null)
         {
             StopCoroutine(deferredRefreshCoroutine);
@@ -178,37 +180,38 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         yield return null;
         deferredRefreshCoroutine = null;
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        RefreshAll();
+        RefreshAll("DeferredRefreshAfterBinding");
     }
 
     private void OnGlobalRefreshRequested()
     {
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        RefreshAll();
+        RefreshAll("GlobalRefreshRequested");
     }
 
     private void OnCurrentCharacterRefreshRequested(string characterId)
     {
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        RefreshAll();
+        RefreshAll($"CurrentCharacterRefreshRequested:{characterId}");
     }
 
     private void OnSkillLoadoutChanged(string characterId)
     {
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        RefreshAll();
+        RefreshAll($"SkillLoadoutChanged:{characterId}");
     }
 
     private void OnEquipmentChanged(string characterId)
     {
         currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        RefreshAll();
+        RefreshAll($"EquipmentChanged:{characterId}");
     }
 
-    private void RefreshAll()
+    private void RefreshAll(string reason)
     {
         RefreshJourneySkillSlots();
         RefreshWarehouseSkillSlots();
+        LogLoadoutState(reason);
     }
 
     private void CollectJourneySkillSlots()
@@ -474,11 +477,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        Debug.Log($"{DebugLogPrefix} HandleDrop before characterId={currentCharacterId}, sourceSurface={sourceWidget.surface}, sourceIndex={sourceWidget.slotIndex}, sourceSkill={sourceWidget.skillId}, targetSurface={targetWidget.surface}, targetIndex={targetWidget.slotIndex}, targetSkill={targetWidget.skillId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
         if (!TrySwapSkillSlots(sourceWidget, targetWidget))
         {
+            Debug.Log($"{DebugLogPrefix} HandleDrop rejected characterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
             return;
         }
 
+        Debug.Log($"{DebugLogPrefix} HandleDrop after characterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
         界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
@@ -493,9 +499,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         SkillSlotWidget widget = ResolveWidget(surface, index);
         if (!TryHandleRightClickMove(widget))
         {
+            Debug.Log($"{DebugLogPrefix} RightClickMove rejected characterId={currentCharacterId}, surface={(widget != null ? widget.surface.ToString() : "null")}, slotIndex={(widget != null ? widget.slotIndex : -1)}, skill={(widget != null ? widget.skillId : string.Empty)}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
             return;
         }
 
+        Debug.Log($"{DebugLogPrefix} RightClickMove applied characterId={currentCharacterId}, surface={widget.surface}, slotIndex={widget.slotIndex}, skill={widget.skillId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
         eventData.Use();
         界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
@@ -1102,6 +1110,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private string ResolveCharacterId(string characterId)
     {
         return string.IsNullOrWhiteSpace(characterId) ? DefaultCharacterId : characterId;
+    }
+
+    private void LogLoadoutState(string reason)
+    {
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        Debug.Log(
+            $"{DebugLogPrefix} RefreshAll reason={reason}, scene={SceneManager.GetActiveScene().name}, currentCharacterId={currentCharacterId}, " +
+            $"journeySlotCount={journeySkillSlots.Count}, warehouseSlotCount={warehouseSkillSlots.Count}, state={CharacterSkillLoadoutDatabase.DescribeEntry(entry)}");
     }
 
     private static int ResolveVisibleSkillMemorySlotCount(string characterId)
