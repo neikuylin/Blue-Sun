@@ -17,26 +17,13 @@ public class BattleTurnSystem : MonoBehaviour
         Exploration
     }
 
-    private const string TimelineAnchorPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u56DE\u5408\u65F6\u95F4\u8F74";
-    private const string TimelineDividerPath = "Canvas/\u4E0A\u65B9\u680F\u4F4D/\u65F6\u95F4\u8F74\u5206\u5272\u7EBF";
-
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
-    private const string TargetPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807";
-    private const string TargetHealthPanelPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c";
-    private const string TargetHealthFillPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c/\u751f\u547d\u503c";
-    private const string TargetHealthTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u751f\u547d\u503c\u6570\u5b57";
-    private const string TargetNameTextPath = "Canvas/\u4e0a\u65b9\u680f\u4f4d/\u76ee\u6807/\u540d\u5b57/\u76ee\u6807\u540d\u5b57text";
     private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
     private readonly Dictionary<BattleUnit, int> initiativeTieBreakers = new Dictionary<BattleUnit, int>();
-    private readonly List<GameObject> timelineInstances = new List<GameObject>();
-    private readonly Dictionary<GameObject, BattleUnit> timelineInstanceUnits = new Dictionary<GameObject, BattleUnit>();
-    private readonly Dictionary<GameObject, TimelineSlotKey> timelineInstanceKeys = new Dictionary<GameObject, TimelineSlotKey>();
-    private readonly List<TimelineSlot> lastTimelineSlots = new List<TimelineSlot>();
-
     [HideInInspector] public float timelineSpacing = 0f;
     [HideInInspector] public float activeTimelineExtraSpacing = 0f;
     [HideInInspector] public float activeTimelineScale = 1.1f;
@@ -96,22 +83,13 @@ public class BattleTurnSystem : MonoBehaviour
     private RectTransform overlayCanvasRect;
     private RectTransform skillCostHintRect;
     private TMP_Text skillCostHintText;
-    private RectTransform targetPanelRect;
-    private Image targetHealthFillImage;
-    private TMP_Text targetHealthText;
-    private TMP_Text targetNameText;
     private BattleInfoWindowPresenter battleInfoWindowPresenter;
-    private Transform timelineAnchor;
-    private Transform timelineDivider;
     private Button endTurnButton;
     private Button moveSkillButton;
     private BattleSceneBindings sceneBindings;
     private BattleSkillDatabase skillDatabase;
-    private TurnTimelineButtonDatabase timelineDatabase;
-    private Coroutine timelineAnimationRoutine;
     private Coroutine skillExecutionRoutine;
     private Coroutine hitFeelRoutine;
-    private BattleUnit timelineLeadUnit;
     private float hitFeelRestoreTimeScale = 1f;
     private float hitFeelRestoreFixedDeltaTime = DefaultFixedDeltaTime;
     private bool hitFeelActive;
@@ -126,12 +104,7 @@ public class BattleTurnSystem : MonoBehaviour
     private int skillHoverActionPointCost;
     private BattleUnit hoveredSkillTarget;
     private readonly List<BattleUnit> hoveredSkillTargets = new List<BattleUnit>();
-    private BattleUnit hoveredTargetUnit;
-    private BattleUnit lockedTargetUnit;
     private bool isResolvingSkillExecution;
-    private string lastTargetUiSignature = "<unset>";
-    private RectSnapshot targetHealthFillBaseRect;
-    private bool cachedTargetBaseRect;
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
@@ -150,6 +123,9 @@ public class BattleTurnSystem : MonoBehaviour
     private AudioSource modeMusicSource;
     private Coroutine explorationMoveAudioStopRoutine;
     private bool pendingExplorationModeEnter;
+    private BattleInputService inputService;
+    private BattleTargetPanelService targetPanelService;
+    private BattleTurnTimelineService timelineService;
 
     private sealed class EnemySkillChoice
     {
@@ -186,18 +162,6 @@ public class BattleTurnSystem : MonoBehaviour
         public bool isCritical;
         public float totalDamage;
         public int appliedDamage;
-    }
-
-    private struct RectSnapshot
-    {
-        public Vector2 anchoredPosition;
-        public Vector2 sizeDelta;
-        public Vector2 offsetMin;
-        public Vector2 offsetMax;
-        public Vector2 pivot;
-        public Vector2 anchorMin;
-        public Vector2 anchorMax;
-        public Vector3 localScale;
     }
 
     private struct DamageDisplayAllocation
@@ -281,18 +245,33 @@ public class BattleTurnSystem : MonoBehaviour
         skillCostHintText = null;
         battleInfoWindowPresenter = BattleInfoWindowPresenter.FindInActiveScene();
         sceneBindings = BattleSceneBindings.FindInActiveScene();
-        timelineAnchor = ResolveTimelineAnchor();
-        EnsureTimelineMask();
         BindEndTurnButton();
         BindSkillButton();
         skillDatabase = BattleSkillDatabase.LoadDefault();
-        timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
+        if (inputService == null)
+        {
+            inputService = new BattleInputService();
+        }
+
+        if (targetPanelService == null)
+        {
+            targetPanelService = new BattleTargetPanelService(
+                targetHealthBarColor,
+                targetNameSelfColor,
+                targetNameAllyColor,
+                targetNameEnemyColor);
+        }
+
+        if (timelineService == null)
+        {
+            timelineService = new BattleTurnTimelineService(this);
+        }
+
+        timelineService.Initialize(sceneBindings);
         units.Clear();
         currentRoundOrder.Clear();
         upcomingRoundOrders.Clear();
         initiativeTieBreakers.Clear();
-        timelineInstances.Clear();
-        timelineInstanceUnits.Clear();
         activeUnit = null;
         waitingForEnemyAction = false;
         isResolvingSkillExecution = false;
@@ -303,8 +282,6 @@ public class BattleTurnSystem : MonoBehaviour
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
-        timelineLeadUnit = null;
-        lastTimelineSlots.Clear();
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -345,6 +322,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        timelineService?.Dispose();
         StopExplorationFollowerRoutine();
         RestoreGlobalTimeScale();
         UnbindEndTurnButton();
@@ -393,7 +371,16 @@ public class BattleTurnSystem : MonoBehaviour
         {
             UpdateSkillHoverPreview();
             UpdateHoveredTargetFlash();
-            HandlePlayerInput();
+            inputService?.HandleCombatInput(
+                grid,
+                battleCamera,
+                activeUnit,
+                IsSkillModeActive(),
+                ClearActiveSkillMode,
+                RefreshHighlights,
+                ClearLockedTargetUnit,
+                SetLockedTargetUnit,
+                TryUseActiveSkill);
             return;
         }
 
@@ -410,7 +397,13 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        RefreshTargetPanelUi();
+        targetPanelService?.Refresh(
+            grid,
+            battleCamera,
+            activeUnit,
+            hoveredSkillTarget,
+            IsExplorationMode,
+            RefreshSelectionOutlines);
     }
 
     private void UpdateExplorationMode()
@@ -428,98 +421,12 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        HandleExplorationInput();
-    }
-
-    private void HandlePlayerInput()
-    {
-        if (IsSkillModeActive() && Input.GetMouseButtonDown(1))
-        {
-            ClearActiveSkillMode();
-            RefreshHighlights();
-            return;
-        }
-
-        if (!IsSkillModeActive() && Input.GetMouseButtonDown(1))
-        {
-            ClearLockedTargetUnit();
-            return;
-        }
-
-        if (!Input.GetMouseButtonDown(0))
-        {
-            return;
-        }
-
-        if (IsPointerBlockedByUi())
-        {
-            return;
-        }
-
-        Plane clickPlane = grid.GetInteractionPlane();
-        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
-        float enter;
-
-        if (!clickPlane.Raycast(ray, out enter))
-        {
-            return;
-        }
-
-        Vector3 hitPoint = ray.GetPoint(enter);
-        Vector2Int clickedCell = grid.WorldToCell(hitPoint);
-        if (!grid.IsInside(clickedCell))
-        {
-            return;
-        }
-
-        BattleUnit target = grid.GetUnitAt(clickedCell);
-        if (IsSkillModeActive())
-        {
-            TryUseActiveSkill(activeUnit, clickedCell, target);
-            return;
-        }
-
-        if (target != null && target.IsAlive)
-        {
-            SetLockedTargetUnit(target);
-        }
-
-    }
-
-    private void HandleExplorationInput()
-    {
-        if (!string.Equals(activeExplorationActionId, ExplorationMoveSkillId, System.StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || grid == null || battleCamera == null)
-        {
-            return;
-        }
-
-        Plane clickPlane = grid.GetInteractionPlane();
-        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
-        float enter;
-        if (!clickPlane.Raycast(ray, out enter))
-        {
-            return;
-        }
-
-        Vector3 hitPoint = ray.GetPoint(enter);
-        Vector2Int clickedCell = grid.WorldToCell(hitPoint);
-        if (!grid.IsInside(clickedCell))
-        {
-            return;
-        }
-
-        BattleUnit target = grid.GetUnitAt(clickedCell);
-        if (target != null && target != activeUnit && target.team != activeUnit.team)
-        {
-            return;
-        }
-
-        TryMoveFreely(activeUnit, clickedCell);
+        inputService?.HandleExplorationInput(
+            activeExplorationActionId,
+            grid,
+            battleCamera,
+            activeUnit,
+            TryMoveFreely);
     }
 
     private IEnumerator RunEnemyTurn()
@@ -924,7 +831,6 @@ public class BattleTurnSystem : MonoBehaviour
         ClearActiveSkillMode();
         ClearLockedTargetUnit();
         ClearHoveredSkillTarget();
-        hoveredTargetUnit = null;
         activeUnit = FindExplorationPlayerUnit();
         if (playExitAnimation && switchedFromCombat)
         {
@@ -946,8 +852,6 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshHighlights();
         RefreshActiveUnitUi();
         RefreshTimeline();
-        lastTargetUiSignature = "<exploration>";
-        ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
     }
 
     private void EnterCombatMode(bool playEnterAnimation)
@@ -1042,20 +946,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void SetCombatUiVisible(bool visible)
     {
-        if (timelineAnchor != null)
-        {
-            timelineAnchor.gameObject.SetActive(visible);
-        }
-
-        if (timelineDivider == null)
-        {
-            timelineDivider = FindTransformByPath(TimelineDividerPath);
-        }
-
-        if (timelineDivider != null)
-        {
-            timelineDivider.gameObject.SetActive(visible);
-        }
+        timelineService?.SetVisible(sceneBindings, visible);
 
         if (endTurnButton != null)
         {
@@ -1235,7 +1126,7 @@ public class BattleTurnSystem : MonoBehaviour
                 : activePlayerFootprintColor;
             grid.HighlightFootprint(activeUnit, activeFootprintColor);
 
-            BattleUnit persistentTarget = ResolvePersistentTargetUnit();
+            BattleUnit persistentTarget = targetPanelService != null ? targetPanelService.LockedTargetUnit : null;
             if (persistentTarget != null && persistentTarget != activeUnit)
             {
                 Color targetFootprintColor = persistentTarget.team == BattleTeam.Enemy
@@ -1267,166 +1158,21 @@ public class BattleTurnSystem : MonoBehaviour
         ApplySkillHoverPreview();
     }
 
-    private void RefreshTargetPanelUi()
-    {
-        if (IsExplorationMode)
-        {
-            CacheTargetPanelReferences();
-            lastTargetUiSignature = "<exploration>";
-            ApplyTargetPanelUi(null, string.Empty, 0, 0, false);
-            return;
-        }
-
-        CacheTargetPanelReferences();
-
-        BattleUnit directHoveredUnit = ResolveHoveredPanelUnit();
-        if (hoveredTargetUnit != directHoveredUnit)
-        {
-            hoveredTargetUnit = directHoveredUnit;
-            RefreshSelectionOutlines();
-        }
-
-        BattleUnit targetUnit = directHoveredUnit != null ? directHoveredUnit : ResolvePersistentTargetUnit();
-        string targetId = targetUnit != null && targetUnit.IsAlive
-            ? (string.IsNullOrWhiteSpace(targetUnit.characterId) ? targetUnit.unitName : targetUnit.characterId)
-            : string.Empty;
-        int currentHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.currentHealth) : 0;
-        int maxHealth = targetUnit != null && targetUnit.IsAlive ? Mathf.Max(0, targetUnit.GetEffectiveMaxHealth()) : 0;
-        string signature = string.Concat(targetId, "|", currentHealth, "/", maxHealth);
-        if (string.Equals(signature, lastTargetUiSignature, System.StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        lastTargetUiSignature = signature;
-        ApplyTargetPanelUi(targetUnit, targetId, currentHealth, maxHealth, targetUnit != null && targetUnit.IsAlive);
-    }
-
-    private void CacheTargetPanelReferences()
-    {
-        if (targetPanelRect == null)
-        {
-            targetPanelRect = FindTransformByPath(TargetPanelPath) as RectTransform;
-        }
-
-        if (targetHealthFillImage == null)
-        {
-            targetHealthFillImage = FindImageByPath(TargetHealthFillPath);
-            if (targetHealthFillImage != null)
-            {
-                targetHealthFillImage.color = targetHealthBarColor;
-                CacheTargetFillBaseRect();
-            }
-        }
-
-        if (targetHealthText == null)
-        {
-            targetHealthText = FindTextByPath(TargetHealthTextPath) ?? FindTargetHealthTextFallback();
-        }
-
-        if (targetNameText == null)
-        {
-            targetNameText = FindTextByPath(TargetNameTextPath);
-        }
-    }
-
-    private void CacheTargetFillBaseRect()
-    {
-        if (cachedTargetBaseRect || targetHealthFillImage == null || targetHealthFillImage.rectTransform == null)
-        {
-            return;
-        }
-
-        targetHealthFillBaseRect = CaptureSnapshot(targetHealthFillImage.rectTransform);
-        cachedTargetBaseRect = true;
-    }
-
-    private BattleUnit ResolveHoveredPanelUnit()
-    {
-        if (hoveredSkillTarget != null && hoveredSkillTarget.IsAlive)
-        {
-            return hoveredSkillTarget;
-        }
-
-        if (IsPointerBlockedByUi())
-        {
-            return null;
-        }
-
-        if (grid == null || battleCamera == null)
-        {
-            return null;
-        }
-
-        Plane clickPlane = grid.GetInteractionPlane();
-        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
-        float enter;
-        if (!clickPlane.Raycast(ray, out enter))
-        {
-            return null;
-        }
-
-        Vector3 hitPoint = ray.GetPoint(enter);
-        Vector2Int hoveredCell = grid.WorldToCell(hitPoint);
-        if (!grid.IsInside(hoveredCell))
-        {
-            return null;
-        }
-
-        BattleUnit unit = grid.GetUnitAt(hoveredCell);
-        if (unit != null && unit.IsAlive)
-        {
-            return unit;
-        }
-
-        return null;
-    }
-
-    private BattleUnit ResolvePersistentTargetUnit()
-    {
-        if (lockedTargetUnit != null && lockedTargetUnit.IsAlive)
-        {
-            return lockedTargetUnit;
-        }
-
-        if (lockedTargetUnit != null && !lockedTargetUnit.IsAlive)
-        {
-            lockedTargetUnit = null;
-            RefreshSelectionOutlines();
-        }
-
-        return null;
-    }
-
     private void SetLockedTargetUnit(BattleUnit unit)
     {
-        if (IsSkillModeActive())
-        {
-            return;
-        }
-
-        lockedTargetUnit = unit != null && unit.IsAlive ? unit : null;
-        RefreshSelectionOutlines();
-        lastTargetUiSignature = "<unset>";
-        RefreshHighlights();
+        targetPanelService?.SetLockedTargetUnit(unit, IsSkillModeActive(), RefreshSelectionOutlines, RefreshHighlights);
     }
 
     private void ClearLockedTargetUnit()
     {
-        if (lockedTargetUnit == null)
-        {
-            return;
-        }
-
-        lockedTargetUnit = null;
-        RefreshSelectionOutlines();
-        lastTargetUiSignature = "<unset>";
-        RefreshHighlights();
+        targetPanelService?.ClearLockedTargetUnit(RefreshSelectionOutlines, RefreshHighlights);
     }
 
     private void RefreshSelectionOutlines()
     {
         ClearSelectionOutlines();
+        BattleUnit hoveredTargetUnit = targetPanelService != null ? targetPanelService.HoveredTargetUnit : null;
+        BattleUnit lockedTargetUnit = targetPanelService != null ? targetPanelService.LockedTargetUnit : null;
 
         if (IsExplorationMode)
         {
@@ -1478,112 +1224,6 @@ public class BattleTurnSystem : MonoBehaviour
                 unit.ClearLockOutline();
             }
         }
-    }
-
-    private TMP_Text FindTargetHealthTextFallback()
-    {
-        Transform panel = FindTransformByPath(TargetHealthPanelPath);
-        if (panel == null)
-        {
-            return null;
-        }
-
-        TMP_Text existing = panel.GetComponentInChildren<TMP_Text>(true);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        GameObject textObject = new GameObject("生命值数字", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(panel, false);
-
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = new Vector2(0f, 0f);
-        rect.sizeDelta = new Vector2(240f, 40f);
-
-        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-        text.alignment = TextAlignmentOptions.Center;
-        text.fontSize = 28f;
-        text.color = Color.white;
-        text.raycastTarget = false;
-        text.text = string.Empty;
-        return text;
-    }
-
-    private void ApplyTargetPanelUi(BattleUnit targetUnit, string targetId, int currentHealth, int maxHealth, bool visible)
-    {
-        if (targetPanelRect != null)
-        {
-            targetPanelRect.gameObject.SetActive(visible);
-        }
-
-        if (targetNameText != null)
-        {
-            targetNameText.text = visible ? targetId : string.Empty;
-            targetNameText.color = visible ? ResolveTargetNameColor(targetUnit) : targetNameSelfColor;
-        }
-
-        if (targetHealthText != null)
-        {
-            targetHealthText.text = visible ? currentHealth + "/" + maxHealth : string.Empty;
-        }
-
-        ApplyTargetHealthBar(currentHealth, maxHealth, visible);
-    }
-
-    private Color ResolveTargetNameColor(BattleUnit targetUnit)
-    {
-        if (targetUnit == null || activeUnit == null)
-        {
-            return targetNameSelfColor;
-        }
-
-        if (targetUnit == activeUnit)
-        {
-            return targetNameSelfColor;
-        }
-
-        return targetUnit.team == activeUnit.team
-            ? targetNameAllyColor
-            : targetNameEnemyColor;
-    }
-
-    private void ApplyTargetHealthBar(int current, int max, bool visible)
-    {
-        if (targetHealthFillImage == null)
-        {
-            return;
-        }
-
-        CacheTargetFillBaseRect();
-        targetHealthFillImage.enabled = visible && max > 0;
-        targetHealthFillImage.color = targetHealthBarColor;
-
-        RectTransform rectTransform = targetHealthFillImage.rectTransform;
-        if (rectTransform == null)
-        {
-            return;
-        }
-
-        ApplySnapshot(rectTransform, targetHealthFillBaseRect);
-        if (!visible || max <= 0)
-        {
-            rectTransform.sizeDelta = new Vector2(0f, targetHealthFillBaseRect.sizeDelta.y);
-            return;
-        }
-
-        float ratio = Mathf.Clamp01((float)current / max);
-        float fullWidth = Mathf.Max(0f, targetHealthFillBaseRect.sizeDelta.x);
-        float targetWidth = fullWidth * ratio;
-        float widthDelta = fullWidth - targetWidth;
-        rectTransform.sizeDelta = new Vector2(targetWidth, targetHealthFillBaseRect.sizeDelta.y);
-
-        Vector2 anchoredPosition = targetHealthFillBaseRect.anchoredPosition;
-        anchoredPosition.x -= widthDelta * 0.5f;
-        rectTransform.anchoredPosition = anchoredPosition;
     }
 
     private void FocusCameraOnActiveUnit()
@@ -1804,467 +1444,8 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void RefreshTimeline()
     {
-        if (IsExplorationMode)
-        {
-            ClearTimelineInstances();
-            timelineLeadUnit = null;
-            return;
-        }
-
-        if (timelineAnchor == null)
-        {
-            timelineAnchor = ResolveTimelineAnchor();
-            EnsureTimelineMask();
-        }
-
-        if (timelineDatabase == null)
-        {
-            timelineDatabase = TurnTimelineButtonDatabase.LoadDefault();
-        }
-
         List<List<BattleUnit>> timelineRounds = BuildTimelineRounds();
-        BattleUnit newLeadUnit = FindTimelineLeadUnit(timelineRounds);
-        if (timelineAnchor == null || timelineDatabase == null || currentRoundIndex < 0)
-        {
-            ClearTimelineInstances();
-            timelineLeadUnit = null;
-            return;
-        }
-
-        if (timelineInstances.Count > 0 &&
-            Application.isPlaying &&
-            TimelineNeedsAnimation(timelineRounds, newLeadUnit))
-        {
-            if (timelineAnimationRoutine != null)
-            {
-                StopCoroutine(timelineAnimationRoutine);
-            }
-
-            timelineAnimationRoutine = StartCoroutine(AnimateTimelineReorderAndRebuild(timelineRounds, newLeadUnit));
-            return;
-        }
-
-        BuildTimelineImmediate(timelineRounds);
-        timelineLeadUnit = newLeadUnit;
-        return;
-    }
-
-    private void BuildTimelineImmediate(List<List<BattleUnit>> timelineRounds)
-    {
-        ClearTimelineInstances();
-        List<TimelineSlot> slots = BuildTimelineSlots(timelineRounds);
-        lastTimelineSlots.Clear();
-        for (int i = 0; i < slots.Count; i++)
-        {
-            TimelineSlot slot = slots[i];
-            if (slot.isSeparator)
-            {
-                CreateRoundSeparator(slot);
-                lastTimelineSlots.Add(slot);
-                continue;
-            }
-
-            CreateTimelineUnitInstance(slot);
-            lastTimelineSlots.Add(slot);
-        }
-    }
-
-    private GameObject CreateTimelineUnitInstance(TimelineSlot slot)
-    {
-        BattleUnit unit = slot.unit;
-        GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
-        if (prefab == null)
-        {
-            return null;
-        }
-
-        GameObject instance = Instantiate(prefab, timelineAnchor, false);
-        instance.name = string.IsNullOrWhiteSpace(unit.characterId) ? prefab.name : unit.characterId + "_时间轴";
-
-        TurnTimelineTeamTint teamTint = instance.GetComponent<TurnTimelineTeamTint>();
-        if (teamTint == null)
-        {
-            teamTint = instance.AddComponent<TurnTimelineTeamTint>();
-        }
-
-        teamTint.Apply(ResolveTimelineColor(unit, slot.isActive));
-
-        RectTransform rect = instance.transform as RectTransform;
-        if (rect != null)
-        {
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(slot.x, 0f);
-        }
-
-        instance.transform.localScale = slot.isActive ? Vector3.one * activeTimelineScale : Vector3.one;
-        timelineInstances.Add(instance);
-        timelineInstanceUnits[instance] = unit;
-        timelineInstanceKeys[instance] = slot.key;
-        return instance;
-    }
-
-    private IEnumerator AnimateTimelineReorderAndRebuild(List<List<BattleUnit>> timelineRounds, BattleUnit newLeadUnit)
-    {
-        List<TimelineSlot> desiredSlots = BuildTimelineSlots(timelineRounds);
-        List<GameObject> currentInstances = GetCurrentTimelineInstances();
-        if (currentInstances.Count != lastTimelineSlots.Count)
-        {
-            BuildTimelineImmediate(timelineRounds);
-            timelineLeadUnit = newLeadUnit;
-            timelineAnimationRoutine = null;
-            yield break;
-        }
-
-        int[] matchedDesiredIndices = MatchTimelineSlotsByKey(lastTimelineSlots, desiredSlots);
-        int earliestMatchedCurrentIndex = int.MaxValue;
-        for (int i = 0; i < matchedDesiredIndices.Length; i++)
-        {
-            if (matchedDesiredIndices[i] >= 0)
-            {
-                earliestMatchedCurrentIndex = Mathf.Min(earliestMatchedCurrentIndex, i);
-            }
-        }
-
-        List<RectTransform> animatedRects = new List<RectTransform>();
-        List<Vector2> startPositions = new List<Vector2>();
-        List<Vector2> targetPositions = new List<Vector2>();
-        List<Vector3> startScales = new List<Vector3>();
-        List<Vector3> targetScales = new List<Vector3>();
-
-        for (int i = 0; i < currentInstances.Count; i++)
-        {
-            GameObject instance = currentInstances[i];
-            RectTransform rect = instance.transform as RectTransform;
-            if (rect == null)
-            {
-                continue;
-            }
-
-            TimelineSlot currentSlot = lastTimelineSlots[i];
-            int matchedIndex = matchedDesiredIndices[i];
-            bool stillInQueue = matchedIndex >= 0 && matchedIndex < desiredSlots.Count;
-            animatedRects.Add(rect);
-            startPositions.Add(rect.anchoredPosition);
-            if (stillInQueue)
-            {
-                targetPositions.Add(new Vector2(desiredSlots[matchedIndex].x, 0f));
-            }
-            else
-            {
-                if (i < earliestMatchedCurrentIndex)
-                {
-                    float exitX = -(Mathf.Max(rect.rect.width, rect.sizeDelta.x, 100f) + 40f);
-                    targetPositions.Add(new Vector2(exitX, rect.anchoredPosition.y));
-                }
-                else
-                {
-                    float exitY = -(Mathf.Max(rect.rect.height, rect.sizeDelta.y, 100f) + 40f);
-                    targetPositions.Add(new Vector2(rect.anchoredPosition.x, exitY));
-                }
-            }
-
-            startScales.Add(rect.localScale);
-            if (currentSlot.isSeparator)
-            {
-                targetScales.Add(Vector3.one);
-            }
-            else
-            {
-                targetScales.Add(stillInQueue && desiredSlots[matchedIndex].isActive ? Vector3.one * activeTimelineScale : Vector3.one);
-            }
-        }
-
-        float duration = Mathf.Max(0.01f, timelineShiftDuration);
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            for (int i = 0; i < animatedRects.Count; i++)
-            {
-                RectTransform rect = animatedRects[i];
-                if (rect == null)
-                {
-                    continue;
-                }
-
-                rect.anchoredPosition = Vector2.Lerp(startPositions[i], targetPositions[i], t);
-                rect.localScale = Vector3.Lerp(startScales[i], targetScales[i], t);
-            }
-
-            yield return null;
-        }
-
-        timelineAnimationRoutine = null;
-        BuildTimelineImmediate(timelineRounds);
-        timelineLeadUnit = newLeadUnit;
-    }
-
-    private List<TimelineSlot> BuildTimelineSlots(List<List<BattleUnit>> timelineRounds)
-    {
-        List<TimelineSlot> slots = new List<TimelineSlot>();
-        float cursorX = 0f;
-        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
-        {
-            List<BattleUnit> round = timelineRounds[roundIndex];
-            int unitIndexInRound = roundIndex == 0 ? Mathf.Max(0, currentRoundIndex) : 0;
-            for (int i = 0; i < round.Count; i++)
-            {
-                BattleUnit unit = round[i];
-                if (unit == null || !unit.IsAlive)
-                {
-                    continue;
-                }
-
-                GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
-                if (prefab == null)
-                {
-                    continue;
-                }
-
-                float width = ResolveTimelinePrefabWidth(prefab);
-                bool isActive = roundIndex == 0 && i == 0;
-                slots.Add(TimelineSlot.CreateUnit(
-                    unit,
-                    cursorX,
-                    isActive,
-                    absoluteRoundIndex + roundIndex,
-                    unitIndexInRound));
-                unitIndexInRound++;
-                cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
-            }
-
-            if (roundIndex < timelineRounds.Count - 1)
-            {
-                float separatorWidth = GetRoundSeparatorWidth();
-                if (roundSeparatorSprite != null)
-                {
-                    slots.Add(TimelineSlot.CreateSeparator(cursorX + roundSeparatorSpacing, absoluteRoundIndex + roundIndex + 1));
-                }
-
-                cursorX += separatorWidth;
-            }
-        }
-
-        return slots;
-    }
-
-    private List<GameObject> GetCurrentTimelineInstances()
-    {
-        List<GameObject> result = new List<GameObject>();
-        for (int i = 0; i < timelineInstances.Count; i++)
-        {
-            GameObject instance = timelineInstances[i];
-            if (instance == null)
-            {
-                continue;
-            }
-
-            result.Add(instance);
-        }
-
-        return result;
-    }
-
-    private void CreateRoundSeparator(TimelineSlot slot)
-    {
-        if (roundSeparatorSprite == null || timelineAnchor == null)
-        {
-            return;
-        }
-
-        GameObject separatorObject = new GameObject("鍥炲悎鍒嗛殧", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        separatorObject.transform.SetParent(timelineAnchor, false);
-
-        RectTransform rect = separatorObject.transform as RectTransform;
-        if (rect != null)
-        {
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = roundSeparatorSize;
-            rect.anchoredPosition = new Vector2(slot.x, 0f);
-        }
-
-        Image image = separatorObject.GetComponent<Image>();
-        if (image != null)
-        {
-            image.sprite = roundSeparatorSprite;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-        }
-
-        timelineInstances.Add(separatorObject);
-        timelineInstanceKeys[separatorObject] = slot.key;
-    }
-
-    private bool TimelineNeedsAnimation(List<List<BattleUnit>> timelineRounds, BattleUnit newLeadUnit)
-    {
-        List<TimelineSlot> desiredSlots = BuildTimelineSlots(timelineRounds);
-        if (lastTimelineSlots.Count != desiredSlots.Count)
-        {
-            return true;
-        }
-
-        for (int i = 0; i < lastTimelineSlots.Count; i++)
-        {
-            if (!lastTimelineSlots[i].key.Equals(desiredSlots[i].key))
-            {
-                return true;
-            }
-        }
-
-        return timelineLeadUnit != newLeadUnit;
-    }
-
-    private List<BattleUnit> GetCurrentTimelineUnits()
-    {
-        List<BattleUnit> result = new List<BattleUnit>();
-        for (int i = 0; i < timelineInstances.Count; i++)
-        {
-            GameObject instance = timelineInstances[i];
-            if (instance == null)
-            {
-                continue;
-            }
-
-            BattleUnit unit;
-            if (timelineInstanceUnits.TryGetValue(instance, out unit) && unit != null)
-            {
-                result.Add(unit);
-            }
-        }
-
-        return result;
-    }
-
-    private static int[] MatchTimelineSlotsByKey(List<TimelineSlot> previousSlots, List<TimelineSlot> desiredSlots)
-    {
-        int[] matches = new int[previousSlots.Count];
-        for (int i = 0; i < matches.Length; i++)
-        {
-            matches[i] = -1;
-        }
-
-        Dictionary<TimelineSlotKey, int> desiredIndices = new Dictionary<TimelineSlotKey, int>();
-        for (int i = 0; i < desiredSlots.Count; i++)
-        {
-            desiredIndices[desiredSlots[i].key] = i;
-        }
-
-        for (int i = 0; i < previousSlots.Count; i++)
-        {
-            int desiredIndex;
-            if (desiredIndices.TryGetValue(previousSlots[i].key, out desiredIndex))
-            {
-                matches[i] = desiredIndex;
-            }
-        }
-
-        return matches;
-    }
-
-    private Dictionary<BattleUnit, float> BuildTimelineUnitPositions(List<List<BattleUnit>> timelineRounds)
-    {
-        Dictionary<BattleUnit, float> positions = new Dictionary<BattleUnit, float>();
-        float cursorX = 0f;
-        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
-        {
-            List<BattleUnit> round = timelineRounds[roundIndex];
-            for (int i = 0; i < round.Count; i++)
-            {
-                BattleUnit unit = round[i];
-                if (unit == null || !unit.IsAlive)
-                {
-                    continue;
-                }
-
-                GameObject prefab = timelineDatabase.FindButtonPrefab(unit.characterId);
-                if (prefab == null)
-                {
-                    continue;
-                }
-
-                float width = ResolveTimelinePrefabWidth(prefab);
-                positions[unit] = cursorX;
-                bool isActive = roundIndex == 0 && i == 0;
-                cursorX += width + timelineSpacing + (isActive ? activeTimelineExtraSpacing : 0f);
-            }
-
-            if (roundIndex < timelineRounds.Count - 1)
-            {
-                cursorX += GetRoundSeparatorWidth();
-            }
-        }
-
-        return positions;
-    }
-
-    private List<BattleUnit> FlattenTimelineUnits(List<List<BattleUnit>> timelineRounds)
-    {
-        List<BattleUnit> result = new List<BattleUnit>();
-        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
-        {
-            List<BattleUnit> round = timelineRounds[roundIndex];
-            for (int i = 0; i < round.Count; i++)
-            {
-                BattleUnit unit = round[i];
-                if (unit != null && unit.IsAlive)
-                {
-                    result.Add(unit);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    private GameObject FindTimelineInstance(BattleUnit unit)
-    {
-        if (unit == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < timelineInstances.Count; i++)
-        {
-            GameObject instance = timelineInstances[i];
-            if (instance == null)
-            {
-                continue;
-            }
-
-            BattleUnit mappedUnit;
-            if (timelineInstanceUnits.TryGetValue(instance, out mappedUnit) && mappedUnit == unit)
-            {
-                return instance;
-            }
-        }
-
-        return null;
-    }
-
-    private float GetRoundSeparatorWidth()
-    {
-        if (roundSeparatorSprite == null)
-        {
-            return roundSeparatorSpacing;
-        }
-
-        return roundSeparatorSpacing + roundSeparatorSize.x;
-    }
-
-    private static float ResolveTimelinePrefabWidth(GameObject prefab)
-    {
-        if (prefab == null)
-        {
-            return 100f;
-        }
-
-        RectTransform rect = prefab.transform as RectTransform;
-        return ResolveTimelineItemWidth(rect);
+        timelineService?.Refresh(sceneBindings, timelineRounds, currentRoundIndex, absoluteRoundIndex, this);
     }
 
     private List<List<BattleUnit>> BuildTimelineRounds()
@@ -2313,55 +1494,6 @@ public class BattleTurnSystem : MonoBehaviour
         return rounds;
     }
 
-    private void EnsureTimelineMask()
-    {
-        if (timelineAnchor == null)
-        {
-            return;
-        }
-
-        if (timelineAnchor.GetComponent<RectMask2D>() == null)
-        {
-            timelineAnchor.gameObject.AddComponent<RectMask2D>();
-        }
-    }
-
-    private Color ResolveTimelineColor(BattleUnit unit, bool isActive)
-    {
-        if (unit == null)
-        {
-            return playerTimelineColor;
-        }
-
-        if (unit.team == BattleTeam.Player)
-        {
-            return isActive ? activePlayerTimelineColor : playerTimelineColor;
-        }
-
-        return enemyTimelineColor;
-    }
-
-    private static float ResolveTimelineItemWidth(RectTransform rect)
-    {
-        if (rect == null)
-        {
-            return 100f;
-        }
-
-        LayoutElement layoutElement = rect.GetComponent<LayoutElement>();
-        if (layoutElement != null && layoutElement.preferredWidth > 0f)
-        {
-            return layoutElement.preferredWidth;
-        }
-
-        if (rect.sizeDelta.x > 0f)
-        {
-            return rect.sizeDelta.x;
-        }
-
-        return 100f;
-    }
-
     public void RemoveUnitFromBattle(BattleUnit unit)
     {
         if (unit == null)
@@ -2377,18 +1509,7 @@ public class BattleTurnSystem : MonoBehaviour
             grid.RemoveUnit(unit);
         }
 
-        if (lockedTargetUnit == unit)
-        {
-            lockedTargetUnit.ClearLockOutline();
-            lockedTargetUnit = null;
-            lastTargetUiSignature = "<unset>";
-        }
-
-        if (hoveredTargetUnit == unit)
-        {
-            hoveredTargetUnit = null;
-            lastTargetUiSignature = "<unset>";
-        }
+        targetPanelService?.NotifyUnitRemoved(unit, RefreshSelectionOutlines);
 
         units.Remove(unit);
         currentRoundOrder.RemoveAll(candidate => candidate == unit);
@@ -2449,126 +1570,6 @@ public class BattleTurnSystem : MonoBehaviour
         RemoveUnitFromBattle(unit);
     }
 
-    private void ClearTimelineInstances()
-    {
-        if (timelineAnimationRoutine != null)
-        {
-            StopCoroutine(timelineAnimationRoutine);
-            timelineAnimationRoutine = null;
-        }
-
-        for (int i = 0; i < timelineInstances.Count; i++)
-        {
-            GameObject instance = timelineInstances[i];
-            if (instance != null)
-            {
-                Destroy(instance);
-            }
-        }
-
-        timelineInstances.Clear();
-        timelineInstanceUnits.Clear();
-        timelineInstanceKeys.Clear();
-        lastTimelineSlots.Clear();
-    }
-
-    private static BattleUnit FindTimelineLeadUnit(List<List<BattleUnit>> timelineRounds)
-    {
-        for (int roundIndex = 0; roundIndex < timelineRounds.Count; roundIndex++)
-        {
-            List<BattleUnit> round = timelineRounds[roundIndex];
-            for (int i = 0; i < round.Count; i++)
-            {
-                BattleUnit unit = round[i];
-                if (unit != null && unit.IsAlive)
-                {
-                    return unit;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private struct TimelineSlot
-    {
-        public readonly BattleUnit unit;
-        public readonly float x;
-        public readonly bool isActive;
-        public readonly bool isSeparator;
-        public readonly TimelineSlotKey key;
-
-        private TimelineSlot(BattleUnit unit, float x, bool isActive, bool isSeparator, TimelineSlotKey key)
-        {
-            this.unit = unit;
-            this.x = x;
-            this.isActive = isActive;
-            this.isSeparator = isSeparator;
-            this.key = key;
-        }
-
-        public static TimelineSlot CreateUnit(BattleUnit unit, float x, bool isActive, int absoluteRound, int indexInRound)
-        {
-            return new TimelineSlot(unit, x, isActive, false, TimelineSlotKey.CreateUnit(absoluteRound, unit));
-        }
-
-        public static TimelineSlot CreateSeparator(float x, int absoluteRound)
-        {
-            return new TimelineSlot(null, x, false, true, TimelineSlotKey.CreateSeparator(absoluteRound));
-        }
-    }
-
-    private struct TimelineSlotKey
-    {
-        public readonly int absoluteRound;
-        public readonly BattleUnit unit;
-        public readonly bool isSeparator;
-
-        private TimelineSlotKey(int absoluteRound, BattleUnit unit, bool isSeparator)
-        {
-            this.absoluteRound = absoluteRound;
-            this.unit = unit;
-            this.isSeparator = isSeparator;
-        }
-
-        public static TimelineSlotKey CreateUnit(int absoluteRound, BattleUnit unit)
-        {
-            return new TimelineSlotKey(absoluteRound, unit, false);
-        }
-
-        public static TimelineSlotKey CreateSeparator(int absoluteRound)
-        {
-            return new TimelineSlotKey(absoluteRound, null, true);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj is TimelineSlotKey))
-            {
-                return false;
-            }
-
-            TimelineSlotKey other = (TimelineSlotKey)obj;
-            return absoluteRound == other.absoluteRound &&
-                   unit == other.unit &&
-                   isSeparator == other.isSeparator;
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = absoluteRound * 397;
-                hash ^= isSeparator ? 1 : 0;
-                if (unit != null)
-                {
-                    hash ^= unit.GetHashCode();
-                }
-
-                return hash;
-            }
-        }
-    }
 
     private static TMP_Text FindActiveUnitIdText()
     {
@@ -4894,8 +3895,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static bool IsPointerBlockedByUi()
     {
-        EventSystem eventSystem = EventSystem.current;
-        return eventSystem != null && eventSystem.IsPointerOverGameObject();
+        return BattleInputService.IsPointerBlockedByUi();
     }
 
     private int GetMoveMaxRange(BattleUnit unit, BattleSkillDatabase.SkillEntry moveSkill)
@@ -5050,46 +4050,21 @@ public class BattleTurnSystem : MonoBehaviour
     public IReadOnlyList<BattleUnit> GetTimelineUnitsForUi()
     {
         List<List<BattleUnit>> rounds = BuildTimelineRounds();
-        return FlattenTimelineUnits(rounds);
-    }
-
-    private static Image FindImageByPath(string path)
-    {
-        Transform target = FindTransformByPath(path);
-        return target != null ? target.GetComponent<Image>() : null;
-    }
-
-    private static TMP_Text FindTextByPath(string path)
-    {
-        Transform target = FindTransformByPath(path);
-        return target != null ? target.GetComponent<TMP_Text>() : null;
-    }
-
-    private static RectSnapshot CaptureSnapshot(RectTransform rectTransform)
-    {
-        return new RectSnapshot
+        List<BattleUnit> result = new List<BattleUnit>();
+        for (int roundIndex = 0; roundIndex < rounds.Count; roundIndex++)
         {
-            anchoredPosition = rectTransform.anchoredPosition,
-            sizeDelta = rectTransform.sizeDelta,
-            offsetMin = rectTransform.offsetMin,
-            offsetMax = rectTransform.offsetMax,
-            pivot = rectTransform.pivot,
-            anchorMin = rectTransform.anchorMin,
-            anchorMax = rectTransform.anchorMax,
-            localScale = rectTransform.localScale
-        };
-    }
+            List<BattleUnit> round = rounds[roundIndex];
+            for (int i = 0; i < round.Count; i++)
+            {
+                BattleUnit unit = round[i];
+                if (unit != null && unit.IsAlive)
+                {
+                    result.Add(unit);
+                }
+            }
+        }
 
-    private static void ApplySnapshot(RectTransform rectTransform, RectSnapshot snapshot)
-    {
-        rectTransform.anchorMin = snapshot.anchorMin;
-        rectTransform.anchorMax = snapshot.anchorMax;
-        rectTransform.pivot = snapshot.pivot;
-        rectTransform.offsetMin = snapshot.offsetMin;
-        rectTransform.offsetMax = snapshot.offsetMax;
-        rectTransform.sizeDelta = snapshot.sizeDelta;
-        rectTransform.anchoredPosition = snapshot.anchoredPosition;
-        rectTransform.localScale = snapshot.localScale;
+        return result;
     }
 
     private static Transform FindTransformByPath(string path)
@@ -5123,16 +4098,6 @@ public class BattleTurnSystem : MonoBehaviour
 
         moveSkillButton = button;
         moveSkillButton.onClick.AddListener(ToggleMovementMode);
-    }
-
-    private Transform ResolveTimelineAnchor()
-    {
-        if (sceneBindings != null && sceneBindings.timelineAnchor != null)
-        {
-            return sceneBindings.timelineAnchor;
-        }
-
-        return FindTransformByPath(TimelineAnchorPath);
     }
 
     private Button ResolveEndTurnButton()
