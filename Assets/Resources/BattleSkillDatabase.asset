@@ -180,7 +180,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
-    hitEffectPrefab: {fileID: 6235713858634987467, guid: 224707c65d4f44045a70b05a83ef4fbd, type: 3}
+    hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     soundDelayFrame: 0
     enableHitFeel: 1
     compensateActionMotion: 0
