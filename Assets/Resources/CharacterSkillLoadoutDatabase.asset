@@ -22,16 +22,12 @@ MonoBehaviour:
     warehouseSkillIds:
     - "\u706B\u7403"
     warehouseSkillWeights: 00000000
-    legacySkillIds: []
-    legacySkillWeights: 
   - characterId: "\u7D22\u62C9\u5A1C"
     memorizedSkillIds:
     - 
     memorizedSkillWeights: 00000000
     warehouseSkillIds: []
     warehouseSkillWeights: 
-    legacySkillIds: []
-    legacySkillWeights: 
   - characterId: "\u5E93\u9C81\u65AF"
     memorizedSkillIds:
     - 
@@ -39,39 +35,26 @@ MonoBehaviour:
     warehouseSkillIds:
     - "\u706B\u7403"
     warehouseSkillWeights: 00000000
-    legacySkillIds: []
-    legacySkillWeights: 
   - characterId: "\u5047\u4EBA"
     memorizedSkillIds: []
     memorizedSkillWeights: 
     warehouseSkillIds: []
     warehouseSkillWeights: 
-    legacySkillIds: []
-    legacySkillWeights: 
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
     memorizedSkillIds: []
     memorizedSkillWeights: 
     warehouseSkillIds: []
     warehouseSkillWeights: 
-    legacySkillIds: []
-    legacySkillWeights: 
   - characterId: "\u7231\u4E3D\u4E1D"
-    memorizedSkillIds: []
-    memorizedSkillWeights: 
+    memorizedSkillIds:
+    - 
+    - 
+    - 
+    memorizedSkillWeights: 000000000000000000000000
     warehouseSkillIds: []
     warehouseSkillWeights: 
-    legacySkillIds:
-    - "\u56DE\u65CB\u65A9"
-    - 
-    - "\u96C6\u4E2D"
-    - 
-    - 
-    legacySkillWeights: 0000000000000000000000000000000000000000
   - characterId: "\u745F\u838E"
     memorizedSkillIds: []
     memorizedSkillWeights: 
     warehouseSkillIds: []
     warehouseSkillWeights: 
-    legacySkillIds:
-    - 
-    legacySkillWeights: 00000000
