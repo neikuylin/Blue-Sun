@@ -5,7 +5,7 @@ internal static class BattleHitEffectUtility
     private const string HitMountPointName = "\u53D7\u51FB\u6302\u8F7D\u70B9";
     private const float DefaultDestroyDelaySeconds = 5f;
 
-    public static void TryPlaySkillHitEffect(BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    public static void TryPlaySkillHitEffect(BattleUnit target, BattleSkillDatabase.SkillEntry skill, Camera battleCamera)
     {
         if (target == null || skill == null || skill.hitEffectPrefab == null)
         {
@@ -26,8 +26,16 @@ internal static class BattleHitEffectUtility
             return;
         }
 
+        ApplyMountedEffectScaleCompensation(instance.transform, mountPoint);
         instance.transform.localPosition = Vector3.zero;
-        instance.transform.localRotation = Quaternion.identity;
+        if (battleCamera != null)
+        {
+            instance.transform.rotation = battleCamera.transform.rotation;
+        }
+        else
+        {
+            instance.transform.localRotation = Quaternion.identity;
+        }
         Object.Destroy(instance, ResolveDestroyDelay(instance));
     }
 
@@ -49,6 +57,26 @@ internal static class BattleHitEffectUtility
         }
 
         return null;
+    }
+
+    private static void ApplyMountedEffectScaleCompensation(Transform instance, Transform mountPoint)
+    {
+        if (instance == null || mountPoint == null)
+        {
+            return;
+        }
+
+        Vector3 prefabLocalScale = instance.localScale;
+        Vector3 parentLossyScale = mountPoint.lossyScale;
+        instance.localScale = new Vector3(
+            DivideScaleAxis(prefabLocalScale.x, parentLossyScale.x),
+            DivideScaleAxis(prefabLocalScale.y, parentLossyScale.y),
+            DivideScaleAxis(prefabLocalScale.z, parentLossyScale.z));
+    }
+
+    private static float DivideScaleAxis(float value, float parentScale)
+    {
+        return Mathf.Abs(parentScale) <= 0.0001f ? value : value / parentScale;
     }
 
     private static float ResolveDestroyDelay(GameObject instance)

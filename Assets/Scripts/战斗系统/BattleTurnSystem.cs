@@ -3268,7 +3268,7 @@ public class BattleTurnSystem : MonoBehaviour
             unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
             unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
             ShouldCompensateGlobalMotionForState);
-        BattleHitEffectUtility.TryPlaySkillHitEffect(target, skill);
+        BattleHitEffectUtility.TryPlaySkillHitEffect(target, skill, battleCamera);
     }
 
     private void RefreshModeMusic()
