@@ -17,7 +17,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private enum 绘制工具
     {
         可用格 = 0,
-        敌人出生点 = 1,
+        敌人出生位 = 1,
         玩家默认出生点 = 2,
         玩家东门出生点 = 3,
         玩家南门出生点 = 4,
@@ -184,7 +184,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         using (new EditorGUILayout.HorizontalScope())
         {
             DrawToolButton(绘制工具.可用格, "可用格");
-            DrawToolButton(绘制工具.敌人出生点, "敌人出生位");
+            DrawToolButton(绘制工具.敌人出生位, "敌人出生位");
             DrawToolButton(绘制工具.玩家默认出生点, "玩家默认出生点");
             DrawToolButton(绘制工具.玩家东门出生点, "玩家东门出生点");
         }
@@ -368,7 +368,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         if (currentEvent.type == EventType.MouseDown)
         {
             Undo.RecordObject(EnsureDatabase(), "设置格子点位");
-            ApplyPointTool(entry, cell);
+            ApplyPlacementTool(entry, cell);
             currentEvent.Use();
         }
     }
@@ -399,13 +399,13 @@ public sealed class 格子编辑器窗口 : EditorWindow
         MarkDirtyAndRepaint();
     }
 
-    private void ApplyPointTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    private void ApplyPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
     {
         AddCell(entry.walkableCells, cell);
 
         switch (currentTool)
         {
-            case 绘制工具.敌人出生点:
+            case 绘制工具.敌人出生位:
                 ToggleEnemySpawnSlot(entry, cell);
                 break;
             case 绘制工具.玩家默认出生点:
@@ -1083,7 +1083,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             case 绘制工具.可用格:
                 return "可用格";
-            case 绘制工具.敌人出生点:
+            case 绘制工具.敌人出生位:
                 return "敌人出生位";
             case 绘制工具.玩家默认出生点:
                 return "玩家默认出生点";

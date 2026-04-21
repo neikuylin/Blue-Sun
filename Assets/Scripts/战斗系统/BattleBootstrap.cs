@@ -28,6 +28,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
     private const int DefaultUnitFootprintSize = 3;
+    private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
     [System.Serializable]
     public sealed class RoomStateMemory
@@ -52,13 +53,7 @@ public class BattleBootstrap : MonoBehaviour
     public Color enemyPlaceholderColor = new Color(0.85f, 0.25f, 0.20f, 1f);
 
     [Header("Grid")]
-    public int gridWidth = 20;
-    public int gridHeight = 20;
     public float gridCellSize = 1f;
-
-    [Header("Player Spawn")]
-    public Vector2Int playerSpawnOrigin = new Vector2Int(4, 4);
-    public Vector2Int playerSpawnSpacing = new Vector2Int(4, 4);
 
     [Header("Legacy Cleanup")]
     public List<string> legacyRootNamesToDisable = new List<string>();
@@ -86,10 +81,6 @@ public class BattleBootstrap : MonoBehaviour
     public Color playerTimelineColor = new Color(0.20f, 0.75f, 0.35f, 1f);
     public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
     public Color activePlayerTimelineColor = Color.white;
-
-    [Header("Editor Preview")]
-    public bool showEditorGrid = true;
-    public Color editorGridColor = new Color(0.15f, 0.7f, 1f, 0.8f);
 
     private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
@@ -307,18 +298,16 @@ public class BattleBootstrap : MonoBehaviour
 
         BattleGrid grid = gridObject.AddComponent<BattleGrid>();
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
-        if (gridTemplate != null)
+        if (gridTemplate == null)
         {
-            grid.width = Mathf.Max(1, gridTemplate.width);
-            grid.height = Mathf.Max(1, gridTemplate.height);
-            grid.SetValidCells(ConvertCells(gridTemplate.walkableCells));
+            Debug.LogError($"BattleBootstrap: room '{currentDungeonNodeId}' has no bound grid template. Battle grid creation aborted.");
+            Destroy(gridObject);
+            return null;
         }
-        else
-        {
-            grid.width = gridWidth;
-            grid.height = gridHeight;
-            grid.SetValidCells(null);
-        }
+
+        grid.width = Mathf.Max(1, gridTemplate.width);
+        grid.height = Mathf.Max(1, gridTemplate.height);
+        grid.SetValidCells(ConvertCells(gridTemplate.walkableCells));
         grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
@@ -890,18 +879,30 @@ public class BattleBootstrap : MonoBehaviour
 
         int resolvedCount = Mathf.Max(0, count);
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
-        Vector2Int anchorSpawn = ResolveTemplatePlayerSpawn(gridTemplate) ?? playerSpawnOrigin;
+        if (gridTemplate == null)
+        {
+            Debug.LogError($"BattleBootstrap: room '{currentDungeonNodeId}' has no bound grid template. Player spawn resolution aborted.");
+            return result;
+        }
+
+        Vector2Int? anchorSpawn = ResolveTemplatePlayerSpawn(gridTemplate);
+        if (!anchorSpawn.HasValue)
+        {
+            Debug.LogError($"BattleBootstrap: grid template '{gridTemplate.templateId}' has no valid player spawn anchor for room '{currentDungeonNodeId}'.");
+            return result;
+        }
+
         HashSet<Vector2Int> reservedCells = CollectReservedFootprintCells(enemyEntries);
 
         for (int i = 0; i < resolvedCount; i++)
         {
-            Vector2Int idealCell = GetPlayerSpawnCell(i, anchorSpawn, playerSpawnSpacing);
+            Vector2Int idealCell = GetPlayerSpawnCell(i, anchorSpawn.Value, PlayerFormationSpacing);
             Vector2Int resolvedCell;
             if (!TryFindNearestAvailableSpawnCell(grid, idealCell, reservedCells, out resolvedCell))
             {
                 Debug.LogError(
                     $"BattleBootstrap: failed to resolve player spawn cell #{i + 1}. " +
-                    $"Anchor={anchorSpawn}, Ideal={idealCell}, Room='{currentDungeonNodeId}', Template='{gridTemplate?.templateId ?? "矩形默认"}'.");
+                    $"Anchor={anchorSpawn.Value}, Ideal={idealCell}, Room='{currentDungeonNodeId}', Template='{gridTemplate.templateId}'.");
                 continue;
             }
 
@@ -1313,37 +1314,6 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         binder.Initialize(turnSystem);
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (!showEditorGrid || Application.isPlaying)
-        {
-            return;
-        }
-
-        Gizmos.color = editorGridColor;
-
-        float width = gridWidth * gridCellSize;
-        float height = gridHeight * gridCellSize;
-        Vector3 origin = Vector3.zero;
-        float y = -0.05f;
-
-        for (int x = 0; x <= gridWidth; x++)
-        {
-            float xPos = x * gridCellSize;
-            Vector3 from = origin + new Vector3(xPos, y, 0f);
-            Vector3 to = origin + new Vector3(xPos, y, height);
-            Gizmos.DrawLine(from, to);
-        }
-
-        for (int yIndex = 0; yIndex <= gridHeight; yIndex++)
-        {
-            float zPos = yIndex * gridCellSize;
-            Vector3 from = origin + new Vector3(0f, y, zPos);
-            Vector3 to = origin + new Vector3(width, y, zPos);
-            Gizmos.DrawLine(from, to);
-        }
     }
 
 #if UNITY_EDITOR
