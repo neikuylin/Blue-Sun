@@ -32,11 +32,9 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         RoomEnemyPresetDatabase presetDatabase = EnsurePresetDatabase();
         CharacterStatDatabase statDatabase = EnsureStatDatabase();
         EnsureRoomTypeDatabase();
-        BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>(true);
-
         EditorGUILayout.LabelField("遭遇战编辑器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "维护遭遇战房间预设。这里编辑的是预设资产，不会实时修改场景；你可以从当前 BattleBootstrap 抓取一份，也可以把某套预设应用到当前场景。",
+            "维护遭遇战房间预设。这里编辑的是预设资产，运行时会通过房间节点上的 encounterPresetId 读取它们。",
             MessageType.Info);
 
         SerializedObject databaseObject = presetDatabase != null ? new SerializedObject(presetDatabase) : null;
@@ -58,13 +56,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 Repaint();
             }
 
-            using (new EditorGUI.DisabledScope(bootstrap == null))
-            {
-                if (GUILayout.Button("从当前场景创建新预设"))
-                {
-                    CreatePresetFromScene(presetDatabase, bootstrap, statDatabase);
-                }
-            }
         }
 
         DrawAddPanel(presetDatabase);
@@ -87,7 +78,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
         for (int i = 0; i < entries.arraySize; i++)
         {
-            DrawPresetEntry(entries.GetArrayElementAtIndex(i), presetDatabase, statDatabase, bootstrap);
+            DrawPresetEntry(entries.GetArrayElementAtIndex(i), presetDatabase, statDatabase);
         }
 
         databaseObject.ApplyModifiedProperties();
@@ -117,8 +108,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
     private void DrawPresetEntry(
         SerializedProperty presetProperty,
         RoomEnemyPresetDatabase presetDatabase,
-        CharacterStatDatabase statDatabase,
-        BattleBootstrap bootstrap)
+        CharacterStatDatabase statDatabase)
     {
         SerializedProperty presetIdProperty = presetProperty.FindPropertyRelative("presetId");
         SerializedProperty roomTypeIdProperty = presetProperty.FindPropertyRelative("roomTypeId");
@@ -134,23 +124,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
             {
                 string presetTitle = string.IsNullOrWhiteSpace(presetId) ? "未命名预设" : presetId;
                 presetProperty.isExpanded = EditorGUILayout.Foldout(presetProperty.isExpanded, presetTitle, true);
-
-                using (new EditorGUI.DisabledScope(!presetProperty.isExpanded))
-                {
-                    if (GUILayout.Button("抓取当前场景", GUILayout.Width(100f)))
-                    {
-                        CaptureSceneIntoPreset(presetDatabase, presetIdProperty.stringValue, bootstrap, statDatabase);
-                        GUIUtility.ExitGUI();
-                    }
-                }
-
-                using (new EditorGUI.DisabledScope(!presetProperty.isExpanded || hasOverlap))
-                {
-                    if (GUILayout.Button("应用到当前场景", GUILayout.Width(112f)))
-                    {
-                        ApplyPresetToScene(enemiesProperty, bootstrap, statDatabase);
-                    }
-                }
 
                 using (new EditorGUI.DisabledScope(!presetProperty.isExpanded))
                 {
@@ -346,141 +319,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         {
             EnsureStatEntry(statDatabase, enemyId);
         }
-    }
-
-    private static void CreatePresetFromScene(
-        RoomEnemyPresetDatabase presetDatabase,
-        BattleBootstrap bootstrap,
-        CharacterStatDatabase statDatabase)
-    {
-        if (presetDatabase == null || bootstrap == null)
-        {
-            return;
-        }
-
-        string presetId = BuildScenePresetId(bootstrap.gameObject.scene.name, presetDatabase);
-        Undo.RecordObject(presetDatabase, "从当前场景创建房间敌人预设");
-        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.GetOrCreateEntry(presetId);
-        ReplacePresetEnemies(preset, bootstrap, statDatabase);
-        EditorUtility.SetDirty(presetDatabase);
-    }
-
-    private static void CaptureSceneIntoPreset(
-        RoomEnemyPresetDatabase presetDatabase,
-        string presetId,
-        BattleBootstrap bootstrap,
-        CharacterStatDatabase statDatabase)
-    {
-        if (presetDatabase == null || bootstrap == null || string.IsNullOrWhiteSpace(presetId))
-        {
-            return;
-        }
-
-        Undo.RecordObject(presetDatabase, "抓取当前场景到房间敌人预设");
-        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.GetOrCreateEntry(presetId.Trim());
-        ReplacePresetEnemies(preset, bootstrap, statDatabase);
-        EditorUtility.SetDirty(presetDatabase);
-    }
-
-    private static void ReplacePresetEnemies(
-        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset,
-        BattleBootstrap bootstrap,
-        CharacterStatDatabase statDatabase)
-    {
-        if (preset == null)
-        {
-            return;
-        }
-
-        RoomEnemyPresetDatabase.EnsureValidEnemyList(preset);
-        preset.roomTypeId = EncounterBattleRoomTypeId;
-        preset.enemies.Clear();
-
-        if (bootstrap == null || bootstrap.enemySpawns == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
-        {
-            BattleBootstrap.EnemySpawnEntry source = bootstrap.enemySpawns[i];
-            if (source == null || string.IsNullOrWhiteSpace(source.enemyId))
-            {
-                continue;
-            }
-
-            preset.enemies.Add(RoomEnemyPresetDatabase.CloneEnemy(source));
-            EnsureStatEntry(statDatabase, source.enemyId.Trim());
-        }
-    }
-
-    private static void ApplyPresetToScene(
-        SerializedProperty enemiesProperty,
-        BattleBootstrap bootstrap,
-        CharacterStatDatabase statDatabase)
-    {
-        if (bootstrap == null || enemiesProperty == null)
-        {
-            return;
-        }
-
-        string overlapMessage = BuildOverlapMessage(enemiesProperty);
-        if (!string.IsNullOrEmpty(overlapMessage))
-        {
-            Debug.LogError("RoomEnemyPresetEditorWindow: " + overlapMessage);
-            EditorUtility.DisplayDialog("出生格冲突", overlapMessage, "确定");
-            return;
-        }
-
-        Undo.RecordObject(bootstrap, "应用房间敌人预设");
-        if (bootstrap.enemySpawns == null)
-        {
-            bootstrap.enemySpawns = new System.Collections.Generic.List<BattleBootstrap.EnemySpawnEntry>();
-        }
-
-        bootstrap.enemySpawns.Clear();
-        for (int i = 0; i < enemiesProperty.arraySize; i++)
-        {
-            SerializedProperty entry = enemiesProperty.GetArrayElementAtIndex(i);
-            string enemyId = entry.FindPropertyRelative("enemyId").stringValue.Trim();
-            if (string.IsNullOrWhiteSpace(enemyId))
-            {
-                continue;
-            }
-
-            bootstrap.enemySpawns.Add(new BattleBootstrap.EnemySpawnEntry
-            {
-                enemyId = enemyId,
-                spawnCell = entry.FindPropertyRelative("spawnCell").vector2IntValue,
-                team = (BattleTeam)entry.FindPropertyRelative("team").enumValueIndex,
-                isPlayerControlled = entry.FindPropertyRelative("isPlayerControlled").boolValue
-            });
-            EnsureStatEntry(statDatabase, enemyId);
-        }
-
-        EditorUtility.SetDirty(bootstrap);
-        if (!Application.isPlaying)
-        {
-            EditorSceneManager.MarkSceneDirty(bootstrap.gameObject.scene);
-            EditorSceneManager.SaveScene(bootstrap.gameObject.scene);
-        }
-    }
-
-    private static string BuildScenePresetId(string sceneName, RoomEnemyPresetDatabase presetDatabase)
-    {
-        string baseId = string.IsNullOrWhiteSpace(sceneName) ? DefaultPresetId : sceneName + "_房间敌人";
-        if (presetDatabase.FindEntry(baseId) == null)
-        {
-            return baseId;
-        }
-
-        int suffix = 2;
-        while (presetDatabase.FindEntry(baseId + "_" + suffix) != null)
-        {
-            suffix++;
-        }
-
-        return baseId + "_" + suffix;
     }
 
     private static CharacterStatDatabase.StatEntry EnsureStatEntry(CharacterStatDatabase statDatabase, string enemyId)

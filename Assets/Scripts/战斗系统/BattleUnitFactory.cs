@@ -37,16 +37,16 @@ public sealed class BattleUnitFactory
 
     public List<BattleUnit> CreatePlayers(
         IReadOnlyList<CharacterSelectionState.SlotSelection> playerSelections,
-        Vector2Int playerSpawnOrigin,
-        Vector2Int playerSpawnSpacing)
+        IReadOnlyList<Vector2Int> playerSpawnCells)
     {
         List<BattleUnit> units = new List<BattleUnit>();
-        if (playerSelections == null)
+        if (playerSelections == null || playerSpawnCells == null)
         {
             return units;
         }
 
-        for (int i = 0; i < playerSelections.Count; i++)
+        int spawnCount = Mathf.Min(playerSelections.Count, playerSpawnCells.Count);
+        for (int i = 0; i < spawnCount; i++)
         {
             CharacterSelectionState.SlotSelection selection = playerSelections[i];
             if (string.IsNullOrWhiteSpace(selection.characterId))
@@ -54,7 +54,7 @@ public sealed class BattleUnitFactory
                 continue;
             }
 
-            Vector2Int startCell = GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing);
+            Vector2Int startCell = playerSpawnCells[i];
             BattleCharacterBindingDatabase.BindingEntry binding = FindBinding(selection.characterId);
             CharacterStatDatabase.StatEntry statEntry = FindStats(selection.characterId);
             if (statEntry == null)
@@ -281,13 +281,6 @@ public sealed class BattleUnitFactory
         }
 
         return unit;
-    }
-
-    private static Vector2Int GetPlayerSpawnCell(int index, Vector2Int playerSpawnOrigin, Vector2Int playerSpawnSpacing)
-    {
-        int column = index % 2;
-        int row = index / 2;
-        return playerSpawnOrigin + new Vector2Int(column * playerSpawnSpacing.x, row * playerSpawnSpacing.y);
     }
 
     private BattleCharacterBindingDatabase.BindingEntry FindBinding(string characterId)

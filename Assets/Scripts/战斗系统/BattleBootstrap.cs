@@ -59,10 +59,6 @@ public class BattleBootstrap : MonoBehaviour
     public Vector2Int playerSpawnOrigin = new Vector2Int(4, 4);
     public Vector2Int playerSpawnSpacing = new Vector2Int(4, 4);
 
-    [Header("Enemy Spawn")]
-    public Vector2Int enemySpawnCell = new Vector2Int(13, 12);
-    public List<EnemySpawnEntry> enemySpawns = new List<EnemySpawnEntry>();
-
     [Header("Legacy Cleanup")]
     public List<string> legacyRootNamesToDisable = new List<string>();
 
@@ -96,6 +92,7 @@ public class BattleBootstrap : MonoBehaviour
 
     private static string currentDungeonTemplateId = DefaultDungeonTemplateId;
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
+    private static MapTemplateDatabase.ConnectionDirection? pendingEntranceDirection;
     private static readonly Dictionary<string, RoomStateMemory> roomStateMemories = new Dictionary<string, RoomStateMemory>(System.StringComparer.Ordinal);
 
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
@@ -308,8 +305,19 @@ public class BattleBootstrap : MonoBehaviour
         gridObject.transform.SetParent(runtimeRoot, false);
 
         BattleGrid grid = gridObject.AddComponent<BattleGrid>();
-        grid.width = gridWidth;
-        grid.height = gridHeight;
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        if (gridTemplate != null)
+        {
+            grid.width = Mathf.Max(1, gridTemplate.width);
+            grid.height = Mathf.Max(1, gridTemplate.height);
+            grid.SetValidCells(ConvertCells(gridTemplate.walkableCells));
+        }
+        else
+        {
+            grid.width = gridWidth;
+            grid.height = gridHeight;
+            grid.SetValidCells(null);
+        }
         grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
@@ -479,6 +487,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        pendingEntranceDirection = ResolveEntranceDirectionForTarget(targetNodeId);
         PreserveCurrentRoomSnapshot();
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
         SceneManager.LoadScene(SceneName);
@@ -497,6 +506,7 @@ public class BattleBootstrap : MonoBehaviour
     private List<BattleUnit> CreateUnits(BattleGrid grid, Transform runtimeRoot)
     {
         BattleAnimationSettings animationSettings = BattleAnimationSettings.LoadDefault();
+        List<CharacterSelectionState.SlotSelection> selectedPlayers = GetSelectedPlayers();
         BattleUnitFactory factory = new BattleUnitFactory(
             animationSettings != null ? animationSettings.idleYawOffset : 0f,
             characterBindingDatabase,
@@ -507,7 +517,8 @@ public class BattleBootstrap : MonoBehaviour
             playerPlaceholderColor,
             enemyPlaceholderColor);
 
-        List<BattleUnit> units = factory.CreatePlayers(GetSelectedPlayers(), playerSpawnOrigin, playerSpawnSpacing);
+        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(selectedPlayers.Count);
+        List<BattleUnit> units = factory.CreatePlayers(selectedPlayers, playerSpawnCells);
         units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
         return units;
     }
@@ -628,6 +639,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(selectedPlayers.Count);
         Dictionary<string, BattleUnit> unitsByCharacterId = new Dictionary<string, BattleUnit>(System.StringComparer.Ordinal);
         for (int i = 0; i < units.Count; i++)
         {
@@ -654,7 +666,12 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
-            Vector2Int spawnCell = GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing);
+            if (i < 0 || i >= playerSpawnCells.Count)
+            {
+                continue;
+            }
+
+            Vector2Int spawnCell = playerSpawnCells[i];
             grid.RemoveUnit(unit);
             unit.CancelMovement();
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
@@ -707,6 +724,22 @@ public class BattleBootstrap : MonoBehaviour
             }
 
             entries.Add(RoomEnemyPresetDatabase.CloneEnemy(entry));
+        }
+
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        List<Vector2Int> templateEnemySpawnCells = gridTemplate != null ? ConvertCells(gridTemplate.enemySpawnCells) : null;
+        if (templateEnemySpawnCells != null && templateEnemySpawnCells.Count > 0)
+        {
+            int overrideCount = Mathf.Min(entries.Count, templateEnemySpawnCells.Count);
+            for (int i = 0; i < overrideCount; i++)
+            {
+                entries[i].spawnCell = templateEnemySpawnCells[i];
+            }
+
+            if (entries.Count > templateEnemySpawnCells.Count)
+            {
+                Debug.LogWarning($"BattleBootstrap: grid template '{gridTemplate.templateId}' only provides {templateEnemySpawnCells.Count} enemy spawn cells, but preset '{roomEnemyPresetId}' contains {entries.Count} enemies. Remaining enemies will keep preset spawn cells.");
+            }
         }
 
         return entries;
@@ -778,6 +811,173 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static 格子模板数据库.格子模板条目 ResolveCurrentGridTemplate()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        if (node == null || string.IsNullOrWhiteSpace(node.battleGridTemplateId))
+        {
+            return null;
+        }
+
+        格子模板数据库 database = 格子模板数据库.LoadDefault();
+        if (database == null)
+        {
+            Debug.LogWarning($"BattleBootstrap: missing 格子模板数据库 while room node '{node.nodeId}' references grid template '{node.battleGridTemplateId}'.");
+            return null;
+        }
+
+        格子模板数据库.格子模板条目 entry = database.FindEntry(node.battleGridTemplateId.Trim());
+        if (entry == null)
+        {
+            Debug.LogWarning($"BattleBootstrap: missing grid template '{node.battleGridTemplateId}' for room node '{node.nodeId}'.");
+        }
+
+        return entry;
+    }
+
+    private List<Vector2Int> ResolvePlayerSpawnCells(int count)
+    {
+        List<Vector2Int> result = new List<Vector2Int>();
+        int resolvedCount = Mathf.Max(0, count);
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+
+        Vector2Int? anchorSpawn = null;
+        if (gridTemplate != null)
+        {
+            anchorSpawn = ResolveTemplatePlayerSpawn(gridTemplate);
+        }
+
+        for (int i = 0; i < resolvedCount; i++)
+        {
+            if (anchorSpawn.HasValue)
+            {
+                result.Add(ResolveSpawnCellForIndex(i, anchorSpawn.Value));
+            }
+            else
+            {
+                result.Add(GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing));
+            }
+        }
+
+        return result;
+    }
+
+    private Vector2Int? ResolveTemplatePlayerSpawn(格子模板数据库.格子模板条目 gridTemplate)
+    {
+        if (gridTemplate == null)
+        {
+            return null;
+        }
+
+        if (gridTemplate.playerSpawnMode == 格子模板数据库.PlayerSpawnMode.Door)
+        {
+            Vector2Int? doorSpawn = ResolveDoorSpawn(gridTemplate, pendingEntranceDirection);
+            if (doorSpawn.HasValue)
+            {
+                return doorSpawn.Value;
+            }
+        }
+
+        if (gridTemplate.hasDefaultPlayerSpawn)
+        {
+            return gridTemplate.defaultPlayerSpawnCell.ToVector2Int();
+        }
+
+        return null;
+    }
+
+    private static Vector2Int? ResolveDoorSpawn(
+        格子模板数据库.格子模板条目 gridTemplate,
+        MapTemplateDatabase.ConnectionDirection? entranceDirection)
+    {
+        if (gridTemplate == null || !entranceDirection.HasValue)
+        {
+            return null;
+        }
+
+        switch (entranceDirection.Value)
+        {
+            case MapTemplateDatabase.ConnectionDirection.East:
+                return gridTemplate.hasEastDoorPlayerSpawn ? gridTemplate.eastDoorPlayerSpawnCell.ToVector2Int() : (Vector2Int?)null;
+            case MapTemplateDatabase.ConnectionDirection.South:
+                return gridTemplate.hasSouthDoorPlayerSpawn ? gridTemplate.southDoorPlayerSpawnCell.ToVector2Int() : (Vector2Int?)null;
+            case MapTemplateDatabase.ConnectionDirection.West:
+                return gridTemplate.hasWestDoorPlayerSpawn ? gridTemplate.westDoorPlayerSpawnCell.ToVector2Int() : (Vector2Int?)null;
+            case MapTemplateDatabase.ConnectionDirection.North:
+                return gridTemplate.hasNorthDoorPlayerSpawn ? gridTemplate.northDoorPlayerSpawnCell.ToVector2Int() : (Vector2Int?)null;
+            default:
+                return null;
+        }
+    }
+
+    private Vector2Int ResolveSpawnCellForIndex(int index, Vector2Int anchorCell)
+    {
+        int column = index % 2;
+        int row = index / 2;
+        return anchorCell + new Vector2Int(column * playerSpawnSpacing.x, row * playerSpawnSpacing.y);
+    }
+
+    private static List<Vector2Int> ConvertCells(List<格子模板数据库.CellPosition> cells)
+    {
+        List<Vector2Int> result = new List<Vector2Int>();
+        if (cells == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            result.Add(cells[i].ToVector2Int());
+        }
+
+        return result;
+    }
+
+    private static MapTemplateDatabase.ConnectionDirection? ResolveEntranceDirectionForTarget(string targetNodeId)
+    {
+        MapTemplateDatabase.MapNodeEntry currentNode = ResolveBattleRoomNode();
+        if (currentNode == null || currentNode.connections == null || string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            return null;
+        }
+
+        string resolvedTargetNodeId = targetNodeId.Trim();
+        for (int i = 0; i < currentNode.connections.Count; i++)
+        {
+            MapTemplateDatabase.MapConnectionEntry connection = currentNode.connections[i];
+            if (connection == null || string.IsNullOrWhiteSpace(connection.targetNodeId))
+            {
+                continue;
+            }
+
+            if (!string.Equals(connection.targetNodeId.Trim(), resolvedTargetNodeId, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return ReverseDirection(connection.direction);
+        }
+
+        return null;
+    }
+
+    private static MapTemplateDatabase.ConnectionDirection ReverseDirection(MapTemplateDatabase.ConnectionDirection direction)
+    {
+        switch (direction)
+        {
+            case MapTemplateDatabase.ConnectionDirection.East:
+                return MapTemplateDatabase.ConnectionDirection.West;
+            case MapTemplateDatabase.ConnectionDirection.West:
+                return MapTemplateDatabase.ConnectionDirection.East;
+            case MapTemplateDatabase.ConnectionDirection.North:
+                return MapTemplateDatabase.ConnectionDirection.South;
+            case MapTemplateDatabase.ConnectionDirection.South:
+                return MapTemplateDatabase.ConnectionDirection.North;
+            default:
+                return direction;
+        }
     }
 
     private void SetupBattleCamera(Camera mainCamera)

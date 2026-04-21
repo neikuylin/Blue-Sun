@@ -25,6 +25,7 @@ public class BattleGrid : MonoBehaviour
     public float overlayY = -0.05f;
 
     private readonly Dictionary<Vector2Int, BattleUnit> occupants = new Dictionary<Vector2Int, BattleUnit>();
+    private HashSet<Vector2Int> validCells;
 
     private Material fillMaterialTemplate;
     private Material lineMaterialTemplate;
@@ -107,9 +108,43 @@ public class BattleGrid : MonoBehaviour
         return new Plane(Vector3.up, Vector3.zero);
     }
 
+    public void SetValidCells(IEnumerable<Vector2Int> cells)
+    {
+        if (cells == null)
+        {
+            validCells = null;
+            return;
+        }
+
+        if (validCells == null)
+        {
+            validCells = new HashSet<Vector2Int>();
+        }
+        else
+        {
+            validCells.Clear();
+        }
+
+        foreach (Vector2Int cell in cells)
+        {
+            if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height)
+            {
+                continue;
+            }
+
+            validCells.Add(cell);
+        }
+
+    }
+
     public bool IsInside(Vector2Int cell)
     {
-        return cell.x >= 0 && cell.x < width && cell.y >= 0 && cell.y < height;
+        if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height)
+        {
+            return false;
+        }
+
+        return validCells == null || validCells.Contains(cell);
     }
 
     public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)
@@ -741,6 +776,16 @@ public class BattleGrid : MonoBehaviour
 
     private void CreateBoardOutline()
     {
+        if (validCells != null && validCells.Count > 0)
+        {
+            List<List<Vector2Int>> loops = BuildBoundaryLoops(validCells);
+            for (int i = 0; i < loops.Count; i++)
+            {
+                CreateOutlineLoop(boardVisualRoot, loops[i], boardOutlineColor, overlayY - 0.01f, 0);
+            }
+            return;
+        }
+
         GameObject outlineObject = new GameObject("BoardOutline");
         outlineObject.transform.SetParent(boardVisualRoot, false);
 
@@ -1486,7 +1531,7 @@ public class BattleGrid : MonoBehaviour
             for (int x = 0; x < width; x++)
             {
                 Vector2Int cell = new Vector2Int(x, y);
-                if (cell == origin)
+                if (cell == origin || !IsInside(cell))
                 {
                     continue;
                 }
@@ -1511,7 +1556,7 @@ public class BattleGrid : MonoBehaviour
             for (int x = 0; x < width; x++)
             {
                 Vector2Int cell = new Vector2Int(x, y);
-                if (ManhattanDistance(centerCell, cell) <= clampedRange)
+                if (IsInside(cell) && ManhattanDistance(centerCell, cell) <= clampedRange)
                 {
                     cells.Add(cell);
                 }

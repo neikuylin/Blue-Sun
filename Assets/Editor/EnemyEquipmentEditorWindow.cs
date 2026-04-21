@@ -30,10 +30,9 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         CharacterSkillLoadoutDatabase skillLoadoutDatabase = EnsureSkillLoadoutDatabase();
         BattleCharacterBindingDatabase bindingDatabase = EnsureBindingDatabase();
         TurnTimelineButtonDatabase timelineDatabase = EnsureTimelineDatabase();
+        RoomEnemyPresetDatabase presetDatabase = RoomEnemyPresetDatabase.LoadDefault();
         ItemDatabase itemDatabase = ItemDatabase.LoadDefault();
         BattleSkillDatabase battleSkillDatabase = BattleSkillDatabase.LoadDefault();
-        BattleBootstrap bootstrap = FindObjectOfType<BattleBootstrap>(true);
-
         EditorGUILayout.LabelField("\u654C\u4EBA\u88C5\u5907\u6280\u80FD\u7F16\u8F91\u5668", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
             "\u4E3A\u654C\u4EBA ID \u7ED1\u5B9A\u6A21\u578B\u9884\u5236\u4F53\u3001\u6A21\u578B\u7F29\u653E\u3001\u65F6\u95F4\u8F74\u5934\u50CF\u9884\u5236\u4F53\u3001\u88C5\u5907\u548C\u6280\u80FD\u680F\u4F4D\u3002\u8FD0\u884C\u65F6\u6218\u6597\u4F1A\u6309\u89D2\u8272 ID \u8BFB\u53D6\u8FD9\u4E9B\u914D\u7F6E\u3002",
@@ -46,11 +45,11 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
                 Repaint();
             }
 
-            using (new EditorGUI.DisabledScope(bootstrap == null))
+            using (new EditorGUI.DisabledScope(presetDatabase == null))
             {
-                if (GUILayout.Button("\u540C\u6B65\u5F53\u524D\u573A\u666F\u654C\u4EBA"))
+                if (GUILayout.Button("\u540C\u6B65\u9884\u8BBE\u654C\u4EBA"))
                 {
-                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase, bootstrap);
+                    SyncSceneEnemies(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase, presetDatabase);
                 }
             }
         }
@@ -64,7 +63,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         DrawAddPanel(equipmentDatabase, skillLoadoutDatabase, bindingDatabase, timelineDatabase);
         EditorGUILayout.Space(8f);
 
-        List<string> enemyIds = CollectEnemyIds(equipmentDatabase, bootstrap);
+        List<string> enemyIds = CollectEnemyIds(equipmentDatabase, presetDatabase);
         if (enemyIds.Count == 0)
         {
             EditorGUILayout.HelpBox("\u5F53\u524D\u6CA1\u6709\u53EF\u7F16\u8F91\u7684\u654C\u4EBA ID\u3002", MessageType.Info);
@@ -420,7 +419,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         return entry.itemId ?? string.Empty;
     }
 
-    private static List<string> CollectEnemyIds(EnemyEquipmentDatabase equipmentDatabase, BattleBootstrap bootstrap)
+    private static List<string> CollectEnemyIds(EnemyEquipmentDatabase equipmentDatabase, RoomEnemyPresetDatabase presetDatabase)
     {
         HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
         if (equipmentDatabase != null && equipmentDatabase.Entries != null)
@@ -435,14 +434,23 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
             }
         }
 
-        if (bootstrap != null && bootstrap.enemySpawns != null)
+        if (presetDatabase != null && presetDatabase.Entries != null)
         {
-            for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
+            for (int i = 0; i < presetDatabase.Entries.Count; i++)
             {
-                BattleBootstrap.EnemySpawnEntry enemy = bootstrap.enemySpawns[i];
-                if (enemy != null && !string.IsNullOrWhiteSpace(enemy.enemyId))
+                RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.Entries[i];
+                if (preset == null || preset.enemies == null)
                 {
-                    ids.Add(enemy.enemyId);
+                    continue;
+                }
+
+                for (int j = 0; j < preset.enemies.Count; j++)
+                {
+                    BattleBootstrap.EnemySpawnEntry enemy = preset.enemies[j];
+                    if (enemy != null && !string.IsNullOrWhiteSpace(enemy.enemyId))
+                    {
+                        ids.Add(enemy.enemyId);
+                    }
                 }
             }
         }
@@ -457,9 +465,9 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         CharacterSkillLoadoutDatabase skillLoadoutDatabase,
         BattleCharacterBindingDatabase bindingDatabase,
         TurnTimelineButtonDatabase timelineDatabase,
-        BattleBootstrap bootstrap)
+        RoomEnemyPresetDatabase presetDatabase)
     {
-        if (equipmentDatabase == null || skillLoadoutDatabase == null || bindingDatabase == null || timelineDatabase == null || bootstrap == null || bootstrap.enemySpawns == null)
+        if (equipmentDatabase == null || skillLoadoutDatabase == null || bindingDatabase == null || timelineDatabase == null || presetDatabase == null || presetDatabase.Entries == null)
         {
             return;
         }
@@ -468,20 +476,29 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
         Undo.RecordObject(skillLoadoutDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6280\u80FD");
         Undo.RecordObject(bindingDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u6A21\u578B\u7ED1\u5B9A");
         Undo.RecordObject(timelineDatabase, "\u540C\u6B65\u573A\u666F\u654C\u4EBA\u65F6\u95F4\u8F74\u5934\u50CF\u7ED1\u5B9A");
-        for (int i = 0; i < bootstrap.enemySpawns.Count; i++)
+        for (int i = 0; i < presetDatabase.Entries.Count; i++)
         {
-            BattleBootstrap.EnemySpawnEntry enemy = bootstrap.enemySpawns[i];
-            if (enemy == null || string.IsNullOrWhiteSpace(enemy.enemyId))
+            RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = presetDatabase.Entries[i];
+            if (preset == null || preset.enemies == null)
             {
                 continue;
             }
 
-            equipmentDatabase.GetOrCreateEntry(enemy.enemyId.Trim());
-            CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(
-                skillLoadoutDatabase.GetOrCreateEntry(enemy.enemyId.Trim()),
-                DefaultSkillSlotCount);
-            GetOrCreateBinding(bindingDatabase, enemy.enemyId.Trim());
-            GetOrCreateTimelineEntry(timelineDatabase, enemy.enemyId.Trim());
+            for (int j = 0; j < preset.enemies.Count; j++)
+            {
+                BattleBootstrap.EnemySpawnEntry enemy = preset.enemies[j];
+                if (enemy == null || string.IsNullOrWhiteSpace(enemy.enemyId))
+                {
+                    continue;
+                }
+
+                equipmentDatabase.GetOrCreateEntry(enemy.enemyId.Trim());
+                CharacterSkillLoadoutDatabase.EnsureMemorizedSlotCapacity(
+                    skillLoadoutDatabase.GetOrCreateEntry(enemy.enemyId.Trim()),
+                    DefaultSkillSlotCount);
+                GetOrCreateBinding(bindingDatabase, enemy.enemyId.Trim());
+                GetOrCreateTimelineEntry(timelineDatabase, enemy.enemyId.Trim());
+            }
         }
 
         SaveDatabase(equipmentDatabase);
