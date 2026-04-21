@@ -30,6 +30,7 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public Vector2 position = new Vector2(120f, 120f);
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public string encounterPresetId = string.Empty;
+        public string battleGridTemplateId = string.Empty;
         public GameObject battleSceneContentPrefab;
         public string eastButtonPath = string.Empty;
         public string southButtonPath = string.Empty;

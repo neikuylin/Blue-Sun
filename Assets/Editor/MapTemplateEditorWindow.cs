@@ -10,6 +10,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     private const string MapTemplateAssetPath = ResourceFolder + "/MapTemplateDatabase.asset";
     private const string RoomTypeAssetPath = ResourceFolder + "/RoomTypeDatabase.asset";
     private const string EncounterPresetAssetPath = ResourceFolder + "/RoomEnemyPresetDatabase.asset";
+    private const string GridTemplateAssetPath = ResourceFolder + "/BattleGridTemplateDatabase.asset";
     private const float CanvasWidth = 2400f;
     private const float CanvasHeight = 1600f;
     private const float NodeWidth = 160f;
@@ -42,6 +43,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         MapTemplateDatabase database = EnsureDatabase();
         RoomTypeDatabase roomTypeDatabase = EnsureRoomTypeDatabase();
         RoomEnemyPresetDatabase encounterDatabase = EnsureEncounterDatabase();
+        格子模板数据库 gridTemplateDatabase = EnsureGridTemplateDatabase();
 
         if (database == null)
         {
@@ -59,7 +61,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         {
             DrawTemplateList(database);
             DrawCanvasPanel(database, roomTypeDatabase, encounterDatabase);
-            DrawInspectorPanel(database, roomTypeDatabase, encounterDatabase);
+            DrawInspectorPanel(database, roomTypeDatabase, encounterDatabase, gridTemplateDatabase);
         }
 
         if (EditorGUI.EndChangeCheck())
@@ -184,7 +186,8 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     private void DrawInspectorPanel(
         MapTemplateDatabase database,
         RoomTypeDatabase roomTypeDatabase,
-        RoomEnemyPresetDatabase encounterDatabase)
+        RoomEnemyPresetDatabase encounterDatabase,
+        格子模板数据库 gridTemplateDatabase)
     {
         using (new EditorGUILayout.VerticalScope("box", GUILayout.Width(330f), GUILayout.ExpandHeight(true)))
         {
@@ -211,7 +214,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                 return;
             }
 
-            DrawNodeInspector(database, template, node, roomTypeDatabase, encounterDatabase);
+            DrawNodeInspector(database, template, node, roomTypeDatabase, encounterDatabase, gridTemplateDatabase);
             EditorGUILayout.EndScrollView();
         }
     }
@@ -243,7 +246,8 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         MapTemplateDatabase.MapTemplateEntry template,
         MapTemplateDatabase.MapNodeEntry node,
         RoomTypeDatabase roomTypeDatabase,
-        RoomEnemyPresetDatabase encounterDatabase)
+        RoomEnemyPresetDatabase encounterDatabase,
+        格子模板数据库 gridTemplateDatabase)
     {
         EditorGUILayout.LabelField("节点信息", EditorStyles.boldLabel);
 
@@ -276,6 +280,16 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         if (nextEncounterIndex >= 0 && nextEncounterIndex < encounterIds.Length)
         {
             node.encounterPresetId = encounterIds[nextEncounterIndex];
+        }
+
+        string[] gridTemplateNames;
+        string[] gridTemplateIds;
+        BuildGridTemplateOptions(gridTemplateDatabase, out gridTemplateNames, out gridTemplateIds);
+        int gridTemplateIndex = FindOptionIndex(gridTemplateIds, node.battleGridTemplateId);
+        int nextGridTemplateIndex = EditorGUILayout.Popup("战斗格子模板", gridTemplateIndex, gridTemplateNames);
+        if (nextGridTemplateIndex >= 0 && nextGridTemplateIndex < gridTemplateIds.Length)
+        {
+            node.battleGridTemplateId = gridTemplateIds[nextGridTemplateIndex];
         }
 
         GameObject nextBattleSceneContentPrefab = EditorGUILayout.ObjectField(
@@ -1124,6 +1138,37 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         names = resolvedNames.ToArray();
     }
 
+    private static void BuildGridTemplateOptions(格子模板数据库 database, out string[] names, out string[] ids)
+    {
+        List<string> resolvedNames = new List<string> { "未绑定" };
+        List<string> resolvedIds = new List<string> { string.Empty };
+
+        if (database != null && database.Entries != null)
+        {
+            for (int i = 0; i < database.Entries.Count; i++)
+            {
+                格子模板数据库.格子模板条目 entry = database.Entries[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.templateId))
+                {
+                    continue;
+                }
+
+                resolvedIds.Add(entry.templateId);
+                if (string.IsNullOrWhiteSpace(entry.displayName) || string.Equals(entry.displayName, entry.templateId, StringComparison.Ordinal))
+                {
+                    resolvedNames.Add(entry.templateId);
+                }
+                else
+                {
+                    resolvedNames.Add($"{entry.displayName} ({entry.templateId})");
+                }
+            }
+        }
+
+        ids = resolvedIds.ToArray();
+        names = resolvedNames.ToArray();
+    }
+
     private static int FindOptionIndex(string[] ids, string currentId)
     {
         if (ids == null || ids.Length == 0)
@@ -1273,6 +1318,22 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         EnsureResourceFolder();
         database = CreateInstance<RoomEnemyPresetDatabase>();
         AssetDatabase.CreateAsset(database, EncounterPresetAssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static 格子模板数据库 EnsureGridTemplateDatabase()
+    {
+        格子模板数据库 database = AssetDatabase.LoadAssetAtPath<格子模板数据库>(GridTemplateAssetPath);
+        if (database != null)
+        {
+            return database;
+        }
+
+        EnsureResourceFolder();
+        database = CreateInstance<格子模板数据库>();
+        AssetDatabase.CreateAsset(database, GridTemplateAssetPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         return database;

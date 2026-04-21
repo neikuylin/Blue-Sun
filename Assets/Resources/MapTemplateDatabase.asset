@@ -18,9 +18,10 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 767, y: 90}
+      position: {x: 767, y: 89}
       roomTypeId: encounter_battle
       encounterPresetId: "\u7A7A\u623F\u95F4"
+      battleGridTemplateId: "\u6D4B\u8BD5\u7528"
       battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
       eastButtonPath: "\u5899\u58C1/\u4E1C\u5899/\u4E1C"
       southButtonPath: "\u5899\u58C1/\u5357\u5899/\u5357"
@@ -35,6 +36,7 @@ MonoBehaviour:
       position: {x: 650, y: 161}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
+      battleGridTemplateId: "\u6D4B\u8BD5\u7528"
       battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
       eastButtonPath: "\u5899\u58C1/\u4E1C\u5899/\u4E1C"
       southButtonPath: "\u5899\u58C1/\u5357\u5899/\u5357"
@@ -53,6 +55,7 @@ MonoBehaviour:
       position: {x: 533, y: 241}
       roomTypeId: encounter_battle
       encounterPresetId: 
+      battleGridTemplateId: 
       battleSceneContentPrefab: {fileID: 0}
       eastButtonPath: 
       southButtonPath: 
@@ -67,6 +70,7 @@ MonoBehaviour:
       position: {x: 768, y: 246}
       roomTypeId: encounter_battle
       encounterPresetId: 
+      battleGridTemplateId: 
       battleSceneContentPrefab: {fileID: 0}
       eastButtonPath: 
       southButtonPath: 
