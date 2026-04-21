@@ -1,0 +1,885 @@
+using System;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+public sealed class 格子编辑器窗口 : EditorWindow
+{
+    private const string ResourceFolder = "Assets/Resources";
+    private const string AssetPath = ResourceFolder + "/BattleGridTemplateDatabase.asset";
+    private const float LeftPanelWidth = 240f;
+    private const float RightPanelWidth = 320f;
+    private const float ToolbarHeight = 36f;
+    private const float CellSize = 28f;
+    private const float CellGap = 2f;
+    private const float HeaderSize = 28f;
+
+    private enum 绘制工具
+    {
+        可用格 = 0,
+        敌人出生点 = 1,
+        玩家默认出生点 = 2,
+        玩家东门出生点 = 3,
+        玩家南门出生点 = 4,
+        玩家西门出生点 = 5,
+        玩家北门出生点 = 6
+    }
+
+    private enum 拖拽模式
+    {
+        无 = 0,
+        涂格 = 1,
+        擦除 = 2
+    }
+
+    private Vector2 templateListScroll;
+    private Vector2 canvasScroll;
+    private Vector2 detailScroll;
+    private string selectedTemplateId = string.Empty;
+    private string newTemplateId = string.Empty;
+    private string newTemplateName = string.Empty;
+    private 绘制工具 currentTool = 绘制工具.可用格;
+    private 拖拽模式 currentDragMode = 拖拽模式.无;
+    private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+
+    [MenuItem("Tools/地图/格子编辑器")]
+    private static void Open()
+    {
+        格子编辑器窗口 window = GetWindow<格子编辑器窗口>("格子编辑器");
+        window.minSize = new Vector2(1260f, 720f);
+        window.Show();
+        window.Focus();
+    }
+
+    private void OnGUI()
+    {
+        格子模板数据库 database = EnsureDatabase();
+        if (database == null)
+        {
+            EditorGUILayout.HelpBox("格子模板库创建失败。", MessageType.Error);
+            return;
+        }
+
+        EnsureSelection(database);
+        DrawToolbar(database);
+        EditorGUILayout.Space(6f);
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawTemplateList(database);
+            DrawCanvasPanel(database);
+            DrawDetailPanel(database);
+        }
+
+        if (Event.current.type == EventType.MouseUp)
+        {
+            currentDragMode = 拖拽模式.无;
+            lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+        }
+    }
+
+    private void DrawToolbar(格子模板数据库 database)
+    {
+        using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar, GUILayout.Height(ToolbarHeight)))
+        {
+            if (GUILayout.Button("保存", EditorStyles.toolbarButton, GUILayout.Width(72f)))
+            {
+                SaveAsset(database);
+            }
+
+            GUILayout.Space(8f);
+            GUILayout.Label("新模板ID", GUILayout.Width(64f));
+            newTemplateId = GUILayout.TextField(newTemplateId, EditorStyles.toolbarTextField, GUILayout.Width(180f));
+            GUILayout.Label("新模板名称", GUILayout.Width(76f));
+            newTemplateName = GUILayout.TextField(newTemplateName, EditorStyles.toolbarTextField, GUILayout.Width(180f));
+
+            using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(newTemplateId)))
+            {
+                if (GUILayout.Button("新建模板", EditorStyles.toolbarButton, GUILayout.Width(84f)))
+                {
+                    CreateTemplate(database);
+                }
+            }
+
+            GUILayout.FlexibleSpace();
+        }
+    }
+
+    private void DrawTemplateList(格子模板数据库 database)
+    {
+        using (new EditorGUILayout.VerticalScope("box", GUILayout.Width(LeftPanelWidth), GUILayout.ExpandHeight(true)))
+        {
+            EditorGUILayout.LabelField("模板列表", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("左侧切换模板，中间画格子，右侧改模板字段。", MessageType.Info);
+
+            templateListScroll = EditorGUILayout.BeginScrollView(templateListScroll);
+            List<格子模板数据库.格子模板条目> entries = database.Entries;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                格子模板数据库.格子模板条目 entry = entries[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                格子模板数据库.EnsureValidEntry(entry);
+                bool isSelected = string.Equals(selectedTemplateId, entry.templateId, StringComparison.Ordinal);
+                string label = string.IsNullOrWhiteSpace(entry.displayName)
+                    ? entry.templateId
+                    : $"{entry.displayName} ({entry.templateId})";
+
+                if (GUILayout.Button(label, isSelected ? EditorStyles.miniButtonMid : EditorStyles.miniButton, GUILayout.Height(34f)))
+                {
+                    selectedTemplateId = entry.templateId;
+                    GUI.FocusControl(null);
+                }
+            }
+            EditorGUILayout.EndScrollView();
+
+            using (new EditorGUI.DisabledScope(GetSelectedTemplate(database) == null))
+            {
+                if (GUILayout.Button("删除当前模板"))
+                {
+                    DeleteSelectedTemplate(database);
+                }
+            }
+        }
+    }
+
+    private void DrawCanvasPanel(格子模板数据库 database)
+    {
+        using (new EditorGUILayout.VerticalScope("box", GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+        {
+            格子模板数据库.格子模板条目 entry = GetSelectedTemplate(database);
+            EditorGUILayout.LabelField("格子画布", EditorStyles.boldLabel);
+
+            if (entry == null)
+            {
+                EditorGUILayout.HelpBox("先创建一个格子模板。", MessageType.Info);
+                return;
+            }
+
+            DrawToolButtons();
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.HelpBox(
+                "左键点格切换可用格，左键拖拽连续涂格，右键拖拽连续擦除。当前工具决定点击时设置哪种点位。",
+                MessageType.None);
+
+            float gridWidth = HeaderSize + entry.width * (CellSize + CellGap) + CellGap;
+            float gridHeight = HeaderSize + entry.height * (CellSize + CellGap) + CellGap;
+
+            canvasScroll = EditorGUILayout.BeginScrollView(canvasScroll, GUILayout.ExpandHeight(true));
+            Rect canvasRect = GUILayoutUtility.GetRect(gridWidth, gridHeight, GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
+            DrawGridCanvas(entry, canvasRect);
+            HandleCanvasInput(entry, canvasRect);
+            EditorGUILayout.EndScrollView();
+        }
+    }
+
+    private void DrawToolButtons()
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawToolButton(绘制工具.可用格, "可用格");
+            DrawToolButton(绘制工具.敌人出生点, "敌人出生点");
+            DrawToolButton(绘制工具.玩家默认出生点, "玩家默认出生点");
+            DrawToolButton(绘制工具.玩家东门出生点, "玩家东门出生点");
+        }
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawToolButton(绘制工具.玩家南门出生点, "玩家南门出生点");
+            DrawToolButton(绘制工具.玩家西门出生点, "玩家西门出生点");
+            DrawToolButton(绘制工具.玩家北门出生点, "玩家北门出生点");
+        }
+    }
+
+    private void DrawToolButton(绘制工具 tool, string label)
+    {
+        bool selected = currentTool == tool;
+        Color previousColor = GUI.backgroundColor;
+        if (selected)
+        {
+            GUI.backgroundColor = new Color(0.35f, 0.72f, 0.95f, 1f);
+        }
+
+        if (GUILayout.Button(label, GUILayout.Height(28f)))
+        {
+            currentTool = tool;
+        }
+
+        GUI.backgroundColor = previousColor;
+    }
+
+    private void DrawGridCanvas(格子模板数据库.格子模板条目 entry, Rect canvasRect)
+    {
+        EditorGUI.DrawRect(canvasRect, new Color(0.12f, 0.12f, 0.12f));
+
+        HashSet<Vector2Int> walkableCells = BuildCellSet(entry.walkableCells);
+        HashSet<Vector2Int> enemySpawnCells = BuildCellSet(entry.enemySpawnCells);
+
+        for (int y = 0; y < entry.height; y++)
+        {
+            for (int x = 0; x < entry.width; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                Rect cellRect = ResolveCellRect(canvasRect, entry.height, cell);
+                bool isWalkable = walkableCells.Contains(cell);
+
+                EditorGUI.DrawRect(cellRect, isWalkable ? new Color(0.22f, 0.46f, 0.28f) : new Color(0.21f, 0.21f, 0.21f));
+                Handles.color = new Color(0f, 0f, 0f, 0.35f);
+                Handles.DrawSolidRectangleWithOutline(cellRect, Color.clear, new Color(0f, 0f, 0f, 0.25f));
+
+                DrawCellMarker(cellRect, "敌", enemySpawnCells.Contains(cell), new Color(0.92f, 0.25f, 0.22f));
+                DrawCellMarker(cellRect, "默", entry.hasDefaultPlayerSpawn && entry.defaultPlayerSpawnCell.ToVector2Int() == cell, new Color(0.22f, 0.58f, 0.95f));
+                DrawCellMarker(cellRect, "东", entry.hasEastDoorPlayerSpawn && entry.eastDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.95f, 0.68f, 0.18f));
+                DrawCellMarker(cellRect, "南", entry.hasSouthDoorPlayerSpawn && entry.southDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.90f, 0.45f, 0.16f));
+                DrawCellMarker(cellRect, "西", entry.hasWestDoorPlayerSpawn && entry.westDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.70f, 0.34f, 0.92f));
+                DrawCellMarker(cellRect, "北", entry.hasNorthDoorPlayerSpawn && entry.northDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.18f, 0.78f, 0.78f));
+            }
+        }
+
+        DrawHeaders(entry, canvasRect);
+    }
+
+    private void DrawHeaders(格子模板数据库.格子模板条目 entry, Rect canvasRect)
+    {
+        GUIStyle headerStyle = new GUIStyle(EditorStyles.miniBoldLabel)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            normal = { textColor = Color.white }
+        };
+
+        for (int x = 0; x < entry.width; x++)
+        {
+            Rect headerRect = new Rect(
+                canvasRect.x + HeaderSize + CellGap + x * (CellSize + CellGap),
+                canvasRect.y,
+                CellSize,
+                HeaderSize - CellGap);
+            GUI.Label(headerRect, x.ToString(), headerStyle);
+        }
+
+        for (int y = 0; y < entry.height; y++)
+        {
+            Rect headerRect = new Rect(
+                canvasRect.x,
+                canvasRect.y + HeaderSize + CellGap + y * (CellSize + CellGap),
+                HeaderSize - CellGap,
+                CellSize);
+            GUI.Label(headerRect, (entry.height - 1 - y).ToString(), headerStyle);
+        }
+    }
+
+    private void DrawCellMarker(Rect cellRect, string label, bool active, Color color)
+    {
+        if (!active)
+        {
+            return;
+        }
+
+        Rect badgeRect = new Rect(cellRect.x + 4f, cellRect.y + 4f, 20f, 16f);
+        EditorGUI.DrawRect(badgeRect, color);
+        GUIStyle style = new GUIStyle(EditorStyles.miniBoldLabel)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            normal = { textColor = Color.white }
+        };
+        GUI.Label(badgeRect, label, style);
+    }
+
+    private void HandleCanvasInput(格子模板数据库.格子模板条目 entry, Rect canvasRect)
+    {
+        Event currentEvent = Event.current;
+        if (entry == null)
+        {
+            return;
+        }
+
+        bool isMouseEvent =
+            currentEvent.type == EventType.MouseDown ||
+            currentEvent.type == EventType.MouseDrag ||
+            currentEvent.type == EventType.MouseUp;
+
+        if (!isMouseEvent || !canvasRect.Contains(currentEvent.mousePosition))
+        {
+            return;
+        }
+
+        Vector2Int cell;
+        if (!TryGetCellAtPosition(entry, canvasRect, currentEvent.mousePosition, out cell))
+        {
+            return;
+        }
+
+        if (currentEvent.button == 1)
+        {
+            if (currentEvent.type == EventType.MouseDown)
+            {
+                Undo.RecordObject(EnsureDatabase(), "擦除可用格");
+                currentDragMode = 拖拽模式.擦除;
+                ApplyWalkablePaint(entry, cell, false);
+                currentEvent.Use();
+            }
+            else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.擦除)
+            {
+                ApplyWalkablePaint(entry, cell, false);
+                currentEvent.Use();
+            }
+
+            return;
+        }
+
+        if (currentEvent.button != 0)
+        {
+            return;
+        }
+
+        if (currentTool == 绘制工具.可用格)
+        {
+            if (currentEvent.type == EventType.MouseDown)
+            {
+                bool shouldEnable = !ContainsCell(entry.walkableCells, cell);
+                Undo.RecordObject(EnsureDatabase(), shouldEnable ? "绘制可用格" : "擦除可用格");
+                currentDragMode = shouldEnable ? 拖拽模式.涂格 : 拖拽模式.擦除;
+                ApplyWalkablePaint(entry, cell, shouldEnable);
+                currentEvent.Use();
+            }
+            else if (currentEvent.type == EventType.MouseDrag)
+            {
+                if (currentDragMode == 拖拽模式.涂格)
+                {
+                    ApplyWalkablePaint(entry, cell, true);
+                    currentEvent.Use();
+                }
+                else if (currentDragMode == 拖拽模式.擦除)
+                {
+                    ApplyWalkablePaint(entry, cell, false);
+                    currentEvent.Use();
+                }
+            }
+
+            return;
+        }
+
+        if (currentEvent.type == EventType.MouseDown)
+        {
+            Undo.RecordObject(EnsureDatabase(), "设置格子点位");
+            ApplyPointTool(entry, cell);
+            currentEvent.Use();
+        }
+    }
+
+    private void ApplyWalkablePaint(格子模板数据库.格子模板条目 entry, Vector2Int cell, bool enabled)
+    {
+        if (lastPaintedCell == cell)
+        {
+            return;
+        }
+
+        lastPaintedCell = cell;
+        if (enabled)
+        {
+            AddCell(entry.walkableCells, cell);
+        }
+        else
+        {
+            RemoveCell(entry.walkableCells, cell);
+            RemoveCell(entry.enemySpawnCells, cell);
+            ClearSpawnIfMatches(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, cell);
+            ClearSpawnIfMatches(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, cell);
+            ClearSpawnIfMatches(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, cell);
+            ClearSpawnIfMatches(ref entry.hasWestDoorPlayerSpawn, ref entry.westDoorPlayerSpawnCell, cell);
+            ClearSpawnIfMatches(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, cell);
+        }
+
+        MarkDirtyAndRepaint();
+    }
+
+    private void ApplyPointTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        AddCell(entry.walkableCells, cell);
+
+        switch (currentTool)
+        {
+            case 绘制工具.敌人出生点:
+                ToggleCell(entry.enemySpawnCells, cell);
+                break;
+            case 绘制工具.玩家默认出生点:
+                SetSpawn(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, cell);
+                break;
+            case 绘制工具.玩家东门出生点:
+                SetSpawn(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, cell);
+                break;
+            case 绘制工具.玩家南门出生点:
+                SetSpawn(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, cell);
+                break;
+            case 绘制工具.玩家西门出生点:
+                SetSpawn(ref entry.hasWestDoorPlayerSpawn, ref entry.westDoorPlayerSpawnCell, cell);
+                break;
+            case 绘制工具.玩家北门出生点:
+                SetSpawn(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, cell);
+                break;
+        }
+
+        MarkDirtyAndRepaint();
+    }
+
+    private void DrawDetailPanel(格子模板数据库 database)
+    {
+        using (new EditorGUILayout.VerticalScope("box", GUILayout.Width(RightPanelWidth), GUILayout.ExpandHeight(true)))
+        {
+            EditorGUILayout.LabelField("模板详情", EditorStyles.boldLabel);
+
+            格子模板数据库.格子模板条目 entry = GetSelectedTemplate(database);
+            if (entry == null)
+            {
+                EditorGUILayout.HelpBox("没有选中的模板。", MessageType.Info);
+                return;
+            }
+
+            detailScroll = EditorGUILayout.BeginScrollView(detailScroll);
+            EditorGUI.BeginChangeCheck();
+
+            string oldTemplateId = entry.templateId;
+            entry.templateId = NormalizeIdentifier(EditorGUILayout.TextField("模板ID", entry.templateId), oldTemplateId);
+            entry.displayName = EditorGUILayout.TextField("模板名称", entry.displayName);
+
+            int previousWidth = entry.width;
+            int previousHeight = entry.height;
+            entry.width = Mathf.Max(1, EditorGUILayout.IntField("画布宽度", entry.width));
+            entry.height = Mathf.Max(1, EditorGUILayout.IntField("画布高度", entry.height));
+
+            entry.playerSpawnMode = (格子模板数据库.PlayerSpawnMode)EditorGUILayout.EnumPopup("玩家出生方式", entry.playerSpawnMode);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("工具说明", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox($"当前工具：{ResolveToolLabel(currentTool)}", MessageType.None);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("敌人出生点", EditorStyles.boldLabel);
+            DrawCellListReadonly(entry.enemySpawnCells);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("玩家出生点", EditorStyles.boldLabel);
+            if (entry.playerSpawnMode == 格子模板数据库.PlayerSpawnMode.Default)
+            {
+                DrawSingleSpawnReadonly("玩家默认出生点", entry.hasDefaultPlayerSpawn, entry.defaultPlayerSpawnCell);
+            }
+            else
+            {
+                DrawSingleSpawnReadonly("玩家东门出生点", entry.hasEastDoorPlayerSpawn, entry.eastDoorPlayerSpawnCell);
+                DrawSingleSpawnReadonly("玩家南门出生点", entry.hasSouthDoorPlayerSpawn, entry.southDoorPlayerSpawnCell);
+                DrawSingleSpawnReadonly("玩家西门出生点", entry.hasWestDoorPlayerSpawn, entry.westDoorPlayerSpawnCell);
+                DrawSingleSpawnReadonly("玩家北门出生点", entry.hasNorthDoorPlayerSpawn, entry.northDoorPlayerSpawnCell);
+            }
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("可用格统计", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("可用格数量", entry.walkableCells.Count.ToString());
+            EditorGUILayout.LabelField("敌人出生点数量", entry.enemySpawnCells.Count.ToString());
+
+            if (entry.width != previousWidth || entry.height != previousHeight)
+            {
+                ClampTemplateToBounds(entry);
+            }
+
+            if (!string.Equals(oldTemplateId, entry.templateId, StringComparison.Ordinal))
+            {
+                selectedTemplateId = entry.templateId;
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkDirtyAndRepaint();
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+    }
+
+    private void DrawCellListReadonly(List<格子模板数据库.CellPosition> cells)
+    {
+        if (cells == null || cells.Count == 0)
+        {
+            EditorGUILayout.LabelField("未设置");
+            return;
+        }
+
+        List<string> labels = new List<string>();
+        for (int i = 0; i < cells.Count; i++)
+        {
+            Vector2Int cell = cells[i].ToVector2Int();
+            labels.Add($"({cell.x}, {cell.y})");
+        }
+
+        EditorGUILayout.LabelField(string.Join("、", labels));
+    }
+
+    private void DrawSingleSpawnReadonly(string label, bool hasSpawn, 格子模板数据库.CellPosition cell)
+    {
+        EditorGUILayout.LabelField(label, hasSpawn ? FormatCell(cell.ToVector2Int()) : "未设置");
+    }
+
+    private static string FormatCell(Vector2Int cell)
+    {
+        return $"({cell.x}, {cell.y})";
+    }
+
+    private void CreateTemplate(格子模板数据库 database)
+    {
+        Undo.RecordObject(database, "新建格子模板");
+        string templateId = NormalizeIdentifier(newTemplateId, string.Empty);
+        if (string.IsNullOrWhiteSpace(templateId))
+        {
+            return;
+        }
+
+        格子模板数据库.格子模板条目 entry = database.GetOrCreateEntry(templateId);
+        entry.displayName = string.IsNullOrWhiteSpace(newTemplateName) ? templateId : newTemplateName.Trim();
+        格子模板数据库.EnsureValidEntry(entry);
+        selectedTemplateId = entry.templateId;
+        newTemplateId = string.Empty;
+        newTemplateName = string.Empty;
+        MarkDirtyAndRepaint();
+    }
+
+    private void DeleteSelectedTemplate(格子模板数据库 database)
+    {
+        格子模板数据库.格子模板条目 entry = GetSelectedTemplate(database);
+        if (entry == null)
+        {
+            return;
+        }
+
+        Undo.RecordObject(database, "删除格子模板");
+        database.RemoveEntry(entry.templateId);
+        selectedTemplateId = string.Empty;
+        EnsureSelection(database);
+        MarkDirtyAndRepaint();
+    }
+
+    private 格子模板数据库.格子模板条目 GetSelectedTemplate(格子模板数据库 database)
+    {
+        return database != null ? database.FindEntry(selectedTemplateId) : null;
+    }
+
+    private void EnsureSelection(格子模板数据库 database)
+    {
+        if (database == null)
+        {
+            selectedTemplateId = string.Empty;
+            return;
+        }
+
+        if (GetSelectedTemplate(database) != null)
+        {
+            return;
+        }
+
+        List<格子模板数据库.格子模板条目> entries = database.Entries;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            格子模板数据库.格子模板条目 entry = entries[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            selectedTemplateId = entry.templateId;
+            return;
+        }
+
+        selectedTemplateId = string.Empty;
+    }
+
+    private static 格子模板数据库 EnsureDatabase()
+    {
+        格子模板数据库 database = AssetDatabase.LoadAssetAtPath<格子模板数据库>(AssetPath);
+        if (database != null)
+        {
+            return database;
+        }
+
+        EnsureResourceFolder();
+        database = CreateInstance<格子模板数据库>();
+        AssetDatabase.CreateAsset(database, AssetPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return database;
+    }
+
+    private static void EnsureResourceFolder()
+    {
+        if (!AssetDatabase.IsValidFolder(ResourceFolder))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+    }
+
+    private static Rect ResolveCellRect(Rect canvasRect, int height, Vector2Int cell)
+    {
+        return new Rect(
+            canvasRect.x + HeaderSize + CellGap + cell.x * (CellSize + CellGap),
+            canvasRect.y + HeaderSize + CellGap + (height - 1 - cell.y) * (CellSize + CellGap),
+            CellSize,
+            CellSize);
+    }
+
+    private static bool TryGetCellAtPosition(
+        格子模板数据库.格子模板条目 entry,
+        Rect canvasRect,
+        Vector2 mousePosition,
+        out Vector2Int cell)
+    {
+        cell = default;
+
+        Rect gridRect = new Rect(
+            canvasRect.x + HeaderSize,
+            canvasRect.y + HeaderSize,
+            entry.width * (CellSize + CellGap) + CellGap,
+            entry.height * (CellSize + CellGap) + CellGap);
+        if (!gridRect.Contains(mousePosition))
+        {
+            return false;
+        }
+
+        float localX = mousePosition.x - gridRect.x - CellGap;
+        float localY = mousePosition.y - gridRect.y - CellGap;
+        if (localX < 0f || localY < 0f)
+        {
+            return false;
+        }
+
+        int column = Mathf.FloorToInt(localX / (CellSize + CellGap));
+        int rowFromTop = Mathf.FloorToInt(localY / (CellSize + CellGap));
+        if (column < 0 || column >= entry.width || rowFromTop < 0 || rowFromTop >= entry.height)
+        {
+            return false;
+        }
+
+        float xRemainder = localX % (CellSize + CellGap);
+        float yRemainder = localY % (CellSize + CellGap);
+        if (xRemainder > CellSize || yRemainder > CellSize)
+        {
+            return false;
+        }
+
+        cell = new Vector2Int(column, entry.height - 1 - rowFromTop);
+        return true;
+    }
+
+    private static HashSet<Vector2Int> BuildCellSet(List<格子模板数据库.CellPosition> cells)
+    {
+        HashSet<Vector2Int> result = new HashSet<Vector2Int>();
+        if (cells == null)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            result.Add(cells[i].ToVector2Int());
+        }
+
+        return result;
+    }
+
+    private static bool ContainsCell(List<格子模板数据库.CellPosition> cells, Vector2Int target)
+    {
+        if (cells == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            if (cells[i].x == target.x && cells[i].y == target.y)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void AddCell(List<格子模板数据库.CellPosition> cells, Vector2Int target)
+    {
+        if (ContainsCell(cells, target))
+        {
+            return;
+        }
+
+        cells.Add(格子模板数据库.CellPosition.FromVector2Int(target));
+    }
+
+    private static void RemoveCell(List<格子模板数据库.CellPosition> cells, Vector2Int target)
+    {
+        if (cells == null)
+        {
+            return;
+        }
+
+        for (int i = cells.Count - 1; i >= 0; i--)
+        {
+            if (cells[i].x == target.x && cells[i].y == target.y)
+            {
+                cells.RemoveAt(i);
+            }
+        }
+    }
+
+    private static void ToggleCell(List<格子模板数据库.CellPosition> cells, Vector2Int target)
+    {
+        if (ContainsCell(cells, target))
+        {
+            RemoveCell(cells, target);
+        }
+        else
+        {
+            AddCell(cells, target);
+        }
+    }
+
+    private static void SetSpawn(
+        ref bool hasSpawn,
+        ref 格子模板数据库.CellPosition spawnCell,
+        Vector2Int target)
+    {
+        hasSpawn = true;
+        spawnCell = 格子模板数据库.CellPosition.FromVector2Int(target);
+    }
+
+    private static void ClearSpawnIfMatches(
+        ref bool hasSpawn,
+        ref 格子模板数据库.CellPosition spawnCell,
+        Vector2Int target)
+    {
+        if (!hasSpawn)
+        {
+            return;
+        }
+
+        if (spawnCell.x != target.x || spawnCell.y != target.y)
+        {
+            return;
+        }
+
+        hasSpawn = false;
+        spawnCell = default;
+    }
+
+    private static bool IsCellInside(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        return cell.x >= 0 && cell.x < entry.width && cell.y >= 0 && cell.y < entry.height;
+    }
+
+    private static void ClampTemplateToBounds(格子模板数据库.格子模板条目 entry)
+    {
+        ClampCellListToBounds(entry.walkableCells, entry);
+        ClampCellListToBounds(entry.enemySpawnCells, entry);
+        ClampSpawnToBounds(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, entry);
+        ClampSpawnToBounds(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, entry);
+        ClampSpawnToBounds(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, entry);
+        ClampSpawnToBounds(ref entry.hasWestDoorPlayerSpawn, ref entry.westDoorPlayerSpawnCell, entry);
+        ClampSpawnToBounds(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, entry);
+    }
+
+    private static void ClampCellListToBounds(
+        List<格子模板数据库.CellPosition> cells,
+        格子模板数据库.格子模板条目 entry)
+    {
+        if (cells == null)
+        {
+            return;
+        }
+
+        HashSet<Vector2Int> deduplicated = new HashSet<Vector2Int>();
+        for (int i = cells.Count - 1; i >= 0; i--)
+        {
+            Vector2Int cell = cells[i].ToVector2Int();
+            if (!IsCellInside(entry, cell) || !deduplicated.Add(cell))
+            {
+                cells.RemoveAt(i);
+            }
+        }
+    }
+
+    private static void ClampSpawnToBounds(
+        ref bool hasSpawn,
+        ref 格子模板数据库.CellPosition spawnCell,
+        格子模板数据库.格子模板条目 entry)
+    {
+        if (!hasSpawn)
+        {
+            return;
+        }
+
+        if (IsCellInside(entry, spawnCell.ToVector2Int()))
+        {
+            return;
+        }
+
+        hasSpawn = false;
+        spawnCell = default;
+    }
+
+    private void MarkDirtyAndRepaint()
+    {
+        格子模板数据库 database = EnsureDatabase();
+        EditorUtility.SetDirty(database);
+        Repaint();
+    }
+
+    private static string ResolveToolLabel(绘制工具 tool)
+    {
+        switch (tool)
+        {
+            case 绘制工具.可用格:
+                return "可用格";
+            case 绘制工具.敌人出生点:
+                return "敌人出生点";
+            case 绘制工具.玩家默认出生点:
+                return "玩家默认出生点";
+            case 绘制工具.玩家东门出生点:
+                return "玩家东门出生点";
+            case 绘制工具.玩家南门出生点:
+                return "玩家南门出生点";
+            case 绘制工具.玩家西门出生点:
+                return "玩家西门出生点";
+            case 绘制工具.玩家北门出生点:
+                return "玩家北门出生点";
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static string NormalizeIdentifier(string rawValue, string fallbackValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return string.IsNullOrWhiteSpace(fallbackValue) ? string.Empty : fallbackValue.Trim();
+        }
+
+        string normalized = rawValue.Trim();
+        normalized = normalized.Replace(' ', '_');
+        normalized = normalized.Replace('\t', '_');
+        while (normalized.Contains("__"))
+        {
+            normalized = normalized.Replace("__", "_");
+        }
+
+        return normalized;
+    }
+
+    private static void SaveAsset(ScriptableObject asset)
+    {
+        if (asset == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(asset);
+        AssetDatabase.SaveAssets();
+    }
+}
