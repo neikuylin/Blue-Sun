@@ -1,10 +1,8 @@
 ﻿using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 
 public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 {
-    private const int EnemyFootprintSize = 3;
     private const string ResourceFolder = "Assets/Resources";
     private const string PresetAssetPath = ResourceFolder + "/RoomEnemyPresetDatabase.asset";
     private const string StatAssetPath = ResourceFolder + "/CharacterStatDatabase.asset";
@@ -115,8 +113,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         SerializedProperty enemiesProperty = presetProperty.FindPropertyRelative("enemies");
         roomTypeIdProperty.stringValue = EncounterBattleRoomTypeId;
         string presetId = presetIdProperty.stringValue;
-        string overlapMessage = BuildOverlapMessage(enemiesProperty);
-        bool hasOverlap = !string.IsNullOrEmpty(overlapMessage);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -150,11 +146,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
                 EditorGUILayout.TextField("房间类型", RoomTypeDatabase.EncounterBattleTypeName);
             }
 
-            if (hasOverlap)
-            {
-                EditorGUILayout.HelpBox(overlapMessage, MessageType.Error);
-            }
-
             if (enemiesProperty.arraySize == 0)
             {
                 EditorGUILayout.HelpBox("当前预设没有敌人。", MessageType.Info);
@@ -184,7 +175,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
     {
         SerializedProperty entry = enemiesProperty.GetArrayElementAtIndex(index);
         SerializedProperty enemyIdProperty = entry.FindPropertyRelative("enemyId");
-        SerializedProperty spawnCellProperty = entry.FindPropertyRelative("spawnCell");
         SerializedProperty teamProperty = entry.FindPropertyRelative("team");
         SerializedProperty isPlayerControlledProperty = entry.FindPropertyRelative("isPlayerControlled");
 
@@ -206,14 +196,12 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
 
             if (!entry.isExpanded)
             {
-                string spawnCellSummary = spawnCellProperty != null ? $"({spawnCellProperty.vector2IntValue.x}, {spawnCellProperty.vector2IntValue.y})" : "(?, ?)";
                 string teamSummary = teamProperty != null ? teamProperty.enumDisplayNames[teamProperty.enumValueIndex] : string.Empty;
-                EditorGUILayout.LabelField($"出生格：{spawnCellSummary}    阵营：{teamSummary}");
+                EditorGUILayout.LabelField($"阵营：{teamSummary}");
                 return;
             }
 
             EditorGUILayout.PropertyField(enemyIdProperty, new GUIContent("敌人ID"));
-            EditorGUILayout.PropertyField(spawnCellProperty, new GUIContent("出生格"));
             EditorGUILayout.PropertyField(teamProperty, new GUIContent("阵营"));
             EditorGUILayout.PropertyField(isPlayerControlledProperty, new GUIContent("玩家控制"));
 
@@ -311,7 +299,6 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         enemiesProperty.InsertArrayElementAtIndex(enemiesProperty.arraySize);
         SerializedProperty added = enemiesProperty.GetArrayElementAtIndex(enemiesProperty.arraySize - 1);
         added.FindPropertyRelative("enemyId").stringValue = enemyId;
-        added.FindPropertyRelative("spawnCell").vector2IntValue = new Vector2Int(13, 12 + (enemiesProperty.arraySize - 1) * 2);
         added.FindPropertyRelative("team").enumValueIndex = (int)BattleTeam.Enemy;
         added.FindPropertyRelative("isPlayerControlled").boolValue = false;
 
@@ -436,48 +423,4 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         AssetDatabase.SaveAssets();
     }
 
-    private static string BuildOverlapMessage(SerializedProperty enemiesProperty)
-    {
-        if (enemiesProperty == null || enemiesProperty.arraySize <= 1)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < enemiesProperty.arraySize; i++)
-        {
-            SerializedProperty a = enemiesProperty.GetArrayElementAtIndex(i);
-            string enemyA = a.FindPropertyRelative("enemyId").stringValue.Trim();
-            if (string.IsNullOrWhiteSpace(enemyA))
-            {
-                continue;
-            }
-
-            Vector2Int cellA = a.FindPropertyRelative("spawnCell").vector2IntValue;
-            for (int j = i + 1; j < enemiesProperty.arraySize; j++)
-            {
-                SerializedProperty b = enemiesProperty.GetArrayElementAtIndex(j);
-                string enemyB = b.FindPropertyRelative("enemyId").stringValue.Trim();
-                if (string.IsNullOrWhiteSpace(enemyB))
-                {
-                    continue;
-                }
-
-                Vector2Int cellB = b.FindPropertyRelative("spawnCell").vector2IntValue;
-                if (!FootprintsOverlap(cellA, cellB, EnemyFootprintSize))
-                {
-                    continue;
-                }
-
-                return $"出生格冲突：'{enemyA}' ({cellA.x}, {cellA.y}) 与 '{enemyB}' ({cellB.x}, {cellB.y}) 的 {EnemyFootprintSize}x{EnemyFootprintSize} 占地重叠。请先调整出生格，再应用到场景。";
-            }
-        }
-
-        return null;
-    }
-
-    private static bool FootprintsOverlap(Vector2Int a, Vector2Int b, int footprintSize)
-    {
-        int radius = Mathf.Max(0, footprintSize / 2);
-        return Mathf.Abs(a.x - b.x) <= radius * 2 && Mathf.Abs(a.y - b.y) <= radius * 2;
-    }
 }

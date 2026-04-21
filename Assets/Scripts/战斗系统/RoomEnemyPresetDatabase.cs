@@ -8,11 +8,19 @@ public sealed class RoomEnemyPresetDatabase : ScriptableObject
     public const string DefaultResourcePath = "RoomEnemyPresetDatabase";
 
     [Serializable]
+    public sealed class PresetEnemyEntry
+    {
+        public string enemyId = string.Empty;
+        public BattleTeam team = BattleTeam.Enemy;
+        public bool isPlayerControlled;
+    }
+
+    [Serializable]
     public sealed class RoomEnemyPresetEntry
     {
         public string presetId = string.Empty;
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
-        public List<BattleBootstrap.EnemySpawnEntry> enemies = new List<BattleBootstrap.EnemySpawnEntry>();
+        public List<PresetEnemyEntry> enemies = new List<PresetEnemyEntry>();
     }
 
     [SerializeField] private List<RoomEnemyPresetEntry> entries = new List<RoomEnemyPresetEntry>();
@@ -103,21 +111,20 @@ public sealed class RoomEnemyPresetDatabase : ScriptableObject
 
         if (entry.enemies == null)
         {
-            entry.enemies = new List<BattleBootstrap.EnemySpawnEntry>();
+            entry.enemies = new List<PresetEnemyEntry>();
         }
     }
 
-    public static BattleBootstrap.EnemySpawnEntry CloneEnemy(BattleBootstrap.EnemySpawnEntry source)
+    public static PresetEnemyEntry CloneEnemy(PresetEnemyEntry source)
     {
         if (source == null)
         {
-            return new BattleBootstrap.EnemySpawnEntry();
+            return new PresetEnemyEntry();
         }
 
-        return new BattleBootstrap.EnemySpawnEntry
+        return new PresetEnemyEntry
         {
             enemyId = source.enemyId,
-            spawnCell = source.spawnCell,
             team = source.team,
             isPlayerControlled = source.isPlayerControlled
         };

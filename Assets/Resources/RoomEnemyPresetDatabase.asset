@@ -17,11 +17,9 @@ MonoBehaviour:
     roomTypeId: encounter_battle
     enemies:
     - enemyId: "\u5965\u624E\u514B\u58EB\u5175"
-      spawnCell: {x: 13, y: 12}
       team: 1
       isPlayerControlled: 0
     - enemyId: "\u5965\u624E\u514B\u58EB\u5175"
-      spawnCell: {x: 15, y: 16}
       team: 1
       isPlayerControlled: 0
   - presetId: "\u7A7A\u623F\u95F4"

@@ -446,7 +446,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
 
                 for (int j = 0; j < preset.enemies.Count; j++)
                 {
-                    BattleBootstrap.EnemySpawnEntry enemy = preset.enemies[j];
+                    RoomEnemyPresetDatabase.PresetEnemyEntry enemy = preset.enemies[j];
                     if (enemy != null && !string.IsNullOrWhiteSpace(enemy.enemyId))
                     {
                         ids.Add(enemy.enemyId);
@@ -486,7 +486,7 @@ public sealed class EnemyEquipmentEditorWindow : EditorWindow
 
             for (int j = 0; j < preset.enemies.Count; j++)
             {
-                BattleBootstrap.EnemySpawnEntry enemy = preset.enemies[j];
+                RoomEnemyPresetDatabase.PresetEnemyEntry enemy = preset.enemies[j];
                 if (enemy == null || string.IsNullOrWhiteSpace(enemy.enemyId))
                 {
                     continue;

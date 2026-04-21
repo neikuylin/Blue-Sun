@@ -719,29 +719,42 @@ public class BattleBootstrap : MonoBehaviour
 
         for (int i = 0; i < preset.enemies.Count; i++)
         {
-            EnemySpawnEntry entry = preset.enemies[i];
-            if (entry == null || string.IsNullOrWhiteSpace(entry.enemyId))
+            RoomEnemyPresetDatabase.PresetEnemyEntry presetEnemy = preset.enemies[i];
+            if (presetEnemy == null || string.IsNullOrWhiteSpace(presetEnemy.enemyId))
             {
                 continue;
             }
 
-            entries.Add(RoomEnemyPresetDatabase.CloneEnemy(entry));
+            entries.Add(new EnemySpawnEntry
+            {
+                enemyId = presetEnemy.enemyId,
+                team = presetEnemy.team,
+                isPlayerControlled = presetEnemy.isPlayerControlled
+            });
         }
 
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
         List<Vector2Int> templateEnemySpawnCells = gridTemplate != null ? ConvertCells(gridTemplate.enemySpawnCells) : null;
-        if (templateEnemySpawnCells != null && templateEnemySpawnCells.Count > 0)
+        if (entries.Count == 0)
         {
-            int overrideCount = Mathf.Min(entries.Count, templateEnemySpawnCells.Count);
-            for (int i = 0; i < overrideCount; i++)
-            {
-                entries[i].spawnCell = templateEnemySpawnCells[i];
-            }
+            return entries;
+        }
 
-            if (entries.Count > templateEnemySpawnCells.Count)
-            {
-                Debug.LogWarning($"BattleBootstrap: grid template '{gridTemplate.templateId}' only provides {templateEnemySpawnCells.Count} enemy spawn cells, but preset '{roomEnemyPresetId}' contains {entries.Count} enemies. Remaining enemies will keep preset spawn cells.");
-            }
+        if (gridTemplate == null || templateEnemySpawnCells == null || templateEnemySpawnCells.Count == 0)
+        {
+            Debug.LogError($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' requires enemy spawn cells from the bound grid template, but room '{currentDungeonNodeId}' has no enemy spawn cells configured.");
+            return new List<EnemySpawnEntry>();
+        }
+
+        if (entries.Count > templateEnemySpawnCells.Count)
+        {
+            Debug.LogError($"BattleBootstrap: grid template '{gridTemplate.templateId}' provides {templateEnemySpawnCells.Count} enemy spawn cells, but encounter preset '{roomEnemyPresetId}' requires {entries.Count}. Enemy generation aborted.");
+            return new List<EnemySpawnEntry>();
+        }
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            entries[i].spawnCell = templateEnemySpawnCells[i];
         }
 
         return entries;
