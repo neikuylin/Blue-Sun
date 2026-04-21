@@ -31,6 +31,14 @@ public sealed class 格子模板数据库 : ScriptableObject
     }
 
     [Serializable]
+    public sealed class EnemySpawnSlot
+    {
+        public string slotName = string.Empty;
+        public CellPosition cell;
+        public int encounterEnemyIndex = -1;
+    }
+
+    [Serializable]
     public sealed class 格子模板条目
     {
         public string templateId = string.Empty;
@@ -38,7 +46,7 @@ public sealed class 格子模板数据库 : ScriptableObject
         public int width = 20;
         public int height = 20;
         public List<CellPosition> walkableCells = new List<CellPosition>();
-        public List<CellPosition> enemySpawnCells = new List<CellPosition>();
+        public List<EnemySpawnSlot> enemySpawnSlots = new List<EnemySpawnSlot>();
         public bool hasDefaultPlayerSpawn;
         public CellPosition defaultPlayerSpawnCell;
         public bool hasEastDoorPlayerSpawn;
@@ -148,9 +156,9 @@ public sealed class 格子模板数据库 : ScriptableObject
             entry.walkableCells = new List<CellPosition>();
         }
 
-        if (entry.enemySpawnCells == null)
+        if (entry.enemySpawnSlots == null)
         {
-            entry.enemySpawnCells = new List<CellPosition>();
+            entry.enemySpawnSlots = new List<EnemySpawnSlot>();
         }
 
         entry.width = Mathf.Max(1, entry.width);
@@ -159,6 +167,21 @@ public sealed class 格子模板数据库 : ScriptableObject
         if (string.IsNullOrWhiteSpace(entry.displayName))
         {
             entry.displayName = entry.templateId;
+        }
+
+        for (int i = entry.enemySpawnSlots.Count - 1; i >= 0; i--)
+        {
+            EnemySpawnSlot slot = entry.enemySpawnSlots[i];
+            if (slot == null)
+            {
+                entry.enemySpawnSlots.RemoveAt(i);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(slot.slotName))
+            {
+                slot.slotName = $"敌人位{i + 1}";
+            }
         }
     }
 

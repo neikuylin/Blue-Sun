@@ -32,7 +32,7 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         EnsureRoomTypeDatabase();
         EditorGUILayout.LabelField("遭遇战编辑器", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "维护遭遇战房间预设。这里编辑的是预设资产，运行时会通过房间节点上的 encounterPresetId 读取它们。",
+            "维护遭遇战房间预设。这里编辑的是预设资产，运行时会通过房间节点上的 encounterPresetId 读取它们。敌人站位已改到格子编辑器里的敌人出生位配置。",
             MessageType.Info);
 
         SerializedObject databaseObject = presetDatabase != null ? new SerializedObject(presetDatabase) : null;

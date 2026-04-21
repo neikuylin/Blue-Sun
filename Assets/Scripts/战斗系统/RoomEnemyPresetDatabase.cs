@@ -115,21 +115,6 @@ public sealed class RoomEnemyPresetDatabase : ScriptableObject
         }
     }
 
-    public static PresetEnemyEntry CloneEnemy(PresetEnemyEntry source)
-    {
-        if (source == null)
-        {
-            return new PresetEnemyEntry();
-        }
-
-        return new PresetEnemyEntry
-        {
-            enemyId = source.enemyId,
-            team = source.team,
-            isPlayerControlled = source.isPlayerControlled
-        };
-    }
-
     public static RoomEnemyPresetDatabase LoadDefault()
     {
         return Resources.Load<RoomEnemyPresetDatabase>(DefaultResourcePath);

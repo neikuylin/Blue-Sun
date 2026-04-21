@@ -36,6 +36,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private Vector2 canvasScroll;
     private Vector2 detailScroll;
     private string selectedTemplateId = string.Empty;
+    private string selectedEncounterPresetId = string.Empty;
     private string newTemplateId = string.Empty;
     private string newTemplateName = string.Empty;
     private 绘制工具 currentTool = 绘制工具.可用格;
@@ -54,6 +55,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private void OnGUI()
     {
         格子模板数据库 database = EnsureDatabase();
+        RoomEnemyPresetDatabase encounterDatabase = EnsureEncounterDatabase();
         if (database == null)
         {
             EditorGUILayout.HelpBox("格子模板库创建失败。", MessageType.Error);
@@ -61,6 +63,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         EnsureSelection(database);
+        EnsureEncounterSelection(encounterDatabase);
         DrawToolbar(database);
         EditorGUILayout.Space(6f);
 
@@ -68,7 +71,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             DrawTemplateList(database);
             DrawCanvasPanel(database);
-            DrawDetailPanel(database);
+            DrawDetailPanel(database, encounterDatabase);
         }
 
         if (Event.current.type == EventType.MouseUp)
@@ -181,7 +184,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         using (new EditorGUILayout.HorizontalScope())
         {
             DrawToolButton(绘制工具.可用格, "可用格");
-            DrawToolButton(绘制工具.敌人出生点, "敌人出生点");
+            DrawToolButton(绘制工具.敌人出生点, "敌人出生位");
             DrawToolButton(绘制工具.玩家默认出生点, "玩家默认出生点");
             DrawToolButton(绘制工具.玩家东门出生点, "玩家东门出生点");
         }
@@ -216,7 +219,6 @@ public sealed class 格子编辑器窗口 : EditorWindow
         EditorGUI.DrawRect(canvasRect, new Color(0.12f, 0.12f, 0.12f));
 
         HashSet<Vector2Int> walkableCells = BuildCellSet(entry.walkableCells);
-        HashSet<Vector2Int> enemySpawnCells = BuildCellSet(entry.enemySpawnCells);
 
         for (int y = 0; y < entry.height; y++)
         {
@@ -230,7 +232,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 Handles.color = new Color(0f, 0f, 0f, 0.35f);
                 Handles.DrawSolidRectangleWithOutline(cellRect, Color.clear, new Color(0f, 0f, 0f, 0.25f));
 
-                DrawCellMarker(cellRect, "敌", enemySpawnCells.Contains(cell), new Color(0.92f, 0.25f, 0.22f));
+                格子模板数据库.EnemySpawnSlot enemySlot = FindEnemySpawnSlot(entry, cell);
+                DrawCellMarker(cellRect, enemySlot != null ? ResolveEnemySlotMarker(entry, enemySlot) : string.Empty, enemySlot != null, new Color(0.92f, 0.25f, 0.22f));
                 DrawCellMarker(cellRect, "默", entry.hasDefaultPlayerSpawn && entry.defaultPlayerSpawnCell.ToVector2Int() == cell, new Color(0.22f, 0.58f, 0.95f));
                 DrawCellMarker(cellRect, "东", entry.hasEastDoorPlayerSpawn && entry.eastDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.95f, 0.68f, 0.18f));
                 DrawCellMarker(cellRect, "南", entry.hasSouthDoorPlayerSpawn && entry.southDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.90f, 0.45f, 0.16f));
@@ -385,7 +388,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         else
         {
             RemoveCell(entry.walkableCells, cell);
-            RemoveCell(entry.enemySpawnCells, cell);
+            RemoveEnemySpawnSlot(entry, cell);
             ClearSpawnIfMatches(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, cell);
             ClearSpawnIfMatches(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, cell);
             ClearSpawnIfMatches(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, cell);
@@ -403,7 +406,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         switch (currentTool)
         {
             case 绘制工具.敌人出生点:
-                ToggleCell(entry.enemySpawnCells, cell);
+                ToggleEnemySpawnSlot(entry, cell);
                 break;
             case 绘制工具.玩家默认出生点:
                 SetSpawn(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, cell);
@@ -425,7 +428,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         MarkDirtyAndRepaint();
     }
 
-    private void DrawDetailPanel(格子模板数据库 database)
+    private void DrawDetailPanel(格子模板数据库 database, RoomEnemyPresetDatabase encounterDatabase)
     {
         using (new EditorGUILayout.VerticalScope("box", GUILayout.Width(RightPanelWidth), GUILayout.ExpandHeight(true)))
         {
@@ -455,8 +458,11 @@ public sealed class 格子编辑器窗口 : EditorWindow
             EditorGUILayout.HelpBox($"当前工具：{ResolveToolLabel(currentTool)}", MessageType.None);
 
             EditorGUILayout.Space(6f);
-            EditorGUILayout.LabelField("敌人出生点", EditorStyles.boldLabel);
-            DrawCellListReadonly(entry.enemySpawnCells);
+            DrawEncounterPresetSelector(encounterDatabase);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("敌人出生位", EditorStyles.boldLabel);
+            DrawEnemySpawnSlotList(entry, encounterDatabase);
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("玩家出生点", EditorStyles.boldLabel);
@@ -469,7 +475,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("可用格统计", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("可用格数量", entry.walkableCells.Count.ToString());
-            EditorGUILayout.LabelField("敌人出生点数量", entry.enemySpawnCells.Count.ToString());
+            EditorGUILayout.LabelField("敌人出生位数量", entry.enemySpawnSlots.Count.ToString());
 
             if (entry.width != previousWidth || entry.height != previousHeight)
             {
@@ -490,22 +496,61 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
     }
 
-    private void DrawCellListReadonly(List<格子模板数据库.CellPosition> cells)
+    private void DrawEncounterPresetSelector(RoomEnemyPresetDatabase encounterDatabase)
     {
-        if (cells == null || cells.Count == 0)
+        List<string> presetIds = BuildEncounterPresetIds(encounterDatabase);
+        List<string> presetLabels = BuildEncounterPresetLabels(encounterDatabase, presetIds);
+        int selectedIndex = GetSelectedEncounterPresetIndex(presetIds);
+        int newIndex = EditorGUILayout.Popup("预览遭遇战预设", selectedIndex, presetLabels.ToArray());
+        selectedEncounterPresetId = newIndex >= 0 && newIndex < presetIds.Count ? presetIds[newIndex] : string.Empty;
+    }
+
+    private void DrawEnemySpawnSlotList(格子模板数据库.格子模板条目 entry, RoomEnemyPresetDatabase encounterDatabase)
+    {
+        if (entry.enemySpawnSlots == null || entry.enemySpawnSlots.Count == 0)
         {
             EditorGUILayout.LabelField("未设置");
             return;
         }
 
-        List<string> labels = new List<string>();
-        for (int i = 0; i < cells.Count; i++)
-        {
-            Vector2Int cell = cells[i].ToVector2Int();
-            labels.Add($"({cell.x}, {cell.y})");
-        }
+        RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = ResolveSelectedEncounterPreset(encounterDatabase);
+        string[] enemyOptions = BuildEncounterEnemyOptions(preset);
 
-        EditorGUILayout.LabelField(string.Join("、", labels));
+        for (int i = 0; i < entry.enemySpawnSlots.Count; i++)
+        {
+            格子模板数据库.EnemySpawnSlot slot = entry.enemySpawnSlots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                slot.slotName = EditorGUILayout.TextField("槽位名", slot.slotName);
+                EditorGUILayout.LabelField("坐标", FormatCell(slot.cell.ToVector2Int()));
+
+                if (preset == null || preset.enemies == null || preset.enemies.Count == 0)
+                {
+                    EditorGUILayout.LabelField("绑定敌人", slot.encounterEnemyIndex >= 0 ? $"第{slot.encounterEnemyIndex + 1}个敌人" : "未绑定");
+                }
+                else
+                {
+                    bool indexInRange = slot.encounterEnemyIndex >= 0 && slot.encounterEnemyIndex < preset.enemies.Count;
+                    if (!indexInRange && slot.encounterEnemyIndex >= 0)
+                    {
+                        EditorGUILayout.HelpBox($"当前绑定索引 {slot.encounterEnemyIndex} 超出预设范围，请重新指定。", MessageType.Warning);
+                    }
+
+                    int selectedIndex = indexInRange ? slot.encounterEnemyIndex + 1 : 0;
+                    EditorGUI.BeginChangeCheck();
+                    int newIndex = EditorGUILayout.Popup("绑定敌人", selectedIndex, enemyOptions);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        slot.encounterEnemyIndex = newIndex - 1;
+                    }
+                }
+            }
+        }
     }
 
     private void DrawSingleSpawnReadonly(string label, bool hasSpawn, 格子模板数据库.CellPosition cell)
@@ -601,6 +646,11 @@ public sealed class 格子编辑器窗口 : EditorWindow
         return database;
     }
 
+    private static RoomEnemyPresetDatabase EnsureEncounterDatabase()
+    {
+        return AssetDatabase.LoadAssetAtPath<RoomEnemyPresetDatabase>(ResourceFolder + "/RoomEnemyPresetDatabase.asset");
+    }
+
     private static void EnsureResourceFolder()
     {
         if (!AssetDatabase.IsValidFolder(ResourceFolder))
@@ -675,6 +725,64 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         return result;
+    }
+
+    private static 格子模板数据库.EnemySpawnSlot FindEnemySpawnSlot(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.enemySpawnSlots == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < entry.enemySpawnSlots.Count; i++)
+        {
+            格子模板数据库.EnemySpawnSlot slot = entry.enemySpawnSlots[i];
+            if (slot != null && slot.cell.x == target.x && slot.cell.y == target.y)
+            {
+                return slot;
+            }
+        }
+
+        return null;
+    }
+
+    private static void ToggleEnemySpawnSlot(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        格子模板数据库.EnemySpawnSlot existing = FindEnemySpawnSlot(entry, target);
+        if (existing != null)
+        {
+            RemoveEnemySpawnSlot(entry, target);
+            return;
+        }
+
+        if (entry.enemySpawnSlots == null)
+        {
+            entry.enemySpawnSlots = new List<格子模板数据库.EnemySpawnSlot>();
+        }
+
+        entry.enemySpawnSlots.Add(new 格子模板数据库.EnemySpawnSlot
+        {
+            slotName = $"敌人位{entry.enemySpawnSlots.Count + 1}",
+            cell = 格子模板数据库.CellPosition.FromVector2Int(target),
+            encounterEnemyIndex = -1
+        });
+    }
+
+    private static void RemoveEnemySpawnSlot(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.enemySpawnSlots == null)
+        {
+            return;
+        }
+
+        for (int i = entry.enemySpawnSlots.Count - 1; i >= 0; i--)
+        {
+            格子模板数据库.EnemySpawnSlot slot = entry.enemySpawnSlots[i];
+            if (slot != null && slot.cell.x == target.x && slot.cell.y == target.y)
+            {
+                entry.enemySpawnSlots.RemoveAt(i);
+            }
+        }
     }
 
     private static bool ContainsCell(List<格子模板数据库.CellPosition> cells, Vector2Int target)
@@ -769,7 +877,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private static void ClampTemplateToBounds(格子模板数据库.格子模板条目 entry)
     {
         ClampCellListToBounds(entry.walkableCells, entry);
-        ClampCellListToBounds(entry.enemySpawnCells, entry);
+        ClampEnemySpawnSlotsToBounds(entry);
         ClampSpawnToBounds(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, entry);
@@ -793,6 +901,31 @@ public sealed class 格子编辑器窗口 : EditorWindow
             if (!IsCellInside(entry, cell) || !deduplicated.Add(cell))
             {
                 cells.RemoveAt(i);
+            }
+        }
+    }
+
+    private static void ClampEnemySpawnSlotsToBounds(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.enemySpawnSlots == null)
+        {
+            return;
+        }
+
+        HashSet<Vector2Int> deduplicated = new HashSet<Vector2Int>();
+        for (int i = entry.enemySpawnSlots.Count - 1; i >= 0; i--)
+        {
+            格子模板数据库.EnemySpawnSlot slot = entry.enemySpawnSlots[i];
+            if (slot == null)
+            {
+                entry.enemySpawnSlots.RemoveAt(i);
+                continue;
+            }
+
+            Vector2Int cell = slot.cell.ToVector2Int();
+            if (!IsCellInside(entry, cell) || !deduplicated.Add(cell))
+            {
+                entry.enemySpawnSlots.RemoveAt(i);
             }
         }
     }
@@ -823,6 +956,127 @@ public sealed class 格子编辑器窗口 : EditorWindow
         Repaint();
     }
 
+    private void EnsureEncounterSelection(RoomEnemyPresetDatabase encounterDatabase)
+    {
+        if (encounterDatabase == null || encounterDatabase.Entries == null || encounterDatabase.Entries.Count == 0)
+        {
+            selectedEncounterPresetId = string.Empty;
+            return;
+        }
+
+        if (ResolveSelectedEncounterPreset(encounterDatabase) != null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < encounterDatabase.Entries.Count; i++)
+        {
+            RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = encounterDatabase.Entries[i];
+            if (preset != null && !string.IsNullOrWhiteSpace(preset.presetId))
+            {
+                selectedEncounterPresetId = preset.presetId.Trim();
+                return;
+            }
+        }
+
+        selectedEncounterPresetId = string.Empty;
+    }
+
+    private RoomEnemyPresetDatabase.RoomEnemyPresetEntry ResolveSelectedEncounterPreset(RoomEnemyPresetDatabase encounterDatabase)
+    {
+        if (encounterDatabase == null || string.IsNullOrWhiteSpace(selectedEncounterPresetId))
+        {
+            return null;
+        }
+
+        return encounterDatabase.FindEntry(selectedEncounterPresetId.Trim());
+    }
+
+    private static List<string> BuildEncounterPresetIds(RoomEnemyPresetDatabase encounterDatabase)
+    {
+        List<string> ids = new List<string> { string.Empty };
+        if (encounterDatabase == null || encounterDatabase.Entries == null)
+        {
+            return ids;
+        }
+
+        for (int i = 0; i < encounterDatabase.Entries.Count; i++)
+        {
+            RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = encounterDatabase.Entries[i];
+            if (preset == null || string.IsNullOrWhiteSpace(preset.presetId))
+            {
+                continue;
+            }
+
+            ids.Add(preset.presetId.Trim());
+        }
+
+        return ids;
+    }
+
+    private static List<string> BuildEncounterPresetLabels(RoomEnemyPresetDatabase encounterDatabase, List<string> presetIds)
+    {
+        List<string> labels = new List<string>();
+        for (int i = 0; i < presetIds.Count; i++)
+        {
+            string presetId = presetIds[i];
+            if (string.IsNullOrWhiteSpace(presetId))
+            {
+                labels.Add("未选择");
+                continue;
+            }
+
+            RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = encounterDatabase != null ? encounterDatabase.FindEntry(presetId) : null;
+            int enemyCount = preset != null && preset.enemies != null ? preset.enemies.Count : 0;
+            labels.Add($"{presetId} ({enemyCount}个敌人)");
+        }
+
+        return labels;
+    }
+
+    private int GetSelectedEncounterPresetIndex(List<string> presetIds)
+    {
+        for (int i = 0; i < presetIds.Count; i++)
+        {
+            if (string.Equals(presetIds[i], selectedEncounterPresetId, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private static string[] BuildEncounterEnemyOptions(RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset)
+    {
+        if (preset == null || preset.enemies == null || preset.enemies.Count == 0)
+        {
+            return new[] { "未绑定" };
+        }
+
+        string[] options = new string[preset.enemies.Count + 1];
+        options[0] = "未绑定";
+        for (int i = 0; i < preset.enemies.Count; i++)
+        {
+            RoomEnemyPresetDatabase.PresetEnemyEntry enemy = preset.enemies[i];
+            string enemyId = enemy != null && !string.IsNullOrWhiteSpace(enemy.enemyId) ? enemy.enemyId.Trim() : "未命名敌人";
+            options[i + 1] = $"第{i + 1}个：{enemyId}";
+        }
+
+        return options;
+    }
+
+    private static string ResolveEnemySlotMarker(格子模板数据库.格子模板条目 entry, 格子模板数据库.EnemySpawnSlot slot)
+    {
+        if (entry == null || slot == null || entry.enemySpawnSlots == null)
+        {
+            return "敌";
+        }
+
+        int index = entry.enemySpawnSlots.IndexOf(slot);
+        return index >= 0 ? (index + 1).ToString() : "敌";
+    }
+
     private static string ResolveToolLabel(绘制工具 tool)
     {
         switch (tool)
@@ -830,7 +1084,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             case 绘制工具.可用格:
                 return "可用格";
             case 绘制工具.敌人出生点:
-                return "敌人出生点";
+                return "敌人出生位";
             case 绘制工具.玩家默认出生点:
                 return "玩家默认出生点";
             case 绘制工具.玩家东门出生点:

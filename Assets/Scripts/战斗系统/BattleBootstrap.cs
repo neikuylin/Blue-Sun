@@ -734,27 +734,52 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
-        List<Vector2Int> templateEnemySpawnCells = gridTemplate != null ? ConvertCells(gridTemplate.enemySpawnCells) : null;
+        List<格子模板数据库.EnemySpawnSlot> templateEnemySpawnSlots = gridTemplate != null ? gridTemplate.enemySpawnSlots : null;
         if (entries.Count == 0)
         {
             return entries;
         }
 
-        if (gridTemplate == null || templateEnemySpawnCells == null || templateEnemySpawnCells.Count == 0)
+        if (gridTemplate == null || templateEnemySpawnSlots == null || templateEnemySpawnSlots.Count == 0)
         {
-            Debug.LogError($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' requires enemy spawn cells from the bound grid template, but room '{currentDungeonNodeId}' has no enemy spawn cells configured.");
+            Debug.LogError($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' requires enemy spawn slots from the bound grid template, but room '{currentDungeonNodeId}' has no enemy spawn slots configured.");
             return new List<EnemySpawnEntry>();
         }
 
-        if (entries.Count > templateEnemySpawnCells.Count)
+        Dictionary<int, 格子模板数据库.EnemySpawnSlot> slotsByEncounterIndex = new Dictionary<int, 格子模板数据库.EnemySpawnSlot>();
+        for (int i = 0; i < templateEnemySpawnSlots.Count; i++)
         {
-            Debug.LogError($"BattleBootstrap: grid template '{gridTemplate.templateId}' provides {templateEnemySpawnCells.Count} enemy spawn cells, but encounter preset '{roomEnemyPresetId}' requires {entries.Count}. Enemy generation aborted.");
-            return new List<EnemySpawnEntry>();
+            格子模板数据库.EnemySpawnSlot slot = templateEnemySpawnSlots[i];
+            if (slot == null || slot.encounterEnemyIndex < 0)
+            {
+                continue;
+            }
+
+            if (slot.encounterEnemyIndex >= entries.Count)
+            {
+                Debug.LogError($"BattleBootstrap: grid template '{gridTemplate.templateId}' slot '{slot.slotName}' references encounter enemy index {slot.encounterEnemyIndex}, but preset '{roomEnemyPresetId}' only has {entries.Count} enemies.");
+                return new List<EnemySpawnEntry>();
+            }
+
+            if (slotsByEncounterIndex.ContainsKey(slot.encounterEnemyIndex))
+            {
+                Debug.LogError($"BattleBootstrap: grid template '{gridTemplate.templateId}' binds encounter enemy index {slot.encounterEnemyIndex} more than once. Duplicate slots: '{slotsByEncounterIndex[slot.encounterEnemyIndex].slotName}' and '{slot.slotName}'.");
+                return new List<EnemySpawnEntry>();
+            }
+
+            slotsByEncounterIndex.Add(slot.encounterEnemyIndex, slot);
         }
 
         for (int i = 0; i < entries.Count; i++)
         {
-            entries[i].spawnCell = templateEnemySpawnCells[i];
+            格子模板数据库.EnemySpawnSlot slot;
+            if (!slotsByEncounterIndex.TryGetValue(i, out slot) || slot == null)
+            {
+                Debug.LogError($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' enemy #{i + 1} is not bound to any enemy spawn slot in grid template '{gridTemplate.templateId}'.");
+                return new List<EnemySpawnEntry>();
+            }
+
+            entries[i].spawnCell = slot.cell.ToVector2Int();
         }
 
         return entries;
