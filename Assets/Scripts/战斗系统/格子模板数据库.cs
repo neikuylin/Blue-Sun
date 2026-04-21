@@ -7,12 +7,6 @@ public sealed class 格子模板数据库 : ScriptableObject
 {
     public const string DefaultResourcePath = "BattleGridTemplateDatabase";
 
-    public enum PlayerSpawnMode
-    {
-        Default = 0,
-        Door = 1
-    }
-
     [Serializable]
     public struct CellPosition
     {
@@ -43,7 +37,6 @@ public sealed class 格子模板数据库 : ScriptableObject
         public string displayName = string.Empty;
         public int width = 20;
         public int height = 20;
-        public PlayerSpawnMode playerSpawnMode = PlayerSpawnMode.Default;
         public List<CellPosition> walkableCells = new List<CellPosition>();
         public List<CellPosition> enemySpawnCells = new List<CellPosition>();
         public bool hasDefaultPlayerSpawn;

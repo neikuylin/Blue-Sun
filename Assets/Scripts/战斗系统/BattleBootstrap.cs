@@ -871,13 +871,10 @@ public class BattleBootstrap : MonoBehaviour
             return null;
         }
 
-        if (gridTemplate.playerSpawnMode == 格子模板数据库.PlayerSpawnMode.Door)
+        Vector2Int? doorSpawn = ResolveDoorSpawn(gridTemplate, pendingEntranceDirection);
+        if (doorSpawn.HasValue)
         {
-            Vector2Int? doorSpawn = ResolveDoorSpawn(gridTemplate, pendingEntranceDirection);
-            if (doorSpawn.HasValue)
-            {
-                return doorSpawn.Value;
-            }
+            return doorSpawn.Value;
         }
 
         if (gridTemplate.hasDefaultPlayerSpawn)

@@ -450,8 +450,6 @@ public sealed class 格子编辑器窗口 : EditorWindow
             entry.width = Mathf.Max(1, EditorGUILayout.IntField("画布宽度", entry.width));
             entry.height = Mathf.Max(1, EditorGUILayout.IntField("画布高度", entry.height));
 
-            entry.playerSpawnMode = (格子模板数据库.PlayerSpawnMode)EditorGUILayout.EnumPopup("玩家出生方式", entry.playerSpawnMode);
-
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("工具说明", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox($"当前工具：{ResolveToolLabel(currentTool)}", MessageType.None);
@@ -462,17 +460,11 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("玩家出生点", EditorStyles.boldLabel);
-            if (entry.playerSpawnMode == 格子模板数据库.PlayerSpawnMode.Default)
-            {
-                DrawSingleSpawnReadonly("玩家默认出生点", entry.hasDefaultPlayerSpawn, entry.defaultPlayerSpawnCell);
-            }
-            else
-            {
-                DrawSingleSpawnReadonly("玩家东门出生点", entry.hasEastDoorPlayerSpawn, entry.eastDoorPlayerSpawnCell);
-                DrawSingleSpawnReadonly("玩家南门出生点", entry.hasSouthDoorPlayerSpawn, entry.southDoorPlayerSpawnCell);
-                DrawSingleSpawnReadonly("玩家西门出生点", entry.hasWestDoorPlayerSpawn, entry.westDoorPlayerSpawnCell);
-                DrawSingleSpawnReadonly("玩家北门出生点", entry.hasNorthDoorPlayerSpawn, entry.northDoorPlayerSpawnCell);
-            }
+            DrawSingleSpawnReadonly("玩家默认出生点", entry.hasDefaultPlayerSpawn, entry.defaultPlayerSpawnCell);
+            DrawSingleSpawnReadonly("玩家东门出生点", entry.hasEastDoorPlayerSpawn, entry.eastDoorPlayerSpawnCell);
+            DrawSingleSpawnReadonly("玩家南门出生点", entry.hasSouthDoorPlayerSpawn, entry.southDoorPlayerSpawnCell);
+            DrawSingleSpawnReadonly("玩家西门出生点", entry.hasWestDoorPlayerSpawn, entry.westDoorPlayerSpawnCell);
+            DrawSingleSpawnReadonly("玩家北门出生点", entry.hasNorthDoorPlayerSpawn, entry.northDoorPlayerSpawnCell);
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("可用格统计", EditorStyles.boldLabel);
