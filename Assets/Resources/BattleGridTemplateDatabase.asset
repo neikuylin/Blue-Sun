@@ -17,7 +17,6 @@ MonoBehaviour:
     displayName: "\u51FA\u751F\u5730"
     width: 25
     height: 25
-    playerSpawnMode: 0
     walkableCells:
     - x: 0
       y: 24
@@ -1298,7 +1297,6 @@ MonoBehaviour:
     displayName: "\u6D4B\u8BD5\u7528"
     width: 20
     height: 20
-    playerSpawnMode: 1
     walkableCells:
     - x: 0
       y: 19
@@ -2111,17 +2109,17 @@ MonoBehaviour:
       y: 10
     hasEastDoorPlayerSpawn: 1
     eastDoorPlayerSpawnCell:
-      x: 19
+      x: 18
       y: 10
     hasSouthDoorPlayerSpawn: 1
     southDoorPlayerSpawnCell:
       x: 10
-      y: 0
+      y: 1
     hasWestDoorPlayerSpawn: 1
     westDoorPlayerSpawnCell:
-      x: 0
-      y: 9
+      x: 1
+      y: 10
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
       x: 10
-      y: 19
+      y: 18

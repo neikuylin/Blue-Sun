@@ -27,6 +27,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
+    private const int DefaultUnitFootprintSize = 3;
 
     [System.Serializable]
     public sealed class RoomStateMemory
@@ -507,6 +508,7 @@ public class BattleBootstrap : MonoBehaviour
     {
         BattleAnimationSettings animationSettings = BattleAnimationSettings.LoadDefault();
         List<CharacterSelectionState.SlotSelection> selectedPlayers = GetSelectedPlayers();
+        List<EnemySpawnEntry> enemyEntries = GetEnemySpawnEntries();
         BattleUnitFactory factory = new BattleUnitFactory(
             animationSettings != null ? animationSettings.idleYawOffset : 0f,
             characterBindingDatabase,
@@ -517,9 +519,9 @@ public class BattleBootstrap : MonoBehaviour
             playerPlaceholderColor,
             enemyPlaceholderColor);
 
-        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(selectedPlayers.Count);
+        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(grid, selectedPlayers.Count, enemyEntries);
         List<BattleUnit> units = factory.CreatePlayers(selectedPlayers, playerSpawnCells);
-        units.AddRange(factory.CreateEnemies(GetEnemySpawnEntries()));
+        units.AddRange(factory.CreateEnemies(enemyEntries));
         return units;
     }
 
@@ -639,7 +641,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(selectedPlayers.Count);
+        List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(grid, selectedPlayers.Count, CollectReservedEnemySpawns(units));
         Dictionary<string, BattleUnit> unitsByCharacterId = new Dictionary<string, BattleUnit>(System.StringComparer.Ordinal);
         for (int i = 0; i < units.Count; i++)
         {
@@ -837,31 +839,67 @@ public class BattleBootstrap : MonoBehaviour
         return entry;
     }
 
-    private List<Vector2Int> ResolvePlayerSpawnCells(int count)
+    private List<Vector2Int> ResolvePlayerSpawnCells(
+        BattleGrid grid,
+        int count,
+        IReadOnlyList<EnemySpawnEntry> enemyEntries)
     {
         List<Vector2Int> result = new List<Vector2Int>();
+        if (grid == null)
+        {
+            return result;
+        }
+
         int resolvedCount = Mathf.Max(0, count);
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
-
-        Vector2Int? anchorSpawn = null;
-        if (gridTemplate != null)
-        {
-            anchorSpawn = ResolveTemplatePlayerSpawn(gridTemplate);
-        }
+        Vector2Int anchorSpawn = ResolveTemplatePlayerSpawn(gridTemplate) ?? playerSpawnOrigin;
+        HashSet<Vector2Int> reservedCells = CollectReservedFootprintCells(enemyEntries);
 
         for (int i = 0; i < resolvedCount; i++)
         {
-            if (anchorSpawn.HasValue)
+            Vector2Int idealCell = GetPlayerSpawnCell(i, anchorSpawn, playerSpawnSpacing);
+            Vector2Int resolvedCell;
+            if (!TryFindNearestAvailableSpawnCell(grid, idealCell, reservedCells, out resolvedCell))
             {
-                result.Add(ResolveSpawnCellForIndex(i, anchorSpawn.Value));
+                Debug.LogError(
+                    $"BattleBootstrap: failed to resolve player spawn cell #{i + 1}. " +
+                    $"Anchor={anchorSpawn}, Ideal={idealCell}, Room='{currentDungeonNodeId}', Template='{gridTemplate?.templateId ?? "矩形默认"}'.");
+                continue;
             }
-            else
-            {
-                result.Add(GetPlayerSpawnCell(i, playerSpawnOrigin, playerSpawnSpacing));
-            }
+
+            ReserveFootprintCells(reservedCells, resolvedCell, DefaultUnitFootprintSize);
+            result.Add(resolvedCell);
         }
 
         return result;
+    }
+
+    private static List<EnemySpawnEntry> CollectReservedEnemySpawns(List<BattleUnit> units)
+    {
+        List<EnemySpawnEntry> entries = new List<EnemySpawnEntry>();
+        if (units == null)
+        {
+            return entries;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null || unit.team == BattleTeam.Player)
+            {
+                continue;
+            }
+
+            entries.Add(new EnemySpawnEntry
+            {
+                enemyId = unit.characterId,
+                spawnCell = unit.currentCell,
+                team = unit.team,
+                isPlayerControlled = unit.isPlayerControlled
+            });
+        }
+
+        return entries;
     }
 
     private Vector2Int? ResolveTemplatePlayerSpawn(格子模板数据库.格子模板条目 gridTemplate)
@@ -909,11 +947,131 @@ public class BattleBootstrap : MonoBehaviour
         }
     }
 
-    private Vector2Int ResolveSpawnCellForIndex(int index, Vector2Int anchorCell)
+    private static bool TryFindNearestAvailableSpawnCell(
+        BattleGrid grid,
+        Vector2Int idealCell,
+        HashSet<Vector2Int> reservedCells,
+        out Vector2Int resolvedCell)
     {
-        int column = index % 2;
-        int row = index / 2;
-        return anchorCell + new Vector2Int(column * playerSpawnSpacing.x, row * playerSpawnSpacing.y);
+        resolvedCell = idealCell;
+        if (grid == null)
+        {
+            return false;
+        }
+
+        int maxRadius = Mathf.Max(grid.width, grid.height) * 2;
+        for (int distance = 0; distance <= maxRadius; distance++)
+        {
+            List<Vector2Int> candidates = CollectCandidateCellsAtDistance(idealCell, distance);
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                Vector2Int candidate = candidates[i];
+                if (!CanPlaceFootprintAt(grid, candidate, DefaultUnitFootprintSize, reservedCells))
+                {
+                    continue;
+                }
+
+                resolvedCell = candidate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static List<Vector2Int> CollectCandidateCellsAtDistance(Vector2Int center, int distance)
+    {
+        List<Vector2Int> candidates = new List<Vector2Int>();
+        if (distance <= 0)
+        {
+            candidates.Add(center);
+            return candidates;
+        }
+
+        for (int dx = 0; dx <= distance; dx++)
+        {
+            int dy = distance - dx;
+            AddCandidate(candidates, center + new Vector2Int(dx, dy));
+            AddCandidate(candidates, center + new Vector2Int(dx, -dy));
+            AddCandidate(candidates, center + new Vector2Int(-dx, dy));
+            AddCandidate(candidates, center + new Vector2Int(-dx, -dy));
+        }
+
+        return candidates;
+    }
+
+    private static void AddCandidate(List<Vector2Int> candidates, Vector2Int cell)
+    {
+        if (!candidates.Contains(cell))
+        {
+            candidates.Add(cell);
+        }
+    }
+
+    private static bool CanPlaceFootprintAt(
+        BattleGrid grid,
+        Vector2Int centerCell,
+        int footprintSize,
+        HashSet<Vector2Int> reservedCells)
+    {
+        int radius = Mathf.Max(0, footprintSize / 2);
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!grid.IsInside(cell))
+                {
+                    return false;
+                }
+
+                if (reservedCells != null && reservedCells.Contains(cell))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static HashSet<Vector2Int> CollectReservedFootprintCells(IReadOnlyList<EnemySpawnEntry> enemyEntries)
+    {
+        HashSet<Vector2Int> reservedCells = new HashSet<Vector2Int>();
+        if (enemyEntries == null)
+        {
+            return reservedCells;
+        }
+
+        for (int i = 0; i < enemyEntries.Count; i++)
+        {
+            EnemySpawnEntry entry = enemyEntries[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            ReserveFootprintCells(reservedCells, entry.spawnCell, DefaultUnitFootprintSize);
+        }
+
+        return reservedCells;
+    }
+
+    private static void ReserveFootprintCells(HashSet<Vector2Int> reservedCells, Vector2Int centerCell, int footprintSize)
+    {
+        if (reservedCells == null)
+        {
+            return;
+        }
+
+        int radius = Mathf.Max(0, footprintSize / 2);
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                reservedCells.Add(new Vector2Int(x, y));
+            }
+        }
     }
 
     private static List<Vector2Int> ConvertCells(List<格子模板数据库.CellPosition> cells)
