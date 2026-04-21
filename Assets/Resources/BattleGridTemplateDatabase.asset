@@ -1298,7 +1298,7 @@ MonoBehaviour:
     displayName: "\u6D4B\u8BD5\u7528"
     width: 20
     height: 20
-    playerSpawnMode: 0
+    playerSpawnMode: 1
     walkableCells:
     - x: 0
       y: 19
@@ -2105,10 +2105,10 @@ MonoBehaviour:
       y: 9
     - x: 11
       y: 11
-    hasDefaultPlayerSpawn: 0
+    hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
-      x: 0
-      y: 0
+      x: 10
+      y: 10
     hasEastDoorPlayerSpawn: 1
     eastDoorPlayerSpawnCell:
       x: 19

@@ -142,9 +142,10 @@ public sealed class BattleUnitFactory
             unit.yawOffset = 0f;
             unit.useAutoVisualAnchor = binding != null && binding.useAutoVisualAnchor;
             unit.ApplyStats(statEntry);
-            if (!grid.IsFootprintInside(unit, spawnCell) || !grid.IsWalkable(unit, spawnCell))
+            string spawnRejectionReason = BuildEnemySpawnRejectionReason(unit, spawnCell);
+            if (!string.IsNullOrEmpty(spawnRejectionReason))
             {
-                Debug.LogError($"BattleUnitFactory: rejected enemy spawn '{enemyEntry.enemyId}' at {spawnCell}. The 3x3 footprint is outside the board or overlaps an existing unit.");
+                Debug.LogError($"BattleUnitFactory: rejected enemy spawn '{enemyEntry.enemyId}' at {spawnCell}. {spawnRejectionReason}");
                 Object.Destroy(enemyObject);
                 continue;
             }
@@ -162,6 +163,54 @@ public sealed class BattleUnitFactory
         }
 
         return units;
+    }
+
+    private string BuildEnemySpawnRejectionReason(BattleUnit unit, Vector2Int centerCell)
+    {
+        if (grid == null || unit == null)
+        {
+            return "BattleGrid or BattleUnit is missing.";
+        }
+
+        int radius = unit.FootprintRadius;
+        List<string> invalidCells = new List<string>();
+        HashSet<string> overlapUnits = new HashSet<string>(System.StringComparer.Ordinal);
+
+        for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
+        {
+            for (int x = centerCell.x - radius; x <= centerCell.x + radius; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!grid.IsInside(cell))
+                {
+                    invalidCells.Add($"({cell.x}, {cell.y})");
+                    continue;
+                }
+
+                BattleUnit occupant = grid.GetUnitAt(cell);
+                if (occupant == null || occupant == unit)
+                {
+                    continue;
+                }
+
+                string occupantLabel = string.IsNullOrWhiteSpace(occupant.characterId)
+                    ? occupant.name
+                    : occupant.characterId;
+                overlapUnits.Add($"{occupantLabel} @ ({occupant.currentCell.x}, {occupant.currentCell.y})");
+            }
+        }
+
+        if (invalidCells.Count > 0)
+        {
+            return $"The {unit.footprintSize}x{unit.footprintSize} footprint includes invalid cells: {string.Join(", ", invalidCells)}.";
+        }
+
+        if (overlapUnits.Count > 0)
+        {
+            return $"The {unit.footprintSize}x{unit.footprintSize} footprint overlaps existing unit footprints: {string.Join(", ", overlapUnits)}.";
+        }
+
+        return string.Empty;
     }
 
     private GameObject CreateUnitObject(
