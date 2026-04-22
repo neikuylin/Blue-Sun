@@ -13,9 +13,8 @@ internal sealed class 战斗敌方决策服务
         }
 
         HashSet<string> seenSkillIds = new HashSet<string>(StringComparer.Ordinal);
-        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
         CharacterSkillLoadoutDatabase.CharacterSkillEntry skillEntry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(caster.characterId) : null;
+            CharacterSkillRuntimeState.GetEntry(caster.characterId, createIfMissing: false);
 
         if (skillEntry != null && skillEntry.memorizedSkillIds != null)
         {

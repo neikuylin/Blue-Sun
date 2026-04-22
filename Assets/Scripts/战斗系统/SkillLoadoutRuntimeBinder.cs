@@ -881,14 +881,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private CharacterSkillLoadoutDatabase.CharacterSkillEntry ResolveLoadoutEntry(string characterId)
     {
-        CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
-        if (database == null)
-        {
-            return null;
-        }
-
         string resolvedCharacterId = ResolveCharacterId(characterId);
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = CharacterSkillRuntimeState.GetEntry(resolvedCharacterId);
         if (EnableIdDebugLogs)
         {
             AppendDebugLine(
