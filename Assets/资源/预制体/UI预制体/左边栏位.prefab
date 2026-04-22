@@ -532,31 +532,7 @@ MonoBehaviour:
   m_Group: {fileID: 1748607321774292752}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1487115132279405282}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 8361299248331395861}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_IsOn: 0
 --- !u!114 &5683578497007791626
 MonoBehaviour:
@@ -572,7 +548,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   toggle: {fileID: 0}
   target: {fileID: 5613846113117389955}
-  extraTargets: []
+  extraTargets:
+  - {fileID: 1487115132279405282}
   reverseTarget: {fileID: 6082926070911785435}
   extraReverseTargets: []
 --- !u!1 &5384993971252248337
@@ -1051,31 +1028,7 @@ MonoBehaviour:
   m_Group: {fileID: 1748607321774292752}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 8361299248331395861}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 1487115132279405282}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_IsOn: 0
 --- !u!114 &1665515590548172878
 MonoBehaviour:
@@ -1091,7 +1044,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   toggle: {fileID: 0}
   target: {fileID: 5417962849648588070}
-  extraTargets: []
+  extraTargets:
+  - {fileID: 8361299248331395861}
   reverseTarget: {fileID: 3656563909849991516}
   extraReverseTargets: []
 --- !u!1 &7827143863227731748
