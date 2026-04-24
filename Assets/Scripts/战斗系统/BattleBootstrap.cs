@@ -90,62 +90,6 @@ public class BattleBootstrap : MonoBehaviour
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
     public static string CurrentDungeonNodeId => currentDungeonNodeId;
 
-    public static void CaptureSaveData(SaveGameData.DungeonSave target)
-    {
-        if (target == null)
-        {
-            return;
-        }
-
-        target.currentDungeonTemplateId = currentDungeonTemplateId;
-        target.currentDungeonNodeId = currentDungeonNodeId;
-        target.clearedRoomKeys.Clear();
-
-        foreach (KeyValuePair<string, RoomStateMemory> pair in roomStateMemories)
-        {
-            if (pair.Value == null || !pair.Value.encounterCleared)
-            {
-                continue;
-            }
-
-            target.clearedRoomKeys.Add(pair.Key);
-        }
-
-        target.clearedRoomKeys.Sort(System.StringComparer.Ordinal);
-    }
-
-    public static void ApplySaveData(SaveGameData.DungeonSave source)
-    {
-        ClearRoomStateMemories(destroyPreservedRuntimeRoots: true);
-
-        currentDungeonTemplateId = !string.IsNullOrWhiteSpace(source?.currentDungeonTemplateId)
-            ? source.currentDungeonTemplateId.Trim()
-            : DefaultDungeonTemplateId;
-        currentDungeonNodeId = !string.IsNullOrWhiteSpace(source?.currentDungeonNodeId)
-            ? source.currentDungeonNodeId.Trim()
-            : DefaultDungeonNodeId;
-        pendingEntranceDirection = null;
-
-        if (source == null || source.clearedRoomKeys == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < source.clearedRoomKeys.Count; i++)
-        {
-            string roomKey = source.clearedRoomKeys[i];
-            if (string.IsNullOrWhiteSpace(roomKey))
-            {
-                continue;
-            }
-
-            roomStateMemories[roomKey.Trim()] = new RoomStateMemory
-            {
-                encounterCleared = true
-            };
-        }
-    }
-
     public static void ResetSaveData()
     {
         ClearRoomStateMemories(destroyPreservedRuntimeRoots: true);

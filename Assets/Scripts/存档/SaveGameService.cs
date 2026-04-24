@@ -22,15 +22,13 @@ public static class SaveGameService
         SaveGameData data = new SaveGameData
         {
             version = CurrentVersion,
-            savedAtUtc = DateTime.UtcNow.ToString("O"),
-            currentSceneName = SceneManager.GetActiveScene().name
+            savedAtUtc = DateTime.UtcNow.ToString("O")
         };
 
         CharacterSelectionState.CaptureSaveData(data.characterSelection);
         InventoryShortcutRuntimeBinder.CaptureSaveData(data.inventory);
         CharacterSkillRuntimeState.CaptureSaveData(data.skills);
         EventRuntimeState.CaptureSaveData(data.events);
-        BattleBootstrap.CaptureSaveData(data.dungeon);
         return data;
     }
 
@@ -86,10 +84,7 @@ public static class SaveGameService
         }
 
         ApplySaveData(data);
-        string targetScene = string.IsNullOrWhiteSpace(data.currentSceneName)
-            ? NewGameSceneName
-            : data.currentSceneName.Trim();
-        SceneManager.LoadScene(targetScene);
+        SceneManager.LoadScene(NewGameSceneName);
         return true;
     }
 
@@ -120,7 +115,7 @@ public static class SaveGameService
         InventoryShortcutRuntimeBinder.ApplySaveData(data.inventory);
         CharacterSkillRuntimeState.ApplySaveData(data.skills);
         EventRuntimeState.ApplySaveData(data.events);
-        BattleBootstrap.ApplySaveData(data.dungeon);
+        BattleBootstrap.ResetSaveData();
     }
 
     public static bool DeleteDefaultSlot()

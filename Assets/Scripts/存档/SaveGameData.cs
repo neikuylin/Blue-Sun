@@ -6,12 +6,10 @@ public sealed class SaveGameData
 {
     public int version = 1;
     public string savedAtUtc = string.Empty;
-    public string currentSceneName = string.Empty;
     public CharacterSelectionSave characterSelection = new CharacterSelectionSave();
     public InventorySave inventory = new InventorySave();
     public SkillSave skills = new SkillSave();
     public EventSave events = new EventSave();
-    public DungeonSave dungeon = new DungeonSave();
 
     [Serializable]
     public sealed class CharacterSelectionSave
@@ -94,11 +92,4 @@ public sealed class SaveGameData
         public bool enabled;
     }
 
-    [Serializable]
-    public sealed class DungeonSave
-    {
-        public string currentDungeonTemplateId = string.Empty;
-        public string currentDungeonNodeId = string.Empty;
-        public List<string> clearedRoomKeys = new List<string>();
-    }
 }
