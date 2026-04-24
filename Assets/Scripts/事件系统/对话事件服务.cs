@@ -180,6 +180,6 @@ internal static class 对话事件服务
         }
 
         EventDatabase.EventEntry entry = database.FindEntry(eventId);
-        return entry != null && entry.enabled;
+        return entry != null && EventRuntimeState.IsEnabled(entry);
     }
 }

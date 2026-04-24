@@ -51,6 +51,95 @@ public sealed class CharacterSelectionState : MonoBehaviour
     public static string ActiveCharacterId => instance != null ? instance.activeCharacterId : string.Empty;
     public static IReadOnlyList<SlotSelection> SlotSelections => instance != null ? instance.slotSelections : Array.Empty<SlotSelection>();
 
+    public static void CaptureSaveData(SaveGameData.CharacterSelectionSave target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        target.activeCharacterId = instance != null ? instance.activeCharacterId : string.Empty;
+        target.slots.Clear();
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < instance.slotSelections.Count; i++)
+        {
+            SlotSelection slot = instance.slotSelections[i];
+            target.slots.Add(new SaveGameData.CharacterSlotSave
+            {
+                slotName = slot.slotName,
+                characterId = slot.characterId,
+                isMainSlot = slot.isMainSlot,
+                isActiveSlot = slot.isActiveSlot
+            });
+        }
+    }
+
+    public static void ApplySaveData(SaveGameData.CharacterSelectionSave source)
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.activeCharacterId = source != null ? source.activeCharacterId : string.Empty;
+        instance.slotSelections.Clear();
+
+        if (source == null || source.slots == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < source.slots.Count; i++)
+        {
+            SaveGameData.CharacterSlotSave slot = source.slots[i];
+            if (slot == null)
+            {
+                continue;
+            }
+
+            instance.slotSelections.Add(new SlotSelection
+            {
+                slotName = slot.slotName,
+                characterId = slot.characterId,
+                isMainSlot = slot.isMainSlot,
+                isActiveSlot = slot.isActiveSlot
+            });
+        }
+    }
+
+    public static void ResetSaveData()
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.activeCharacterId = string.Empty;
+        instance.slotSelections.Clear();
+        instance.grantedSkillSnapshots.Clear();
+        instance.weaponAttackPowerSnapshots.Clear();
+    }
+
     public static IReadOnlyList<string> GetCapturedGrantedSkills(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))

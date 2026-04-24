@@ -118,9 +118,10 @@ public sealed class CampCharacterEventBinder : MonoBehaviour
                 continue;
             }
 
-            if (target.gameObject.activeSelf != entry.enabled)
+            bool isEnabled = EventRuntimeState.IsEnabled(entry);
+            if (target.gameObject.activeSelf != isEnabled)
             {
-                target.gameObject.SetActive(entry.enabled);
+                target.gameObject.SetActive(isEnabled);
             }
         }
     }
@@ -148,7 +149,7 @@ public sealed class CampCharacterEventBinder : MonoBehaviour
 
             builder.Append(entry.eventId);
             builder.Append('=');
-            builder.Append(entry.enabled ? '1' : '0');
+            builder.Append(EventRuntimeState.IsEnabled(entry) ? '1' : '0');
             builder.Append(';');
         }
 

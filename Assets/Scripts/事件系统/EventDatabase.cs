@@ -71,7 +71,7 @@ public sealed class EventDatabase : ScriptableObject
     public bool IsEventEnabled(string eventId)
     {
         EventEntry entry = FindEntry(eventId);
-        return entry != null && entry.enabled;
+        return entry != null && EventRuntimeState.IsEnabled(entry);
     }
 
     public static EventDatabase LoadDefault()

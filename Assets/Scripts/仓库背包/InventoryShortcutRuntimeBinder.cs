@@ -237,6 +237,135 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         instance?.RefreshAllRuntimeWeaponModelsInternal();
     }
 
+    public static void CaptureSaveData(SaveGameData.InventorySave target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        target.warehouseSlots.Clear();
+        target.backpackSlots.Clear();
+        target.equipmentByCharacter.Clear();
+        target.equipmentUsableSlotCounts.Clear();
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        target.warehouseUsableSlotCount = instance.仓储状态.仓库可用槽位数量;
+        target.backpackUsableSlotCount = instance.仓储状态.背包可用槽位数量;
+        CopySlotsToSave(instance.仓储状态.仓库数据, target.warehouseSlots);
+        CopySlotsToSave(instance.仓储状态.背包数据, target.backpackSlots);
+
+        foreach (KeyValuePair<string, List<ItemSlotData>> pair in instance.仓储状态.角色装备数据)
+        {
+            SaveGameData.CharacterEquipmentSave equipmentSave = new SaveGameData.CharacterEquipmentSave
+            {
+                characterId = pair.Key
+            };
+            CopySlotsToSave(pair.Value, equipmentSave.slots);
+            target.equipmentByCharacter.Add(equipmentSave);
+        }
+
+        foreach (KeyValuePair<string, int> pair in instance.仓储状态.角色装备可用槽位数量)
+        {
+            target.equipmentUsableSlotCounts.Add(new SaveGameData.CharacterSlotCountSave
+            {
+                characterId = pair.Key,
+                usableSlotCount = pair.Value
+            });
+        }
+    }
+
+    public static void ApplySaveData(SaveGameData.InventorySave source)
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.仓储状态.清空运行时状态();
+
+        if (source != null)
+        {
+            CopySlotsFromSave(source.warehouseSlots, instance.仓储状态.仓库数据);
+            CopySlotsFromSave(source.backpackSlots, instance.仓储状态.背包数据);
+
+            if (source.equipmentByCharacter != null)
+            {
+                for (int i = 0; i < source.equipmentByCharacter.Count; i++)
+                {
+                    SaveGameData.CharacterEquipmentSave savedEquipment = source.equipmentByCharacter[i];
+                    if (savedEquipment == null || string.IsNullOrWhiteSpace(savedEquipment.characterId))
+                    {
+                        continue;
+                    }
+
+                    List<ItemSlotData> equipmentData = instance.GetEquipmentDataForCharacter(savedEquipment.characterId, createIfMissing: true);
+                    equipmentData.Clear();
+                    CopySlotsFromSave(savedEquipment.slots, equipmentData);
+                    instance.RebuildEquipmentFootprintOccupancy(equipmentData);
+                }
+            }
+
+            if (source.warehouseUsableSlotCount >= 0)
+            {
+                instance.仓储状态.设置可用槽位数量(SlotKind.Warehouse, null, source.warehouseUsableSlotCount);
+            }
+
+            if (source.backpackUsableSlotCount >= 0)
+            {
+                instance.仓储状态.设置可用槽位数量(SlotKind.Backpack, null, source.backpackUsableSlotCount);
+            }
+
+            if (source.equipmentUsableSlotCounts != null)
+            {
+                for (int i = 0; i < source.equipmentUsableSlotCounts.Count; i++)
+                {
+                    SaveGameData.CharacterSlotCountSave countSave = source.equipmentUsableSlotCounts[i];
+                    if (countSave == null || string.IsNullOrWhiteSpace(countSave.characterId) || countSave.usableSlotCount < 0)
+                    {
+                        continue;
+                    }
+
+                    instance.仓储状态.设置可用槽位数量(SlotKind.Equipment, countSave.characterId, countSave.usableSlotCount);
+                }
+            }
+        }
+
+        instance.RefreshAll();
+        instance.RefreshAllRuntimeWeaponModelsInternal();
+    }
+
+    public static void ResetSaveData()
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        if (instance == null)
+        {
+            return;
+        }
+
+        instance.仓储状态.清空运行时状态();
+        instance.RefreshAll();
+        instance.RefreshAllRuntimeWeaponModelsInternal();
+    }
+
     public static List<ItemSlotSnapshot> GetBackpackSnapshots()
     {
         return instance != null ? BuildSnapshots(instance.仓储状态.背包数据) : new List<ItemSlotSnapshot>();
@@ -496,6 +625,81 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static void CopySlotsToSave(List<ItemSlotData> source, List<SaveGameData.ItemSlotSave> target)
+    {
+        if (source == null || target == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < source.Count; i++)
+        {
+            ItemSlotData slot = source[i];
+            target.Add(new SaveGameData.ItemSlotSave
+            {
+                itemId = slot.itemId,
+                count = slot.count,
+                maxStack = slot.maxStack,
+                isRotated = slot.isRotated,
+                isFootprintExtension = slot.isFootprintExtension,
+                primarySlotIndex = slot.primarySlotIndex
+            });
+        }
+    }
+
+    private static void CopySlotsFromSave(List<SaveGameData.ItemSlotSave> source, List<ItemSlotData> target)
+    {
+        if (source == null || target == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < source.Count; i++)
+        {
+            SaveGameData.ItemSlotSave slot = source[i];
+            target.Add(ConvertSlotFromSave(slot));
+        }
+    }
+
+    private static ItemSlotData ConvertSlotFromSave(SaveGameData.ItemSlotSave source)
+    {
+        if (source == null)
+        {
+            return default;
+        }
+
+        if (source.isFootprintExtension)
+        {
+            return new ItemSlotData
+            {
+                isFootprintExtension = true,
+                primarySlotIndex = Mathf.Max(0, source.primarySlotIndex)
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(source.itemId) && source.count <= 0)
+        {
+            return default;
+        }
+
+        ItemDatabase.ItemEntry entry = ResolveItemEntry(source.itemId);
+        if (entry == null)
+        {
+            Debug.LogError($"存档：物品 ID 不存在，无法读档：{source.itemId}");
+            return default;
+        }
+
+        return PrepareItemSlotDataForStorage(new ItemSlotData
+        {
+            itemId = source.itemId,
+            icon = ResolveDisplaySpriteFromPrefab(entry.prefab),
+            count = source.count,
+            maxStack = source.maxStack,
+            isRotated = source.isRotated,
+            primarySlotIndex = source.primarySlotIndex
+        }, $"存档物品:{source.itemId}");
     }
 
     private static int ResolveMaxStack(string itemId, int fallback)

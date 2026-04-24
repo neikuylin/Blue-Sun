@@ -734,7 +734,7 @@ public class CharacterSelectRuntimeBinder : MonoBehaviour
 
         string eventId = OptionalTeammateEventPrefix + characterId;
         EventDatabase.EventEntry entry = eventDatabase.FindEntry(eventId);
-        return entry == null || entry.enabled;
+        return entry == null || EventRuntimeState.IsEnabled(entry);
     }
 }
 
