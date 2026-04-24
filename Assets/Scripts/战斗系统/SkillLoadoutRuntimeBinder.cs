@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -17,6 +18,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private const string GrantedSlotNamePrefix = "__GrantedSkillSlot_";
     private const string MemorizedSlotNamePrefix = "__MemorizedSkillSlot_";
     private const string DefaultCharacterId = "\u73a9\u5bb6";
+    private const bool EnableIdDebugLogs = true;
 
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
     private static readonly Color EnabledSkillColor = SkillUsabilityUtility.EnabledSkillColor;
@@ -111,6 +113,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private Coroutine deferredRefreshCoroutine;
     private DragRef dragSource;
     private SkillSlotWidget dragSourceWidget;
+    private readonly List<string> pendingDebugLines = new List<string>();
+    private string pendingDebugSessionName = string.Empty;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -159,6 +163,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private void BindScene()
     {
+        BeginDebugSession("BindScene");
         skillDatabase = BattleSkillDatabase.LoadDefault();
         skillBarBinding = SkillBarBinding.FindBindingInActiveScene();
         skillWarehouseBinding = SkillWarehouseBinding.FindBindingInActiveScene();
@@ -166,8 +171,9 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         warehouseContainer = ResolveWarehouseContainer();
         CollectJourneySkillSlots();
         CollectWarehouseSkillSlots();
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
-        Debug.Log($"{DebugLogPrefix} BindScene scene={SceneManager.GetActiveScene().name}, currentCharacterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext("BindScene", rawCharacterId, currentCharacterId);
         if (deferredRefreshCoroutine != null)
         {
             StopCoroutine(deferredRefreshCoroutine);
@@ -179,36 +185,62 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     {
         yield return null;
         deferredRefreshCoroutine = null;
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext("DeferredRefreshAfterBinding", rawCharacterId, currentCharacterId);
         RefreshAll("DeferredRefreshAfterBinding");
+        FlushDebugSession("DeferredRefreshAfterBinding");
     }
 
     private void OnGlobalRefreshRequested()
     {
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        BeginDebugSession("OnGlobalRefreshRequested");
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext("OnGlobalRefreshRequested", rawCharacterId, currentCharacterId);
         RefreshAll("GlobalRefreshRequested");
+        FlushDebugSession("OnGlobalRefreshRequested");
     }
 
     private void OnCurrentCharacterRefreshRequested(string characterId)
     {
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        BeginDebugSession("OnCurrentCharacterRefreshRequested");
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext($"OnCurrentCharacterRefreshRequested(event={NormalizeDebugValue(characterId)})", rawCharacterId, currentCharacterId);
         RefreshAll($"CurrentCharacterRefreshRequested:{characterId}");
+        FlushDebugSession("OnCurrentCharacterRefreshRequested");
     }
 
     private void OnSkillLoadoutChanged(string characterId)
     {
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        EnsureDebugSession("OnSkillLoadoutChanged");
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext($"OnSkillLoadoutChanged(event={NormalizeDebugValue(characterId)})", rawCharacterId, currentCharacterId);
         RefreshAll($"SkillLoadoutChanged:{characterId}");
+        FlushDebugSession("OnSkillLoadoutChanged");
     }
 
     private void OnEquipmentChanged(string characterId)
     {
-        currentCharacterId = ResolveCharacterId(界面ID列表.当前ID);
+        BeginDebugSession("OnEquipmentChanged");
+        string rawCharacterId = 界面ID列表.当前ID;
+        currentCharacterId = ResolveCharacterId(rawCharacterId);
+        DebugLogIdContext($"OnEquipmentChanged(event={NormalizeDebugValue(characterId)})", rawCharacterId, currentCharacterId);
         RefreshAll($"EquipmentChanged:{characterId}");
+        FlushDebugSession("OnEquipmentChanged");
     }
 
     private void RefreshAll(string reason)
     {
+        if (EnableIdDebugLogs)
+        {
+            AppendDebugLine(
+                $"[RefreshAll] scene={SceneManager.GetActiveScene().name}, " +
+                $"currentCharacterId={NormalizeDebugValue(currentCharacterId)}, " +
+                $"journeySlotCount={journeySkillSlots.Count}, warehouseSlotCount={warehouseSkillSlots.Count}");
+        }
         RefreshJourneySkillSlots();
         RefreshWarehouseSkillSlots();
         LogLoadoutState(reason);
@@ -284,6 +316,15 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         int grantedSkillCount = grantedSkillIds.Count;
         int memorizedSlotCapacity = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int visibleSlotCount = grantedSkillCount + memorizedSlotCapacity;
+        if (EnableIdDebugLogs)
+        {
+            AppendDebugLine(
+                $"[RefreshJourneySkillSlots] scene={SceneManager.GetActiveScene().name}, " +
+                $"currentCharacterId={NormalizeDebugValue(currentCharacterId)}, " +
+                $"entryCharacterId={NormalizeDebugValue(entry != null ? entry.characterId : string.Empty)}, " +
+                $"grantedCount={grantedSkillCount}, memorizedCapacity={memorizedSlotCapacity}, " +
+                $"memorized={BuildDebugSkillList(entry != null ? entry.memorizedSkillIds : null)}");
+        }
         EnsureJourneySkillSlotCapacity(grantedSkillCount, memorizedSlotCapacity);
         CollectJourneySkillSlots();
         if (journeySkillSlots.Count == 0)
@@ -329,6 +370,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             ? entry.warehouseSkillIds.Count
             : 0;
         int visibleSlotCount = warehouseCount;
+        if (EnableIdDebugLogs)
+        {
+            AppendDebugLine(
+                $"[RefreshWarehouseSkillSlots] scene={SceneManager.GetActiveScene().name}, " +
+                $"currentCharacterId={NormalizeDebugValue(currentCharacterId)}, " +
+                $"entryCharacterId={NormalizeDebugValue(entry != null ? entry.characterId : string.Empty)}, " +
+                $"warehouseCount={warehouseCount}, warehouse={BuildDebugSkillList(entry != null ? entry.warehouseSkillIds : null)}");
+        }
 
         EnsureWarehouseSlotCapacity(visibleSlotCount);
         CollectWarehouseSkillSlots();
@@ -481,10 +530,12 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         if (!TrySwapSkillSlots(sourceWidget, targetWidget))
         {
             Debug.Log($"{DebugLogPrefix} HandleDrop rejected characterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
+            FlushDebugSession("HandleDrop.TrySwapSkillSlotsFailed");
             return;
         }
 
         Debug.Log($"{DebugLogPrefix} HandleDrop after characterId={currentCharacterId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
+        DebugLogLoadoutSnapshot("HandleDrop.AfterSwap");
         界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
@@ -496,15 +547,18 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
+        BeginDebugSession("HandlePointerClick.RightClickMove");
         SkillSlotWidget widget = ResolveWidget(surface, index);
         if (!TryHandleRightClickMove(widget))
         {
             Debug.Log($"{DebugLogPrefix} RightClickMove rejected characterId={currentCharacterId}, surface={(widget != null ? widget.surface.ToString() : "null")}, slotIndex={(widget != null ? widget.slotIndex : -1)}, skill={(widget != null ? widget.skillId : string.Empty)}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
+            FlushDebugSession("HandlePointerClick.TryHandleRightClickMoveFailed");
             return;
         }
 
         Debug.Log($"{DebugLogPrefix} RightClickMove applied characterId={currentCharacterId}, surface={widget.surface}, slotIndex={widget.slotIndex}, skill={widget.skillId}, state={CharacterSkillLoadoutDatabase.DescribeDatabaseEntry(currentCharacterId)}");
         eventData.Use();
+        DebugLogLoadoutSnapshot("HandlePointerClick.AfterRightClickMove");
         界面刷新中心.请求技能装配变更(currentCharacterId);
         ItemSoundUtility.PlaySkillMove();
     }
@@ -834,14 +888,18 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
     private CharacterSkillLoadoutDatabase.CharacterSkillEntry ResolveLoadoutEntry(string characterId)
     {
-        CharacterSkillLoadoutDatabase database = CharacterSkillLoadoutDatabase.LoadDefault();
-        if (database == null)
-        {
-            return null;
-        }
-
         string resolvedCharacterId = ResolveCharacterId(characterId);
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = database.GetOrCreateEntry(resolvedCharacterId);
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = CharacterSkillRuntimeState.GetEntry(resolvedCharacterId);
+        if (EnableIdDebugLogs)
+        {
+            AppendDebugLine(
+                $"[ResolveLoadoutEntry] scene={SceneManager.GetActiveScene().name}, " +
+                $"inputCharacterId={NormalizeDebugValue(characterId)}, " +
+                $"resolvedCharacterId={NormalizeDebugValue(resolvedCharacterId)}, " +
+                $"entryCharacterId={NormalizeDebugValue(entry != null ? entry.characterId : string.Empty)}, " +
+                $"memorized={BuildDebugSkillList(entry != null ? entry.memorizedSkillIds : null)}, " +
+                $"warehouse={BuildDebugSkillList(entry != null ? entry.warehouseSkillIds : null)}");
+        }
         return entry;
     }
 
@@ -1118,6 +1176,121 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         Debug.Log(
             $"{DebugLogPrefix} RefreshAll reason={reason}, scene={SceneManager.GetActiveScene().name}, currentCharacterId={currentCharacterId}, " +
             $"journeySlotCount={journeySkillSlots.Count}, warehouseSlotCount={warehouseSkillSlots.Count}, state={CharacterSkillLoadoutDatabase.DescribeEntry(entry)}");
+    }
+
+    private void DebugLogIdContext(string source, string rawCharacterId, string resolvedCharacterId)
+    {
+        if (!EnableIdDebugLogs)
+        {
+            return;
+        }
+
+        AppendDebugLine(
+            $"[{source}] scene={SceneManager.GetActiveScene().name}, " +
+            $"rawCurrentId={NormalizeDebugValue(rawCharacterId)}, " +
+            $"resolvedCurrentId={NormalizeDebugValue(resolvedCharacterId)}");
+    }
+
+    private void DebugLogLoadoutSnapshot(string source)
+    {
+        if (!EnableIdDebugLogs)
+        {
+            return;
+        }
+
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
+        AppendDebugLine(
+            $"[{source}] scene={SceneManager.GetActiveScene().name}, " +
+            $"currentCharacterId={NormalizeDebugValue(currentCharacterId)}, " +
+            $"entryCharacterId={NormalizeDebugValue(entry != null ? entry.characterId : string.Empty)}, " +
+            $"memorized={BuildDebugSkillList(entry != null ? entry.memorizedSkillIds : null)}, " +
+            $"warehouse={BuildDebugSkillList(entry != null ? entry.warehouseSkillIds : null)}");
+    }
+
+    private void BeginDebugSession(string sessionName)
+    {
+        if (!EnableIdDebugLogs)
+        {
+            return;
+        }
+
+        pendingDebugLines.Clear();
+        pendingDebugSessionName = sessionName ?? string.Empty;
+        AppendDebugLine($"[SessionStart] {NormalizeDebugValue(pendingDebugSessionName)}");
+    }
+
+    private void EnsureDebugSession(string sessionName)
+    {
+        if (!EnableIdDebugLogs)
+        {
+            return;
+        }
+
+        if (pendingDebugLines.Count > 0)
+        {
+            return;
+        }
+
+        BeginDebugSession(sessionName);
+    }
+
+    private void AppendDebugLine(string line)
+    {
+        if (!EnableIdDebugLogs)
+        {
+            return;
+        }
+
+        pendingDebugLines.Add(line ?? string.Empty);
+    }
+
+    private void FlushDebugSession(string flushReason)
+    {
+        if (!EnableIdDebugLogs || pendingDebugLines.Count == 0)
+        {
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.Append("[技能调试汇总]");
+        builder.Append(" session=").Append(NormalizeDebugValue(pendingDebugSessionName));
+        builder.Append(" flush=").Append(NormalizeDebugValue(flushReason));
+
+        for (int i = 0; i < pendingDebugLines.Count; i++)
+        {
+            builder.Append("\n");
+            builder.Append(i + 1).Append(". ").Append(pendingDebugLines[i]);
+        }
+
+        Debug.Log(builder.ToString());
+        pendingDebugLines.Clear();
+        pendingDebugSessionName = string.Empty;
+    }
+
+    private static string BuildDebugSkillList(List<string> skillIds)
+    {
+        if (skillIds == null)
+        {
+            return "<null>";
+        }
+
+        if (skillIds.Count == 0)
+        {
+            return "[]";
+        }
+
+        string[] parts = new string[skillIds.Count];
+        for (int i = 0; i < skillIds.Count; i++)
+        {
+            parts[i] = $"{i}:{NormalizeDebugValue(skillIds[i])}";
+        }
+
+        return "[" + string.Join(", ", parts) + "]";
+    }
+
+    private static string NormalizeDebugValue(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "<empty>" : value.Trim();
     }
 
     private static int ResolveVisibleSkillMemorySlotCount(string characterId)

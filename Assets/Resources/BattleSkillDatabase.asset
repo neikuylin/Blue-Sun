@@ -19,6 +19,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 0}
     soundDelayFrame: 0
     enableHitFeel: 0
     compensateActionMotion: 0
@@ -118,6 +119,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     soundDelayFrame: 0
     enableHitFeel: 1
     compensateActionMotion: 0
@@ -178,6 +180,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     soundDelayFrame: 0
     enableHitFeel: 1
     compensateActionMotion: 0
@@ -238,6 +241,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 0}
     soundDelayFrame: 0
     enableHitFeel: 0
     compensateActionMotion: 0
@@ -285,6 +289,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 0}
     soundDelayFrame: 0
     enableHitFeel: 0
     compensateActionMotion: 0
@@ -323,6 +328,7 @@ MonoBehaviour:
     actionYawOffset: 0
     actionSound: {fileID: 0}
     actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 0}
     soundDelayFrame: 0
     enableHitFeel: 0
     compensateActionMotion: 0

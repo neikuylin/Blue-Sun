@@ -19,6 +19,21 @@ internal sealed class 仓储状态服务
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 仓库数据 => warehouseData;
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 背包数据 => backpackData;
     public IReadOnlyDictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> 角色装备数据 => equipmentDataByCharacter;
+    public IReadOnlyDictionary<string, int> 角色装备可用槽位数量 => equipmentUsableSlotCounts;
+
+    public int 仓库可用槽位数量 => warehouseUsableSlotCount;
+    public int 背包可用槽位数量 => backpackUsableSlotCount;
+
+    public void 清空运行时状态()
+    {
+        warehouseData.Clear();
+        backpackData.Clear();
+        equipmentDataByCharacter.Clear();
+        boundEnemyEquipmentDataCache.Clear();
+        equipmentUsableSlotCounts.Clear();
+        warehouseUsableSlotCount = -1;
+        backpackUsableSlotCount = -1;
+    }
 
     public static void 确保容量(List<InventoryShortcutRuntimeBinder.ItemSlotData> data, int size)
     {
@@ -257,7 +272,7 @@ internal sealed class 仓储状态服务
             }
 
             foundAnyMatchingEvent = true;
-            if (entry.enabled)
+            if (EventRuntimeState.IsEnabled(entry))
             {
                 resolvedCount = backpackLevelSlotCounts[i];
             }

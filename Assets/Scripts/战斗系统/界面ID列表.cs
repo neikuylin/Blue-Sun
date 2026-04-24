@@ -144,7 +144,7 @@ public static class 界面ID列表
             EventDatabase.EventEntry entry = eventDatabase.Entries[i];
             if (entry == null ||
                 string.IsNullOrWhiteSpace(entry.eventId) ||
-                !entry.enabled ||
+                !EventRuntimeState.IsEnabled(entry) ||
                 !entry.eventId.StartsWith(OptionalTeammateEventPrefix, StringComparison.Ordinal))
             {
                 continue;
@@ -180,7 +180,7 @@ public static class 界面ID列表
                 EventDatabase.EventEntry entry = eventDatabase.Entries[i];
                 if (entry == null ||
                     string.IsNullOrWhiteSpace(entry.eventId) ||
-                    !entry.enabled ||
+                    !EventRuntimeState.IsEnabled(entry) ||
                     !entry.eventId.StartsWith(OptionalTeammateEventPrefix, StringComparison.Ordinal))
                 {
                     continue;

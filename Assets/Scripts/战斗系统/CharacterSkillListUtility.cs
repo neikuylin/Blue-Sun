@@ -35,9 +35,7 @@ public static class CharacterSkillListUtility
         }
 
         List<string> result = new List<string>();
-        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(characterId) : null;
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = CharacterSkillRuntimeState.GetEntry(characterId, createIfMissing: false);
         if (entry != null && entry.memorizedSkillIds != null)
         {
             for (int i = 0; i < entry.memorizedSkillIds.Count; i++)
@@ -57,9 +55,7 @@ public static class CharacterSkillListUtility
         }
 
         List<string> result = new List<string>();
-        CharacterSkillLoadoutDatabase loadoutDatabase = CharacterSkillLoadoutDatabase.LoadDefault();
-        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry =
-            loadoutDatabase != null ? loadoutDatabase.FindEntry(characterId) : null;
+        CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = CharacterSkillRuntimeState.GetEntry(characterId, createIfMissing: false);
         if (entry != null && entry.warehouseSkillIds != null)
         {
             for (int i = 0; i < entry.warehouseSkillIds.Count; i++)
