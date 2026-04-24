@@ -40,6 +40,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private string newTemplateId = string.Empty;
     private string newTemplateName = string.Empty;
     private 绘制工具 currentTool = 绘制工具.可用格;
+    private int selectedPropVisualIndex = -1;
     private 拖拽模式 currentDragMode = 拖拽模式.无;
     private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
 
@@ -162,7 +163,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 return;
             }
 
-            DrawToolButtons();
+            DrawToolButtons(entry);
             EditorGUILayout.Space(4f);
             EditorGUILayout.HelpBox(
                 "左键点格切换可用格，左键拖拽连续涂格，右键拖拽连续擦除。当前工具决定点击时设置哪种点位。",
@@ -179,7 +180,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
     }
 
-    private void DrawToolButtons()
+    private void DrawToolButtons(格子模板数据库.格子模板条目 entry)
     {
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -195,6 +196,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
             DrawToolButton(绘制工具.玩家西门出生点, "玩家西门出生点");
             DrawToolButton(绘制工具.玩家北门出生点, "玩家北门出生点");
         }
+
+        DrawPropPlacementButtons(entry);
     }
 
     private void DrawToolButton(绘制工具 tool, string label)
@@ -209,9 +212,49 @@ public sealed class 格子编辑器窗口 : EditorWindow
         if (GUILayout.Button(label, GUILayout.Height(28f)))
         {
             currentTool = tool;
+            selectedPropVisualIndex = -1;
         }
 
         GUI.backgroundColor = previousColor;
+    }
+
+    private void DrawPropPlacementButtons(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.propVisuals == null || entry.propVisuals.Count == 0)
+        {
+            return;
+        }
+
+        EditorGUILayout.Space(2f);
+        EditorGUILayout.LabelField("物件画笔", EditorStyles.miniBoldLabel);
+        int columns = 3;
+        for (int i = 0; i < entry.propVisuals.Count; i += columns)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                for (int j = 0; j < columns && i + j < entry.propVisuals.Count; j++)
+                {
+                    int index = i + j;
+                    格子模板数据库.PropVisualEntry prop = entry.propVisuals[index];
+                    string label = prop != null && !string.IsNullOrWhiteSpace(prop.propName)
+                        ? prop.propName.Trim()
+                        : $"物件{index + 1}";
+
+                    Color previousColor = GUI.backgroundColor;
+                    if (selectedPropVisualIndex == index)
+                    {
+                        GUI.backgroundColor = new Color(0.85f, 0.48f, 0.18f, 1f);
+                    }
+
+                    if (GUILayout.Button(label, GUILayout.Height(26f)))
+                    {
+                        selectedPropVisualIndex = index;
+                    }
+
+                    GUI.backgroundColor = previousColor;
+                }
+            }
+        }
     }
 
     private void DrawGridCanvas(格子模板数据库.格子模板条目 entry, Rect canvasRect)
@@ -239,6 +282,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 DrawCellMarker(cellRect, "南", entry.hasSouthDoorPlayerSpawn && entry.southDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.90f, 0.45f, 0.16f));
                 DrawCellMarker(cellRect, "西", entry.hasWestDoorPlayerSpawn && entry.westDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.70f, 0.34f, 0.92f));
                 DrawCellMarker(cellRect, "北", entry.hasNorthDoorPlayerSpawn && entry.northDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.18f, 0.78f, 0.78f));
+                DrawCellMarker(cellRect, "物", HasPropVisualAtCell(entry, cell), new Color(0.85f, 0.48f, 0.18f), 1);
+                DrawCellMarker(cellRect, "墙", HasWallVisualAtCell(entry, cell), new Color(0.55f, 0.55f, 0.62f), 2);
             }
         }
 
@@ -274,14 +319,14 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
     }
 
-    private void DrawCellMarker(Rect cellRect, string label, bool active, Color color)
+    private void DrawCellMarker(Rect cellRect, string label, bool active, Color color, int markerSlot = 0)
     {
         if (!active)
         {
             return;
         }
 
-        Rect badgeRect = new Rect(cellRect.x + 4f, cellRect.y + 4f, 20f, 16f);
+        Rect badgeRect = new Rect(cellRect.x + 4f + markerSlot * 22f, cellRect.y + 4f, 20f, 16f);
         EditorGUI.DrawRect(badgeRect, color);
         GUIStyle style = new GUIStyle(EditorStyles.miniBoldLabel)
         {
@@ -454,6 +499,9 @@ public sealed class 格子编辑器窗口 : EditorWindow
             entry.height = Mathf.Max(1, EditorGUILayout.IntField("画布高度", entry.height));
 
             EditorGUILayout.Space(6f);
+            DrawRoomVisualSettings(entry);
+
+            EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("工具说明", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox($"当前工具：{ResolveToolLabel(currentTool)}", MessageType.None);
 
@@ -503,6 +551,156 @@ public sealed class 格子编辑器窗口 : EditorWindow
         int selectedIndex = GetSelectedEncounterPresetIndex(presetIds);
         int newIndex = EditorGUILayout.Popup("预览遭遇战预设", selectedIndex, presetLabels.ToArray());
         selectedEncounterPresetId = newIndex >= 0 && newIndex < presetIds.Count ? presetIds[newIndex] : string.Empty;
+    }
+
+    private void DrawRoomVisualSettings(格子模板数据库.格子模板条目 entry)
+    {
+        格子模板数据库.EnsureValidEntry(entry);
+
+        EditorGUILayout.LabelField("房间美术", EditorStyles.boldLabel);
+        entry.defaultFloorPrefab = (GameObject)EditorGUILayout.ObjectField("默认地板Prefab", entry.defaultFloorPrefab, typeof(GameObject), false);
+        entry.alignFloorToBattleCamera = EditorGUILayout.Toggle("地板平行战斗相机", entry.alignFloorToBattleCamera);
+        entry.floorLocalOffset = EditorGUILayout.Vector3Field("地板偏移", entry.floorLocalOffset);
+
+        EditorGUILayout.Space(4f);
+        DrawPropVisualList(entry);
+
+        EditorGUILayout.Space(4f);
+        DrawWallVisualList(entry);
+    }
+
+    private void DrawPropVisualList(格子模板数据库.格子模板条目 entry)
+    {
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("物件", EditorStyles.boldLabel);
+            if (GUILayout.Button("新增物件"))
+            {
+                Undo.RecordObject(EnsureDatabase(), "新增格子物件");
+                entry.propVisuals.Add(new 格子模板数据库.PropVisualEntry
+                {
+                    propName = $"物件{entry.propVisuals.Count + 1}",
+                    anchorCell = new 格子模板数据库.CellPosition(0, 0)
+                });
+                MarkDirtyAndRepaint();
+            }
+
+            for (int i = 0; i < entry.propVisuals.Count; i++)
+            {
+                格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+                if (prop == null)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.VerticalScope("box"))
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        prop.propName = EditorGUILayout.TextField("名称", prop.propName);
+                        if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                        {
+                            Undo.RecordObject(EnsureDatabase(), "删除格子物件");
+                            entry.propVisuals.RemoveAt(i);
+                            MarkDirtyAndRepaint();
+                            return;
+                        }
+                    }
+
+                    prop.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", prop.prefab, typeof(GameObject), false);
+                    prop.anchorCell = DrawCellPositionField("锚点格", prop.anchorCell);
+                    prop.localOffset = EditorGUILayout.Vector3Field("美术偏移", prop.localOffset);
+                    prop.alignToBattleCamera = EditorGUILayout.Toggle("平行战斗相机", prop.alignToBattleCamera);
+                    prop.blocksMovement = EditorGUILayout.Toggle("阻挡移动", prop.blocksMovement);
+                    DrawBlockedCellList(prop);
+                }
+            }
+        }
+    }
+
+    private void DrawBlockedCellList(格子模板数据库.PropVisualEntry prop)
+    {
+        if (prop.blockedCells == null)
+        {
+            prop.blockedCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        EditorGUILayout.LabelField("占格", EditorStyles.miniBoldLabel);
+        EditorGUILayout.HelpBox("为空时默认阻挡锚点格。需要2x2柱子时，把4个格子都加进来。", MessageType.None);
+
+        if (GUILayout.Button("新增占格"))
+        {
+            prop.blockedCells.Add(prop.anchorCell);
+        }
+
+        for (int i = 0; i < prop.blockedCells.Count; i++)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                prop.blockedCells[i] = DrawCellPositionField($"占格 {i + 1}", prop.blockedCells[i]);
+                if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                {
+                    prop.blockedCells.RemoveAt(i);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void DrawWallVisualList(格子模板数据库.格子模板条目 entry)
+    {
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("墙/门", EditorStyles.boldLabel);
+            if (GUILayout.Button("新增墙/门"))
+            {
+                Undo.RecordObject(EnsureDatabase(), "新增格子墙");
+                entry.wallVisuals.Add(new 格子模板数据库.WallVisualEntry
+                {
+                    wallName = $"墙{entry.wallVisuals.Count + 1}",
+                    cell = new 格子模板数据库.CellPosition(0, 0),
+                    side = 格子模板数据库.WallSide.North
+                });
+                MarkDirtyAndRepaint();
+            }
+
+            for (int i = 0; i < entry.wallVisuals.Count; i++)
+            {
+                格子模板数据库.WallVisualEntry wall = entry.wallVisuals[i];
+                if (wall == null)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.VerticalScope("box"))
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        wall.wallName = EditorGUILayout.TextField("名称", wall.wallName);
+                        if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                        {
+                            Undo.RecordObject(EnsureDatabase(), "删除格子墙");
+                            entry.wallVisuals.RemoveAt(i);
+                            MarkDirtyAndRepaint();
+                            return;
+                        }
+                    }
+
+                    wall.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", wall.prefab, typeof(GameObject), false);
+                    wall.cell = DrawCellPositionField("挂在哪格", wall.cell);
+                    wall.side = (格子模板数据库.WallSide)EditorGUILayout.EnumPopup("边", wall.side);
+                    wall.localOffset = EditorGUILayout.Vector3Field("美术偏移", wall.localOffset);
+                    wall.alignToBattleCamera = EditorGUILayout.Toggle("平行战斗相机", wall.alignToBattleCamera);
+                }
+            }
+        }
+    }
+
+    private static 格子模板数据库.CellPosition DrawCellPositionField(string label, 格子模板数据库.CellPosition cell)
+    {
+        Vector2Int value = cell.ToVector2Int();
+        value = EditorGUILayout.Vector2IntField(label, value);
+        return 格子模板数据库.CellPosition.FromVector2Int(value);
     }
 
     private void DrawEnemySpawnSlotList(格子模板数据库.格子模板条目 entry, RoomEnemyPresetDatabase encounterDatabase)
@@ -746,6 +944,49 @@ public sealed class 格子编辑器窗口 : EditorWindow
         return null;
     }
 
+    private static bool HasPropVisualAtCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null)
+            {
+                continue;
+            }
+
+            if (prop.anchorCell.ToVector2Int() == target)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasWallVisualAtCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.wallVisuals == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.wallVisuals.Count; i++)
+        {
+            格子模板数据库.WallVisualEntry wall = entry.wallVisuals[i];
+            if (wall != null && wall.cell.ToVector2Int() == target)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void ToggleEnemySpawnSlot(格子模板数据库.格子模板条目 entry, Vector2Int target)
     {
         格子模板数据库.EnemySpawnSlot existing = FindEnemySpawnSlot(entry, target);
@@ -878,6 +1119,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
     {
         ClampCellListToBounds(entry.walkableCells, entry);
         ClampEnemySpawnSlotsToBounds(entry);
+        ClampPropVisualsToBounds(entry);
+        ClampWallVisualsToBounds(entry);
         ClampSpawnToBounds(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, entry);
@@ -926,6 +1169,49 @@ public sealed class 格子编辑器窗口 : EditorWindow
             if (!IsCellInside(entry, cell) || !deduplicated.Add(cell))
             {
                 entry.enemySpawnSlots.RemoveAt(i);
+            }
+        }
+    }
+
+    private static void ClampPropVisualsToBounds(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return;
+        }
+
+        for (int i = entry.propVisuals.Count - 1; i >= 0; i--)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null)
+            {
+                entry.propVisuals.RemoveAt(i);
+                continue;
+            }
+
+            if (!IsCellInside(entry, prop.anchorCell.ToVector2Int()))
+            {
+                entry.propVisuals.RemoveAt(i);
+                continue;
+            }
+
+            ClampCellListToBounds(prop.blockedCells, entry);
+        }
+    }
+
+    private static void ClampWallVisualsToBounds(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.wallVisuals == null)
+        {
+            return;
+        }
+
+        for (int i = entry.wallVisuals.Count - 1; i >= 0; i--)
+        {
+            格子模板数据库.WallVisualEntry wall = entry.wallVisuals[i];
+            if (wall == null || !IsCellInside(entry, wall.cell.ToVector2Int()))
+            {
+                entry.wallVisuals.RemoveAt(i);
             }
         }
     }

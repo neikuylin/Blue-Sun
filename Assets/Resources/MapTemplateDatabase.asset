@@ -18,7 +18,7 @@ MonoBehaviour:
     nodes:
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 767, y: 89}
+      position: {x: 767, y: 88}
       roomTypeId: encounter_battle
       encounterPresetId: "\u7A7A\u623F\u95F4"
       battleGridTemplateId: "\u51FA\u751F\u5730"

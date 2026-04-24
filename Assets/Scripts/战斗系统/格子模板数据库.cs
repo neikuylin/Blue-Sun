@@ -38,6 +38,37 @@ public sealed class 格子模板数据库 : ScriptableObject
         public int encounterEnemyIndex = -1;
     }
 
+    public enum WallSide
+    {
+        East = 0,
+        South = 1,
+        West = 2,
+        North = 3
+    }
+
+    [Serializable]
+    public sealed class PropVisualEntry
+    {
+        public string propName = string.Empty;
+        public GameObject prefab;
+        public CellPosition anchorCell;
+        public Vector3 localOffset = Vector3.zero;
+        public bool alignToBattleCamera = true;
+        public bool blocksMovement = true;
+        public List<CellPosition> blockedCells = new List<CellPosition>();
+    }
+
+    [Serializable]
+    public sealed class WallVisualEntry
+    {
+        public string wallName = string.Empty;
+        public GameObject prefab;
+        public CellPosition cell;
+        public WallSide side = WallSide.North;
+        public Vector3 localOffset = Vector3.zero;
+        public bool alignToBattleCamera = true;
+    }
+
     [Serializable]
     public sealed class 格子模板条目
     {
@@ -47,6 +78,12 @@ public sealed class 格子模板数据库 : ScriptableObject
         public int height = 20;
         public List<CellPosition> walkableCells = new List<CellPosition>();
         public List<EnemySpawnSlot> enemySpawnSlots = new List<EnemySpawnSlot>();
+        public GameObject defaultFloorPrefab;
+        public Vector3 floorLocalOffset = Vector3.zero;
+        public bool alignFloorToBattleCamera = true;
+        public bool stretchFloorToCell = true;
+        public List<PropVisualEntry> propVisuals = new List<PropVisualEntry>();
+        public List<WallVisualEntry> wallVisuals = new List<WallVisualEntry>();
         public bool hasDefaultPlayerSpawn;
         public CellPosition defaultPlayerSpawnCell;
         public bool hasEastDoorPlayerSpawn;
@@ -161,6 +198,16 @@ public sealed class 格子模板数据库 : ScriptableObject
             entry.enemySpawnSlots = new List<EnemySpawnSlot>();
         }
 
+        if (entry.propVisuals == null)
+        {
+            entry.propVisuals = new List<PropVisualEntry>();
+        }
+
+        if (entry.wallVisuals == null)
+        {
+            entry.wallVisuals = new List<WallVisualEntry>();
+        }
+
         entry.width = Mathf.Max(1, entry.width);
         entry.height = Mathf.Max(1, entry.height);
 
@@ -181,6 +228,41 @@ public sealed class 格子模板数据库 : ScriptableObject
             if (string.IsNullOrWhiteSpace(slot.slotName))
             {
                 slot.slotName = $"敌人位{i + 1}";
+            }
+        }
+
+        for (int i = entry.propVisuals.Count - 1; i >= 0; i--)
+        {
+            PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null)
+            {
+                entry.propVisuals.RemoveAt(i);
+                continue;
+            }
+
+            if (prop.blockedCells == null)
+            {
+                prop.blockedCells = new List<CellPosition>();
+            }
+
+            if (string.IsNullOrWhiteSpace(prop.propName))
+            {
+                prop.propName = $"物件{i + 1}";
+            }
+        }
+
+        for (int i = entry.wallVisuals.Count - 1; i >= 0; i--)
+        {
+            WallVisualEntry wall = entry.wallVisuals[i];
+            if (wall == null)
+            {
+                entry.wallVisuals.RemoveAt(i);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(wall.wallName))
+            {
+                wall.wallName = $"墙{i + 1}";
             }
         }
     }

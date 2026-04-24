@@ -285,18 +285,17 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
-        GameObject roomContentPrefab = ResolveBattleRoomContentPrefab();
-        if (roomContentPrefab == null)
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        if (gridTemplate == null || !HasTemplateRoomVisuals(gridTemplate))
         {
             return;
         }
 
-        GameObject instance = Instantiate(roomContentPrefab, runtimeRoot, false);
-        instance.name = RoomContentRootName;
-        instance.transform.localPosition = roomContentPrefab.transform.localPosition;
-        instance.transform.localRotation = roomContentPrefab.transform.localRotation;
-        instance.transform.localScale = roomContentPrefab.transform.localScale;
-        ConfigureRoomDirectionButtons(roomNode, roomContentPrefab.transform, instance.transform);
+        GameObject contentRoot = new GameObject(RoomContentRootName);
+        contentRoot.transform.SetParent(runtimeRoot, false);
+        CreateFloorVisuals(gridTemplate, contentRoot.transform);
+        CreatePropVisuals(gridTemplate, contentRoot.transform);
+        CreateWallVisuals(gridTemplate, roomNode, contentRoot.transform);
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -315,10 +314,223 @@ public class BattleBootstrap : MonoBehaviour
 
         grid.width = Mathf.Max(1, gridTemplate.width);
         grid.height = Mathf.Max(1, gridTemplate.height);
-        grid.SetValidCells(ConvertCells(gridTemplate.walkableCells));
+        grid.SetValidCells(BuildRuntimeWalkableCells(gridTemplate));
         grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
+    }
+
+    private void CreateFloorVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
+    {
+        if (gridTemplate == null || contentRoot == null || gridTemplate.defaultFloorPrefab == null || gridTemplate.walkableCells == null)
+        {
+            return;
+        }
+
+        Transform floorRoot = CreateChildRoot(contentRoot, "Floor");
+        for (int i = 0; i < gridTemplate.walkableCells.Count; i++)
+        {
+            Vector2Int cell = gridTemplate.walkableCells[i].ToVector2Int();
+            GameObject instance = Instantiate(gridTemplate.defaultFloorPrefab, floorRoot, false);
+            instance.name = $"Floor_{cell.x}_{cell.y}";
+            PlaceVisualInstance(
+                instance.transform,
+                CellToWorldPosition(cell) + gridTemplate.floorLocalOffset,
+                gridTemplate.alignFloorToBattleCamera);
+        }
+    }
+
+    private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
+    {
+        if (gridTemplate == null || contentRoot == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
+        {
+            return;
+        }
+
+        Transform propRoot = CreateChildRoot(contentRoot, "Props");
+        for (int i = 0; i < gridTemplate.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = gridTemplate.propVisuals[i];
+            if (prop == null || prop.prefab == null)
+            {
+                continue;
+            }
+
+            Vector2Int cell = prop.anchorCell.ToVector2Int();
+            GameObject instance = Instantiate(prop.prefab, propRoot, false);
+            instance.name = string.IsNullOrWhiteSpace(prop.propName) ? $"Prop_{cell.x}_{cell.y}" : prop.propName.Trim();
+            PlaceVisualInstance(
+                instance.transform,
+                CellToWorldPosition(cell) + prop.localOffset,
+                prop.alignToBattleCamera);
+        }
+    }
+
+    private void CreateWallVisuals(
+        格子模板数据库.格子模板条目 gridTemplate,
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        Transform contentRoot)
+    {
+        if (gridTemplate == null || contentRoot == null || gridTemplate.wallVisuals == null || gridTemplate.wallVisuals.Count == 0)
+        {
+            return;
+        }
+
+        Transform wallRoot = CreateChildRoot(contentRoot, "Walls");
+        for (int i = 0; i < gridTemplate.wallVisuals.Count; i++)
+        {
+            格子模板数据库.WallVisualEntry wall = gridTemplate.wallVisuals[i];
+            if (wall == null || wall.prefab == null)
+            {
+                continue;
+            }
+
+            Vector2Int cell = wall.cell.ToVector2Int();
+            GameObject instance = Instantiate(wall.prefab, wallRoot, false);
+            instance.name = string.IsNullOrWhiteSpace(wall.wallName) ? $"Wall_{wall.side}_{cell.x}_{cell.y}" : wall.wallName.Trim();
+            PlaceVisualInstance(
+                instance.transform,
+                ResolveWallWorldPosition(cell, wall.side) + wall.localOffset,
+                wall.alignToBattleCamera);
+            ConfigureGeneratedWallNavigation(roomNode, instance, wall.side);
+        }
+    }
+
+    private static Transform CreateChildRoot(Transform parent, string name)
+    {
+        GameObject root = new GameObject(name);
+        root.transform.SetParent(parent, false);
+        return root.transform;
+    }
+
+    private void PlaceVisualInstance(Transform target, Vector3 worldPosition, bool alignToCamera)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.position = worldPosition;
+        if (alignToCamera && Camera.main != null)
+        {
+            target.rotation = Camera.main.transform.rotation;
+        }
+    }
+
+    private Vector3 CellToWorldPosition(Vector2Int cell)
+    {
+        return new Vector3(cell.x * gridCellSize, 0f, cell.y * gridCellSize);
+    }
+
+    private Vector3 ResolveWallWorldPosition(Vector2Int cell, 格子模板数据库.WallSide side)
+    {
+        Vector3 center = CellToWorldPosition(cell);
+        float halfCell = gridCellSize * 0.5f;
+        switch (side)
+        {
+            case 格子模板数据库.WallSide.East:
+                return center + new Vector3(halfCell, 0f, 0f);
+            case 格子模板数据库.WallSide.South:
+                return center + new Vector3(0f, 0f, -halfCell);
+            case 格子模板数据库.WallSide.West:
+                return center + new Vector3(-halfCell, 0f, 0f);
+            case 格子模板数据库.WallSide.North:
+                return center + new Vector3(0f, 0f, halfCell);
+            default:
+                return center;
+        }
+    }
+
+    private static bool HasTemplateRoomVisuals(格子模板数据库.格子模板条目 gridTemplate)
+    {
+        return gridTemplate != null &&
+            (gridTemplate.defaultFloorPrefab != null ||
+             (gridTemplate.propVisuals != null && gridTemplate.propVisuals.Count > 0) ||
+             (gridTemplate.wallVisuals != null && gridTemplate.wallVisuals.Count > 0));
+    }
+
+    private static List<Vector2Int> BuildRuntimeWalkableCells(格子模板数据库.格子模板条目 gridTemplate)
+    {
+        List<Vector2Int> result = ConvertCells(gridTemplate != null ? gridTemplate.walkableCells : null);
+        if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
+        {
+            return result;
+        }
+
+        HashSet<Vector2Int> blockedCells = new HashSet<Vector2Int>();
+        for (int i = 0; i < gridTemplate.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = gridTemplate.propVisuals[i];
+            if (prop == null || !prop.blocksMovement)
+            {
+                continue;
+            }
+
+            if (prop.blockedCells == null || prop.blockedCells.Count == 0)
+            {
+                blockedCells.Add(prop.anchorCell.ToVector2Int());
+                continue;
+            }
+
+            for (int j = 0; j < prop.blockedCells.Count; j++)
+            {
+                blockedCells.Add(prop.blockedCells[j].ToVector2Int());
+            }
+        }
+
+        for (int i = result.Count - 1; i >= 0; i--)
+        {
+            if (blockedCells.Contains(result[i]))
+            {
+                result.RemoveAt(i);
+            }
+        }
+
+        return result;
+    }
+
+    private static void ConfigureGeneratedWallNavigation(
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        GameObject wallInstance,
+        格子模板数据库.WallSide side)
+    {
+        if (roomNode == null || wallInstance == null)
+        {
+            return;
+        }
+
+        MapTemplateDatabase.ConnectionDirection direction = ConvertWallSideToConnectionDirection(side);
+        string targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            return;
+        }
+
+        Button button = wallInstance.GetComponentInChildren<Button>(true);
+        if (button != null)
+        {
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => NavigateToNode(targetNodeId));
+        }
+
+        ConfigureDirectionClickRelay(wallInstance, targetNodeId, true);
+    }
+
+    private static MapTemplateDatabase.ConnectionDirection ConvertWallSideToConnectionDirection(格子模板数据库.WallSide side)
+    {
+        switch (side)
+        {
+            case 格子模板数据库.WallSide.East:
+                return MapTemplateDatabase.ConnectionDirection.East;
+            case 格子模板数据库.WallSide.South:
+                return MapTemplateDatabase.ConnectionDirection.South;
+            case 格子模板数据库.WallSide.West:
+                return MapTemplateDatabase.ConnectionDirection.West;
+            case 格子模板数据库.WallSide.North:
+                return MapTemplateDatabase.ConnectionDirection.North;
+            default:
+                return MapTemplateDatabase.ConnectionDirection.East;
+        }
     }
 
     private void ConfigureRoomDirectionButtons(
