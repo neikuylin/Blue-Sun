@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "BattleGridTemplateDatabase", menuName = "战斗/格子模板库")]
 public sealed class 格子模板数据库 : ScriptableObject
@@ -81,7 +82,8 @@ public sealed class 格子模板数据库 : ScriptableObject
         public GameObject defaultFloorPrefab;
         public Vector3 floorLocalOffset = Vector3.zero;
         public bool alignFloorToBattleCamera = true;
-        public bool stretchFloorToCell = true;
+        [FormerlySerializedAs("stretchFloorToCell")]
+        public bool stretchFloorToCanvas = true;
         public List<PropVisualEntry> propVisuals = new List<PropVisualEntry>();
         public List<WallVisualEntry> wallVisuals = new List<WallVisualEntry>();
         public bool hasDefaultPlayerSpawn;

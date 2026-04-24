@@ -705,9 +705,9 @@ public sealed class 格子编辑器窗口 : EditorWindow
         格子模板数据库.EnsureValidEntry(entry);
 
         EditorGUILayout.LabelField("房间美术", EditorStyles.boldLabel);
-        entry.defaultFloorPrefab = (GameObject)EditorGUILayout.ObjectField("默认地板Prefab", entry.defaultFloorPrefab, typeof(GameObject), false);
+        entry.defaultFloorPrefab = (GameObject)EditorGUILayout.ObjectField("整张地板Prefab", entry.defaultFloorPrefab, typeof(GameObject), false);
         entry.alignFloorToBattleCamera = EditorGUILayout.Toggle("地板平行战斗相机", entry.alignFloorToBattleCamera);
-        entry.stretchFloorToCell = EditorGUILayout.Toggle("地板拉伸到单格", entry.stretchFloorToCell);
+        entry.stretchFloorToCanvas = EditorGUILayout.Toggle("地板拉伸到整张画布", entry.stretchFloorToCanvas);
         entry.floorLocalOffset = EditorGUILayout.Vector3Field("地板偏移", entry.floorLocalOffset);
 
         EditorGUILayout.Space(4f);

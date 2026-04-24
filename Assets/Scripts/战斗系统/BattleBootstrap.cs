@@ -322,25 +322,21 @@ public class BattleBootstrap : MonoBehaviour
 
     private void CreateFloorVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
     {
-        if (gridTemplate == null || contentRoot == null || gridTemplate.defaultFloorPrefab == null || gridTemplate.walkableCells == null)
+        if (gridTemplate == null || contentRoot == null || gridTemplate.defaultFloorPrefab == null)
         {
             return;
         }
 
         Transform floorRoot = CreateChildRoot(contentRoot, "Floor");
-        for (int i = 0; i < gridTemplate.walkableCells.Count; i++)
+        GameObject instance = Instantiate(gridTemplate.defaultFloorPrefab, floorRoot, false);
+        instance.name = "Floor";
+        PlaceVisualInstance(
+            instance.transform,
+            ResolveGridCenterWorldPosition(gridTemplate) + gridTemplate.floorLocalOffset,
+            gridTemplate.alignFloorToBattleCamera);
+        if (gridTemplate.stretchFloorToCanvas)
         {
-            Vector2Int cell = gridTemplate.walkableCells[i].ToVector2Int();
-            GameObject instance = Instantiate(gridTemplate.defaultFloorPrefab, floorRoot, false);
-            instance.name = $"Floor_{cell.x}_{cell.y}";
-            PlaceVisualInstance(
-                instance.transform,
-                CellToWorldPosition(cell) + gridTemplate.floorLocalOffset,
-                gridTemplate.alignFloorToBattleCamera);
-            if (gridTemplate.stretchFloorToCell)
-            {
-                StretchSpriteRenderersToCell(instance.transform);
-            }
+            StretchSpriteRenderersToSize(instance.transform, ResolveGridWorldSize(gridTemplate));
         }
     }
 
@@ -426,7 +422,21 @@ public class BattleBootstrap : MonoBehaviour
         return new Vector3(cell.x * gridCellSize, 0f, cell.y * gridCellSize);
     }
 
-    private void StretchSpriteRenderersToCell(Transform root)
+    private Vector3 ResolveGridCenterWorldPosition(格子模板数据库.格子模板条目 gridTemplate)
+    {
+        int width = gridTemplate != null ? Mathf.Max(1, gridTemplate.width) : 1;
+        int height = gridTemplate != null ? Mathf.Max(1, gridTemplate.height) : 1;
+        return new Vector3((width - 1) * gridCellSize * 0.5f, 0f, (height - 1) * gridCellSize * 0.5f);
+    }
+
+    private Vector2 ResolveGridWorldSize(格子模板数据库.格子模板条目 gridTemplate)
+    {
+        int width = gridTemplate != null ? Mathf.Max(1, gridTemplate.width) : 1;
+        int height = gridTemplate != null ? Mathf.Max(1, gridTemplate.height) : 1;
+        return new Vector2(width * gridCellSize, height * gridCellSize);
+    }
+
+    private void StretchSpriteRenderersToSize(Transform root, Vector2 targetSize)
     {
         if (root == null)
         {
@@ -449,12 +459,12 @@ public class BattleBootstrap : MonoBehaviour
                 : Vector3.one;
             if (spriteSize.x > 0.0001f)
             {
-                scale.x = ResolveSignedScale(scale.x, gridCellSize / (spriteSize.x * ResolveScaleFactor(parentScale.x)));
+                scale.x = ResolveSignedScale(scale.x, targetSize.x / (spriteSize.x * ResolveScaleFactor(parentScale.x)));
             }
 
             if (spriteSize.y > 0.0001f)
             {
-                scale.y = ResolveSignedScale(scale.y, gridCellSize / (spriteSize.y * ResolveScaleFactor(parentScale.y)));
+                scale.y = ResolveSignedScale(scale.y, targetSize.y / (spriteSize.y * ResolveScaleFactor(parentScale.y)));
             }
 
             spriteRenderer.drawMode = SpriteDrawMode.Simple;
