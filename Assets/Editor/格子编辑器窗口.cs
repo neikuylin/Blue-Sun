@@ -327,7 +327,21 @@ public sealed class 格子编辑器窗口 : EditorWindow
             return;
         }
 
-        Rect badgeRect = new Rect(cellRect.x + 4f + markerSlot * 22f, cellRect.y + 4f, 20f, 16f);
+        float badgeWidth = markerSlot == 0 ? 14f : 12f;
+        float badgeHeight = 14f;
+        float badgeX = cellRect.x + 3f;
+        float badgeY = cellRect.y + 3f;
+        if (markerSlot == 1)
+        {
+            badgeX = cellRect.xMax - badgeWidth - 3f;
+        }
+        else if (markerSlot == 2)
+        {
+            badgeX = cellRect.xMax - badgeWidth - 3f;
+            badgeY = cellRect.yMax - badgeHeight - 3f;
+        }
+
+        Rect badgeRect = new Rect(badgeX, badgeY, badgeWidth, badgeHeight);
         EditorGUI.DrawRect(badgeRect, color);
         GUIStyle style = new GUIStyle(EditorStyles.miniBoldLabel)
         {

@@ -444,19 +444,28 @@ public class BattleBootstrap : MonoBehaviour
 
             Vector3 scale = spriteRenderer.transform.localScale;
             Vector3 spriteSize = spriteRenderer.sprite.bounds.size;
+            Vector3 parentScale = spriteRenderer.transform.parent != null
+                ? spriteRenderer.transform.parent.lossyScale
+                : Vector3.one;
             if (spriteSize.x > 0.0001f)
             {
-                scale.x = ResolveSignedScale(scale.x, gridCellSize / spriteSize.x);
+                scale.x = ResolveSignedScale(scale.x, gridCellSize / (spriteSize.x * ResolveScaleFactor(parentScale.x)));
             }
 
             if (spriteSize.y > 0.0001f)
             {
-                scale.y = ResolveSignedScale(scale.y, gridCellSize / spriteSize.y);
+                scale.y = ResolveSignedScale(scale.y, gridCellSize / (spriteSize.y * ResolveScaleFactor(parentScale.y)));
             }
 
             spriteRenderer.drawMode = SpriteDrawMode.Simple;
             spriteRenderer.transform.localScale = scale;
         }
+    }
+
+    private static float ResolveScaleFactor(float scale)
+    {
+        float absoluteScale = Mathf.Abs(scale);
+        return absoluteScale > 0.0001f ? absoluteScale : 1f;
     }
 
     private static float ResolveSignedScale(float currentScale, float absoluteScale)
