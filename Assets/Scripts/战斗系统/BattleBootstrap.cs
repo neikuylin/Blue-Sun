@@ -337,6 +337,10 @@ public class BattleBootstrap : MonoBehaviour
                 instance.transform,
                 CellToWorldPosition(cell) + gridTemplate.floorLocalOffset,
                 gridTemplate.alignFloorToBattleCamera);
+            if (gridTemplate.stretchFloorToCell)
+            {
+                StretchSpriteRenderersToCell(instance.transform);
+            }
         }
     }
 
@@ -420,6 +424,45 @@ public class BattleBootstrap : MonoBehaviour
     private Vector3 CellToWorldPosition(Vector2Int cell)
     {
         return new Vector3(cell.x * gridCellSize, 0f, cell.y * gridCellSize);
+    }
+
+    private void StretchSpriteRenderersToCell(Transform root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        SpriteRenderer[] renderers = root.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            SpriteRenderer spriteRenderer = renderers[i];
+            if (spriteRenderer == null || spriteRenderer.sprite == null)
+            {
+                continue;
+            }
+
+            Vector3 scale = spriteRenderer.transform.localScale;
+            Vector3 spriteSize = spriteRenderer.sprite.bounds.size;
+            if (spriteSize.x > 0.0001f)
+            {
+                scale.x = ResolveSignedScale(scale.x, gridCellSize / spriteSize.x);
+            }
+
+            if (spriteSize.y > 0.0001f)
+            {
+                scale.y = ResolveSignedScale(scale.y, gridCellSize / spriteSize.y);
+            }
+
+            spriteRenderer.drawMode = SpriteDrawMode.Simple;
+            spriteRenderer.transform.localScale = scale;
+        }
+    }
+
+    private static float ResolveSignedScale(float currentScale, float absoluteScale)
+    {
+        float sign = currentScale < 0f ? -1f : 1f;
+        return sign * absoluteScale;
     }
 
     private Vector3 ResolveWallWorldPosition(Vector2Int cell, 格子模板数据库.WallSide side)

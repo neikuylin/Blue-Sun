@@ -135,6 +135,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 if (GUILayout.Button(label, isSelected ? EditorStyles.miniButtonMid : EditorStyles.miniButton, GUILayout.Height(34f)))
                 {
                     selectedTemplateId = entry.templateId;
+                    selectedPropVisualIndex = -1;
                     GUI.FocusControl(null);
                 }
             }
@@ -202,7 +203,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
     private void DrawToolButton(绘制工具 tool, string label)
     {
-        bool selected = currentTool == tool;
+        bool selected = selectedPropVisualIndex < 0 && currentTool == tool;
         Color previousColor = GUI.backgroundColor;
         if (selected)
         {
@@ -383,6 +384,18 @@ public sealed class 格子编辑器窗口 : EditorWindow
             return;
         }
 
+        if (IsPropPlacementTool(entry))
+        {
+            if (currentEvent.type == EventType.MouseDown)
+            {
+                Undo.RecordObject(EnsureDatabase(), "摆放格子物件");
+                ApplyPropPlacementTool(entry, cell);
+                currentEvent.Use();
+            }
+
+            return;
+        }
+
         if (currentTool == 绘制工具.可用格)
         {
             if (currentEvent.type == EventType.MouseDown)
@@ -473,6 +486,59 @@ public sealed class 格子编辑器窗口 : EditorWindow
         MarkDirtyAndRepaint();
     }
 
+    private bool IsPropPlacementTool(格子模板数据库.格子模板条目 entry)
+    {
+        return entry != null &&
+            entry.propVisuals != null &&
+            selectedPropVisualIndex >= 0 &&
+            selectedPropVisualIndex < entry.propVisuals.Count &&
+            entry.propVisuals[selectedPropVisualIndex] != null;
+    }
+
+    private void ApplyPropPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        if (!IsPropPlacementTool(entry))
+        {
+            return;
+        }
+
+        格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
+        Vector2Int oldAnchor = prop.anchorCell.ToVector2Int();
+        Vector2Int delta = cell - oldAnchor;
+        prop.anchorCell = 格子模板数据库.CellPosition.FromVector2Int(cell);
+        MoveBlockedCells(prop, oldAnchor, delta);
+        AddCell(entry.walkableCells, cell);
+        if (prop.blockedCells != null)
+        {
+            for (int i = 0; i < prop.blockedCells.Count; i++)
+            {
+                AddCell(entry.walkableCells, prop.blockedCells[i].ToVector2Int());
+            }
+        }
+
+        MarkDirtyAndRepaint();
+    }
+
+    private static void MoveBlockedCells(格子模板数据库.PropVisualEntry prop, Vector2Int oldAnchor, Vector2Int delta)
+    {
+        if (prop == null || prop.blockedCells == null || prop.blockedCells.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < prop.blockedCells.Count; i++)
+        {
+            Vector2Int blockedCell = prop.blockedCells[i].ToVector2Int();
+            if (prop.blockedCells.Count == 1 && blockedCell == oldAnchor)
+            {
+                prop.blockedCells[i] = prop.anchorCell;
+                continue;
+            }
+
+            prop.blockedCells[i] = 格子模板数据库.CellPosition.FromVector2Int(blockedCell + delta);
+        }
+    }
+
     private void DrawDetailPanel(格子模板数据库 database, RoomEnemyPresetDatabase encounterDatabase)
     {
         using (new EditorGUILayout.VerticalScope("box", GUILayout.Width(RightPanelWidth), GUILayout.ExpandHeight(true)))
@@ -503,7 +569,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("工具说明", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox($"当前工具：{ResolveToolLabel(currentTool)}", MessageType.None);
+            EditorGUILayout.HelpBox($"当前工具：{ResolveCurrentToolLabel(entry)}", MessageType.None);
 
             EditorGUILayout.Space(6f);
             DrawEncounterPresetSelector(encounterDatabase);
@@ -560,6 +626,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         EditorGUILayout.LabelField("房间美术", EditorStyles.boldLabel);
         entry.defaultFloorPrefab = (GameObject)EditorGUILayout.ObjectField("默认地板Prefab", entry.defaultFloorPrefab, typeof(GameObject), false);
         entry.alignFloorToBattleCamera = EditorGUILayout.Toggle("地板平行战斗相机", entry.alignFloorToBattleCamera);
+        entry.stretchFloorToCell = EditorGUILayout.Toggle("地板拉伸到单格", entry.stretchFloorToCell);
         entry.floorLocalOffset = EditorGUILayout.Vector3Field("地板偏移", entry.floorLocalOffset);
 
         EditorGUILayout.Space(4f);
@@ -577,6 +644,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             if (GUILayout.Button("新增物件"))
             {
                 Undo.RecordObject(EnsureDatabase(), "新增格子物件");
+                selectedPropVisualIndex = entry.propVisuals.Count;
                 entry.propVisuals.Add(new 格子模板数据库.PropVisualEntry
                 {
                     propName = $"物件{entry.propVisuals.Count + 1}",
@@ -602,6 +670,14 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         {
                             Undo.RecordObject(EnsureDatabase(), "删除格子物件");
                             entry.propVisuals.RemoveAt(i);
+                            if (selectedPropVisualIndex == i)
+                            {
+                                selectedPropVisualIndex = -1;
+                            }
+                            else if (selectedPropVisualIndex > i)
+                            {
+                                selectedPropVisualIndex--;
+                            }
                             MarkDirtyAndRepaint();
                             return;
                         }
@@ -1361,6 +1437,20 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
         int index = entry.enemySpawnSlots.IndexOf(slot);
         return index >= 0 ? (index + 1).ToString() : "敌";
+    }
+
+    private string ResolveCurrentToolLabel(格子模板数据库.格子模板条目 entry)
+    {
+        if (IsPropPlacementTool(entry))
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
+            string propName = prop != null && !string.IsNullOrWhiteSpace(prop.propName)
+                ? prop.propName.Trim()
+                : $"物件{selectedPropVisualIndex + 1}";
+            return $"物件：{propName}";
+        }
+
+        return ResolveToolLabel(currentTool);
     }
 
     private static string ResolveToolLabel(绘制工具 tool)
