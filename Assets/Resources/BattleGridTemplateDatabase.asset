@@ -827,12 +827,30 @@ MonoBehaviour:
     - propName: "\u7BDD\u706B\u7ACB\u67F1"
       prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
       anchorCell:
-        x: 1
-        y: 1
+        x: 5
+        y: 8
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
-      blockedCells: []
+      blockedCells:
+      - x: 5
+        y: 8
+      - x: 4
+        y: 8
+      - x: 4
+        y: 7
+      - x: 5
+        y: 7
+      - x: 6
+        y: 7
+      - x: 6
+        y: 8
+      - x: 6
+        y: 9
+      - x: 5
+        y: 9
+      - x: 4
+        y: 9
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:

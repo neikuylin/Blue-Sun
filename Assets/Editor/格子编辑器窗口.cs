@@ -283,8 +283,9 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 DrawCellMarker(cellRect, "南", entry.hasSouthDoorPlayerSpawn && entry.southDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.90f, 0.45f, 0.16f));
                 DrawCellMarker(cellRect, "西", entry.hasWestDoorPlayerSpawn && entry.westDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.70f, 0.34f, 0.92f));
                 DrawCellMarker(cellRect, "北", entry.hasNorthDoorPlayerSpawn && entry.northDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.18f, 0.78f, 0.78f));
-                DrawCellMarker(cellRect, "物", HasPropVisualAtCell(entry, cell), new Color(0.85f, 0.48f, 0.18f), 1);
-                DrawCellMarker(cellRect, "墙", HasWallVisualAtCell(entry, cell), new Color(0.55f, 0.55f, 0.62f), 2);
+                DrawCellMarker(cellRect, "锚", HasPropAnchorAtCell(entry, cell), new Color(0.85f, 0.48f, 0.18f), 1);
+                DrawCellMarker(cellRect, "物", HasPropOccupiedCell(entry, cell), new Color(0.72f, 0.39f, 0.14f), 2);
+                DrawCellMarker(cellRect, "墙", HasWallVisualAtCell(entry, cell), new Color(0.55f, 0.55f, 0.62f), 3);
             }
         }
 
@@ -337,6 +338,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
         else if (markerSlot == 2)
         {
+            badgeY = cellRect.yMax - badgeHeight - 3f;
+        }
+        else if (markerSlot == 3)
+        {
             badgeX = cellRect.xMax - badgeWidth - 3f;
             badgeY = cellRect.yMax - badgeHeight - 3f;
         }
@@ -375,6 +380,44 @@ public sealed class 格子编辑器窗口 : EditorWindow
             return;
         }
 
+        if (IsPropPlacementTool(entry))
+        {
+            if (currentEvent.button == 0)
+            {
+                if (currentEvent.type == EventType.MouseDown)
+                {
+                    Undo.RecordObject(EnsureDatabase(), "摆放格子物件");
+                    currentDragMode = 拖拽模式.涂格;
+                    lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+                    BeginPropPlacementTool(entry, cell);
+                    currentEvent.Use();
+                }
+                else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.涂格)
+                {
+                    AddPropOccupiedCell(entry, cell);
+                    currentEvent.Use();
+                }
+            }
+            else if (currentEvent.button == 1)
+            {
+                if (currentEvent.type == EventType.MouseDown)
+                {
+                    Undo.RecordObject(EnsureDatabase(), "擦除物件占格");
+                    currentDragMode = 拖拽模式.擦除;
+                    lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+                    RemovePropOccupiedCell(entry, cell);
+                    currentEvent.Use();
+                }
+                else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.擦除)
+                {
+                    RemovePropOccupiedCell(entry, cell);
+                    currentEvent.Use();
+                }
+            }
+
+            return;
+        }
+
         if (currentEvent.button == 1)
         {
             if (currentEvent.type == EventType.MouseDown)
@@ -395,18 +438,6 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
         if (currentEvent.button != 0)
         {
-            return;
-        }
-
-        if (IsPropPlacementTool(entry))
-        {
-            if (currentEvent.type == EventType.MouseDown)
-            {
-                Undo.RecordObject(EnsureDatabase(), "摆放格子物件");
-                ApplyPropPlacementTool(entry, cell);
-                currentEvent.Use();
-            }
-
             return;
         }
 
@@ -509,48 +540,84 @@ public sealed class 格子编辑器窗口 : EditorWindow
             entry.propVisuals[selectedPropVisualIndex] != null;
     }
 
-    private void ApplyPropPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    private void BeginPropPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
     {
-        if (!IsPropPlacementTool(entry))
+        格子模板数据库.PropVisualEntry prop = GetSelectedPropVisual(entry);
+        if (prop == null)
         {
             return;
         }
 
-        格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
-        Vector2Int oldAnchor = prop.anchorCell.ToVector2Int();
-        Vector2Int delta = cell - oldAnchor;
-        prop.anchorCell = 格子模板数据库.CellPosition.FromVector2Int(cell);
-        MoveBlockedCells(prop, oldAnchor, delta);
-        AddCell(entry.walkableCells, cell);
-        if (prop.blockedCells != null)
+        if (prop.blockedCells == null)
         {
-            for (int i = 0; i < prop.blockedCells.Count; i++)
-            {
-                AddCell(entry.walkableCells, prop.blockedCells[i].ToVector2Int());
-            }
+            prop.blockedCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        if (prop.anchorCell.ToVector2Int() != cell)
+        {
+            prop.anchorCell = 格子模板数据库.CellPosition.FromVector2Int(cell);
+            prop.blockedCells.Clear();
+        }
+
+        AddPropOccupiedCell(entry, cell);
+    }
+
+    private void AddPropOccupiedCell(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        if (lastPaintedCell == cell)
+        {
+            return;
+        }
+
+        lastPaintedCell = cell;
+        格子模板数据库.PropVisualEntry prop = GetSelectedPropVisual(entry);
+        if (prop == null)
+        {
+            return;
+        }
+
+        if (prop.blockedCells == null)
+        {
+            prop.blockedCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        AddCell(prop.blockedCells, cell);
+
+        AddCell(entry.walkableCells, cell);
+        MarkDirtyAndRepaint();
+    }
+
+    private void RemovePropOccupiedCell(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        if (lastPaintedCell == cell)
+        {
+            return;
+        }
+
+        lastPaintedCell = cell;
+        格子模板数据库.PropVisualEntry prop = GetSelectedPropVisual(entry);
+        if (prop == null || prop.anchorCell.ToVector2Int() == cell)
+        {
+            return;
+        }
+
+        if (prop.blockedCells == null)
+        {
+            prop.blockedCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        RemoveCell(prop.blockedCells, cell);
+        if (!ContainsCell(prop.blockedCells, prop.anchorCell.ToVector2Int()))
+        {
+            AddCell(prop.blockedCells, prop.anchorCell.ToVector2Int());
         }
 
         MarkDirtyAndRepaint();
     }
 
-    private static void MoveBlockedCells(格子模板数据库.PropVisualEntry prop, Vector2Int oldAnchor, Vector2Int delta)
+    private 格子模板数据库.PropVisualEntry GetSelectedPropVisual(格子模板数据库.格子模板条目 entry)
     {
-        if (prop == null || prop.blockedCells == null || prop.blockedCells.Count == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < prop.blockedCells.Count; i++)
-        {
-            Vector2Int blockedCell = prop.blockedCells[i].ToVector2Int();
-            if (prop.blockedCells.Count == 1 && blockedCell == oldAnchor)
-            {
-                prop.blockedCells[i] = prop.anchorCell;
-                continue;
-            }
-
-            prop.blockedCells[i] = 格子模板数据库.CellPosition.FromVector2Int(blockedCell + delta);
-        }
+        return IsPropPlacementTool(entry) ? entry.propVisuals[selectedPropVisualIndex] : null;
     }
 
     private void DrawDetailPanel(格子模板数据库 database, RoomEnemyPresetDatabase encounterDatabase)
@@ -716,7 +783,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         EditorGUILayout.LabelField("占格", EditorStyles.miniBoldLabel);
-        EditorGUILayout.HelpBox("为空时默认阻挡锚点格。需要2x2柱子时，把4个格子都加进来。", MessageType.None);
+        EditorGUILayout.HelpBox("左侧选中物件按钮后，左键第一个格子是锚点，拖动经过的格子会加入占格。右键可擦除非锚点占格。", MessageType.None);
 
         if (GUILayout.Button("新增占格"))
         {
@@ -1034,7 +1101,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         return null;
     }
 
-    private static bool HasPropVisualAtCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    private static bool HasPropAnchorAtCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
     {
         if (entry == null || entry.propVisuals == null)
         {
@@ -1050,6 +1117,30 @@ public sealed class 格子编辑器窗口 : EditorWindow
             }
 
             if (prop.anchorCell.ToVector2Int() == target)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasPropOccupiedCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null || prop.anchorCell.ToVector2Int() == target)
+            {
+                continue;
+            }
+
+            if (ContainsCell(prop.blockedCells, target))
             {
                 return true;
             }
