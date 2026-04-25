@@ -334,10 +334,6 @@ public class BattleBootstrap : MonoBehaviour
             instance.transform,
             ResolveGridCenterWorldPosition(gridTemplate) + gridTemplate.floorLocalOffset,
             gridTemplate.alignFloorToBattleCamera);
-        if (gridTemplate.stretchFloorToCanvas)
-        {
-            StretchSpriteRenderersToSize(instance.transform, ResolveGridWorldSize(gridTemplate));
-        }
     }
 
     private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
@@ -427,61 +423,6 @@ public class BattleBootstrap : MonoBehaviour
         int width = gridTemplate != null ? Mathf.Max(1, gridTemplate.width) : 1;
         int height = gridTemplate != null ? Mathf.Max(1, gridTemplate.height) : 1;
         return new Vector3((width - 1) * gridCellSize * 0.5f, 0f, (height - 1) * gridCellSize * 0.5f);
-    }
-
-    private Vector2 ResolveGridWorldSize(格子模板数据库.格子模板条目 gridTemplate)
-    {
-        int width = gridTemplate != null ? Mathf.Max(1, gridTemplate.width) : 1;
-        int height = gridTemplate != null ? Mathf.Max(1, gridTemplate.height) : 1;
-        return new Vector2(width * gridCellSize, height * gridCellSize);
-    }
-
-    private void StretchSpriteRenderersToSize(Transform root, Vector2 targetSize)
-    {
-        if (root == null)
-        {
-            return;
-        }
-
-        SpriteRenderer[] renderers = root.GetComponentsInChildren<SpriteRenderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            SpriteRenderer spriteRenderer = renderers[i];
-            if (spriteRenderer == null || spriteRenderer.sprite == null)
-            {
-                continue;
-            }
-
-            Vector3 scale = spriteRenderer.transform.localScale;
-            Vector3 spriteSize = spriteRenderer.sprite.bounds.size;
-            Vector3 parentScale = spriteRenderer.transform.parent != null
-                ? spriteRenderer.transform.parent.lossyScale
-                : Vector3.one;
-            if (spriteSize.x > 0.0001f)
-            {
-                scale.x = ResolveSignedScale(scale.x, targetSize.x / (spriteSize.x * ResolveScaleFactor(parentScale.x)));
-            }
-
-            if (spriteSize.y > 0.0001f)
-            {
-                scale.y = ResolveSignedScale(scale.y, targetSize.y / (spriteSize.y * ResolveScaleFactor(parentScale.y)));
-            }
-
-            spriteRenderer.drawMode = SpriteDrawMode.Simple;
-            spriteRenderer.transform.localScale = scale;
-        }
-    }
-
-    private static float ResolveScaleFactor(float scale)
-    {
-        float absoluteScale = Mathf.Abs(scale);
-        return absoluteScale > 0.0001f ? absoluteScale : 1f;
-    }
-
-    private static float ResolveSignedScale(float currentScale, float absoluteScale)
-    {
-        float sign = currentScale < 0f ? -1f : 1f;
-        return sign * absoluteScale;
     }
 
     private Vector3 ResolveWallWorldPosition(Vector2Int cell, 格子模板数据库.WallSide side)

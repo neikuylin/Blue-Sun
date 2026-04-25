@@ -154,7 +154,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   anchorLocalOffset: {x: 0, y: 0, z: 0}
-  anchorCellInSandbox: {x: 14, y: 14}
+  anchorCellInSandbox: {x: 15, y: 15}
   cellSize: 1
   gridWidth: 25
   gridHeight: 25
