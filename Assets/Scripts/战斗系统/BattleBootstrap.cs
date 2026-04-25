@@ -396,7 +396,6 @@ public class BattleBootstrap : MonoBehaviour
                 instance.transform,
                 ResolveWallWorldPosition(cell, wall.side) + wall.localOffset,
                 wall.alignToBattleCamera);
-            ConfigureGeneratedWallNavigation(roomNode, instance, wall.side);
         }
     }
 
@@ -493,130 +492,6 @@ public class BattleBootstrap : MonoBehaviour
         return result;
     }
 
-    private static void ConfigureGeneratedWallNavigation(
-        MapTemplateDatabase.MapNodeEntry roomNode,
-        GameObject wallInstance,
-        格子模板数据库.WallSide side)
-    {
-        if (roomNode == null || wallInstance == null)
-        {
-            return;
-        }
-
-        MapTemplateDatabase.ConnectionDirection direction = ConvertWallSideToConnectionDirection(side);
-        string targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
-        if (string.IsNullOrWhiteSpace(targetNodeId))
-        {
-            return;
-        }
-
-        Button button = wallInstance.GetComponentInChildren<Button>(true);
-        if (button != null)
-        {
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => NavigateToNode(targetNodeId));
-        }
-
-        ConfigureDirectionClickRelay(wallInstance, targetNodeId, true);
-    }
-
-    private static MapTemplateDatabase.ConnectionDirection ConvertWallSideToConnectionDirection(格子模板数据库.WallSide side)
-    {
-        switch (side)
-        {
-            case 格子模板数据库.WallSide.East:
-                return MapTemplateDatabase.ConnectionDirection.East;
-            case 格子模板数据库.WallSide.South:
-                return MapTemplateDatabase.ConnectionDirection.South;
-            case 格子模板数据库.WallSide.West:
-                return MapTemplateDatabase.ConnectionDirection.West;
-            case 格子模板数据库.WallSide.North:
-                return MapTemplateDatabase.ConnectionDirection.North;
-            default:
-                return MapTemplateDatabase.ConnectionDirection.East;
-        }
-    }
-
-    private void ConfigureRoomDirectionButtons(
-        MapTemplateDatabase.MapNodeEntry roomNode,
-        Transform prefabRoot,
-        Transform instanceRoot)
-    {
-        if (roomNode == null || prefabRoot == null || instanceRoot == null)
-        {
-            return;
-        }
-
-        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.eastButtonPath, MapTemplateDatabase.ConnectionDirection.East);
-        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.southButtonPath, MapTemplateDatabase.ConnectionDirection.South);
-        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.westButtonPath, MapTemplateDatabase.ConnectionDirection.West);
-        SetDirectionButtonInteractable(roomNode, instanceRoot, roomNode.northButtonPath, MapTemplateDatabase.ConnectionDirection.North);
-    }
-
-    private static void SetDirectionButtonInteractable(
-        MapTemplateDatabase.MapNodeEntry roomNode,
-        Transform instanceRoot,
-        string buttonPath,
-        MapTemplateDatabase.ConnectionDirection direction)
-    {
-        if (roomNode == null || instanceRoot == null || string.IsNullOrWhiteSpace(buttonPath))
-        {
-            return;
-        }
-
-        Transform instanceButtonTransform = instanceRoot.Find(buttonPath);
-        if (instanceButtonTransform == null)
-        {
-            Debug.LogWarning($"BattleBootstrap: missing instantiated direction button path '{buttonPath}' in room content '{instanceRoot.name}'.");
-            return;
-        }
-
-        Button instanceButton = instanceButtonTransform.GetComponent<Button>();
-        if (instanceButton == null)
-        {
-            Debug.LogWarning($"BattleBootstrap: instantiated object '{instanceButtonTransform.name}' has no Button component.");
-            return;
-        }
-
-        string targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
-        bool canInteract = !string.IsNullOrWhiteSpace(targetNodeId);
-        instanceButton.interactable = canInteract;
-        ConfigureDirectionClickRelay(instanceButtonTransform.gameObject, targetNodeId, canInteract);
-        if (canInteract)
-        {
-            instanceButton.onClick.AddListener(() => NavigateToNode(targetNodeId));
-        }
-        else
-        {
-        }
-    }
-
-    private static bool HasConnectionInDirection(
-        MapTemplateDatabase.MapNodeEntry roomNode,
-        MapTemplateDatabase.ConnectionDirection direction)
-    {
-        if (roomNode == null || roomNode.connections == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < roomNode.connections.Count; i++)
-        {
-            MapTemplateDatabase.MapConnectionEntry connection = roomNode.connections[i];
-            if (connection == null || string.IsNullOrWhiteSpace(connection.targetNodeId))
-            {
-                continue;
-            }
-
-            if (connection.direction == direction)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static string FindConnectionTargetInDirection(
         MapTemplateDatabase.MapNodeEntry roomNode,
         MapTemplateDatabase.ConnectionDirection direction)
@@ -643,54 +518,36 @@ public class BattleBootstrap : MonoBehaviour
         return string.Empty;
     }
 
-    private static void ConfigureDirectionClickRelay(GameObject buttonObject, string targetNodeId, bool canInteract)
+    public static bool TryResolveCurrentRoomTarget(
+        MapTemplateDatabase.ConnectionDirection direction,
+        out string targetNodeId)
     {
-        if (buttonObject == null)
+        targetNodeId = string.Empty;
+        MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
+        if (roomNode == null)
+        {
+            Debug.LogError($"BattleBootstrap: current room node not found. template='{currentDungeonTemplateId}', node='{currentDungeonNodeId}'.");
+            return false;
+        }
+
+        targetNodeId = FindConnectionTargetInDirection(roomNode, direction);
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            Debug.LogError($"BattleBootstrap: room '{currentDungeonNodeId}' has no {direction} connection.");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void NavigateToDirection(MapTemplateDatabase.ConnectionDirection direction)
+    {
+        if (!TryResolveCurrentRoomTarget(direction, out string targetNodeId))
         {
             return;
         }
 
-        BattleRoomDirectionClickRelay relay = buttonObject.GetComponent<BattleRoomDirectionClickRelay>();
-        if (relay == null)
-        {
-            relay = buttonObject.AddComponent<BattleRoomDirectionClickRelay>();
-        }
-
-        relay.Configure(targetNodeId, canInteract);
-
-        if (!canInteract)
-        {
-            return;
-        }
-
-        Collider existingCollider = buttonObject.GetComponent<Collider>();
-        if (existingCollider != null)
-        {
-            existingCollider.enabled = true;
-            return;
-        }
-
-        SpriteRenderer spriteRenderer = buttonObject.GetComponent<SpriteRenderer>();
-        BoxCollider collider = buttonObject.GetComponent<BoxCollider>();
-        if (collider == null)
-        {
-            collider = buttonObject.AddComponent<BoxCollider>();
-        }
-
-        if (spriteRenderer != null && spriteRenderer.sprite != null)
-        {
-            Vector2 spriteSize = spriteRenderer.sprite.bounds.size;
-            collider.size = new Vector3(
-                Mathf.Max(0.01f, spriteSize.x),
-                Mathf.Max(0.01f, spriteSize.y),
-                0.5f);
-            collider.center = Vector3.zero;
-        }
-        else
-        {
-            collider.size = new Vector3(1f, 1f, 0.5f);
-            collider.center = Vector3.zero;
-        }
+        NavigateToNode(targetNodeId);
     }
 
     public static void NavigateToNode(string targetNodeId)
