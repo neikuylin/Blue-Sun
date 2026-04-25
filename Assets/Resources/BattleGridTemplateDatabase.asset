@@ -1696,7 +1696,15 @@ MonoBehaviour:
     defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     alignFloorToBattleCamera: 1
     propVisuals: []
-    wallVisuals: []
+    wallVisuals:
+    - wallName: "\u58991"
+      prefab: {fileID: 8711905010607594450, guid: 64df42f58d758824f884cf678609a8ee, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 0
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
       x: 10
