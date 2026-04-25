@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 994421852623947706}
   - component: {fileID: 538401831667184903}
+  - component: {fileID: 6277894535409420403}
   m_Layer: 0
   m_Name: "\u7BDD\u706B\u7ACB\u67F1"
   m_TagString: Untagged
@@ -84,3 +85,26 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &6277894535409420403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 117263519741134997}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0630459f34742c7af82c598ad030100, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  anchorLocalOffset: {x: 0, y: 0, z: 0}
+  anchorCellInSandbox: {x: 10, y: 10}
+  cellSize: 1
+  gridWidth: 20
+  gridHeight: 20
+  battleCameraEuler: {x: 48.6, y: 45, z: 0}
+  localZOffset: -0.02
+  drawSandbox: 1
+  drawAnchorLabel: 1
+  gridColor: {r: 0.1, g: 0.85, b: 1, a: 0.85}
+  anchorColor: {r: 1, g: 0.55, b: 0.1, a: 0.9}
