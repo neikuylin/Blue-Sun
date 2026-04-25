@@ -1,8 +1,7 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Button))]
+[RequireComponent(typeof(BoxCollider))]
 [AddComponentMenu("战斗/房间方向按钮")]
 public sealed class 房间方向按钮 : MonoBehaviour
 {
@@ -16,28 +15,7 @@ public sealed class 房间方向按钮 : MonoBehaviour
 
     [SerializeField, InspectorName("方向")] private Direction direction = Direction.东;
 
-    private Button button;
-
-    private void Awake()
-    {
-        ResolveButton();
-    }
-
-    private void OnEnable()
-    {
-        ResolveButton();
-        button.onClick.AddListener(OnClicked);
-    }
-
-    private void OnDisable()
-    {
-        if (button != null)
-        {
-            button.onClick.RemoveListener(OnClicked);
-        }
-    }
-
-    private void OnClicked()
+    private void OnMouseUpAsButton()
     {
         if (!TryConvertDirection(direction, out MapTemplateDatabase.ConnectionDirection resolvedDirection))
         {
@@ -45,14 +23,6 @@ public sealed class 房间方向按钮 : MonoBehaviour
         }
 
         BattleBootstrap.NavigateToDirection(resolvedDirection);
-    }
-
-    private void ResolveButton()
-    {
-        if (button == null)
-        {
-            button = GetComponent<Button>();
-        }
     }
 
     private static bool TryConvertDirection(

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
 public sealed class MapTemplateEditorWindow : EditorWindow
 {
@@ -303,13 +302,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             MarkDirty(database);
         }
 
-        EditorGUILayout.Space(4f);
-        EditorGUILayout.LabelField("房间方向按钮", EditorStyles.boldLabel);
-        DrawDirectionButtonField("东按钮", ref node.eastButtonPath, node.battleSceneContentPrefab, database);
-        DrawDirectionButtonField("南按钮", ref node.southButtonPath, node.battleSceneContentPrefab, database);
-        DrawDirectionButtonField("西按钮", ref node.westButtonPath, node.battleSceneContentPrefab, database);
-        DrawDirectionButtonField("北按钮", ref node.northButtonPath, node.battleSceneContentPrefab, database);
-
         EditorGUILayout.Vector2Field("画布位置", node.position);
 
         EditorGUILayout.Space(6f);
@@ -365,120 +357,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         }
     }
 
-    private void DrawDirectionButtonField(
-        string label,
-        ref string pathValue,
-        GameObject roomContentPrefab,
-        MapTemplateDatabase database)
-    {
-        if (roomContentPrefab == null)
-        {
-            EditorGUILayout.HelpBox($"{label} 需要先绑定“战斗副本内容”。", MessageType.None);
-            return;
-        }
-
-        List<Button> buttons = CollectPrefabButtons(roomContentPrefab);
-        string[] optionPaths = BuildButtonPathOptions(roomContentPrefab, buttons);
-        int currentIndex = FindOptionIndex(optionPaths, pathValue);
-        int nextIndex = EditorGUILayout.Popup(label, currentIndex, optionPaths);
-        if (nextIndex == currentIndex)
-        {
-            return;
-        }
-
-        pathValue = nextIndex <= 0 || nextIndex >= optionPaths.Length ? string.Empty : optionPaths[nextIndex];
-        MarkDirty(database);
-    }
-
-    private static Button ResolveButtonFromPath(GameObject roomContentPrefab, string pathValue)
-    {
-        if (roomContentPrefab == null || string.IsNullOrWhiteSpace(pathValue))
-        {
-            return null;
-        }
-
-        Transform target = roomContentPrefab.transform.Find(pathValue);
-        return target != null ? target.GetComponent<Button>() : null;
-    }
-
-    private static List<Button> CollectPrefabButtons(GameObject roomContentPrefab)
-    {
-        List<Button> results = new List<Button>();
-        if (roomContentPrefab == null)
-        {
-            return results;
-        }
-
-        Button[] buttons = roomContentPrefab.GetComponentsInChildren<Button>(true);
-        for (int i = 0; i < buttons.Length; i++)
-        {
-            Button button = buttons[i];
-            if (button == null)
-            {
-                continue;
-            }
-
-            results.Add(button);
-        }
-
-        return results;
-    }
-
-    private static string[] BuildButtonPathOptions(GameObject roomContentPrefab, List<Button> buttons)
-    {
-        List<string> options = new List<string> { "<无>" };
-        if (roomContentPrefab == null || buttons == null)
-        {
-            return options.ToArray();
-        }
-
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            Button button = buttons[i];
-            if (button == null)
-            {
-                continue;
-            }
-
-            string path = GetRelativePath(roomContentPrefab.transform, button.transform);
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                continue;
-            }
-
-            options.Add(path);
-        }
-
-        return options.ToArray();
-    }
-
-    private static string GetRelativePath(Transform root, Transform target)
-    {
-        if (root == null || target == null)
-        {
-            return string.Empty;
-        }
-
-        if (root == target)
-        {
-            return string.Empty;
-        }
-
-        Stack<string> pathSegments = new Stack<string>();
-        Transform current = target;
-        while (current != null && current != root)
-        {
-            pathSegments.Push(current.name);
-            current = current.parent;
-        }
-
-        if (current != root)
-        {
-            return string.Empty;
-        }
-
-        return string.Join("/", pathSegments.ToArray());
-    }
     private void DrawCanvasGrid(Rect canvasRect)
     {
         Handles.BeginGUI();

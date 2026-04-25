@@ -32,10 +32,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public string encounterPresetId = string.Empty;
         public string battleGridTemplateId = string.Empty;
         public GameObject battleSceneContentPrefab;
-        public string eastButtonPath = string.Empty;
-        public string southButtonPath = string.Empty;
-        public string westButtonPath = string.Empty;
-        public string northButtonPath = string.Empty;
         public List<MapConnectionEntry> connections = new List<MapConnectionEntry>();
         public List<string> nextNodeIds = new List<string>();
     }
