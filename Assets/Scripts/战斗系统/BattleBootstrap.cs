@@ -330,9 +330,17 @@ public class BattleBootstrap : MonoBehaviour
         Transform floorRoot = CreateChildRoot(contentRoot, "Floor");
         GameObject instance = Instantiate(gridTemplate.defaultFloorPrefab, floorRoot, false);
         instance.name = "Floor";
+        战斗格子沙盘辅助 sandbox = instance.GetComponent<战斗格子沙盘辅助>();
+        if (sandbox == null)
+        {
+            Debug.LogError("BattleBootstrap: floor prefab must have 战斗格子沙盘辅助 so its anchor cell is explicit.");
+            Destroy(instance);
+            return;
+        }
+
         PlaceVisualInstance(
             instance.transform,
-            CellToWorldPosition(gridTemplate.floorAnchorCell.ToVector2Int()) + gridTemplate.floorLocalOffset,
+            CellToWorldPosition(sandbox.AnchorCellInSandbox),
             gridTemplate.alignFloorToBattleCamera);
     }
 

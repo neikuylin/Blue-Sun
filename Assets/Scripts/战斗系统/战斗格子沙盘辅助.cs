@@ -29,6 +29,8 @@ public sealed class 战斗格子沙盘辅助 : MonoBehaviour
     [SerializeField] private Color gridColor = new Color(0.1f, 0.85f, 1f, 0.85f);
     [SerializeField] private Color anchorColor = new Color(1f, 0.55f, 0.1f, 0.9f);
 
+    public Vector2Int AnchorCellInSandbox => anchorCellInSandbox;
+
     private void OnValidate()
     {
         gridWidth = Mathf.Max(1, gridWidth);

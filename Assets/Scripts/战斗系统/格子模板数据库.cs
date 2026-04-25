@@ -79,8 +79,6 @@ public sealed class 格子模板数据库 : ScriptableObject
         public List<CellPosition> walkableCells = new List<CellPosition>();
         public List<EnemySpawnSlot> enemySpawnSlots = new List<EnemySpawnSlot>();
         public GameObject defaultFloorPrefab;
-        public CellPosition floorAnchorCell;
-        public Vector3 floorLocalOffset = Vector3.zero;
         public bool alignFloorToBattleCamera = true;
         public List<PropVisualEntry> propVisuals = new List<PropVisualEntry>();
         public List<WallVisualEntry> wallVisuals = new List<WallVisualEntry>();
