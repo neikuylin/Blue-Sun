@@ -55,6 +55,10 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Grid")]
     public float gridCellSize = 1f;
 
+    [Header("Floor Rendering")]
+    public int floorSortingOrder = -10000;
+    public float floorCameraDepthOffset = 0.05f;
+
     [Header("Legacy Cleanup")]
     public List<string> legacyRootNamesToDisable = new List<string>();
 
@@ -338,6 +342,7 @@ public class BattleBootstrap : MonoBehaviour
         {
             StretchSpriteRenderersToSize(instance.transform, ResolveGridWorldSize(gridTemplate));
         }
+        ConfigureFloorRendering(instance);
     }
 
     private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
@@ -414,6 +419,31 @@ public class BattleBootstrap : MonoBehaviour
         if (alignToCamera && Camera.main != null)
         {
             target.rotation = Camera.main.transform.rotation;
+        }
+    }
+
+    private void ConfigureFloorRendering(GameObject floorInstance)
+    {
+        if (floorInstance == null)
+        {
+            return;
+        }
+
+        SpriteRenderer[] renderers = floorInstance.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            SpriteRenderer spriteRenderer = renderers[i];
+            if (spriteRenderer == null)
+            {
+                continue;
+            }
+
+            spriteRenderer.sortingOrder = floorSortingOrder;
+        }
+
+        if (Camera.main != null && floorCameraDepthOffset > 0f)
+        {
+            floorInstance.transform.position += Camera.main.transform.forward * floorCameraDepthOffset;
         }
     }
 
