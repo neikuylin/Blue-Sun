@@ -27,15 +27,13 @@ public class BattleCameraController : MonoBehaviour
             float horizontal = Input.GetAxisRaw("Horizontal");
             float vertical = Input.GetAxisRaw("Vertical");
 
-            Vector3 forward = transform.forward;
             Vector3 right = transform.right;
-            forward.y = 0f;
-            right.y = 0f;
+            Vector3 up = transform.up;
 
-            forward.Normalize();
             right.Normalize();
+            up.Normalize();
 
-            Vector3 move = (forward * vertical + right * horizontal);
+            Vector3 move = (up * vertical + right * horizontal);
             if (move.sqrMagnitude > 1f)
             {
                 move.Normalize();
@@ -62,7 +60,7 @@ public class BattleCameraController : MonoBehaviour
 
         Vector3 currentTargetPosition = followTarget.position;
         Vector3 delta = currentTargetPosition - lastFollowTargetPosition;
-        delta.y = 0f;
+        delta = Vector3.Project(delta, transform.right) + Vector3.Project(delta, transform.up);
 
         if (delta.sqrMagnitude > 0f)
         {
@@ -83,7 +81,7 @@ public class BattleCameraController : MonoBehaviour
         Vector3 focusPoint = GetCameraFocusPointOnPlane(focusPlaneY);
         Vector3 targetPoint = target.position;
         Vector3 delta = targetPoint - focusPoint;
-        delta.y = 0f;
+        delta = Vector3.Project(delta, transform.right) + Vector3.Project(delta, transform.up);
         transform.position += delta;
     }
 
