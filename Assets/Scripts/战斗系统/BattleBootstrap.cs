@@ -27,6 +27,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
+    private const string NoDepthSpriteMaterialResourcePath = "渲染层级_不写深度Sprite材质";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
@@ -55,9 +56,10 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Grid")]
     public float gridCellSize = 1f;
 
-    [Header("Floor Rendering")]
+    [Header("Rendering Layer")]
+    public Material noDepthSpriteMaterial;
     public int floorSortingOrder = -10000;
-    public float floorCameraDepthOffset = 0.05f;
+    public float floorCameraDepthOffset = 0f;
 
     [Header("Legacy Cleanup")]
     public List<string> legacyRootNamesToDisable = new List<string>();
@@ -429,6 +431,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        Material material = ResolveNoDepthSpriteMaterial();
         SpriteRenderer[] renderers = floorInstance.GetComponentsInChildren<SpriteRenderer>(true);
         for (int i = 0; i < renderers.Length; i++)
         {
@@ -439,12 +442,27 @@ public class BattleBootstrap : MonoBehaviour
             }
 
             spriteRenderer.sortingOrder = floorSortingOrder;
+            if (material != null)
+            {
+                spriteRenderer.sharedMaterial = material;
+            }
         }
 
         if (Camera.main != null && floorCameraDepthOffset > 0f)
         {
             floorInstance.transform.position += Camera.main.transform.forward * floorCameraDepthOffset;
         }
+    }
+
+    private Material ResolveNoDepthSpriteMaterial()
+    {
+        if (noDepthSpriteMaterial != null)
+        {
+            return noDepthSpriteMaterial;
+        }
+
+        noDepthSpriteMaterial = Resources.Load<Material>(NoDepthSpriteMaterialResourcePath);
+        return noDepthSpriteMaterial;
     }
 
     private Vector3 CellToWorldPosition(Vector2Int cell)
