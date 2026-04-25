@@ -20,8 +20,8 @@ MonoBehaviour:
       displayName: "\u5165\u53E3"
       position: {x: 767, y: 88}
       roomTypeId: encounter_battle
-      encounterPresetId: "2\u4EBA\u5C0F\u961F"
-      battleGridTemplateId: "\u6D4B\u8BD5\u7528"
+      encounterPresetId: "\u7A7A\u623F\u95F4"
+      battleGridTemplateId: "\u51FA\u751F\u5730"
       battleSceneContentPrefab: {fileID: 1839386556727276686, guid: caabaf18fe499f149804646203f3f1e4, type: 3}
       eastButtonPath: "\u5899\u58C1/\u4E1C\u5899/\u4E1C"
       southButtonPath: "\u5899\u58C1/\u5357\u5899/\u5357"
