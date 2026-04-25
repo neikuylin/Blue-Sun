@@ -27,7 +27,6 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
-    private const string NoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
@@ -55,11 +54,6 @@ public class BattleBootstrap : MonoBehaviour
 
     [Header("Grid")]
     public float gridCellSize = 1f;
-
-    [Header("Rendering Layer")]
-    public Material noDepthSpriteMaterial;
-    public int floorSortingOrder = -10000;
-    public float floorCameraDepthOffset = 0f;
 
     [Header("Legacy Cleanup")]
     public List<string> legacyRootNamesToDisable = new List<string>();
@@ -344,7 +338,6 @@ public class BattleBootstrap : MonoBehaviour
         {
             StretchSpriteRenderersToSize(instance.transform, ResolveGridWorldSize(gridTemplate));
         }
-        ConfigureFloorRendering(instance);
     }
 
     private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
@@ -422,47 +415,6 @@ public class BattleBootstrap : MonoBehaviour
         {
             target.rotation = Camera.main.transform.rotation;
         }
-    }
-
-    private void ConfigureFloorRendering(GameObject floorInstance)
-    {
-        if (floorInstance == null)
-        {
-            return;
-        }
-
-        Material material = ResolveNoDepthSpriteMaterial();
-        SpriteRenderer[] renderers = floorInstance.GetComponentsInChildren<SpriteRenderer>(true);
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            SpriteRenderer spriteRenderer = renderers[i];
-            if (spriteRenderer == null)
-            {
-                continue;
-            }
-
-            spriteRenderer.sortingOrder = floorSortingOrder;
-            if (material != null)
-            {
-                spriteRenderer.sharedMaterial = material;
-            }
-        }
-
-        if (Camera.main != null && floorCameraDepthOffset > 0f)
-        {
-            floorInstance.transform.position += Camera.main.transform.forward * floorCameraDepthOffset;
-        }
-    }
-
-    private Material ResolveNoDepthSpriteMaterial()
-    {
-        if (noDepthSpriteMaterial != null)
-        {
-            return noDepthSpriteMaterial;
-        }
-
-        noDepthSpriteMaterial = Resources.Load<Material>(NoDepthSpriteMaterialResourcePath);
-        return noDepthSpriteMaterial;
     }
 
     private Vector3 CellToWorldPosition(Vector2Int cell)
