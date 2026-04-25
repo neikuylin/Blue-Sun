@@ -2983,7 +2983,41 @@ MonoBehaviour:
     enemySpawnSlots: []
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: de57d356d2b2dd74ea04b6307976a2a0, type: 3}
     alignFloorToBattleCamera: 1
-    propVisuals: []
+    propVisuals:
+    - propName: "\u7BDD\u706B\u7ACB\u67F1"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+      anchorCell:
+        x: 6
+        y: 15
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells:
+      - x: 6
+        y: 15
+      - x: 5
+        y: 15
+      - x: 5
+        y: 14
+      - x: 6
+        y: 14
+    - propName: "\u7BDD\u706B\u7ACB\u67F1\uFF08\u6B8B\u7F3A\uFF09"
+      prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
+      anchorCell:
+        x: 19
+        y: 5
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells:
+      - x: 19
+        y: 5
+      - x: 18
+        y: 5
+      - x: 18
+        y: 4
+      - x: 19
+        y: 4
     wallVisuals:
     - wallName: "\u897F\u5899"
       prefab: {fileID: 2377435375497047331, guid: d3a835ed6c505a6488aa9e5534493296, type: 3}

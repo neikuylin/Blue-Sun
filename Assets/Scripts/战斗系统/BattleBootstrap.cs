@@ -3,7 +3,6 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -284,7 +283,6 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
         格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
         if (gridTemplate == null || !HasTemplateRoomVisuals(gridTemplate))
         {
@@ -295,7 +293,7 @@ public class BattleBootstrap : MonoBehaviour
         contentRoot.transform.SetParent(runtimeRoot, false);
         CreateFloorVisuals(gridTemplate, contentRoot.transform);
         CreatePropVisuals(gridTemplate, contentRoot.transform);
-        CreateWallVisuals(gridTemplate, roomNode, contentRoot.transform);
+        CreateWallVisuals(gridTemplate, contentRoot.transform);
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -330,11 +328,9 @@ public class BattleBootstrap : MonoBehaviour
         Transform floorRoot = CreateChildRoot(contentRoot, "Floor");
         GameObject instance = Instantiate(gridTemplate.defaultFloorPrefab, floorRoot, false);
         instance.name = "Floor";
-        战斗格子沙盘辅助 sandbox = instance.GetComponent<战斗格子沙盘辅助>();
+        战斗格子沙盘辅助 sandbox = ResolveRequiredSandbox(instance, "floor");
         if (sandbox == null)
         {
-            Debug.LogError("BattleBootstrap: floor prefab must have 战斗格子沙盘辅助 so its anchor cell is explicit.");
-            Destroy(instance);
             return;
         }
 
@@ -372,7 +368,6 @@ public class BattleBootstrap : MonoBehaviour
 
     private void CreateWallVisuals(
         格子模板数据库.格子模板条目 gridTemplate,
-        MapTemplateDatabase.MapNodeEntry roomNode,
         Transform contentRoot)
     {
         if (gridTemplate == null || contentRoot == null || gridTemplate.wallVisuals == null || gridTemplate.wallVisuals.Count == 0)
@@ -389,14 +384,38 @@ public class BattleBootstrap : MonoBehaviour
                 continue;
             }
 
-            Vector2Int cell = wall.cell.ToVector2Int();
             GameObject instance = Instantiate(wall.prefab, wallRoot, false);
-            instance.name = string.IsNullOrWhiteSpace(wall.wallName) ? $"Wall_{wall.side}_{cell.x}_{cell.y}" : wall.wallName.Trim();
+            战斗格子沙盘辅助 sandbox = ResolveRequiredSandbox(instance, "wall");
+            if (sandbox == null)
+            {
+                continue;
+            }
+
+            Vector2Int anchorCell = sandbox.AnchorCellInSandbox;
+            instance.name = string.IsNullOrWhiteSpace(wall.wallName) ? $"Wall_{anchorCell.x}_{anchorCell.y}" : wall.wallName.Trim();
             PlaceVisualInstance(
                 instance.transform,
-                ResolveWallWorldPosition(cell, wall.side) + wall.localOffset,
+                CellToWorldPosition(anchorCell) + wall.localOffset,
                 wall.alignToBattleCamera);
         }
+    }
+
+    private static 战斗格子沙盘辅助 ResolveRequiredSandbox(GameObject instance, string context)
+    {
+        if (instance == null)
+        {
+            return null;
+        }
+
+        战斗格子沙盘辅助 sandbox = instance.GetComponent<战斗格子沙盘辅助>();
+        if (sandbox != null)
+        {
+            return sandbox;
+        }
+
+        Debug.LogError($"BattleBootstrap: {context} prefab '{instance.name}' must have 战斗格子沙盘辅助 on its root because this visual has no template spawn cell.");
+        Object.Destroy(instance);
+        return null;
     }
 
     private static Transform CreateChildRoot(Transform parent, string name)
@@ -423,25 +442,6 @@ public class BattleBootstrap : MonoBehaviour
     private Vector3 CellToWorldPosition(Vector2Int cell)
     {
         return new Vector3(cell.x * gridCellSize, 0f, cell.y * gridCellSize);
-    }
-
-    private Vector3 ResolveWallWorldPosition(Vector2Int cell, 格子模板数据库.WallSide side)
-    {
-        Vector3 center = CellToWorldPosition(cell);
-        float halfCell = gridCellSize * 0.5f;
-        switch (side)
-        {
-            case 格子模板数据库.WallSide.East:
-                return center + new Vector3(halfCell, 0f, 0f);
-            case 格子模板数据库.WallSide.South:
-                return center + new Vector3(0f, 0f, -halfCell);
-            case 格子模板数据库.WallSide.West:
-                return center + new Vector3(-halfCell, 0f, 0f);
-            case 格子模板数据库.WallSide.North:
-                return center + new Vector3(0f, 0f, halfCell);
-            default:
-                return center;
-        }
     }
 
     private static bool HasTemplateRoomVisuals(格子模板数据库.格子模板条目 gridTemplate)
