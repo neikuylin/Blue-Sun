@@ -1697,7 +1697,7 @@ MonoBehaviour:
     alignFloorToBattleCamera: 1
     propVisuals: []
     wallVisuals:
-    - wallName: "\u58991"
+    - wallName: "\u4E1C\u5899"
       prefab: {fileID: 8711905010607594450, guid: 64df42f58d758824f884cf678609a8ee, type: 3}
       cell:
         x: 0
