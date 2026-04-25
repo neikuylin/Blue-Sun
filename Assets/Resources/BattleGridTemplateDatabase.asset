@@ -822,35 +822,42 @@ MonoBehaviour:
     defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     floorLocalOffset: {x: 0, y: 0, z: 0}
     alignFloorToBattleCamera: 1
-    stretchFloorToCell: 0
+    stretchFloorToCanvas: 0
     propVisuals:
     - propName: "\u7BDD\u706B\u7ACB\u67F1"
       prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
       anchorCell:
-        x: 5
-        y: 8
+        x: 6
+        y: 10
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
       blockedCells:
-      - x: 5
-        y: 8
-      - x: 4
-        y: 8
-      - x: 4
-        y: 7
-      - x: 5
-        y: 7
       - x: 6
-        y: 7
-      - x: 6
-        y: 8
+        y: 10
       - x: 6
         y: 9
       - x: 5
         y: 9
+      - x: 5
+        y: 10
+    - propName: "\u7BDD\u706B\u7ACB\u67F12"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+      anchorCell:
+        x: 4
+        y: 4
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells:
       - x: 4
-        y: 9
+        y: 4
+      - x: 4
+        y: 3
+      - x: 3
+        y: 3
+      - x: 3
+        y: 4
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
@@ -1691,7 +1698,7 @@ MonoBehaviour:
     defaultFloorPrefab: {fileID: 0}
     floorLocalOffset: {x: 0, y: 0, z: 0}
     alignFloorToBattleCamera: 1
-    stretchFloorToCell: 0
+    stretchFloorToCanvas: 0
     propVisuals: []
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
