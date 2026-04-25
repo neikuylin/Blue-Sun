@@ -21,7 +21,7 @@ Shader "Project/Rendering/NoDepthSprite"
         Cull Off
         Lighting Off
         ZWrite Off
-        ZTest Always
+        ZTest LEqual
         Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
