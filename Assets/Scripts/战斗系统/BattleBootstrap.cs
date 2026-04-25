@@ -332,7 +332,7 @@ public class BattleBootstrap : MonoBehaviour
         instance.name = "Floor";
         PlaceVisualInstance(
             instance.transform,
-            ResolveGridCenterWorldPosition(gridTemplate) + gridTemplate.floorLocalOffset,
+            CellToWorldPosition(gridTemplate.floorAnchorCell.ToVector2Int()) + gridTemplate.floorLocalOffset,
             gridTemplate.alignFloorToBattleCamera);
     }
 
@@ -416,13 +416,6 @@ public class BattleBootstrap : MonoBehaviour
     private Vector3 CellToWorldPosition(Vector2Int cell)
     {
         return new Vector3(cell.x * gridCellSize, 0f, cell.y * gridCellSize);
-    }
-
-    private Vector3 ResolveGridCenterWorldPosition(格子模板数据库.格子模板条目 gridTemplate)
-    {
-        int width = gridTemplate != null ? Mathf.Max(1, gridTemplate.width) : 1;
-        int height = gridTemplate != null ? Mathf.Max(1, gridTemplate.height) : 1;
-        return new Vector3((width - 1) * gridCellSize * 0.5f, 0f, (height - 1) * gridCellSize * 0.5f);
     }
 
     private Vector3 ResolveWallWorldPosition(Vector2Int cell, 格子模板数据库.WallSide side)
