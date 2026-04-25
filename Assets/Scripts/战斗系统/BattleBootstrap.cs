@@ -27,7 +27,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
-    private const string NoDepthSpriteMaterialResourcePath = "渲染层级_不写深度Sprite材质";
+    private const string NoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
