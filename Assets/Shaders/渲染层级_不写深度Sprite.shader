@@ -11,7 +11,7 @@ Shader "Project/Rendering/NoDepthSprite"
     {
         Tags
         {
-            "Queue" = "Transparent-100"
+            "Queue" = "Geometry-100"
             "IgnoreProjector" = "True"
             "RenderType" = "Transparent"
             "PreviewType" = "Plane"
@@ -21,7 +21,7 @@ Shader "Project/Rendering/NoDepthSprite"
         Cull Off
         Lighting Off
         ZWrite Off
-        ZTest LEqual
+        ZTest Always
         Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
