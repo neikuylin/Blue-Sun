@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class BattleGrid : MonoBehaviour
 {
+    private const string Below3DNoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
+    private const int BoardOutlineSortingOrder = -9000;
+
     private static readonly Vector2Int[] CardinalDirections =
     {
         Vector2Int.up,
@@ -29,6 +32,7 @@ public class BattleGrid : MonoBehaviour
 
     private Material fillMaterialTemplate;
     private Material lineMaterialTemplate;
+    private Material boardOutlineMaterialTemplate;
     private Transform boardVisualRoot;
     private Transform highlightRoot;
     private Transform hoverHighlightRoot;
@@ -86,6 +90,7 @@ public class BattleGrid : MonoBehaviour
 
         fillMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
         lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
+        boardOutlineMaterialTemplate = Resources.Load<Material>(Below3DNoDepthSpriteMaterialResourcePath);
 
         CreateBoardOutline();
         highlightLayerOrder = 0;
@@ -781,7 +786,13 @@ public class BattleGrid : MonoBehaviour
             List<List<Vector2Int>> loops = BuildBoundaryLoops(validCells);
             for (int i = 0; i < loops.Count; i++)
             {
-                CreateOutlineLoop(boardVisualRoot, loops[i], boardOutlineColor, overlayY - 0.01f, 0);
+                CreateOutlineLoopRenderer(
+                    boardVisualRoot,
+                    loops[i],
+                    boardOutlineColor,
+                    overlayY - 0.01f,
+                    BoardOutlineSortingOrder,
+                    true);
             }
             return;
         }
@@ -790,8 +801,8 @@ public class BattleGrid : MonoBehaviour
         outlineObject.transform.SetParent(boardVisualRoot, false);
 
         LineRenderer line = outlineObject.AddComponent<LineRenderer>();
-        line.sharedMaterial = new Material(lineMaterialTemplate);
-        line.sharedMaterial.color = boardOutlineColor;
+        line.sharedMaterial = CreateLineMaterial(boardOutlineColor, true);
+        line.sortingOrder = BoardOutlineSortingOrder;
         line.loop = true;
         line.useWorldSpace = false;
         line.textureMode = LineTextureMode.Stretch;
@@ -1334,8 +1345,7 @@ public class BattleGrid : MonoBehaviour
         lineObject.transform.SetParent(parent, false);
 
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
-        line.sharedMaterial = new Material(lineMaterialTemplate);
-        line.sharedMaterial.color = lineColor;
+        line.sharedMaterial = CreateLineMaterial(lineColor, false);
         line.loop = true;
         line.useWorldSpace = false;
         line.textureMode = LineTextureMode.Stretch;
@@ -1383,8 +1393,7 @@ public class BattleGrid : MonoBehaviour
         lineObject.transform.SetParent(parent, false);
 
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
-        line.sharedMaterial = new Material(lineMaterialTemplate);
-        line.sharedMaterial.color = lineColor;
+        line.sharedMaterial = CreateLineMaterial(lineColor, false);
         line.loop = loop;
         line.useWorldSpace = false;
         line.textureMode = LineTextureMode.Stretch;
@@ -1474,7 +1483,13 @@ public class BattleGrid : MonoBehaviour
         return points;
     }
 
-    private LineRenderer CreateOutlineLoopRenderer(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
+    private LineRenderer CreateOutlineLoopRenderer(
+        Transform parent,
+        List<Vector2Int> loop,
+        Color lineColor,
+        float y,
+        int sortingOrder,
+        bool useBoardOutlineMaterial = false)
     {
         if (loop == null || loop.Count < 2)
         {
@@ -1485,8 +1500,7 @@ public class BattleGrid : MonoBehaviour
         lineObject.transform.SetParent(parent, false);
 
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
-        line.sharedMaterial = new Material(lineMaterialTemplate);
-        line.sharedMaterial.color = lineColor;
+        line.sharedMaterial = CreateLineMaterial(lineColor, useBoardOutlineMaterial);
         line.sortingOrder = sortingOrder;
         line.loop = true;
         line.useWorldSpace = false;
@@ -1503,6 +1517,16 @@ public class BattleGrid : MonoBehaviour
         }
 
         return line;
+    }
+
+    private Material CreateLineMaterial(Color color, bool useBoardOutlineMaterial)
+    {
+        Material template = useBoardOutlineMaterial && boardOutlineMaterialTemplate != null
+            ? boardOutlineMaterialTemplate
+            : lineMaterialTemplate;
+        Material material = new Material(template);
+        material.color = color;
+        return material;
     }
 
     private Vector3 GridCornerToWorld(Vector2Int corner, float y)

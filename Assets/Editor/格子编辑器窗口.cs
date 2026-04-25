@@ -41,6 +41,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private string newTemplateName = string.Empty;
     private 绘制工具 currentTool = 绘制工具.可用格;
     private int selectedPropVisualIndex = -1;
+    private readonly HashSet<string> expandedPropVisualKeys = new HashSet<string>();
     private 拖拽模式 currentDragMode = 拖拽模式.无;
     private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
 
@@ -731,6 +732,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                     propName = $"物件{entry.propVisuals.Count + 1}",
                     anchorCell = new 格子模板数据库.CellPosition(0, 0)
                 });
+                expandedPropVisualKeys.Add(GetPropVisualFoldoutKey(entry, selectedPropVisualIndex));
                 MarkDirtyAndRepaint();
             }
 
@@ -744,9 +746,22 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
                 using (new EditorGUILayout.VerticalScope("box"))
                 {
+                    string foldoutKey = GetPropVisualFoldoutKey(entry, i);
+                    bool isExpanded = expandedPropVisualKeys.Contains(foldoutKey);
+                    string displayName = ResolvePropVisualDisplayName(prop, i);
+
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        prop.propName = EditorGUILayout.TextField("名称", prop.propName);
+                        bool nextExpanded = EditorGUILayout.Foldout(isExpanded, displayName, true);
+                        if (nextExpanded)
+                        {
+                            expandedPropVisualKeys.Add(foldoutKey);
+                        }
+                        else
+                        {
+                            expandedPropVisualKeys.Remove(foldoutKey);
+                        }
+
                         if (GUILayout.Button("删除", GUILayout.Width(56f)))
                         {
                             Undo.RecordObject(EnsureDatabase(), "删除格子物件");
@@ -764,6 +779,12 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         }
                     }
 
+                    if (!expandedPropVisualKeys.Contains(foldoutKey))
+                    {
+                        continue;
+                    }
+
+                    prop.propName = EditorGUILayout.TextField("名称", prop.propName);
                     prop.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", prop.prefab, typeof(GameObject), false);
                     prop.anchorCell = DrawCellPositionField("锚点格", prop.anchorCell);
                     prop.localOffset = EditorGUILayout.Vector3Field("美术偏移", prop.localOffset);
@@ -773,6 +794,24 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 }
             }
         }
+    }
+
+    private static string GetPropVisualFoldoutKey(格子模板数据库.格子模板条目 entry, int index)
+    {
+        string templateId = entry != null && !string.IsNullOrWhiteSpace(entry.templateId)
+            ? entry.templateId.Trim()
+            : "未命名模板";
+        return $"{templateId}:prop:{index}";
+    }
+
+    private static string ResolvePropVisualDisplayName(格子模板数据库.PropVisualEntry prop, int index)
+    {
+        if (prop != null && !string.IsNullOrWhiteSpace(prop.propName))
+        {
+            return prop.propName.Trim();
+        }
+
+        return $"物件{index + 1}";
     }
 
     private void DrawBlockedCellList(格子模板数据库.PropVisualEntry prop)

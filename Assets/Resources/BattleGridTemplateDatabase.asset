@@ -1695,7 +1695,7 @@ MonoBehaviour:
         x: 11
         y: 11
       encounterEnemyIndex: 1
-    defaultFloorPrefab: {fileID: 0}
+    defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     floorLocalOffset: {x: 0, y: 0, z: 0}
     alignFloorToBattleCamera: 1
     stretchFloorToCanvas: 0
