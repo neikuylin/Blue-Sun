@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71c1514a6bd24e1e882cebbe1904ce04, type: 3}
-  m_Name: "\u601D\u6E90\u9ED1\u4F53"
+  m_Name: "\u666E\u901A"
   m_EditorClassIdentifier: 
-  hashCode: 0
-  material: {fileID: 9045237002952968387}
+  hashCode: -581183662
+  material: {fileID: -8497361823844819725}
   materialHashCode: 0
   m_Version: 1.1.0
-  m_SourceFontFileGUID: 03fea94c275157347944d05a6896a4a0
-  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 03fea94c275157347944d05a6896a4a0, type: 3}
-  m_SourceFontFile: {fileID: 12800000, guid: 03fea94c275157347944d05a6896a4a0, type: 3}
+  m_SourceFontFileGUID: 5e2b7df591f875f4db7068e5a43e4cfd
+  m_SourceFontFile_EditorRef: {fileID: 12800000, guid: 5e2b7df591f875f4db7068e5a43e4cfd, type: 3}
+  m_SourceFontFile: {fileID: 12800000, guid: 5e2b7df591f875f4db7068e5a43e4cfd, type: 3}
   m_AtlasPopulationMode: 1
   m_FaceInfo:
     m_FaceIndex: 0
-    m_FamilyName: Source Han Sans SC
-    m_StyleName: Bold
+    m_FamilyName: Source Han Sans HC VF
+    m_StyleName: ExtraLight
     m_PointSize: 90
     m_Scale: 1
     m_UnitsPerEM: 1000
     m_LineHeight: 130.32
     m_AscentLine: 104.4
-    m_CapLine: 67
-    m_MeanLine: 50
+    m_CapLine: 66
+    m_MeanLine: 48
     m_Baseline: 0
     m_DescentLine: -25.92
     m_SuperscriptOffset: 104.4
@@ -39,13 +39,13 @@ MonoBehaviour:
     m_SubscriptSize: 0.5
     m_UnderlineOffset: -13.500001
     m_UnderlineThickness: 4.5
-    m_StrikethroughOffset: 20
+    m_StrikethroughOffset: 19.2
     m_StrikethroughThickness: 4.5
     m_TabWidth: 20
   m_GlyphTable: []
   m_CharacterTable: []
   m_AtlasTextures:
-  - {fileID: 3976779460229945665}
+  - {fileID: 5593404745301513554}
   m_AtlasTextureIndex: 0
   m_IsMultiAtlasTexturesEnabled: 0
   m_ClearDynamicDataOnBuild: 0
@@ -91,7 +91,7 @@ MonoBehaviour:
   m_FallbackFontAssetTable: []
   m_CreationSettings:
     sourceFontFileName: 
-    sourceFontFileGUID: 03fea94c275157347944d05a6896a4a0
+    sourceFontFileGUID: 5e2b7df591f875f4db7068e5a43e4cfd
     pointSizeSamplingMode: 0
     pointSize: 90
     padding: 9
@@ -134,13 +134,13 @@ MonoBehaviour:
   boldSpacing: 7
   italicStyle: 35
   tabSize: 10
---- !u!28 &3976779460229945665
+--- !u!28 &5593404745301513554
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: SourceHanSansSC-Bold Atlas
+  m_Name: SourceHanSansHC-VF Atlas
   m_ImageContentsHash:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
@@ -182,14 +182,14 @@ Texture2D:
     offset: 0
     size: 0
     path: 
---- !u!21 &9045237002952968387
+--- !u!21 &-8497361823844819725
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: SourceHanSansSC-Bold Atlas Material
+  m_Name: SourceHanSansHC-VF Atlas Material
   m_Shader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -218,7 +218,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 3976779460229945665}
+        m_Texture: {fileID: 5593404745301513554}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OutlineTex:
@@ -289,4 +289,64 @@ Material:
     - _ReflectOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
     - _UnderlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_BuildTextureStacks: []
+--- !u!21 &8014238484158183614
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: SourceHanSansHC-VF Atlas Material Outline
+  m_Shader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Cube:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 5593404745301513554}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _GradientScale: 10
+    - _OutlineSoftness: 0
+    - _OutlineWidth: 1
+    - _PerspectiveFilter: 0.875
+    - _ScaleRatioA: 1
+    - _ScaleRatioB: 1
+    - _ScaleRatioC: 1
+    - _TextureHeight: 1024
+    - _TextureWidth: 1024
+    - _WeightBold: 0.75
+    - _WeightNormal: 0
+    m_Colors:
+    - _FaceColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
