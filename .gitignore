@@ -127,4 +127,10 @@ Assets/字体包/**/*.woff2
 Assets/字体包/**/*.woff2.meta
 Assets/字体包/**/*.eot
 Assets/字体包/**/*.eot.meta
+
+# Local TMP/font package content is managed outside git for this project.
+/Assets/字体包/
+
+# Unity 6 auto-created setting not used by this project.
+/ProjectSettings/MultiplayerManager.asset
 .vscode
