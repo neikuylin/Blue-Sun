@@ -6,6 +6,7 @@ MonoImporter:
   defaultReferences:
   - below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   - above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  - undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

@@ -6,16 +6,20 @@ public sealed class 渲染层级应用器 : MonoBehaviour
 {
     private const string Below3DMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
     private const string Above3DMaterialResourcePath = "渲染层级_高于3D不写深度Sprite材质";
+    private const string UndecidedMaterialResourcePath = "渲染层级_不决定不写深度Sprite材质";
 
     public enum 渲染层级模式
     {
         低于3D = 0,
-        高于3D = 1
+        高于3D = 1,
+        不决定 = 2
     }
 
     [Header("层级")]
-    [Tooltip("低于3D：适合地板/背景。高于3D：适合高亮/提示/部分特效。")]
+    [Tooltip("低于3D：适合地板/背景。高于3D：适合高亮/提示/部分特效。不决定：受光，但按正常深度关系处理遮挡。")]
     [SerializeField] private 渲染层级模式 mode = 渲染层级模式.低于3D;
+    [Tooltip("开启时会把目标渲染器的排序值改成下面的值。关闭时保留 SpriteRenderer 自身排序。")]
+    [SerializeField] private bool overwriteSortingOrder = true;
     [Tooltip("同类2D渲染之间的前后顺序。数值越大越靠前。")]
     [SerializeField] private int sortingOrder = -10000;
 
@@ -24,6 +28,8 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     [SerializeField] private Material below3DMaterial;
     [Tooltip("高于3D时使用的材质。为空会自动从 Resources 加载。")]
     [SerializeField] private Material above3DMaterial;
+    [Tooltip("不决定时使用的材质。为空会自动从 Resources 加载。")]
+    [SerializeField] private Material undecidedMaterial;
 
     [Header("目标")]
     [Tooltip("是否包含未激活的子物体。")]
@@ -58,10 +64,6 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     public void Apply()
     {
         Material targetMaterial = ResolveMaterial();
-        if (targetMaterial == null)
-        {
-            return;
-        }
 
         if (applySpriteRenderers)
         {
@@ -76,6 +78,16 @@ public sealed class 渲染层级应用器 : MonoBehaviour
 
     private Material ResolveMaterial()
     {
+        if (mode == 渲染层级模式.不决定)
+        {
+            if (undecidedMaterial == null)
+            {
+                undecidedMaterial = Resources.Load<Material>(UndecidedMaterialResourcePath);
+            }
+
+            return undecidedMaterial;
+        }
+
         if (mode == 渲染层级模式.高于3D)
         {
             if (above3DMaterial == null)
@@ -105,8 +117,15 @@ public sealed class 渲染层级应用器 : MonoBehaviour
                 continue;
             }
 
-            spriteRenderer.sortingOrder = sortingOrder;
-            spriteRenderer.sharedMaterial = targetMaterial;
+            if (overwriteSortingOrder)
+            {
+                spriteRenderer.sortingOrder = sortingOrder;
+            }
+
+            if (targetMaterial != null)
+            {
+                spriteRenderer.sharedMaterial = targetMaterial;
+            }
         }
     }
 
@@ -126,8 +145,15 @@ public sealed class 渲染层级应用器 : MonoBehaviour
                 continue;
             }
 
-            renderer.sortingOrder = sortingOrder;
-            renderer.sharedMaterial = targetMaterial;
+            if (overwriteSortingOrder)
+            {
+                renderer.sortingOrder = sortingOrder;
+            }
+
+            if (targetMaterial != null)
+            {
+                renderer.sharedMaterial = targetMaterial;
+            }
         }
     }
 }

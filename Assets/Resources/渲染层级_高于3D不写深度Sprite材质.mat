@@ -27,6 +27,10 @@ Material:
     m_Ints: []
     m_Floats:
     - PixelSnap: 0
+    - _AmbientStrength: 0.45
+    - _FacingAmount: 0.65
+    - _LightStrength: 1
+    - _ZTest: 8
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
