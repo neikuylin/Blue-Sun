@@ -44,8 +44,8 @@ Light:
   serializedVersion: 13
   m_Type: 2
   m_Color: {r: 1, g: 0.8491339, b: 0.48113203, a: 1}
-  m_Intensity: 2
-  m_Range: 3
+  m_Intensity: 1.5
+  m_Range: 6
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -111,8 +111,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u7CBE\u7075\u5C40\u90E8\u5149\u786C\u8FB9\u63A7\u5236\u5668"
   hardEdge: 0
-  threshold: 0
-  softness: 0.001
+  threshold: 0.039
+  softness: 0.143
 --- !u!1 &7807918891874290601
 GameObject:
   m_ObjectHideFlags: 0
