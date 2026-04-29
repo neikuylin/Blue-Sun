@@ -4,6 +4,8 @@ using UnityEngine;
 
 internal sealed class 战斗敌方决策服务
 {
+    private readonly 战斗可达格服务 可达格服务 = new 战斗可达格服务();
+
     public List<战斗敌方回合服务.技能选项> 构建技能选项(BattleUnit caster, string normalAttackSkillId, Func<string, BattleSkillDatabase.SkillEntry> resolveSkill)
     {
         List<战斗敌方回合服务.技能选项> result = new List<战斗敌方回合服务.技能选项>();
@@ -112,6 +114,12 @@ internal sealed class 战斗敌方决策服务
             return null;
         }
 
+        List<战斗可达格服务.可达格> reachableCells = 可达格服务.收集可达格(
+            grid,
+            caster,
+            maxMoveRange,
+            ignoreAlliedOccupants: false);
+
         Vector2Int bestCell = caster.currentCell;
         BattleUnit bestTarget = null;
         int bestWeight = int.MinValue;
@@ -133,60 +141,45 @@ internal sealed class 战斗敌方决策服务
                     continue;
                 }
 
-                for (int y = 0; y < grid.height; y++)
+                for (int candidateIndex = 0; candidateIndex < reachableCells.Count; candidateIndex++)
                 {
-                    for (int x = 0; x < grid.width; x++)
+                    战斗可达格服务.可达格 reachableCell = reachableCells[candidateIndex];
+                    if (reachableCell == null || reachableCell.path == null || reachableCell.path.Count <= 1)
                     {
-                        Vector2Int candidate = new Vector2Int(x, y);
-                        if (candidate == caster.currentCell)
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        List<Vector2Int> path = grid.FindPath(caster, candidate);
-                        if (path == null || path.Count <= 1)
-                        {
-                            continue;
-                        }
+                    int moveActionPointCost = getMoveActionPointCost != null ? getMoveActionPointCost(caster, reachableCell.path, moveSkill) : 0;
+                    if (!caster.CanSpendActionPoints(moveActionPointCost))
+                    {
+                        continue;
+                    }
 
-                        int stepCount = path.Count - 1;
-                        if (stepCount > maxMoveRange)
-                        {
-                            continue;
-                        }
+                    if (caster.currentActionPoints - moveActionPointCost < (getSkillActionPointCost != null ? getSkillActionPointCost(choice.skill) : 0))
+                    {
+                        continue;
+                    }
 
-                        int moveActionPointCost = getMoveActionPointCost != null ? getMoveActionPointCost(caster, path, moveSkill) : 0;
-                        if (!caster.CanSpendActionPoints(moveActionPointCost))
-                        {
-                            continue;
-                        }
+                    if (caster.currentMana - moveManaCost < (getSkillManaCost != null ? getSkillManaCost(choice.skill) : 0))
+                    {
+                        continue;
+                    }
 
-                        if (caster.currentActionPoints - moveActionPointCost < (getSkillActionPointCost != null ? getSkillActionPointCost(choice.skill) : 0))
-                        {
-                            continue;
-                        }
+                    if (canEnemyCastSkillFromCell == null || !canEnemyCastSkillFromCell(caster, reachableCell.cell, unit, choice.skill))
+                    {
+                        continue;
+                    }
 
-                        if (caster.currentMana - moveManaCost < (getSkillManaCost != null ? getSkillManaCost(choice.skill) : 0))
-                        {
-                            continue;
-                        }
-
-                        if (canEnemyCastSkillFromCell == null || !canEnemyCastSkillFromCell(caster, candidate, unit, choice.skill))
-                        {
-                            continue;
-                        }
-
-                        int distanceAfterMove = grid.ManhattanDistance(candidate, unit.currentCell);
-                        if (choice.weight > bestWeight ||
-                            (choice.weight == bestWeight && distanceAfterMove < bestDistanceAfterMove) ||
-                            (choice.weight == bestWeight && distanceAfterMove == bestDistanceAfterMove && stepCount < bestPathLength))
-                        {
-                            bestWeight = choice.weight;
-                            bestDistanceAfterMove = distanceAfterMove;
-                            bestPathLength = stepCount;
-                            bestCell = candidate;
-                            bestTarget = unit;
-                        }
+                    int distanceAfterMove = grid.ManhattanDistance(reachableCell.cell, unit.currentCell);
+                    if (choice.weight > bestWeight ||
+                        (choice.weight == bestWeight && distanceAfterMove < bestDistanceAfterMove) ||
+                        (choice.weight == bestWeight && distanceAfterMove == bestDistanceAfterMove && reachableCell.stepCount < bestPathLength))
+                    {
+                        bestWeight = choice.weight;
+                        bestDistanceAfterMove = distanceAfterMove;
+                        bestPathLength = reachableCell.stepCount;
+                        bestCell = reachableCell.cell;
+                        bestTarget = unit;
                     }
                 }
             }
@@ -194,16 +187,16 @@ internal sealed class 战斗敌方决策服务
 
         if (bestTarget == null)
         {
-            BattleUnit fallbackTarget = findClosestLivingOpponent != null ? findClosestLivingOpponent(caster) : null;
-            if (fallbackTarget == null)
+            BattleUnit closestTarget = findClosestLivingOpponent != null ? findClosestLivingOpponent(caster) : null;
+            if (closestTarget == null)
             {
                 return null;
             }
 
             bestCell = findBestStepToward != null
-                ? findBestStepToward(caster, fallbackTarget, getSkillRange != null ? getSkillRange(skillChoices[0].skill, caster) : 0)
+                ? findBestStepToward(caster, closestTarget, getSkillRange != null ? getSkillRange(skillChoices[0].skill, caster) : 0)
                 : caster.currentCell;
-            bestTarget = fallbackTarget;
+            bestTarget = closestTarget;
             if (bestCell == caster.currentCell)
             {
                 return null;

@@ -117,6 +117,7 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗技能表现服务 skillPresentationService;
     private 战斗技能动作解析服务 skillActionResolverService;
     private 战斗探索移动服务 explorationMoveService;
+    private 战斗伤害弹字服务 damagePopupService;
 
     public BattleUnit ActiveUnit
     {
@@ -292,6 +293,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (explorationMoveService == null)
         {
             explorationMoveService = new 战斗探索移动服务();
+        }
+
+        if (damagePopupService == null)
+        {
+            damagePopupService = new 战斗伤害弹字服务();
         }
 
         battleInfoTextService.绑定显示器(BattleInfoWindowPresenter.FindInActiveScene());
@@ -2302,224 +2308,23 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ShowDamagePopup(BattleUnit target, CombatDamageResult damageResult)
     {
-        if (target == null || damageResult == null)
-        {
-            return;
-        }
-
-        List<BattleDamageNumberPopup.DamageSegment> segments = BuildDamageSegments(damageResult);
-        if (damageResult.isCritical)
-        {
-            string criticalDamageText = BuildPopupDamageText(segments, damageResult.appliedDamage);
-            if (!string.IsNullOrWhiteSpace(criticalDamageText))
-            {
-                BattleDamageNumberPopup.ShowConfiguredText(
-                    target,
-                    "<color=#FFD700>暴击</color>\n" + criticalDamageText,
-                    BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
-                    Color.white,
-                    battleCamera);
-                return;
-            }
-        }
-
-        if (segments.Count > 0)
-        {
-            BattleDamageNumberPopup.ShowSegments(target, segments, battleCamera);
-            return;
-        }
-
-        if (damageResult.appliedDamage > 0)
-        {
-            BattleDamageNumberPopup.Show(target, damageResult.appliedDamage, battleCamera);
-        }
+        damagePopupService?.显示伤害弹字(
+            target,
+            damageResult,
+            battleCamera,
+            physicalDamageColor,
+            fireDamageColor,
+            corruptionDamageColor,
+            coldDamageColor);
     }
 
     private void ShowZeroDamagePopup(BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
-        if (target == null || skill == null || skill.noDamage)
-        {
-            return;
-        }
-
-        BattleDamageNumberPopup.ShowConfiguredText(
+        damagePopupService?.显示零伤害弹字(
             target,
-            "0",
-            BattleDamageNumberPopup.ConfiguredPopupKind.Damage,
-            physicalDamageColor,
-            battleCamera);
-    }
-
-    private List<BattleDamageNumberPopup.DamageSegment> BuildDamageSegments(CombatDamageResult damageResult)
-    {
-        List<BattleDamageNumberPopup.DamageSegment> segments = new List<BattleDamageNumberPopup.DamageSegment>();
-        if (damageResult == null)
-        {
-            return segments;
-        }
-
-        List<DamageDisplayAllocation> allocations = BuildDamageDisplayAllocations(damageResult);
-        for (int i = 0; i < allocations.Count; i++)
-        {
-            DamageDisplayAllocation allocation = allocations[i];
-            if (allocation.displayAmount <= 0)
-            {
-                continue;
-            }
-
-            segments.Add(new BattleDamageNumberPopup.DamageSegment
-            {
-                text = allocation.displayAmount.ToString(),
-                color = ResolveDamageColor(allocation.attributeType)
-            });
-        }
-
-        return segments;
-    }
-
-    private string BuildPopupDamageText(IList<BattleDamageNumberPopup.DamageSegment> segments, int appliedDamage)
-    {
-        if (segments != null && segments.Count > 0)
-        {
-            System.Text.StringBuilder builder = new System.Text.StringBuilder();
-            for (int i = 0; i < segments.Count; i++)
-            {
-                BattleDamageNumberPopup.DamageSegment segment = segments[i];
-                if (string.IsNullOrWhiteSpace(segment.text))
-                {
-                    continue;
-                }
-
-                if (builder.Length > 0)
-                {
-                    builder.Append("<color=#FFFFFF>+</color>");
-                }
-
-                builder.Append("<color=#");
-                builder.Append(ColorUtility.ToHtmlStringRGB(segment.color));
-                builder.Append(">");
-                builder.Append(segment.text);
-                builder.Append("</color>");
-            }
-
-            if (builder.Length > 0)
-            {
-                return builder.ToString();
-            }
-        }
-
-        return appliedDamage > 0 ? appliedDamage.ToString() : string.Empty;
-    }
-
-    private static List<DamageDisplayAllocation> BuildDamageDisplayAllocations(CombatDamageResult damageResult)
-    {
-        List<DamageDisplayAllocation> allocations = new List<DamageDisplayAllocation>();
-        if (damageResult == null)
-        {
-            return allocations;
-        }
-
-        int totalAssigned = 0;
-        for (int i = 0; i < damageResult.components.Count; i++)
-        {
-            DamageComponent component = damageResult.components[i];
-            if (component.amount <= 0f)
-            {
-                continue;
-            }
-
-            int baseAmount = Mathf.FloorToInt(component.amount);
-            allocations.Add(new DamageDisplayAllocation
-            {
-                attributeType = component.attributeType,
-                amount = component.amount,
-                displayAmount = baseAmount,
-                fractionalPart = component.amount - baseAmount
-            });
-            totalAssigned += baseAmount;
-        }
-
-        int delta = Mathf.Max(0, damageResult.appliedDamage) - totalAssigned;
-        if (delta <= 0 || allocations.Count == 0)
-        {
-            return allocations;
-        }
-
-        allocations.Sort(CompareDamageDisplayAllocationForIncrement);
-        for (int i = 0; i < delta; i++)
-        {
-            int index = i % allocations.Count;
-            DamageDisplayAllocation allocation = allocations[index];
-            allocation.displayAmount += 1;
-            allocations[index] = allocation;
-        }
-
-        allocations.Sort(CompareDamageDisplayAllocationForOutput);
-        return allocations;
-    }
-
-    private Color ResolveDamageColor(DamageAttributeType attributeType)
-    {
-        switch (attributeType)
-        {
-            case DamageAttributeType.Fire:
-                return fireDamageColor;
-            case DamageAttributeType.Corruption:
-                return corruptionDamageColor;
-            case DamageAttributeType.Cold:
-                return coldDamageColor;
-            default:
-                return physicalDamageColor;
-        }
-    }
-
-    private static int CompareDamageDisplayAllocationForIncrement(DamageDisplayAllocation left, DamageDisplayAllocation right)
-    {
-        int fractionalComparison = right.fractionalPart.CompareTo(left.fractionalPart);
-        if (fractionalComparison != 0)
-        {
-            return fractionalComparison;
-        }
-
-        int priorityComparison = GetDamageAttributeDisplayPriority(left.attributeType).CompareTo(GetDamageAttributeDisplayPriority(right.attributeType));
-        if (priorityComparison != 0)
-        {
-            return priorityComparison;
-        }
-
-        return right.amount.CompareTo(left.amount);
-    }
-
-    private static int CompareDamageDisplayAllocationForOutput(DamageDisplayAllocation left, DamageDisplayAllocation right)
-    {
-        return GetDamageAttributeDisplayPriority(left.attributeType).CompareTo(GetDamageAttributeDisplayPriority(right.attributeType));
-    }
-
-    private static int GetDamageAttributeDisplayPriority(DamageAttributeType attributeType)
-    {
-        switch (attributeType)
-        {
-            case DamageAttributeType.Physical:
-                return 0;
-            case DamageAttributeType.Fire:
-                return 1;
-            case DamageAttributeType.Corruption:
-                return 2;
-            case DamageAttributeType.Cold:
-                return 3;
-            default:
-                return int.MaxValue;
-        }
-    }
-
-    private static string FormatDamageValue(float value)
-    {
-        if (Mathf.Approximately(value, Mathf.Round(value)))
-        {
-            return Mathf.RoundToInt(value).ToString();
-        }
-
-        return value.ToString("0.#");
+            skill,
+            battleCamera,
+            physicalDamageColor);
     }
 
 
