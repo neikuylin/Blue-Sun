@@ -564,6 +564,60 @@ public class BattleBootstrap : MonoBehaviour
         SceneManager.LoadScene(SceneName);
     }
 
+    public static bool DebugNavigateToDirection(
+        MapTemplateDatabase.ConnectionDirection direction,
+        bool preserveCurrentRoomSnapshot)
+    {
+        MapTemplateDatabase mapTemplateDatabase = MapTemplateDatabase.LoadDefault();
+        if (mapTemplateDatabase == null)
+        {
+            Debug.LogError("BattleBootstrap: DebugNavigateToDirection failed because MapTemplateDatabase is missing.");
+            return false;
+        }
+
+        MapTemplateDatabase.MapTemplateEntry template = FindTemplateWithoutMutation(mapTemplateDatabase, currentDungeonTemplateId);
+        if (template == null)
+        {
+            Debug.LogError($"BattleBootstrap: DebugNavigateToDirection failed because template '{currentDungeonTemplateId}' does not exist.");
+            return false;
+        }
+
+        MapTemplateDatabase.MapNodeEntry currentNode = FindNodeWithoutMutation(template, currentDungeonNodeId);
+        if (currentNode == null)
+        {
+            Debug.LogError($"BattleBootstrap: DebugNavigateToDirection failed because current room '{currentDungeonNodeId}' does not exist.");
+            return false;
+        }
+
+        string targetNodeId = FindConnectionTargetInDirection(currentNode, direction);
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+        {
+            Debug.LogError($"BattleBootstrap: room '{currentDungeonNodeId}' has no {direction} connection.");
+            return false;
+        }
+
+        if (FindNodeWithoutMutation(template, targetNodeId) == null)
+        {
+            Debug.LogError($"BattleBootstrap: room '{currentDungeonNodeId}' connects to missing room '{targetNodeId}'.");
+            return false;
+        }
+
+        if (Application.isPlaying && preserveCurrentRoomSnapshot)
+        {
+            PreserveCurrentRoomSnapshot();
+        }
+
+        pendingEntranceDirection = ReverseDirection(direction);
+        SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
+
+        if (Application.isPlaying)
+        {
+            SceneManager.LoadScene(SceneName);
+        }
+
+        return true;
+    }
+
     private static string BuildRoomKey(string templateId, string nodeId)
     {
         if (string.IsNullOrWhiteSpace(templateId) || string.IsNullOrWhiteSpace(nodeId))
@@ -572,6 +626,50 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return templateId.Trim() + "::" + nodeId.Trim();
+    }
+
+    private static MapTemplateDatabase.MapTemplateEntry FindTemplateWithoutMutation(
+        MapTemplateDatabase database,
+        string templateId)
+    {
+        if (database == null || database.Entries == null || string.IsNullOrWhiteSpace(templateId))
+        {
+            return null;
+        }
+
+        string resolvedTemplateId = templateId.Trim();
+        for (int i = 0; i < database.Entries.Count; i++)
+        {
+            MapTemplateDatabase.MapTemplateEntry entry = database.Entries[i];
+            if (entry != null && string.Equals(entry.templateId, resolvedTemplateId, System.StringComparison.Ordinal))
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
+    private static MapTemplateDatabase.MapNodeEntry FindNodeWithoutMutation(
+        MapTemplateDatabase.MapTemplateEntry template,
+        string nodeId)
+    {
+        if (template == null || template.nodes == null || string.IsNullOrWhiteSpace(nodeId))
+        {
+            return null;
+        }
+
+        string resolvedNodeId = nodeId.Trim();
+        for (int i = 0; i < template.nodes.Count; i++)
+        {
+            MapTemplateDatabase.MapNodeEntry node = template.nodes[i];
+            if (node != null && string.Equals(node.nodeId, resolvedNodeId, System.StringComparison.Ordinal))
+            {
+                return node;
+            }
+        }
+
+        return null;
     }
 
     private static void ClearRoomStateMemories(bool destroyPreservedRuntimeRoots)
