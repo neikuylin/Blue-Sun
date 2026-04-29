@@ -115,8 +115,6 @@ InitTestScene*.unity*
 .MemoryCaptures/
 Recordings/
 .vs/
-Assets/字体包/Resources/Fonts & Materials/普通.asset
-Assets/字体包/Resources/Fonts & Materials/描边.asset
 Assets/字体包/**/*.ttf
 Assets/字体包/**/*.ttf.meta
 Assets/字体包/**/*.otf
@@ -128,8 +126,7 @@ Assets/字体包/**/*.woff2.meta
 Assets/字体包/**/*.eot
 Assets/字体包/**/*.eot.meta
 
-# Local TMP/font package content is managed outside git for this project.
-/Assets/字体包/
+# Local source font binaries are managed outside git for this project.
 
 # Unity 6 auto-created setting not used by this project.
 /ProjectSettings/MultiplayerManager.asset
