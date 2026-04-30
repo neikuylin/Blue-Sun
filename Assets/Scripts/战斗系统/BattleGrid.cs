@@ -47,7 +47,6 @@ public class BattleGrid : MonoBehaviour
     private Color reachableOutlineColor = new Color(0.20f, 0.70f, 1.00f, 0.57f);
     private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.26f);
     private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.30f);
-    private Color boardOutlineColor = new Color(0.85f, 0.95f, 0.90f, 0.70f);
 
     private struct Edge
     {
@@ -93,7 +92,6 @@ public class BattleGrid : MonoBehaviour
         lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
         gridOutlineMaterialTemplate = Resources.Load<Material>(Below3DNoDepthSpriteMaterialResourcePath);
 
-        CreateBoardOutline();
         highlightLayerOrder = 0;
     }
 
@@ -778,50 +776,6 @@ public class BattleGrid : MonoBehaviour
                 hoverHighlightRoot = root.transform;
             }
         }
-    }
-
-    private void CreateBoardOutline()
-    {
-        if (validCells != null && validCells.Count > 0)
-        {
-            List<List<Vector2Int>> loops = BuildBoundaryLoops(validCells);
-            for (int i = 0; i < loops.Count; i++)
-            {
-                CreateOutlineLoopRenderer(
-                    boardVisualRoot,
-                    loops[i],
-                    boardOutlineColor,
-                    overlayY - 0.01f,
-                    0);
-            }
-            return;
-        }
-
-        GameObject outlineObject = new GameObject("BoardOutline");
-        outlineObject.transform.SetParent(boardVisualRoot, false);
-
-        LineRenderer line = outlineObject.AddComponent<LineRenderer>();
-        line.sharedMaterial = CreateGridLineMaterial(boardOutlineColor);
-        line.sortingOrder = ResolveGridOutlineSortingOrder(0);
-        line.loop = true;
-        line.useWorldSpace = false;
-        line.textureMode = LineTextureMode.Stretch;
-        line.numCornerVertices = 20;
-        line.numCapVertices = 20;
-        line.widthMultiplier = cellSize * 0.12f;
-        line.alignment = LineAlignment.View;
-
-        float minX = -0.5f * cellSize;
-        float maxX = (width - 0.5f) * cellSize;
-        float minZ = -0.5f * cellSize;
-        float maxZ = (height - 0.5f) * cellSize;
-        float y = overlayY - 0.01f;
-
-        line.positionCount = 4;
-        line.SetPosition(0, new Vector3(minX, y, minZ));
-        line.SetPosition(1, new Vector3(maxX, y, minZ));
-        line.SetPosition(2, new Vector3(maxX, y, maxZ));
-        line.SetPosition(3, new Vector3(minX, y, maxZ));
     }
 
     private void CreateOverlay(HashSet<Vector2Int> cells, Color color, string name)
