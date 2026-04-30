@@ -44,6 +44,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                 fixed4 color : COLOR;
                 float2 texcoord : TEXCOORD0;
                 float4 screenPos : TEXCOORD1;
+                float eyeDepth : TEXCOORD2;
             };
 
             sampler2D _MainTex;
@@ -51,6 +52,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
             fixed4 _Color;
             int _OcclusionRevealEnabled;
             int _OcclusionRevealCount;
+            int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
@@ -62,12 +64,13 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                 output.texcoord = TRANSFORM_TEX(input.texcoord, _MainTex);
                 output.color = input.color * _Color;
                 output.screenPos = ComputeScreenPos(output.vertex);
+                output.eyeDepth = -UnityObjectToViewPos(input.vertex.xyz).z;
                 return output;
             }
 
-            fixed ResolveOcclusionRevealAlpha(float4 screenPos)
+            fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
             {
-                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0)
+                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0 || _OcclusionRevealDepthMode == 0)
                 {
                     return 1;
                 }
@@ -86,6 +89,11 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
+                    if (_OcclusionRevealDepthMode == 2 && eyeDepth > _OcclusionRevealCenters[i].z)
+                    {
+                        continue;
+                    }
+
                     float distancePixels = distance(pixelPosition, center);
                     fixed hole;
                     if (softness <= 0.001)
@@ -106,7 +114,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
             fixed4 frag(v2f input) : SV_Target
             {
                 fixed4 texColor = tex2D(_MainTex, input.texcoord) * input.color;
-                texColor.a *= ResolveOcclusionRevealAlpha(input.screenPos);
+                texColor.a *= ResolveOcclusionRevealAlpha(input.screenPos, input.eyeDepth);
                 return texColor;
             }
             ENDCG

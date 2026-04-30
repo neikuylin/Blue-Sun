@@ -8,12 +8,20 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 {
     private const int MaxRevealCount = 32;
     private const float UnitRefreshInterval = 0.25f;
+    private const int TransparentQueue = 3000;
+    private const int ZTestLessEqual = 4;
+    private const int ZTestAlways = 8;
+    private const int RevealDepthModeDisabled = 0;
+    private const int RevealDepthModeAlways = 1;
+    private const int RevealDepthModeDepthTest = 2;
 
     private static readonly int RevealEnabledId = Shader.PropertyToID("_OcclusionRevealEnabled");
     private static readonly int RevealCountId = Shader.PropertyToID("_OcclusionRevealCount");
     private static readonly int RevealRadiusPixelsId = Shader.PropertyToID("_OcclusionRevealRadiusPixels");
     private static readonly int RevealSoftnessPixelsId = Shader.PropertyToID("_OcclusionRevealSoftnessPixels");
     private static readonly int RevealCentersId = Shader.PropertyToID("_OcclusionRevealCenters");
+    private static readonly int RevealDepthModeId = Shader.PropertyToID("_OcclusionRevealDepthMode");
+    private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
     private static readonly List<BattleUnit> CachedUnits = new List<BattleUnit>();
@@ -149,7 +157,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
-            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, 0f, 0f);
+            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, screenPosition.z, 0f);
             writeIndex++;
         }
 
@@ -174,9 +182,11 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
+            int depthMode = ResolveRevealDepthMode(renderer);
             renderer.GetPropertyBlock(block);
-            block.SetInt(RevealEnabledId, revealCount > 0 ? 1 : 0);
+            block.SetInt(RevealEnabledId, revealCount > 0 && depthMode != RevealDepthModeDisabled ? 1 : 0);
             block.SetInt(RevealCountId, revealCount);
+            block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, radiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, softnessPixels));
             block.SetVectorArray(RevealCentersId, RevealCenters);
@@ -205,8 +215,37 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             renderer.GetPropertyBlock(block);
             block.SetInt(RevealEnabledId, 0);
             block.SetInt(RevealCountId, 0);
+            block.SetInt(RevealDepthModeId, RevealDepthModeDisabled);
             renderer.SetPropertyBlock(block);
         }
+    }
+
+    private static int ResolveRevealDepthMode(Renderer renderer)
+    {
+        Material material = renderer.sharedMaterial;
+        if (material == null)
+        {
+            return RevealDepthModeDisabled;
+        }
+
+        int renderQueue = material.renderQueue;
+        if (renderQueue < TransparentQueue)
+        {
+            return RevealDepthModeDisabled;
+        }
+
+        int zTest = material.HasProperty(ZTestId) ? Mathf.RoundToInt(material.GetFloat(ZTestId)) : ZTestLessEqual;
+        if (renderQueue > TransparentQueue || zTest == ZTestAlways)
+        {
+            return RevealDepthModeAlways;
+        }
+
+        if (zTest == ZTestLessEqual)
+        {
+            return RevealDepthModeDepthTest;
+        }
+
+        return RevealDepthModeDisabled;
     }
 
     private MaterialPropertyBlock GetPropertyBlock()

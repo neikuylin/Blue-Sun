@@ -57,6 +57,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 fixed4 color : COLOR;
                 float2 texcoord : TEXCOORD0;
                 float4 screenPos : TEXCOORD1;
+                float eyeDepth : TEXCOORD2;
             };
 
             fixed4 _Color;
@@ -65,6 +66,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             fixed _FacingAmount;
             int _OcclusionRevealEnabled;
             int _OcclusionRevealCount;
+            int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
@@ -77,6 +79,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 output.texcoord = input.texcoord;
                 output.color = input.color * _Color;
                 output.screenPos = ComputeScreenPos(output.vertex);
+                output.eyeDepth = -UnityObjectToViewPos(input.vertex.xyz).z;
 
                 #ifdef PIXELSNAP_ON
                 output.vertex = UnityPixelSnap(output.vertex);
@@ -85,9 +88,9 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 return output;
             }
 
-            fixed ResolveOcclusionRevealAlpha(float4 screenPos)
+            fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
             {
-                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0)
+                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0 || _OcclusionRevealDepthMode == 0)
                 {
                     return 1;
                 }
@@ -106,6 +109,11 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
+                    if (_OcclusionRevealDepthMode == 2 && eyeDepth > _OcclusionRevealCenters[i].z)
+                    {
+                        continue;
+                    }
+
                     float distancePixels = distance(pixelPosition, center);
                     fixed hole;
                     if (softness <= 0.001)
@@ -126,7 +134,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             fixed4 frag(v2f input) : SV_Target
             {
                 fixed4 texColor = tex2D(_MainTex, input.texcoord) * input.color;
-                texColor.a *= ResolveOcclusionRevealAlpha(input.screenPos);
+                texColor.a *= ResolveOcclusionRevealAlpha(input.screenPos, input.eyeDepth);
 
                 fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.rgb * _AmbientStrength;
                 fixed directional = saturate(_WorldSpaceLightPos0.y * 0.5 + 0.5);
@@ -171,13 +179,15 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 float2 texcoord : TEXCOORD0;
                 float3 worldPos : TEXCOORD1;
                 float4 screenPos : TEXCOORD2;
-                UNITY_SHADOW_COORDS(3)
+                float eyeDepth : TEXCOORD3;
+                UNITY_SHADOW_COORDS(4)
             };
 
             fixed4 _Color;
             fixed _LocalLightStrength;
             int _OcclusionRevealEnabled;
             int _OcclusionRevealCount;
+            int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
@@ -191,6 +201,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 output.color = input.color * _Color;
                 output.worldPos = mul(unity_ObjectToWorld, input.vertex).xyz;
                 output.screenPos = ComputeScreenPos(output.pos);
+                output.eyeDepth = -UnityObjectToViewPos(input.vertex.xyz).z;
 
                 #ifdef PIXELSNAP_ON
                 output.pos = UnityPixelSnap(output.pos);
@@ -200,9 +211,9 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 return output;
             }
 
-            fixed ResolveOcclusionRevealAlpha(float4 screenPos)
+            fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
             {
-                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0)
+                if (_OcclusionRevealEnabled == 0 || _OcclusionRevealCount <= 0 || _OcclusionRevealDepthMode == 0)
                 {
                     return 1;
                 }
@@ -221,6 +232,11 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
+                    if (_OcclusionRevealDepthMode == 2 && eyeDepth > _OcclusionRevealCenters[i].z)
+                    {
+                        continue;
+                    }
+
                     float distancePixels = distance(pixelPosition, center);
                     fixed hole;
                     if (softness <= 0.001)
@@ -242,7 +258,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             {
                 fixed4 texColor = tex2D(_MainTex, input.texcoord) * input.color;
                 UNITY_LIGHT_ATTENUATION(attenuation, input, input.worldPos);
-                attenuation *= ResolveOcclusionRevealAlpha(input.screenPos);
+                attenuation *= ResolveOcclusionRevealAlpha(input.screenPos, input.eyeDepth);
 
                 fixed3 localLight = _LightColor0.rgb * attenuation * _LocalLightStrength;
                 return fixed4(texColor.rgb * localLight, texColor.a);
