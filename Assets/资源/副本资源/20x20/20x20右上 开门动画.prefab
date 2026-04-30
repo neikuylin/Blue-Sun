@@ -136,8 +136,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
-  mode: 1
-  overwriteSortingOrder: 1
+  mode: 0
+  overwriteSortingOrder: 0
   sortingOrder: -9000
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
@@ -207,7 +207,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -228,7 +228,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -9000
+  m_SortingOrder: -8000
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 1ecca1412174b4442bc1f5deb1375f22, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -300,7 +300,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -395,7 +395,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -642,7 +642,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
