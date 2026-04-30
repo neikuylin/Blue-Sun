@@ -8,6 +8,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
     private SerializedProperty radiusPixels;
     private SerializedProperty softnessPixels;
     private SerializedProperty targetCamera;
+    private SerializedProperty targetRenderers;
 
     private void OnEnable()
     {
@@ -15,6 +16,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         radiusPixels = serializedObject.FindProperty("radiusPixels");
         softnessPixels = serializedObject.FindProperty("softnessPixels");
         targetCamera = serializedObject.FindProperty("targetCamera");
+        targetRenderers = serializedObject.FindProperty("targetRenderers");
     }
 
     public override void OnInspectorGUI()
@@ -29,6 +31,10 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("屏幕位置计算", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(targetCamera, new GUIContent("用于计算角色屏幕位置的相机", "为空时使用 Camera.main。"));
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("作用目标", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(targetRenderers, new GUIContent("目标Renderer（为空时使用当前物体Renderer）"), true);
 
         serializedObject.ApplyModifiedProperties();
     }

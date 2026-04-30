@@ -3,8 +3,7 @@ using UnityEngine;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
-[RequireComponent(typeof(SpriteRenderer))]
-[AddComponentMenu("战斗/Sprite角色遮挡挖空控制器")]
+[AddComponentMenu("战斗/角色遮挡挖空控制器")]
 public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 {
     private const int MaxRevealCount = 32;
@@ -38,12 +37,16 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     [Tooltip("为空时使用 Camera.main。")]
     [SerializeField] private Camera targetCamera;
 
-    private SpriteRenderer targetRenderer;
+    [Header("作用目标")]
+    [InspectorName("目标Renderer（为空时使用当前物体Renderer）")]
+    [SerializeField] private Renderer[] targetRenderers;
+
+    private Renderer[] cachedRenderers;
     private MaterialPropertyBlock propertyBlock;
 
     private void OnEnable()
     {
-        targetRenderer = GetComponent<SpriteRenderer>();
+        CacheRenderers();
         Apply();
     }
 
@@ -54,11 +57,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private void OnValidate()
     {
-        if (targetRenderer == null)
-        {
-            targetRenderer = GetComponent<SpriteRenderer>();
-        }
-
+        CacheRenderers();
         Apply();
     }
 
@@ -70,12 +69,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     [ContextMenu("应用遮挡挖空")]
     public void Apply()
     {
-        if (targetRenderer == null)
-        {
-            targetRenderer = GetComponent<SpriteRenderer>();
-        }
-
-        if (targetRenderer == null)
+        Renderer[] renderers = ResolveRenderers();
+        if (renderers.Length == 0)
         {
             return;
         }
@@ -95,6 +90,26 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private Camera ResolveCamera()
     {
         return targetCamera != null ? targetCamera : Camera.main;
+    }
+
+    private Renderer[] ResolveRenderers()
+    {
+        if (targetRenderers != null && targetRenderers.Length > 0)
+        {
+            return targetRenderers;
+        }
+
+        if (cachedRenderers == null || cachedRenderers.Length == 0)
+        {
+            CacheRenderers();
+        }
+
+        return cachedRenderers ?? System.Array.Empty<Renderer>();
+    }
+
+    private void CacheRenderers()
+    {
+        cachedRenderers = GetComponents<Renderer>();
     }
 
     private void RefreshUnitsIfNeeded()
@@ -148,33 +163,50 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private void ApplyReveal(int revealCount)
     {
+        Renderer[] renderers = ResolveRenderers();
         MaterialPropertyBlock block = GetPropertyBlock();
-        targetRenderer.GetPropertyBlock(block);
-        block.SetInt(RevealEnabledId, revealCount > 0 ? 1 : 0);
-        block.SetInt(RevealCountId, revealCount);
-        block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, radiusPixels));
-        block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, softnessPixels));
-        block.SetVectorArray(RevealCentersId, RevealCenters);
-        targetRenderer.SetPropertyBlock(block);
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            renderer.GetPropertyBlock(block);
+            block.SetInt(RevealEnabledId, revealCount > 0 ? 1 : 0);
+            block.SetInt(RevealCountId, revealCount);
+            block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, radiusPixels));
+            block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, softnessPixels));
+            block.SetVectorArray(RevealCentersId, RevealCenters);
+            renderer.SetPropertyBlock(block);
+        }
     }
 
     private void ClearReveal()
     {
-        if (targetRenderer == null)
-        {
-            targetRenderer = GetComponent<SpriteRenderer>();
-        }
-
-        if (targetRenderer == null)
+        Renderer[] renderers = ResolveRenderers();
+        if (renderers.Length == 0)
         {
             return;
         }
 
         MaterialPropertyBlock block = GetPropertyBlock();
-        targetRenderer.GetPropertyBlock(block);
-        block.SetInt(RevealEnabledId, 0);
-        block.SetInt(RevealCountId, 0);
-        targetRenderer.SetPropertyBlock(block);
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            renderer.GetPropertyBlock(block);
+            block.SetInt(RevealEnabledId, 0);
+            block.SetInt(RevealCountId, 0);
+            renderer.SetPropertyBlock(block);
+        }
     }
 
     private MaterialPropertyBlock GetPropertyBlock()

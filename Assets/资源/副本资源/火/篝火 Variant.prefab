@@ -277,6 +277,7 @@ GameObject:
   - component: {fileID: 7807918891874290598}
   - component: {fileID: 7807918891874290597}
   - component: {fileID: 7807918891874290596}
+  - component: {fileID: 3329289756112409131}
   - component: {fileID: 7807918891874290599}
   - component: {fileID: 7807918891874290594}
   m_Layer: 0
@@ -5052,7 +5053,7 @@ ParticleSystemRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 21a4e17d80bd4b44fb7b711edba05f1e, type: 2}
+  - {fileID: 2100000, guid: bb7a6323c4ed486481e2f830d7c34e51, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5106,6 +5107,23 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &3329289756112409131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7807918891874290601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  revealEnabled: 1
+  radiusPixels: 120
+  softnessPixels: 0
+  targetCamera: {fileID: 0}
+  targetRenderers: []
 --- !u!82 &7807918891874290599
 AudioSource:
   m_ObjectHideFlags: 0
