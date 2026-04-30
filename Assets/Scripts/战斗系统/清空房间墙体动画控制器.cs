@@ -1,17 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public sealed class RoomClearedWallAnimationController : MonoBehaviour
+public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 {
     private const string RoomClearedEventId = "\u6E05\u7A7A\u623F\u95F4";
 
-    private readonly List<Animator> controlledAnimators = new List<Animator>();
+    [SerializeField] private List<Animator> 要停在第一帧的动画 = new List<Animator>();
+    [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
+    [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
+    [SerializeField] private List<AudioSource> 清空房间后开启的音频组件 = new List<AudioSource>();
+
     private bool hasAppliedState;
     private bool appliedClearedState;
 
     private void OnEnable()
     {
-        RefreshAnimators();
         EventRuntimeState.StateChanged += HandleEventStateChanged;
         ApplyState(EventRuntimeState.IsEnabled(RoomClearedEventId), true);
     }
@@ -19,20 +22,6 @@ public sealed class RoomClearedWallAnimationController : MonoBehaviour
     private void OnDisable()
     {
         EventRuntimeState.StateChanged -= HandleEventStateChanged;
-    }
-
-    public void RefreshAnimators()
-    {
-        controlledAnimators.Clear();
-        GetComponentsInChildren(true, controlledAnimators);
-        for (int i = controlledAnimators.Count - 1; i >= 0; i--)
-        {
-            Animator animator = controlledAnimators[i];
-            if (animator == null || animator.runtimeAnimatorController == null)
-            {
-                controlledAnimators.RemoveAt(i);
-            }
-        }
     }
 
     private void HandleEventStateChanged(string eventId, bool enabled)
@@ -55,12 +44,11 @@ public sealed class RoomClearedWallAnimationController : MonoBehaviour
         hasAppliedState = true;
         appliedClearedState = roomCleared;
 
-        for (int i = controlledAnimators.Count - 1; i >= 0; i--)
+        for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
-            Animator animator = controlledAnimators[i];
+            Animator animator = 要停在第一帧的动画[i];
             if (animator == null)
             {
-                controlledAnimators.RemoveAt(i);
                 continue;
             }
 
@@ -72,6 +60,38 @@ public sealed class RoomClearedWallAnimationController : MonoBehaviour
             {
                 ResetToStart(animator);
             }
+        }
+
+        ApplyGameObjectState(清空房间后开启的物体, roomCleared);
+        ApplyGameObjectState(清空房间后关闭的物体, !roomCleared);
+        ApplyAudioSourceState(清空房间后开启的音频组件, roomCleared);
+    }
+
+    private static void ApplyGameObjectState(List<GameObject> targets, bool active)
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            GameObject target = targets[i];
+            if (target == null)
+            {
+                continue;
+            }
+
+            target.SetActive(active);
+        }
+    }
+
+    private static void ApplyAudioSourceState(List<AudioSource> targets, bool enabled)
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            AudioSource target = targets[i];
+            if (target == null)
+            {
+                continue;
+            }
+
+            target.enabled = enabled;
         }
     }
 

@@ -44,7 +44,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_2
       displayName: node_2
-      position: {x: 533, y: 241}
+      position: {x: 531.4, y: 241.80002}
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleGridTemplateId: 
