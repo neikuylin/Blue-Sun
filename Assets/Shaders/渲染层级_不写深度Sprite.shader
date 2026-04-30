@@ -123,21 +123,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
 
             fixed4 _Color;
             fixed _LocalLightStrength;
-            fixed _SpriteLocalLightHardEdgeEnabled;
-            fixed _SpriteLocalLightHardEdgeThreshold;
-            fixed _SpriteLocalLightHardEdgeSoftness;
             sampler2D _MainTex;
-
-            fixed ApplyLocalLightEdge(fixed attenuation)
-            {
-                if (_SpriteLocalLightHardEdgeEnabled < 0.5)
-                {
-                    return attenuation;
-                }
-
-                fixed softness = max(_SpriteLocalLightHardEdgeSoftness, 0.0001);
-                return smoothstep(_SpriteLocalLightHardEdgeThreshold, _SpriteLocalLightHardEdgeThreshold + softness, attenuation);
-            }
 
             v2f_add vertAdd(appdata_t input)
             {
@@ -159,7 +145,6 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             {
                 fixed4 texColor = tex2D(_MainTex, input.texcoord) * input.color;
                 UNITY_LIGHT_ATTENUATION(attenuation, input, input.worldPos);
-                attenuation = ApplyLocalLightEdge(attenuation);
 
                 fixed3 localLight = _LightColor0.rgb * attenuation * _LocalLightStrength;
                 return fixed4(texColor.rgb * localLight, texColor.a);
