@@ -26,6 +26,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
+    private const string RoomClearedEventId = "清空房间";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
@@ -117,6 +118,9 @@ public class BattleBootstrap : MonoBehaviour
 
     public static void SetCurrentRoom(string templateId, string nodeId)
     {
+        string previousTemplateId = currentDungeonTemplateId;
+        string previousNodeId = currentDungeonNodeId;
+
         if (!string.IsNullOrWhiteSpace(templateId))
         {
             currentDungeonTemplateId = templateId.Trim();
@@ -125,6 +129,13 @@ public class BattleBootstrap : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(nodeId))
         {
             currentDungeonNodeId = nodeId.Trim();
+        }
+
+        if (Application.isPlaying &&
+            (!string.Equals(previousTemplateId, currentDungeonTemplateId, System.StringComparison.Ordinal) ||
+             !string.Equals(previousNodeId, currentDungeonNodeId, System.StringComparison.Ordinal)))
+        {
+            SetRoomClearedEvent(false);
         }
     }
 
@@ -161,7 +172,13 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         memory.encounterCleared = true;
+        SetRoomClearedEvent(true);
         Debug.Log($"BattleBootstrap: marked room '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}' as encounter cleared.");
+    }
+
+    public static void SetRoomClearedEvent(bool cleared)
+    {
+        EventRuntimeState.SetState(RoomClearedEventId, cleared);
     }
 
     public static bool IsCurrentRoomEncounterCleared()

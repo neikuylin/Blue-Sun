@@ -57,3 +57,7 @@ MonoBehaviour:
     displayName: "\u8425\u5730\u89D2\u8272\u745F\u838E"
     enabled: 1
     description: 
+  - eventId: "\u6E05\u7A7A\u623F\u95F4"
+    displayName: "\u6E05\u7A7A\u623F\u95F4"
+    enabled: 0
+    description:

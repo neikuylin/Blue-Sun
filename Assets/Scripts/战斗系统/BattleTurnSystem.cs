@@ -668,6 +668,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void EnterExplorationMode(bool playExitAnimation = true)
     {
+        if (!HasLivingEnemies())
+        {
+            BattleBootstrap.MarkCurrentRoomEncounterCleared();
+        }
+
         bool switchedFromCombat = currentMode == BattleFlowMode.Combat;
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
