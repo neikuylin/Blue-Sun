@@ -187,6 +187,16 @@ public class BattleBootstrap : MonoBehaviour
         return memory != null && memory.encounterCleared;
     }
 
+    public static bool IsCurrentRoomEncounterBattleRoom()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        return node != null &&
+            string.Equals(
+                string.IsNullOrWhiteSpace(node.roomTypeId) ? string.Empty : node.roomTypeId.Trim(),
+                RoomTypeDatabase.EncounterBattleTypeId,
+                System.StringComparison.Ordinal);
+    }
+
     private void Start()
     {
         if (!Application.isPlaying)
