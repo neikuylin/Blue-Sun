@@ -7,10 +7,13 @@ public static class EventRuntimeState
     private static readonly Dictionary<string, bool> statesByEventId =
         new Dictionary<string, bool>(StringComparer.Ordinal);
 
+    public static event Action<string, bool> StateChanged;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetOnSubsystemRegistration()
     {
         statesByEventId.Clear();
+        StateChanged = null;
     }
 
     public static bool IsEnabled(string eventId)
@@ -51,7 +54,12 @@ public static class EventRuntimeState
             return;
         }
 
+        bool previousEnabled = IsEnabled(resolvedId);
         statesByEventId[resolvedId] = enabled;
+        if (previousEnabled != enabled)
+        {
+            StateChanged?.Invoke(resolvedId, enabled);
+        }
     }
 
     public static void CaptureSaveData(SaveGameData.EventSave target)

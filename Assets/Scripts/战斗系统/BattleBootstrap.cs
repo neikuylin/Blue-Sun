@@ -414,7 +414,23 @@ public class BattleBootstrap : MonoBehaviour
                 instance.transform,
                 CellToWorldPosition(anchorCell) + wall.localOffset,
                 wall.alignToBattleCamera);
+            AttachRoomClearedWallAnimationController(instance);
         }
+    }
+
+    private static void AttachRoomClearedWallAnimationController(GameObject instance)
+    {
+        if (instance == null || instance.GetComponent<RoomClearedWallAnimationController>() != null)
+        {
+            return;
+        }
+
+        if (instance.GetComponentInChildren<Animator>(true) == null)
+        {
+            return;
+        }
+
+        instance.AddComponent<RoomClearedWallAnimationController>();
     }
 
     private static 战斗格子沙盘辅助 ResolveRequiredSandbox(GameObject instance, string context)
