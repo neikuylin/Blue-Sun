@@ -318,9 +318,9 @@ public class BattleBootstrap : MonoBehaviour
 
         GameObject contentRoot = new GameObject(RoomContentRootName);
         contentRoot.transform.SetParent(runtimeRoot, false);
-        CreateFloorVisuals(gridTemplate, contentRoot.transform);
+        战斗格子沙盘辅助 floorSandbox = CreateFloorVisuals(gridTemplate, contentRoot.transform);
         CreatePropVisuals(gridTemplate, contentRoot.transform);
-        CreateWallVisuals(gridTemplate, contentRoot.transform);
+        CreateWallVisuals(gridTemplate, contentRoot.transform, floorSandbox);
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -345,11 +345,11 @@ public class BattleBootstrap : MonoBehaviour
         return grid;
     }
 
-    private void CreateFloorVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
+    private 战斗格子沙盘辅助 CreateFloorVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
     {
         if (gridTemplate == null || contentRoot == null || gridTemplate.defaultFloorPrefab == null)
         {
-            return;
+            return null;
         }
 
         Transform floorRoot = CreateChildRoot(contentRoot, "Floor");
@@ -358,13 +358,15 @@ public class BattleBootstrap : MonoBehaviour
         战斗格子沙盘辅助 sandbox = ResolveRequiredSandbox(instance, "floor");
         if (sandbox == null)
         {
-            return;
+            return null;
         }
 
         PlaceVisualInstance(
             instance.transform,
             CellToWorldPosition(sandbox.AnchorCellInSandbox),
             gridTemplate.alignFloorToBattleCamera);
+
+        return sandbox;
     }
 
     private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
@@ -395,9 +397,10 @@ public class BattleBootstrap : MonoBehaviour
 
     private void CreateWallVisuals(
         格子模板数据库.格子模板条目 gridTemplate,
-        Transform contentRoot)
+        Transform contentRoot,
+        战斗格子沙盘辅助 floorSandbox)
     {
-        if (gridTemplate == null || contentRoot == null || gridTemplate.wallVisuals == null || gridTemplate.wallVisuals.Count == 0)
+        if (gridTemplate == null || contentRoot == null || floorSandbox == null || gridTemplate.wallVisuals == null || gridTemplate.wallVisuals.Count == 0)
         {
             return;
         }
@@ -422,7 +425,7 @@ public class BattleBootstrap : MonoBehaviour
             instance.name = string.IsNullOrWhiteSpace(wall.wallName) ? $"Wall_{anchorCell.x}_{anchorCell.y}" : wall.wallName.Trim();
             PlaceVisualInstance(
                 instance.transform,
-                CellToWorldPosition(anchorCell) + wall.localOffset,
+                floorSandbox.GetCellCenterWorld(anchorCell) + wall.localOffset,
                 wall.alignToBattleCamera);
         }
     }

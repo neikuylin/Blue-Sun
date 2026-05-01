@@ -31,6 +31,13 @@ public sealed class 战斗格子沙盘辅助 : MonoBehaviour
 
     public Vector2Int AnchorCellInSandbox => anchorCellInSandbox;
 
+    public Vector3 GetCellCenterWorld(Vector2Int cell)
+    {
+        float deltaX = (cell.x - anchorCellInSandbox.x) * cellSize;
+        float deltaZ = (cell.y - anchorCellInSandbox.y) * cellSize;
+        return TransformProjectedGridPoint(deltaX, deltaZ);
+    }
+
     private void OnValidate()
     {
         gridWidth = Mathf.Max(1, gridWidth);
