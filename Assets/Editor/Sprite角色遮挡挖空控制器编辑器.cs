@@ -15,6 +15,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
     private SerializedProperty sharedDissolveStrength;
     private SerializedProperty sharedDissolveEdgeWidth;
     private SerializedProperty sharedDissolveScrollSpeed;
+    private SerializedProperty sharedDissolveSmoothEdges;
     private SerializedProperty targetRenderers;
 
     private void OnEnable()
@@ -30,6 +31,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
             sharedDissolveStrength = settingsObject.FindProperty("dissolveStrength");
             sharedDissolveEdgeWidth = settingsObject.FindProperty("dissolveEdgeWidth");
             sharedDissolveScrollSpeed = settingsObject.FindProperty("dissolveScrollSpeed");
+            sharedDissolveSmoothEdges = settingsObject.FindProperty("dissolveSmoothEdges");
         }
 
         targetRenderers = serializedObject.FindProperty("targetRenderers");
@@ -70,6 +72,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         EditorGUILayout.PropertyField(sharedDissolveStrength, new GUIContent("颗粒强度", "0 为关闭颗粒，1 为最明显。"));
         EditorGUILayout.PropertyField(sharedDissolveEdgeWidth, new GUIContent("颗粒边缘宽度（像素）", "颗粒影响挖空边缘的屏幕像素宽度。"));
         EditorGUILayout.PropertyField(sharedDissolveScrollSpeed, new GUIContent("颗粒滚动速度（像素/秒）", "正负值控制上下滚动方向。"));
+        EditorGUILayout.PropertyField(sharedDissolveSmoothEdges, new GUIContent("颗粒边缘融合", "勾选时使用 smoothstep 软融合，取消勾选时使用硬边。"));
 
         if (!EditorGUI.EndChangeCheck())
         {

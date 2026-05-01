@@ -12,6 +12,7 @@ public sealed class SpriteOcclusionRevealSettings : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float dissolveStrength = 0.85f;
     [SerializeField, Range(0f, 128f)] private float dissolveEdgeWidth = 18f;
     [SerializeField, Range(-256f, 256f)] private float dissolveScrollSpeed = 48f;
+    [SerializeField] private bool dissolveSmoothEdges = true;
 
     public bool RevealEnabled => revealEnabled;
     public float RadiusWorld => Mathf.Max(0f, radiusWorld);
@@ -20,6 +21,7 @@ public sealed class SpriteOcclusionRevealSettings : ScriptableObject
     public float DissolveStrength => Mathf.Clamp01(dissolveStrength);
     public float DissolveEdgeWidth => Mathf.Max(0f, dissolveEdgeWidth);
     public float DissolveScrollSpeed => dissolveScrollSpeed;
+    public bool DissolveSmoothEdges => dissolveSmoothEdges;
 
     public static SpriteOcclusionRevealSettings LoadDefault()
     {

@@ -25,6 +25,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private static readonly int DissolveStrengthId = Shader.PropertyToID("_DissolveStrength");
     private static readonly int DissolveEdgeWidthId = Shader.PropertyToID("_DissolveEdgeWidth");
     private static readonly int DissolveScrollSpeedId = Shader.PropertyToID("_DissolveScrollSpeed");
+    private static readonly int DissolveSmoothEdgesId = Shader.PropertyToID("_DissolveSmoothEdges");
     private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
@@ -215,6 +216,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetFloat(DissolveStrengthId, settings.DissolveStrength);
             block.SetFloat(DissolveEdgeWidthId, settings.DissolveEdgeWidth);
             block.SetFloat(DissolveScrollSpeedId, settings.DissolveScrollSpeed);
+            block.SetInt(DissolveSmoothEdgesId, settings.DissolveSmoothEdges ? 1 : 0);
             block.SetVectorArray(RevealCentersId, RevealCenters);
             renderer.SetPropertyBlock(block);
         }

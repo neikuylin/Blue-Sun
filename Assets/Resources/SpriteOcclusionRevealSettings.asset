@@ -19,3 +19,4 @@ MonoBehaviour:
   dissolveStrength: 0.85
   dissolveEdgeWidth: 18
   dissolveScrollSpeed: 48
+  dissolveSmoothEdges: 1
