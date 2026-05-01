@@ -8,6 +8,10 @@ public sealed class RoomTypeDatabase : ScriptableObject
     public const string DefaultResourcePath = "RoomTypeDatabase";
     public const string EncounterBattleTypeId = "encounter_battle";
     public const string EncounterBattleTypeName = "遭遇战房间";
+    public const string BossBattleTypeId = "boss_battle";
+    public const string BossBattleTypeName = "BOSS房间";
+    public const string TotemTypeId = "totem";
+    public const string TotemTypeName = "图腾房间";
 
     [Serializable]
     public sealed class RoomTypeEntry
