@@ -151,6 +151,26 @@ public class BattleGrid : MonoBehaviour
         return validCells == null || validCells.Contains(cell);
     }
 
+    public void EnableCell(Vector2Int cell)
+    {
+        if (validCells == null || cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height)
+        {
+            return;
+        }
+
+        validCells.Add(cell);
+    }
+
+    public void DisableCell(Vector2Int cell)
+    {
+        if (validCells == null)
+        {
+            return;
+        }
+
+        validCells.Remove(cell);
+    }
+
     public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)
     {
         return IsWalkableInternal(unit, centerCell, false, false);

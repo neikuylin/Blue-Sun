@@ -92,6 +92,9 @@ public class BattleTurnSystem : MonoBehaviour
     private bool isResolvingSkillExecution;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
+    private Coroutine pendingDoorNavigationRoutine;
+    private bool hasPendingDoorNavigationCell;
+    private Vector2Int pendingDoorNavigationCell;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
@@ -343,6 +346,7 @@ public class BattleTurnSystem : MonoBehaviour
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
+        ClearPendingDoorNavigation();
 
         foreach (BattleUnit unit in battleUnits)
         {
@@ -374,6 +378,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        ClearPendingDoorNavigation();
         timelineService?.Dispose();
         explorationMoveService?.停止全部(this);
         skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
@@ -622,9 +627,14 @@ public class BattleTurnSystem : MonoBehaviour
         RefreshHighlights();
     }
 
-    private void TryMoveFreely(BattleUnit unit, Vector2Int destination)
+    private bool TryMoveFreely(BattleUnit unit, Vector2Int destination)
     {
-        explorationMoveService?.尝试自由移动(
+        if (hasPendingDoorNavigationCell && destination != pendingDoorNavigationCell)
+        {
+            ClearPendingDoorNavigation();
+        }
+
+        return explorationMoveService != null && explorationMoveService.尝试自由移动(
             this,
             unit,
             destination,
@@ -639,6 +649,89 @@ public class BattleTurnSystem : MonoBehaviour
             ResolveExplorationMoveSoundPrefab,
             battleCamera,
             RefreshHighlights);
+    }
+
+    public void TryNavigateToDoor(MapTemplateDatabase.ConnectionDirection direction)
+    {
+        if (!IsExplorationMode || activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled || grid == null)
+        {
+            return;
+        }
+
+        if (!BattleBootstrap.TryResolveCurrentRoomTarget(direction, out _))
+        {
+            return;
+        }
+
+        if (!BattleBootstrap.TryResolveCurrentDoorEntrance(direction, out Vector2Int doorCell))
+        {
+            return;
+        }
+
+        ClearPendingDoorNavigation();
+        grid.EnableCell(doorCell);
+        hasPendingDoorNavigationCell = true;
+        pendingDoorNavigationCell = doorCell;
+
+        if (grid.WorldToCell(activeUnit.transform.position) == doorCell)
+        {
+            ClearPendingDoorNavigation();
+            BattleBootstrap.NavigateToDirection(direction);
+            return;
+        }
+
+        if (!TryMoveFreely(activeUnit, doorCell))
+        {
+            ClearPendingDoorNavigation();
+            return;
+        }
+
+        pendingDoorNavigationRoutine = StartCoroutine(WaitForDoorNavigation(activeUnit, direction, doorCell));
+    }
+
+    private IEnumerator WaitForDoorNavigation(
+        BattleUnit unit,
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2Int doorCell)
+    {
+        while (unit != null && unit.IsMoving)
+        {
+            yield return null;
+        }
+
+        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != doorCell)
+        {
+            pendingDoorNavigationRoutine = null;
+            yield break;
+        }
+
+        if (grid == null || grid.WorldToCell(unit.transform.position) != doorCell)
+        {
+            pendingDoorNavigationRoutine = null;
+            ClearPendingDoorNavigation();
+            yield break;
+        }
+
+        pendingDoorNavigationRoutine = null;
+        ClearPendingDoorNavigation();
+        BattleBootstrap.NavigateToDirection(direction);
+    }
+
+    private void ClearPendingDoorNavigation()
+    {
+        if (pendingDoorNavigationRoutine != null)
+        {
+            StopCoroutine(pendingDoorNavigationRoutine);
+            pendingDoorNavigationRoutine = null;
+        }
+
+        if (hasPendingDoorNavigationCell && grid != null)
+        {
+            grid.DisableCell(pendingDoorNavigationCell);
+        }
+
+        hasPendingDoorNavigationCell = false;
+        pendingDoorNavigationCell = default;
     }
 
     private void EndTurn()
@@ -702,6 +795,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void EnterCombatMode(bool playEnterAnimation)
     {
+        ClearPendingDoorNavigation();
         explorationMoveService?.停止全部(this);
         bool switchedFromExploration = currentMode == BattleFlowMode.Exploration;
         currentMode = BattleFlowMode.Combat;

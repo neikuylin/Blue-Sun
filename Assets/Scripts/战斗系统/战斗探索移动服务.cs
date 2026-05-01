@@ -39,7 +39,7 @@ internal sealed class 战斗探索移动服务
         currentExplorationMoveAudioHandle = null;
     }
 
-    public void 尝试自由移动(
+    public bool 尝试自由移动(
         MonoBehaviour host,
         BattleUnit unit,
         Vector2Int destination,
@@ -57,13 +57,13 @@ internal sealed class 战斗探索移动服务
     {
         if (unit == null || grid == null)
         {
-            return;
+            return false;
         }
 
         Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
         if (destination == currentCell)
         {
-            return;
+            return false;
         }
 
         if (!unit.IsMoving)
@@ -71,7 +71,7 @@ internal sealed class 战斗探索移动服务
             List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
             if (path == null || path.Count <= 1)
             {
-                return;
+                return false;
             }
         }
 
@@ -84,7 +84,7 @@ internal sealed class 战斗探索移动服务
         unit.moveSpeed = originalMoveSpeed;
         if (moveDuration <= 0f)
         {
-            return;
+            return false;
         }
 
         string idleStateName = resolveExplorationIdleStateName != null ? resolveExplorationIdleStateName() : string.Empty;
@@ -106,6 +106,7 @@ internal sealed class 战斗探索移动服务
             resolveExplorationMoveCompensateMotion,
             refreshHighlights);
         refreshHighlights?.Invoke();
+        return true;
     }
 
     private void 排队跟随移动(

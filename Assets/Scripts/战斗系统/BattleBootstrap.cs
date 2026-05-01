@@ -482,6 +482,7 @@ public class BattleBootstrap : MonoBehaviour
     private static List<Vector2Int> BuildRuntimeWalkableCells(格子模板数据库.格子模板条目 gridTemplate)
     {
         List<Vector2Int> result = ConvertCells(gridTemplate != null ? gridTemplate.walkableCells : null);
+        RemoveDoorEntranceCells(result, gridTemplate);
         if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
         {
             return result;
@@ -517,6 +518,34 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static void RemoveDoorEntranceCells(List<Vector2Int> cells, 格子模板数据库.格子模板条目 gridTemplate)
+    {
+        if (cells == null || gridTemplate == null)
+        {
+            return;
+        }
+
+        if (gridTemplate.hasEastDoorEntrance)
+        {
+            cells.Remove(gridTemplate.eastDoorEntranceCell.ToVector2Int());
+        }
+
+        if (gridTemplate.hasSouthDoorEntrance)
+        {
+            cells.Remove(gridTemplate.southDoorEntranceCell.ToVector2Int());
+        }
+
+        if (gridTemplate.hasWestDoorEntrance)
+        {
+            cells.Remove(gridTemplate.westDoorEntranceCell.ToVector2Int());
+        }
+
+        if (gridTemplate.hasNorthDoorEntrance)
+        {
+            cells.Remove(gridTemplate.northDoorEntranceCell.ToVector2Int());
+        }
     }
 
     private static string FindConnectionTargetInDirection(
@@ -575,6 +604,56 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         NavigateToNode(targetNodeId);
+    }
+
+    public static bool TryResolveCurrentDoorEntrance(
+        MapTemplateDatabase.ConnectionDirection direction,
+        out Vector2Int cell)
+    {
+        cell = default;
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        if (gridTemplate == null)
+        {
+            return false;
+        }
+
+        switch (direction)
+        {
+            case MapTemplateDatabase.ConnectionDirection.East:
+                if (!gridTemplate.hasEastDoorEntrance)
+                {
+                    return false;
+                }
+
+                cell = gridTemplate.eastDoorEntranceCell.ToVector2Int();
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.South:
+                if (!gridTemplate.hasSouthDoorEntrance)
+                {
+                    return false;
+                }
+
+                cell = gridTemplate.southDoorEntranceCell.ToVector2Int();
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.West:
+                if (!gridTemplate.hasWestDoorEntrance)
+                {
+                    return false;
+                }
+
+                cell = gridTemplate.westDoorEntranceCell.ToVector2Int();
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.North:
+                if (!gridTemplate.hasNorthDoorEntrance)
+                {
+                    return false;
+                }
+
+                cell = gridTemplate.northDoorEntranceCell.ToVector2Int();
+                return true;
+            default:
+                return false;
+        }
     }
 
     public static void NavigateToNode(string targetNodeId)

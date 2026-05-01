@@ -92,6 +92,14 @@ public sealed class 格子模板数据库 : ScriptableObject
         public CellPosition westDoorPlayerSpawnCell;
         public bool hasNorthDoorPlayerSpawn;
         public CellPosition northDoorPlayerSpawnCell;
+        public bool hasEastDoorEntrance;
+        public CellPosition eastDoorEntranceCell;
+        public bool hasSouthDoorEntrance;
+        public CellPosition southDoorEntranceCell;
+        public bool hasWestDoorEntrance;
+        public CellPosition westDoorEntranceCell;
+        public bool hasNorthDoorEntrance;
+        public CellPosition northDoorEntranceCell;
     }
 
     [SerializeField] private List<格子模板条目> entries = new List<格子模板条目>();

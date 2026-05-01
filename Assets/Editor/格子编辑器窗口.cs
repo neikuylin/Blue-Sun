@@ -22,7 +22,11 @@ public sealed class 格子编辑器窗口 : EditorWindow
         玩家东门出生点 = 3,
         玩家南门出生点 = 4,
         玩家西门出生点 = 5,
-        玩家北门出生点 = 6
+        玩家北门出生点 = 6,
+        东门口 = 7,
+        南门口 = 8,
+        西门口 = 9,
+        北门口 = 10
     }
 
     private enum 拖拽模式
@@ -175,6 +179,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
             float gridHeight = HeaderSize + entry.height * (CellSize + CellGap) + CellGap;
 
             canvasScroll = EditorGUILayout.BeginScrollView(canvasScroll, GUILayout.ExpandHeight(true));
+            DrawDoorEntranceButtons();
+            EditorGUILayout.Space(4f);
             Rect canvasRect = GUILayoutUtility.GetRect(gridWidth, gridHeight, GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
             DrawGridCanvas(entry, canvasRect);
             HandleCanvasInput(entry, canvasRect);
@@ -200,6 +206,36 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         DrawPropPlacementButtons(entry);
+    }
+
+    private void DrawDoorEntranceButtons()
+    {
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            DrawDoorEntranceButton(绘制工具.东门口, "东门口");
+            DrawDoorEntranceButton(绘制工具.南门口, "南门口");
+            DrawDoorEntranceButton(绘制工具.西门口, "西门口");
+            DrawDoorEntranceButton(绘制工具.北门口, "北门口");
+        }
+    }
+
+    private void DrawDoorEntranceButton(绘制工具 tool, string label)
+    {
+        bool selected = selectedPropVisualIndex < 0 && currentTool == tool;
+        Color previousColor = GUI.backgroundColor;
+        if (selected)
+        {
+            GUI.backgroundColor = new Color(0.28f, 0.78f, 0.62f, 1f);
+        }
+
+        if (GUILayout.Button(label, GUILayout.Width(72f), GUILayout.Height(26f)))
+        {
+            currentTool = tool;
+            selectedPropVisualIndex = -1;
+            currentDragMode = 拖拽模式.无;
+        }
+
+        GUI.backgroundColor = previousColor;
     }
 
     private void DrawToolButton(绘制工具 tool, string label)
@@ -284,6 +320,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 DrawCellMarker(cellRect, "南", entry.hasSouthDoorPlayerSpawn && entry.southDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.90f, 0.45f, 0.16f));
                 DrawCellMarker(cellRect, "西", entry.hasWestDoorPlayerSpawn && entry.westDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.70f, 0.34f, 0.92f));
                 DrawCellMarker(cellRect, "北", entry.hasNorthDoorPlayerSpawn && entry.northDoorPlayerSpawnCell.ToVector2Int() == cell, new Color(0.18f, 0.78f, 0.78f));
+                DrawCellMarker(cellRect, "口", entry.hasEastDoorEntrance && entry.eastDoorEntranceCell.ToVector2Int() == cell, new Color(0.86f, 0.72f, 0.22f), 1);
+                DrawCellMarker(cellRect, "口", entry.hasSouthDoorEntrance && entry.southDoorEntranceCell.ToVector2Int() == cell, new Color(0.86f, 0.45f, 0.22f), 1);
+                DrawCellMarker(cellRect, "口", entry.hasWestDoorEntrance && entry.westDoorEntranceCell.ToVector2Int() == cell, new Color(0.58f, 0.36f, 0.86f), 1);
+                DrawCellMarker(cellRect, "口", entry.hasNorthDoorEntrance && entry.northDoorEntranceCell.ToVector2Int() == cell, new Color(0.22f, 0.72f, 0.72f), 1);
                 DrawCellMarker(cellRect, "锚", HasPropAnchorAtCell(entry, cell), new Color(0.85f, 0.48f, 0.18f), 1);
                 DrawCellMarker(cellRect, "物", HasPropOccupiedCell(entry, cell), new Color(0.72f, 0.39f, 0.14f), 2);
                 DrawCellMarker(cellRect, "墙", HasWallVisualAtCell(entry, cell), new Color(0.55f, 0.55f, 0.62f), 3);
@@ -498,6 +538,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
             ClearSpawnIfMatches(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, cell);
             ClearSpawnIfMatches(ref entry.hasWestDoorPlayerSpawn, ref entry.westDoorPlayerSpawnCell, cell);
             ClearSpawnIfMatches(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, cell);
+            ClearSpawnIfMatches(ref entry.hasEastDoorEntrance, ref entry.eastDoorEntranceCell, cell);
+            ClearSpawnIfMatches(ref entry.hasSouthDoorEntrance, ref entry.southDoorEntranceCell, cell);
+            ClearSpawnIfMatches(ref entry.hasWestDoorEntrance, ref entry.westDoorEntranceCell, cell);
+            ClearSpawnIfMatches(ref entry.hasNorthDoorEntrance, ref entry.northDoorEntranceCell, cell);
         }
 
         MarkDirtyAndRepaint();
@@ -505,7 +549,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
     private void ApplyPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
     {
-        AddCell(entry.walkableCells, cell);
+        if (!IsDoorEntranceTool(currentTool))
+        {
+            AddCell(entry.walkableCells, cell);
+        }
 
         switch (currentTool)
         {
@@ -527,9 +574,29 @@ public sealed class 格子编辑器窗口 : EditorWindow
             case 绘制工具.玩家北门出生点:
                 SetSpawn(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, cell);
                 break;
+            case 绘制工具.东门口:
+                SetSpawn(ref entry.hasEastDoorEntrance, ref entry.eastDoorEntranceCell, cell);
+                break;
+            case 绘制工具.南门口:
+                SetSpawn(ref entry.hasSouthDoorEntrance, ref entry.southDoorEntranceCell, cell);
+                break;
+            case 绘制工具.西门口:
+                SetSpawn(ref entry.hasWestDoorEntrance, ref entry.westDoorEntranceCell, cell);
+                break;
+            case 绘制工具.北门口:
+                SetSpawn(ref entry.hasNorthDoorEntrance, ref entry.northDoorEntranceCell, cell);
+                break;
         }
 
         MarkDirtyAndRepaint();
+    }
+
+    private static bool IsDoorEntranceTool(绘制工具 tool)
+    {
+        return tool == 绘制工具.东门口 ||
+            tool == 绘制工具.南门口 ||
+            tool == 绘制工具.西门口 ||
+            tool == 绘制工具.北门口;
     }
 
     private bool IsPropPlacementTool(格子模板数据库.格子模板条目 entry)
@@ -667,6 +734,13 @@ public sealed class 格子编辑器窗口 : EditorWindow
             DrawSingleSpawnReadonly("玩家南门出生点", entry.hasSouthDoorPlayerSpawn, entry.southDoorPlayerSpawnCell);
             DrawSingleSpawnReadonly("玩家西门出生点", entry.hasWestDoorPlayerSpawn, entry.westDoorPlayerSpawnCell);
             DrawSingleSpawnReadonly("玩家北门出生点", entry.hasNorthDoorPlayerSpawn, entry.northDoorPlayerSpawnCell);
+
+            EditorGUILayout.Space(6f);
+            EditorGUILayout.LabelField("门口", EditorStyles.boldLabel);
+            DrawSingleSpawnReadonly("东门口", entry.hasEastDoorEntrance, entry.eastDoorEntranceCell);
+            DrawSingleSpawnReadonly("南门口", entry.hasSouthDoorEntrance, entry.southDoorEntranceCell);
+            DrawSingleSpawnReadonly("西门口", entry.hasWestDoorEntrance, entry.westDoorEntranceCell);
+            DrawSingleSpawnReadonly("北门口", entry.hasNorthDoorEntrance, entry.northDoorEntranceCell);
 
             EditorGUILayout.Space(6f);
             EditorGUILayout.LabelField("可用格统计", EditorStyles.boldLabel);
@@ -1344,6 +1418,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
         ClampSpawnToBounds(ref entry.hasSouthDoorPlayerSpawn, ref entry.southDoorPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasWestDoorPlayerSpawn, ref entry.westDoorPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasNorthDoorPlayerSpawn, ref entry.northDoorPlayerSpawnCell, entry);
+        ClampSpawnToBounds(ref entry.hasEastDoorEntrance, ref entry.eastDoorEntranceCell, entry);
+        ClampSpawnToBounds(ref entry.hasSouthDoorEntrance, ref entry.southDoorEntranceCell, entry);
+        ClampSpawnToBounds(ref entry.hasWestDoorEntrance, ref entry.westDoorEntranceCell, entry);
+        ClampSpawnToBounds(ref entry.hasNorthDoorEntrance, ref entry.northDoorEntranceCell, entry);
     }
 
     private static void ClampCellListToBounds(
@@ -1613,6 +1691,14 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 return "玩家西门出生点";
             case 绘制工具.玩家北门出生点:
                 return "玩家北门出生点";
+            case 绘制工具.东门口:
+                return "东门口";
+            case 绘制工具.南门口:
+                return "南门口";
+            case 绘制工具.西门口:
+                return "西门口";
+            case 绘制工具.北门口:
+                return "北门口";
             default:
                 return string.Empty;
         }

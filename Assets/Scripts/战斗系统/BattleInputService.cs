@@ -66,7 +66,7 @@ internal sealed class BattleInputService
         BattleGrid grid,
         Camera battleCamera,
         BattleUnit activeUnit,
-        Action<BattleUnit, Vector2Int> tryMoveFreely)
+        Func<BattleUnit, Vector2Int, bool> tryMoveFreely)
     {
         if (!string.Equals(activeExplorationActionId, BattleTurnSystem.ExplorationMoveSkillId, StringComparison.Ordinal))
         {

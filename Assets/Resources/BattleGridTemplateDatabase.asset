@@ -877,6 +877,22 @@ MonoBehaviour:
     northDoorPlayerSpawnCell:
       x: 0
       y: 0
+    hasEastDoorEntrance: 0
+    eastDoorEntranceCell:
+      x: 0
+      y: 0
+    hasSouthDoorEntrance: 0
+    southDoorEntranceCell:
+      x: 0
+      y: 0
+    hasWestDoorEntrance: 0
+    westDoorEntranceCell:
+      x: 0
+      y: 0
+    hasNorthDoorEntrance: 0
+    northDoorEntranceCell:
+      x: 0
+      y: 0
   - templateId: "\u6D4B\u8BD5\u7528"
     displayName: "\u6D4B\u8BD5\u7528"
     width: 20
@@ -1725,6 +1741,22 @@ MonoBehaviour:
     northDoorPlayerSpawnCell:
       x: 10
       y: 18
+    hasEastDoorEntrance: 0
+    eastDoorEntranceCell:
+      x: 0
+      y: 0
+    hasSouthDoorEntrance: 0
+    southDoorEntranceCell:
+      x: 0
+      y: 0
+    hasWestDoorEntrance: 0
+    westDoorEntranceCell:
+      x: 0
+      y: 0
+    hasNorthDoorEntrance: 0
+    northDoorEntranceCell:
+      x: 0
+      y: 0
   - templateId: "\u796D\u7940\u623F"
     displayName: "\u796D\u7940\u623F"
     width: 25
@@ -2035,8 +2067,6 @@ MonoBehaviour:
     - x: 1
       y: 9
     - x: 1
-      y: 10
-    - x: 1
       y: 11
     - x: 1
       y: 12
@@ -2137,10 +2167,6 @@ MonoBehaviour:
     - x: 0
       y: 12
     - x: 0
-      y: 10
-    - x: 0
-      y: 8
-    - x: 0
       y: 7
     - x: 0
       y: 6
@@ -2157,13 +2183,9 @@ MonoBehaviour:
     - x: 1
       y: 0
     - x: 0
-      y: 0
-    - x: 0
       y: 1
     - x: 0
       y: 2
-    - x: 0
-      y: 9
     - x: 0
       y: 11
     - x: 1
@@ -2980,6 +3002,16 @@ MonoBehaviour:
       y: 9
     - x: 15
       y: 9
+    - x: 0
+      y: 0
+    - x: 0
+      y: 9
+    - x: 0
+      y: 8
+    - x: 1
+      y: 10
+    - x: 0
+      y: 10
     enemySpawnSlots: []
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: de57d356d2b2dd74ea04b6307976a2a0, type: 3}
     alignFloorToBattleCamera: 1
@@ -3045,5 +3077,21 @@ MonoBehaviour:
       y: 0
     hasNorthDoorPlayerSpawn: 0
     northDoorPlayerSpawnCell:
+      x: 0
+      y: 0
+    hasEastDoorEntrance: 0
+    eastDoorEntranceCell:
+      x: 0
+      y: 0
+    hasSouthDoorEntrance: 0
+    southDoorEntranceCell:
+      x: 0
+      y: 0
+    hasWestDoorEntrance: 1
+    westDoorEntranceCell:
+      x: 1
+      y: 13
+    hasNorthDoorEntrance: 0
+    northDoorEntranceCell:
       x: 0
       y: 0

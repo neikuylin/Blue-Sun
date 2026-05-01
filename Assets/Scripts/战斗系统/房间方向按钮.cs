@@ -22,7 +22,13 @@ public sealed class 房间方向按钮 : MonoBehaviour
             return;
         }
 
-        BattleBootstrap.NavigateToDirection(resolvedDirection);
+        BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
+        if (turnSystem == null)
+        {
+            return;
+        }
+
+        turnSystem.TryNavigateToDoor(resolvedDirection);
     }
 
     private static bool TryConvertDirection(
