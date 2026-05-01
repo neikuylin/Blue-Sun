@@ -324,6 +324,5 @@ internal static class 对话界面服务
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(delegate { continueDialogue?.Invoke(); });
-        Debug.Log($"对话运行时: 已绑定继续按钮, name={continueButtonObject.name}, id={continueButtonObject.GetInstanceID()}");
     }
 }

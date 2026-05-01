@@ -303,7 +303,6 @@ public sealed class 对话运行时 : MonoBehaviour
 
     private void CloseDialogue()
     {
-        Debug.Log("对话运行时: 点击继续按钮，执行关闭当前对话。");
         StopDialogueVoice();
         HideCurrentViews();
         当前对话组 = null;

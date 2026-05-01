@@ -173,7 +173,6 @@ public class BattleBootstrap : MonoBehaviour
 
         memory.encounterCleared = true;
         SetRoomClearedEvent(true);
-        Debug.Log($"BattleBootstrap: marked room '{BuildRoomKey(currentDungeonTemplateId, currentDungeonNodeId)}' as encounter cleared.");
     }
 
     public static void SetRoomClearedEvent(bool cleared)

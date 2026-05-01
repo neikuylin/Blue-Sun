@@ -276,17 +276,6 @@ internal sealed class 战斗伤害结算服务
             return string.Empty;
         }
 
-        int hitChance = calculateSkillHitChance != null
-            ? calculateSkillHitChance(caster, target, skill)
-            : 0;
-        string casterEffects = formatUnitEffectDebugText != null ? formatUnitEffectDebugText(caster) : "无";
-        string targetEffects = formatUnitEffectDebugText != null ? formatUnitEffectDebugText(target) : "无";
-        Debug.Log(
-            $"[SkillDebug] {caster.unitName} -> {target.unitName} using {skill.skillId} | " +
-            $"施法者效果: {casterEffects} | " +
-            $"目标效果: {targetEffects} | " +
-            $"命中: {hitChance}%");
-
         string casterName = resolveBattleInfoUnitName != null ? resolveBattleInfoUnitName(caster) : caster.unitName;
         string targetName = resolveBattleInfoUnitName != null ? resolveBattleInfoUnitName(target) : target.unitName;
         string skillName = resolveBattleInfoSkillName != null ? resolveBattleInfoSkillName(skill) : skill.skillId;
@@ -372,17 +361,6 @@ internal sealed class 战斗伤害结算服务
             }
 
             string unitName = resolveBattleInfoUnitName != null ? resolveBattleInfoUnitName(unit) : unit.unitName;
-            int hitChance = calculateSkillHitChance != null
-                ? calculateSkillHitChance(caster, unit, skill)
-                : 0;
-            string casterEffects = formatUnitEffectDebugText != null ? formatUnitEffectDebugText(caster) : "无";
-            string targetEffects = formatUnitEffectDebugText != null ? formatUnitEffectDebugText(unit) : "无";
-            Debug.Log(
-                $"[SkillDebug] {caster.unitName} -> {unit.unitName} using {skill.skillId} | " +
-                $"施法者效果: {casterEffects} | " +
-                $"目标效果: {targetEffects} | " +
-                $"命中: {hitChance}%");
-
             if (rollSkillHit == null || !rollSkillHit(caster, unit, skill))
             {
                 playDodgeReaction?.Invoke(unit);

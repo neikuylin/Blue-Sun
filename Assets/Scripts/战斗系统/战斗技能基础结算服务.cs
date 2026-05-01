@@ -184,10 +184,6 @@ internal sealed class 战斗技能基础结算服务
                 effectPopupColor,
                 battleCamera);
 
-            Debug.Log(
-                $"[EffectApplied] {target.unitName} 获得效果 {解析效果调试名称(appliedEffectEntry)} " +
-                $"(来源: {caster.unitName}, 持续: {attachedEffect.durationTurns}回合) | " +
-                $"当前效果: {格式化单位效果调试文本(target)}");
         }
     }
 

@@ -134,7 +134,6 @@ internal sealed class 战斗技能执行服务
         清理主动技能模式?.Invoke();
         刷新高亮?.Invoke();
         刷新时间轴?.Invoke();
-        Debug.Log("Target skill selected: " + 施法者.unitName + " -> " + 目标.unitName + " using " + 技能.skillId);
         设置技能结算状态?.Invoke(false);
         尝试进入待处理探索模式?.Invoke();
     }
@@ -178,7 +177,6 @@ internal sealed class 战斗技能执行服务
         清理主动技能模式?.Invoke();
         刷新高亮?.Invoke();
         刷新时间轴?.Invoke();
-        Debug.Log("Area skill selected: " + 施法者.unitName + " -> " + 目标格子 + " using " + 技能.skillId);
         设置技能结算状态?.Invoke(false);
         尝试进入待处理探索模式?.Invoke();
     }

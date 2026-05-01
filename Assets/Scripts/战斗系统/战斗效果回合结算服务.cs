@@ -22,8 +22,6 @@ internal sealed class 战斗效果回合结算服务
             return;
         }
 
-        Debug.Log($"[EffectTurn] 进入回合: {turnOwner.unitName} | 当前效果: {战斗技能基础结算服务.格式化单位效果调试文本(turnOwner)}");
-
         for (int unitIndex = 0; unitIndex < units.Count; unitIndex++)
         {
             BattleUnit unit = units[unitIndex];
@@ -52,9 +50,6 @@ internal sealed class 战斗效果回合结算服务
                     continue;
                 }
 
-                int beforeTurns = activeEffect.remainingTurns;
-                int beforeHealth = unit.currentHealth;
-                string effectName = 战斗技能基础结算服务.解析效果调试名称(effectEntry);
                 应用回合生命修正(
                     unit,
                     activeEffect,
@@ -63,16 +58,9 @@ internal sealed class 战斗效果回合结算服务
                     findUnitByInstanceId,
                     resolveEffectDamagePopupColor);
                 unit.ConsumeEffectTurn(activeEffect);
-                int healthDelta = unit.currentHealth - beforeHealth;
-
-                Debug.Log(
-                    $"[EffectTurn] {turnOwner.unitName} 的回合推进了 {unit.unitName} 身上的 {effectName} | " +
-                    $"回合: {beforeTurns} -> {activeEffect.remainingTurns} | " +
-                    $"生命变化: {healthDelta} | 当前效果: {战斗技能基础结算服务.格式化单位效果调试文本(unit)}");
 
                 if (activeEffect.remainingTurns <= 0)
                 {
-                    Debug.Log($"[EffectExpired] {unit.unitName} 的效果 {effectName} 已移除");
                     unit.RemoveActiveEffect(activeEffect);
                 }
             }
@@ -129,9 +117,6 @@ internal sealed class 战斗效果回合结算服务
                         battleCamera);
                 }
 
-                Debug.Log(
-                    $"[EffectTick] {target.unitName} 受到效果 {战斗技能基础结算服务.解析效果调试名称(effectEntry)} 影响 | " +
-                    $"生命变化: {delta} | 当前生命: {target.currentHealth}/{target.GetEffectiveMaxHealth()}");
             }
         }
     }

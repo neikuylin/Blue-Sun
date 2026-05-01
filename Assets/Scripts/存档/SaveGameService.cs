@@ -38,7 +38,6 @@ public static class SaveGameService
         string json = JsonUtility.ToJson(data, true);
         Directory.CreateDirectory(Path.GetDirectoryName(DefaultSavePath));
         File.WriteAllText(DefaultSavePath, json, Encoding.UTF8);
-        Debug.Log($"存档：已保存到 {DefaultSavePath}");
     }
 
     public static bool TryLoadDefaultSlot(out SaveGameData data, out string error)

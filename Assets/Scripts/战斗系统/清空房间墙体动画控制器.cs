@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 public sealed class 清空房间墙体动画控制器 : MonoBehaviour
@@ -12,11 +11,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
     [SerializeField] private List<AudioSource> 清空房间后开启的音频组件 = new List<AudioSource>();
 
-    private readonly StringBuilder debugSummary = new StringBuilder();
     private bool hasAppliedState;
     private bool appliedClearedState;
     private Coroutine roomEnterReverseRoutine;
-    private int reverseDebugFrame;
 
     private void OnEnable()
     {
@@ -26,8 +23,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     private void OnDisable()
     {
-        AppendDebug("OnDisable: 控制器被关闭，停止倒播协程。");
-        FlushDebugSummary();
         EventRuntimeState.StateChanged -= HandleEventStateChanged;
         if (roomEnterReverseRoutine != null)
         {
@@ -53,45 +48,34 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             return;
         }
 
-        Debug.ClearDeveloperConsole();
-        debugSummary.Length = 0;
-        AppendDebug($"ApplyState: roomCleared={roomCleared}, force={force}, activeInHierarchy={gameObject.activeInHierarchy}, enabled={enabled}, animatorCount={要停在第一帧的动画.Count}.");
-
         hasAppliedState = true;
         appliedClearedState = roomCleared;
         if (roomEnterReverseRoutine != null)
         {
-            AppendDebug("ApplyState: 发现旧倒播协程，先停止。");
             StopCoroutine(roomEnterReverseRoutine);
             roomEnterReverseRoutine = null;
         }
 
         bool playRoomEnterReverse = !roomCleared && force;
-        AppendDebug($"ApplyState: playRoomEnterReverse={playRoomEnterReverse}.");
 
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
             Animator animator = 要停在第一帧的动画[i];
             if (animator == null)
             {
-                AppendDebug($"Animator[{i}]: null.");
                 continue;
             }
 
             if (roomCleared)
             {
-                AppendDebug($"Animator[{i}] '{animator.name}': 房间已清空，正播。");
                 PlayFromStart(animator);
             }
             else if (force)
             {
-                AppendDebug($"Animator[{i}] '{animator.name}': 进房间，先停到末帧。");
                 PlayFromEnd(animator);
-                AppendAnimatorState($"Animator[{i}] '{animator.name}' 末帧后", animator);
             }
             else
             {
-                AppendDebug($"Animator[{i}] '{animator.name}': 未清空事件，重置到第一帧。");
                 ResetToStart(animator);
             }
         }
@@ -99,16 +83,10 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         ApplyGameObjectState(清空房间后开启的物体, roomCleared);
         ApplyGameObjectState(清空房间后关闭的物体, !roomCleared);
         ApplyAudioSourceState(清空房间后开启的音频组件, roomCleared);
-        AppendDebug($"ApplyState: 物体开关处理完成，activeInHierarchy={gameObject.activeInHierarchy}, enabled={enabled}.");
 
         if (playRoomEnterReverse)
         {
-            AppendDebug("ApplyState: 末尾启动倒播协程。");
             roomEnterReverseRoutine = StartCoroutine(PlayRoomEnterReverseRoutine());
-        }
-        else
-        {
-            FlushDebugSummary();
         }
     }
 
@@ -167,15 +145,10 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     private IEnumerator PlayRoomEnterReverseRoutine()
     {
-        AppendDebug("倒播协程: 已进入，等待一帧。");
-        FlushDebugSummary();
         yield return null;
 
-        AppendDebug($"倒播协程: 等待一帧后恢复，activeInHierarchy={gameObject.activeInHierarchy}, enabled={enabled}.");
         float duration = ResolveLongestCurrentStateLength();
-        AppendDebug($"倒播协程: duration={duration}.");
         float elapsed = 0f;
-        reverseDebugFrame = 0;
 
         while (elapsed < duration)
         {
@@ -185,7 +158,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             yield return null;
         }
 
-        AppendDebug("倒播协程: 采样结束，重置并停在第一帧。");
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
             Animator animator = 要停在第一帧的动画[i];
@@ -195,11 +167,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             }
 
             ResetToStart(animator);
-            AppendAnimatorState($"Animator[{i}] '{animator.name}' 重置后", animator);
         }
 
         roomEnterReverseRoutine = null;
-        FlushDebugSummary();
     }
 
     private float ResolveLongestCurrentStateLength()
@@ -215,7 +185,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             float resolvedLength = ResolveAnimatorLength(animator, stateInfo);
-            AppendDebug($"Animator[{i}] '{animator.name}' 状态: fullPathHash={stateInfo.fullPathHash}, shortNameHash={stateInfo.shortNameHash}, stateLength={stateInfo.length}, resolvedLength={resolvedLength}, normalizedTime={stateInfo.normalizedTime}, enabled={animator.enabled}, speed={animator.speed}.");
             duration = Mathf.Max(duration, resolvedLength);
         }
 
@@ -263,39 +232,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
             animator.Play(0, 0, normalizedTime);
             animator.Update(0f);
-            if (reverseDebugFrame < 5 || normalizedTime <= 0.01f)
-            {
-                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-                AppendDebug($"采样[{reverseDebugFrame}] Animator[{i}] '{animator.name}': input={normalizedTime}, actual={stateInfo.normalizedTime}, fullPathHash={stateInfo.fullPathHash}, enabled={animator.enabled}, speed={animator.speed}.");
-            }
         }
-
-        reverseDebugFrame++;
-    }
-
-    private void AppendAnimatorState(string label, Animator animator)
-    {
-        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-        AppendDebug($"{label}: fullPathHash={stateInfo.fullPathHash}, shortNameHash={stateInfo.shortNameHash}, length={stateInfo.length}, normalizedTime={stateInfo.normalizedTime}, enabled={animator.enabled}, speed={animator.speed}.");
-    }
-
-    private void AppendDebug(string message)
-    {
-        if (debugSummary.Length > 0)
-        {
-            debugSummary.Append(" | ");
-        }
-
-        debugSummary.Append(message);
-    }
-
-    private void FlushDebugSummary()
-    {
-        if (debugSummary.Length == 0)
-        {
-            return;
-        }
-
-        Debug.Log($"清空房间墙体动画调试汇总：{debugSummary}", this);
     }
 }

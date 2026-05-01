@@ -956,7 +956,6 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshHighlights();
                 RefreshActiveUnitUi();
                 RefreshTimeline();
-                Debug.Log("Turn: " + activeUnit.unitName + " (AGI=" + activeUnit.Agility + ")");
                 return;
             }
 
@@ -1505,7 +1504,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        Debug.Log(unit.unitName + " is defeated.");
         RemoveUnitFromBattle(unit);
     }
 

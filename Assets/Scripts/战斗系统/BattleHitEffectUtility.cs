@@ -19,7 +19,6 @@ internal static class BattleHitEffectUtility
             return;
         }
 
-        Debug.Log($"[HitEffect] {target.unitName} found mount point '{HitMountPointName}', play hit effect for skill '{skill.skillId}'.");
         GameObject instance = Object.Instantiate(skill.hitEffectPrefab, mountPoint, false);
         if (instance == null)
         {
