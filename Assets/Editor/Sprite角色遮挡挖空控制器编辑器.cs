@@ -72,7 +72,9 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         EditorGUILayout.PropertyField(sharedDissolveStrength, new GUIContent("颗粒强度", "0 为关闭颗粒，1 为最明显。"));
         EditorGUILayout.PropertyField(sharedDissolveEdgeWidth, new GUIContent("颗粒边缘宽度（像素）", "颗粒影响挖空边缘的屏幕像素宽度。"));
         EditorGUILayout.PropertyField(sharedDissolveScrollSpeed, new GUIContent("颗粒滚动速度（像素/秒）", "正负值控制上下滚动方向。"));
-        EditorGUILayout.PropertyField(sharedDissolveSmoothEdges, new GUIContent("颗粒边缘融合", "勾选时使用 smoothstep 软融合，取消勾选时使用硬边。"));
+        sharedDissolveSmoothEdges.boolValue = EditorGUILayout.ToggleLeft(
+            new GUIContent("使用 Smoothstep 软融合（取消勾选为硬边）", "勾选时使用 smoothstep 软融合，取消勾选时使用硬边。"),
+            sharedDissolveSmoothEdges.boolValue);
 
         if (!EditorGUI.EndChangeCheck())
         {

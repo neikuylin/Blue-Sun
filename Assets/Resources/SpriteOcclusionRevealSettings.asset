@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: SpriteOcclusionRevealSettings
   m_EditorClassIdentifier:
   revealEnabled: 1
-  radiusWorld: 1.2
-  softnessWorld: 0.25
-  dissolveNoiseScale: 6
-  dissolveStrength: 0.85
-  dissolveEdgeWidth: 18
-  dissolveScrollSpeed: 48
-  dissolveSmoothEdges: 1
+  radiusWorld: 2.3
+  softnessWorld: 1.5
+  dissolveNoiseScale: 14.6
+  dissolveStrength: 0.76
+  dissolveEdgeWidth: 51
+  dissolveScrollSpeed: 27
+  dissolveSmoothEdges: 0
