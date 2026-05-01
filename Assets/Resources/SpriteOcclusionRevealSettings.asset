@@ -16,5 +16,6 @@ MonoBehaviour:
   radiusWorld: 1.2
   softnessWorld: 0.25
   dissolveNoiseScale: 6
-  dissolveStrength: 0.45
+  dissolveStrength: 0.85
   dissolveEdgeWidth: 18
+  dissolveScrollSpeed: 48
