@@ -21,6 +21,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private static readonly int RevealSoftnessPixelsId = Shader.PropertyToID("_OcclusionRevealSoftnessPixels");
     private static readonly int RevealCentersId = Shader.PropertyToID("_OcclusionRevealCenters");
     private static readonly int RevealDepthModeId = Shader.PropertyToID("_OcclusionRevealDepthMode");
+    private static readonly int DissolveNoiseScaleId = Shader.PropertyToID("_DissolveNoiseScale");
+    private static readonly int DissolveStrengthId = Shader.PropertyToID("_DissolveStrength");
+    private static readonly int DissolveEdgeWidthId = Shader.PropertyToID("_DissolveEdgeWidth");
     private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
@@ -39,6 +42,22 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     [Tooltip("0 是硬边；大于 0 时边缘会平滑过渡。")]
     [Min(0f)]
     [SerializeField] private float softnessWorld = 0.25f;
+
+    [Header("边缘颗粒")]
+    [InspectorName("颗粒尺寸（像素）")]
+    [Tooltip("数值越小颗粒越密。")]
+    [Range(1f, 32f)]
+    [SerializeField] private float dissolveNoiseScale = 6f;
+
+    [InspectorName("颗粒强度")]
+    [Tooltip("0 为关闭颗粒，1 为最明显。")]
+    [Range(0f, 1f)]
+    [SerializeField] private float dissolveStrength = 0.45f;
+
+    [InspectorName("颗粒边缘宽度（像素）")]
+    [Tooltip("颗粒影响挖空边缘的屏幕像素宽度。")]
+    [Range(0f, 128f)]
+    [SerializeField] private float dissolveEdgeWidth = 18f;
 
     [Header("屏幕位置计算")]
     [InspectorName("用于计算角色屏幕位置的相机")]
@@ -224,6 +243,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
+            block.SetFloat(DissolveNoiseScaleId, Mathf.Max(1f, dissolveNoiseScale));
+            block.SetFloat(DissolveStrengthId, Mathf.Clamp01(dissolveStrength));
+            block.SetFloat(DissolveEdgeWidthId, Mathf.Max(0f, dissolveEdgeWidth));
             block.SetVectorArray(RevealCentersId, RevealCenters);
             renderer.SetPropertyBlock(block);
         }
