@@ -4,6 +4,9 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
     {
         _MainTex ("粒子贴图", 2D) = "white" {}
         _Color ("颜色", Color) = (1,1,1,1)
+        _DissolveNoiseScale ("挖空边缘颗粒尺寸（像素）", Range(1, 32)) = 6
+        _DissolveStrength ("挖空边缘颗粒强度", Range(0, 1)) = 0.45
+        _DissolveEdgeWidth ("挖空颗粒边缘宽度（像素）", Range(0, 128)) = 18
     }
 
     SubShader
@@ -56,6 +59,9 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
+            float _DissolveNoiseScale;
+            float _DissolveStrength;
+            float _DissolveEdgeWidth;
 
             v2f vert(appdata_t input)
             {
@@ -66,6 +72,34 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                 output.screenPos = ComputeScreenPos(output.vertex);
                 output.eyeDepth = -UnityObjectToViewPos(input.vertex.xyz).z;
                 return output;
+            }
+
+            float Hash21(float2 p)
+            {
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return frac(p.x * p.y);
+            }
+
+            fixed ResolveRevealHole(float distancePixels, float2 pixelPosition, float2 center, float radius, float softness)
+            {
+                fixed cleanHole;
+                if (softness <= 0.001)
+                {
+                    cleanHole = distancePixels <= radius ? 1 : 0;
+                }
+                else
+                {
+                    cleanHole = 1 - smoothstep(radius, radius + softness, distancePixels);
+                }
+
+                float edgeWidth = max(max(softness, _DissolveEdgeWidth), 0.001);
+                float edgeProgress = saturate((distancePixels - radius) / edgeWidth);
+                float cellSize = max(_DissolveNoiseScale, 1);
+                float noise = Hash21(floor((pixelPosition - center) / cellSize));
+                fixed particleBand = step(radius, distancePixels) * (1 - step(radius + edgeWidth, distancePixels));
+                fixed particleHole = step(edgeProgress, noise) * particleBand;
+                return lerp(cleanHole, max(cleanHole, particleHole), saturate(_DissolveStrength));
             }
 
             fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
@@ -95,15 +129,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                     }
 
                     float distancePixels = distance(pixelPosition, center);
-                    fixed hole;
-                    if (softness <= 0.001)
-                    {
-                        hole = distancePixels <= radius ? 1 : 0;
-                    }
-                    else
-                    {
-                        hole = 1 - smoothstep(radius, radius + softness, distancePixels);
-                    }
+                    fixed hole = ResolveRevealHole(distancePixels, pixelPosition, center, radius, softness);
 
                     alphaMultiplier *= 1 - hole;
                 }

@@ -9,6 +9,9 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
         _LocalLightStrength ("局部光强度", Range(0, 2)) = 1
         _FacingAmount ("受光方向权重", Range(0, 1)) = 0.65
         [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("深度测试", Float) = 8
+        _DissolveNoiseScale ("挖空边缘颗粒尺寸（像素）", Range(1, 32)) = 6
+        _DissolveStrength ("挖空边缘颗粒强度", Range(0, 1)) = 0.45
+        _DissolveEdgeWidth ("挖空颗粒边缘宽度（像素）", Range(0, 128)) = 18
         [MaterialToggle] PixelSnap ("像素对齐", Float) = 0
     }
 
@@ -70,6 +73,9 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
+            float _DissolveNoiseScale;
+            float _DissolveStrength;
+            float _DissolveEdgeWidth;
             sampler2D _MainTex;
 
             v2f vert(appdata_t input)
@@ -86,6 +92,34 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 #endif
 
                 return output;
+            }
+
+            float Hash21(float2 p)
+            {
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return frac(p.x * p.y);
+            }
+
+            fixed ResolveRevealHole(float distancePixels, float2 pixelPosition, float2 center, float radius, float softness)
+            {
+                fixed cleanHole;
+                if (softness <= 0.001)
+                {
+                    cleanHole = distancePixels <= radius ? 1 : 0;
+                }
+                else
+                {
+                    cleanHole = 1 - smoothstep(radius, radius + softness, distancePixels);
+                }
+
+                float edgeWidth = max(max(softness, _DissolveEdgeWidth), 0.001);
+                float edgeProgress = saturate((distancePixels - radius) / edgeWidth);
+                float cellSize = max(_DissolveNoiseScale, 1);
+                float noise = Hash21(floor((pixelPosition - center) / cellSize));
+                fixed particleBand = step(radius, distancePixels) * (1 - step(radius + edgeWidth, distancePixels));
+                fixed particleHole = step(edgeProgress, noise) * particleBand;
+                return lerp(cleanHole, max(cleanHole, particleHole), saturate(_DissolveStrength));
             }
 
             fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
@@ -115,15 +149,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float distancePixels = distance(pixelPosition, center);
-                    fixed hole;
-                    if (softness <= 0.001)
-                    {
-                        hole = distancePixels <= radius ? 1 : 0;
-                    }
-                    else
-                    {
-                        hole = 1 - smoothstep(radius, radius + softness, distancePixels);
-                    }
+                    fixed hole = ResolveRevealHole(distancePixels, pixelPosition, center, radius, softness);
 
                     alphaMultiplier *= 1 - hole;
                 }
@@ -191,6 +217,9 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
+            float _DissolveNoiseScale;
+            float _DissolveStrength;
+            float _DissolveEdgeWidth;
             sampler2D _MainTex;
 
             v2f_add vertAdd(appdata_t input)
@@ -209,6 +238,34 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
 
                 UNITY_TRANSFER_SHADOW(output, input.texcoord);
                 return output;
+            }
+
+            float Hash21(float2 p)
+            {
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return frac(p.x * p.y);
+            }
+
+            fixed ResolveRevealHole(float distancePixels, float2 pixelPosition, float2 center, float radius, float softness)
+            {
+                fixed cleanHole;
+                if (softness <= 0.001)
+                {
+                    cleanHole = distancePixels <= radius ? 1 : 0;
+                }
+                else
+                {
+                    cleanHole = 1 - smoothstep(radius, radius + softness, distancePixels);
+                }
+
+                float edgeWidth = max(max(softness, _DissolveEdgeWidth), 0.001);
+                float edgeProgress = saturate((distancePixels - radius) / edgeWidth);
+                float cellSize = max(_DissolveNoiseScale, 1);
+                float noise = Hash21(floor((pixelPosition - center) / cellSize));
+                fixed particleBand = step(radius, distancePixels) * (1 - step(radius + edgeWidth, distancePixels));
+                fixed particleHole = step(edgeProgress, noise) * particleBand;
+                return lerp(cleanHole, max(cleanHole, particleHole), saturate(_DissolveStrength));
             }
 
             fixed ResolveOcclusionRevealAlpha(float4 screenPos, float eyeDepth)
@@ -238,15 +295,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float distancePixels = distance(pixelPosition, center);
-                    fixed hole;
-                    if (softness <= 0.001)
-                    {
-                        hole = distancePixels <= radius ? 1 : 0;
-                    }
-                    else
-                    {
-                        hole = 1 - smoothstep(radius, radius + softness, distancePixels);
-                    }
+                    fixed hole = ResolveRevealHole(distancePixels, pixelPosition, center, radius, softness);
 
                     alphaMultiplier *= 1 - hole;
                 }

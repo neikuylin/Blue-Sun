@@ -28,6 +28,9 @@ Material:
     m_Floats:
     - PixelSnap: 0
     - _AmbientStrength: 0.45
+    - _DissolveEdgeWidth: 18
+    - _DissolveNoiseScale: 6
+    - _DissolveStrength: 0.45
     - _FacingAmount: 0.65
     - _LightStrength: 1
     - _LocalLightStrength: 1
