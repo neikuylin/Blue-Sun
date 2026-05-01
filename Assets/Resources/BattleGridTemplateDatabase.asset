@@ -1741,10 +1741,10 @@ MonoBehaviour:
     northDoorPlayerSpawnCell:
       x: 10
       y: 18
-    hasEastDoorEntrance: 0
+    hasEastDoorEntrance: 1
     eastDoorEntranceCell:
-      x: 0
-      y: 0
+      x: 18
+      y: 10
     hasSouthDoorEntrance: 0
     southDoorEntranceCell:
       x: 0
