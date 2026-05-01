@@ -5119,10 +5119,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  revealEnabled: 1
-  radiusPixels: 120
-  softnessPixels: 0
-  targetCamera: {fileID: 0}
   targetRenderers: []
 --- !u!82 &7807918891874290599
 AudioSource:

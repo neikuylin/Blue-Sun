@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c2e95e6a64b4213a52d12b58d2c9a31, type: 3}
+  m_Name: SpriteOcclusionRevealSettings
+  m_EditorClassIdentifier:
+  revealEnabled: 1
+  radiusWorld: 1.2
+  softnessWorld: 0.25
+  dissolveNoiseScale: 6
+  dissolveStrength: 0.45
+  dissolveEdgeWidth: 18

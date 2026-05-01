@@ -187,10 +187,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
-  revealEnabled: 1
-  radiusPixels: 140
-  softnessPixels: 50
-  targetCamera: {fileID: 0}
   targetRenderers: []
 --- !u!1001 &605426387485248280
 PrefabInstance:
@@ -200,14 +196,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8100000000000000012}
     m_Modifications:
-    - target: {fileID: 3329289756112409131, guid: 6385d321310382048bc122301b9b4b15, type: 3}
-      propertyPath: radiusPixels
-      value: 140
-      objectReference: {fileID: 0}
-    - target: {fileID: 3329289756112409131, guid: 6385d321310382048bc122301b9b4b15, type: 3}
-      propertyPath: softnessPixels
-      value: 50
-      objectReference: {fileID: 0}
     - target: {fileID: 7807918891874290598, guid: 6385d321310382048bc122301b9b4b15, type: 3}
       propertyPath: m_LocalScale.x
       value: 1

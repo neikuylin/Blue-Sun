@@ -28,41 +28,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
     private static readonly List<BattleUnit> CachedUnits = new List<BattleUnit>();
+    private static SpriteOcclusionRevealSettings cachedSettings;
     private static float nextUnitRefreshTime;
-
-    [Header("角色遮挡挖空")]
-    [InspectorName("启用角色圆形挖空")]
-    [SerializeField] private bool revealEnabled = true;
-
-    [InspectorName("角色周围挖空半径（世界单位）")]
-    [Min(0f)]
-    [SerializeField] private float radiusWorld = 1.2f;
-
-    [InspectorName("挖空边缘软化（世界单位）")]
-    [Tooltip("0 是硬边；大于 0 时边缘会平滑过渡。")]
-    [Min(0f)]
-    [SerializeField] private float softnessWorld = 0.25f;
-
-    [Header("边缘颗粒")]
-    [InspectorName("颗粒尺寸（像素）")]
-    [Tooltip("数值越小颗粒越密。")]
-    [Range(1f, 32f)]
-    [SerializeField] private float dissolveNoiseScale = 6f;
-
-    [InspectorName("颗粒强度")]
-    [Tooltip("0 为关闭颗粒，1 为最明显。")]
-    [Range(0f, 1f)]
-    [SerializeField] private float dissolveStrength = 0.45f;
-
-    [InspectorName("颗粒边缘宽度（像素）")]
-    [Tooltip("颗粒影响挖空边缘的屏幕像素宽度。")]
-    [Range(0f, 128f)]
-    [SerializeField] private float dissolveEdgeWidth = 18f;
-
-    [Header("屏幕位置计算")]
-    [InspectorName("用于计算角色屏幕位置的相机")]
-    [Tooltip("为空时使用 Camera.main。")]
-    [SerializeField] private Camera targetCamera;
 
     [Header("作用目标")]
     [InspectorName("目标Renderer（为空时使用当前物体Renderer）")]
@@ -102,8 +69,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             return;
         }
 
-        Camera cameraToUse = ResolveCamera();
-        if (!revealEnabled || cameraToUse == null)
+        Camera cameraToUse = Camera.main;
+        SpriteOcclusionRevealSettings settings = ResolveSettings();
+        if (settings == null || !settings.RevealEnabled || cameraToUse == null)
         {
             ClearReveal();
             return;
@@ -112,14 +80,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         RefreshUnitsIfNeeded();
         int revealCount = BuildRevealCenters(cameraToUse);
         float revealDepth = ResolveRevealDepth(revealCount);
-        float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, radiusWorld);
-        float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, softnessWorld);
-        ApplyReveal(revealCount, revealRadiusPixels, revealSoftnessPixels);
-    }
-
-    private Camera ResolveCamera()
-    {
-        return targetCamera != null ? targetCamera : Camera.main;
+        float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.RadiusWorld);
+        float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.SoftnessWorld);
+        ApplyReveal(revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
     }
 
     private Renderer[] ResolveRenderers()
@@ -223,7 +186,11 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         return Vector2.Distance(screenCenter, screenEdge);
     }
 
-    private void ApplyReveal(int revealCount, float revealRadiusPixels, float revealSoftnessPixels)
+    private void ApplyReveal(
+        int revealCount,
+        float revealRadiusPixels,
+        float revealSoftnessPixels,
+        SpriteOcclusionRevealSettings settings)
     {
         Renderer[] renderers = ResolveRenderers();
         MaterialPropertyBlock block = GetPropertyBlock();
@@ -243,9 +210,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
-            block.SetFloat(DissolveNoiseScaleId, Mathf.Max(1f, dissolveNoiseScale));
-            block.SetFloat(DissolveStrengthId, Mathf.Clamp01(dissolveStrength));
-            block.SetFloat(DissolveEdgeWidthId, Mathf.Max(0f, dissolveEdgeWidth));
+            block.SetFloat(DissolveNoiseScaleId, settings.DissolveNoiseScale);
+            block.SetFloat(DissolveStrengthId, settings.DissolveStrength);
+            block.SetFloat(DissolveEdgeWidthId, settings.DissolveEdgeWidth);
             block.SetVectorArray(RevealCentersId, RevealCenters);
             renderer.SetPropertyBlock(block);
         }
@@ -303,6 +270,16 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         }
 
         return RevealDepthModeDisabled;
+    }
+
+    private static SpriteOcclusionRevealSettings ResolveSettings()
+    {
+        if (cachedSettings == null)
+        {
+            cachedSettings = SpriteOcclusionRevealSettings.LoadDefault();
+        }
+
+        return cachedSettings;
     }
 
     private MaterialPropertyBlock GetPropertyBlock()

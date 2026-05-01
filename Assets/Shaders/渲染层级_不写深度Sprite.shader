@@ -116,7 +116,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 float edgeWidth = max(max(softness, _DissolveEdgeWidth), 0.001);
                 float edgeProgress = saturate((distancePixels - radius) / edgeWidth);
                 float cellSize = max(_DissolveNoiseScale, 1);
-                float noise = Hash21(floor((pixelPosition - center) / cellSize));
+                float noise = Hash21(floor(pixelPosition / cellSize));
                 fixed particleBand = step(radius, distancePixels) * (1 - step(radius + edgeWidth, distancePixels));
                 fixed particleHole = step(edgeProgress, noise) * particleBand;
                 return lerp(cleanHole, max(cleanHole, particleHole), saturate(_DissolveStrength));
@@ -262,7 +262,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                 float edgeWidth = max(max(softness, _DissolveEdgeWidth), 0.001);
                 float edgeProgress = saturate((distancePixels - radius) / edgeWidth);
                 float cellSize = max(_DissolveNoiseScale, 1);
-                float noise = Hash21(floor((pixelPosition - center) / cellSize));
+                float noise = Hash21(floor(pixelPosition / cellSize));
                 fixed particleBand = step(radius, distancePixels) * (1 - step(radius + edgeWidth, distancePixels));
                 fixed particleHole = step(edgeProgress, noise) * particleBand;
                 return lerp(cleanHole, max(cleanHole, particleHole), saturate(_DissolveStrength));
