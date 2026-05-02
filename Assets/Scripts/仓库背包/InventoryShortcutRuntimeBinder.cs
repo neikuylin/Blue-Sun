@@ -882,6 +882,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         仓储状态.确保背包数据容量(backpackWidgetCount);
         仓储界面绑定规则.BindCategoryFilters(创建仓储界面绑定上下文());
         仓储界面绑定规则.BindDragRelays(创建仓储界面绑定上下文());
+        RefreshAll();
     }
 
     private void OnGlobalRefreshRequested()
