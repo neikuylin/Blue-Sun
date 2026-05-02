@@ -291,17 +291,6 @@ public sealed class MapTemplateEditorWindow : EditorWindow
             node.battleGridTemplateId = gridTemplateIds[nextGridTemplateIndex];
         }
 
-        GameObject nextBattleSceneContentPrefab = EditorGUILayout.ObjectField(
-            "战斗副本内容",
-            node.battleSceneContentPrefab,
-            typeof(GameObject),
-            false) as GameObject;
-        if (nextBattleSceneContentPrefab != node.battleSceneContentPrefab)
-        {
-            node.battleSceneContentPrefab = nextBattleSceneContentPrefab;
-            MarkDirty(database);
-        }
-
         EditorGUILayout.Vector2Field("画布位置", node.position);
 
         EditorGUILayout.Space(6f);

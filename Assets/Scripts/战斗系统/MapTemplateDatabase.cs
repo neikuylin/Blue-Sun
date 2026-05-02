@@ -31,7 +31,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public string roomTypeId = RoomTypeDatabase.EncounterBattleTypeId;
         public string encounterPresetId = string.Empty;
         public string battleGridTemplateId = string.Empty;
-        public GameObject battleSceneContentPrefab;
         public List<MapConnectionEntry> connections = new List<MapConnectionEntry>();
         public List<string> nextNodeIds = new List<string>();
     }

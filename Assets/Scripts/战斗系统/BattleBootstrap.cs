@@ -1090,12 +1090,6 @@ public class BattleBootstrap : MonoBehaviour
         return string.Empty;
     }
 
-    private static GameObject ResolveBattleRoomContentPrefab()
-    {
-        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
-        return node != null ? node.battleSceneContentPrefab : null;
-    }
-
     private static MapTemplateDatabase.MapNodeEntry ResolveBattleRoomNode()
     {
         MapTemplateDatabase mapTemplateDatabase = MapTemplateDatabase.LoadDefault();
