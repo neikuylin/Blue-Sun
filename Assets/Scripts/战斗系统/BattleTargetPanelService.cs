@@ -248,6 +248,7 @@ internal sealed class BattleTargetPanelService
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         text.alignment = TextAlignmentOptions.Center;
         text.fontSize = 28f;
+        text.fontStyle |= FontStyles.Bold;
         text.color = Color.white;
         text.raycastTarget = false;
         text.text = string.Empty;

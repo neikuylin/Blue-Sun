@@ -134,6 +134,7 @@ internal static class 物品显示辅助服务
         attackPowerRect.sizeDelta = templateRect.sizeDelta;
         attackPowerRect.localScale = templateRect.localScale;
         attackPowerRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -36f);
+        attackPowerText.fontStyle |= FontStyles.Bold;
         attackPowerText.text = string.Empty;
         attackPowerText.gameObject.SetActive(false);
         return attackPowerText;

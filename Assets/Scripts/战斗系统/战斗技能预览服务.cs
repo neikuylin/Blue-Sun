@@ -292,6 +292,7 @@ internal sealed class 战斗技能预览服务
 
         skillCostHintText.raycastTarget = false;
         skillCostHintText.fontSize = 28f;
+        skillCostHintText.fontStyle |= FontStyles.Bold;
         skillCostHintText.alignment = TextAlignmentOptions.Left;
         skillCostHintText.color = normalColor;
         skillCostHintText.text = string.Empty;
