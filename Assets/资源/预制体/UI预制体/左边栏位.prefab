@@ -741,6 +741,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 544710940029253438}
+  - component: {fileID: 3736298081720292761}
   m_Layer: 5
   m_Name: "\u5DE6\u8FB9\u680F\u4F4D"
   m_TagString: Untagged
@@ -772,6 +773,82 @@ RectTransform:
   m_AnchoredPosition: {x: 470.99, y: 55}
   m_SizeDelta: {x: 950, y: 980}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &3736298081720292761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6416395573695176549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f1b8c6e3f2a4d8fa0b1c6e7d9a2f345, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u5DE6\u4E0B\u89D2\u7F29\u653E\u5F00\u542F\u52A8\u753B"
+  "\u52A8\u753B\u76EE\u6807": {fileID: 544710940029253438}
+  "\u81EA\u52A8\u6539\u4E3A\u5DE6\u4E0B\u8F74\u5FC3": 1
+  "\u6253\u5F00\u65F6\u957F": 0.18
+  "\u5173\u95ED\u65F6\u957F": 0.14
+  "\u4F7F\u7528\u672A\u7F29\u653E\u65F6\u95F4": 1
+  "\u542F\u7528\u65F6\u64AD\u653E\u5F00\u542F\u52A8\u753B": 1
+  "\u5173\u95ED\u5B8C\u6210\u540E\u7981\u7528\u7269\u4F53": 1
+  "\u6253\u5F00\u66F2\u7EBF":
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.75
+      value: 1.08
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  "\u5173\u95ED\u66F2\u7EBF":
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &7307222725852256140
 GameObject:
   m_ObjectHideFlags: 0
