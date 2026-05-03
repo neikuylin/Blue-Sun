@@ -246,7 +246,7 @@ public sealed class 对话运行时 : MonoBehaviour
 
         关闭当前标识内容();
 
-        binding.目标对象.SetActive(true);
+        打开标识目标对象(binding.目标对象);
         当前打开标识目标 = binding.目标对象;
         当前标识关闭按钮 = closeButton;
         当前标识关闭按钮.onClick.AddListener(关闭当前标识内容);
@@ -541,11 +541,45 @@ public sealed class 对话运行时 : MonoBehaviour
 
         if (当前打开标识目标 != null)
         {
-            当前打开标识目标.SetActive(false);
+            关闭标识目标对象(当前打开标识目标);
             当前打开标识目标 = null;
         }
 
         SetCurrentDialogueControlsInteractable(true);
+    }
+
+    private static void 打开标识目标对象(GameObject 目标对象)
+    {
+        if (目标对象 == null)
+        {
+            return;
+        }
+
+        左下角缩放开启动画 开启动画 = 目标对象.GetComponent<左下角缩放开启动画>();
+        if (开启动画 != null)
+        {
+            开启动画.打开内容();
+            return;
+        }
+
+        目标对象.SetActive(true);
+    }
+
+    private static void 关闭标识目标对象(GameObject 目标对象)
+    {
+        if (目标对象 == null)
+        {
+            return;
+        }
+
+        左下角缩放开启动画 开启动画 = 目标对象.GetComponent<左下角缩放开启动画>();
+        if (开启动画 != null)
+        {
+            开启动画.关闭内容();
+            return;
+        }
+
+        目标对象.SetActive(false);
     }
 
     private void SetCurrentDialogueControlsInteractable(bool interactable)
