@@ -628,11 +628,6 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             equipmentPanel = ResolveEquipmentPanel();
         }
-
-        if (equipmentPanel != null && equipmentPanel.gameObject.activeSelf != equipmentPanelVisible)
-        {
-            equipmentPanel.gameObject.SetActive(equipmentPanelVisible);
-        }
     }
 
     private static Image FindImageByPath(string path)
