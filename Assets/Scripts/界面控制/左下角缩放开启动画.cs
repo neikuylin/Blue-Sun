@@ -1,12 +1,28 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public sealed class 左下角缩放开启动画 : MonoBehaviour
 {
+    public enum 缩放轴心位置
+    {
+        左下角,
+        左,
+        左上角,
+        中上,
+        右上角,
+        右,
+        右下角,
+        中下,
+        中
+    }
+
     [Header("目标")]
     [SerializeField] private RectTransform 动画目标;
-    [SerializeField] private bool 自动改为左下轴心 = true;
+    [FormerlySerializedAs("自动改为左下轴心")]
+    [SerializeField] private bool 自动改为指定轴心 = true;
+    [SerializeField] private 缩放轴心位置 轴心位置 = 缩放轴心位置.左下角;
 
     [Header("时间")]
     [SerializeField] private float 打开时长 = 0.18f;
@@ -51,13 +67,13 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
     private void Awake()
     {
         缓存原始缩放();
-        准备左下轴心();
+        准备指定轴心();
     }
 
     private void OnEnable()
     {
         缓存原始缩放();
-        准备左下轴心();
+        准备指定轴心();
 
         if (!启用时播放开启动画)
         {
@@ -94,7 +110,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
     public void 打开内容()
     {
         缓存原始缩放();
-        准备左下轴心();
+        准备指定轴心();
 
         if (!gameObject.activeSelf)
         {
@@ -113,7 +129,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
         }
 
         缓存原始缩放();
-        准备左下轴心();
+        准备指定轴心();
         播放关闭动画();
     }
 
@@ -236,15 +252,42 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
         已缓存原始缩放 = true;
     }
 
-    private void 准备左下轴心()
+    private void 准备指定轴心()
     {
         RectTransform target = 当前目标;
-        if (target == null || !自动改为左下轴心)
+        if (target == null || !自动改为指定轴心)
         {
             return;
         }
 
-        设置轴心并保持位置(target, Vector2.zero);
+        设置轴心并保持位置(target, 获取轴心坐标(轴心位置));
+    }
+
+    private static Vector2 获取轴心坐标(缩放轴心位置 position)
+    {
+        switch (position)
+        {
+            case 缩放轴心位置.左下角:
+                return new Vector2(0f, 0f);
+            case 缩放轴心位置.左:
+                return new Vector2(0f, 0.5f);
+            case 缩放轴心位置.左上角:
+                return new Vector2(0f, 1f);
+            case 缩放轴心位置.中上:
+                return new Vector2(0.5f, 1f);
+            case 缩放轴心位置.右上角:
+                return new Vector2(1f, 1f);
+            case 缩放轴心位置.右:
+                return new Vector2(1f, 0.5f);
+            case 缩放轴心位置.右下角:
+                return new Vector2(1f, 0f);
+            case 缩放轴心位置.中下:
+                return new Vector2(0.5f, 0f);
+            case 缩放轴心位置.中:
+                return new Vector2(0.5f, 0.5f);
+            default:
+                return Vector2.zero;
+        }
     }
 
     private static void 设置轴心并保持位置(RectTransform target, Vector2 pivot)
