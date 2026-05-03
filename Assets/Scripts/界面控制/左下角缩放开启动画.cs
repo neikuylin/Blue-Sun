@@ -147,10 +147,10 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
             return;
         }
 
-        启动动画(target.localScale, 隐藏缩放, Mathf.Max(0f, 关闭时长), 关闭曲线, 关闭完成后禁用物体);
+        启动动画(target.localScale, 隐藏缩放, Mathf.Max(0f, 关闭时长), 关闭曲线, 关闭完成后禁用物体, true);
     }
 
-    private void 启动动画(Vector3 起始缩放, Vector3 目标缩放, float 时长, AnimationCurve 曲线, bool 完成后禁用)
+    private void 启动动画(Vector3 起始缩放, Vector3 目标缩放, float 时长, AnimationCurve 曲线, bool 完成后禁用, bool 反向解释曲线 = false)
     {
         if (动画协程 != null)
         {
@@ -174,10 +174,10 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
             return;
         }
 
-        动画协程 = StartCoroutine(播放缩放流程(起始缩放, 目标缩放, 时长, 曲线, 完成后禁用));
+        动画协程 = StartCoroutine(播放缩放流程(起始缩放, 目标缩放, 时长, 曲线, 完成后禁用, 反向解释曲线));
     }
 
-    private IEnumerator 播放缩放流程(Vector3 起始缩放, Vector3 目标缩放, float 时长, AnimationCurve 曲线, bool 完成后禁用)
+    private IEnumerator 播放缩放流程(Vector3 起始缩放, Vector3 目标缩放, float 时长, AnimationCurve 曲线, bool 完成后禁用, bool 反向解释曲线)
     {
         RectTransform target = 当前目标;
         float elapsed = 0f;
@@ -186,6 +186,11 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
         {
             float progress = Mathf.Clamp01(elapsed / 时长);
             float evaluated = 曲线 != null ? 曲线.Evaluate(progress) : progress;
+            if (反向解释曲线)
+            {
+                evaluated = 1f - evaluated;
+            }
+
             target.localScale = Vector3.LerpUnclamped(起始缩放, 目标缩放, evaluated);
             elapsed += 使用未缩放时间 ? Time.unscaledDeltaTime : Time.deltaTime;
             yield return null;
