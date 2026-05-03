@@ -1178,10 +1178,11 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 6416395573695176549}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 3736298081720292761}
+        m_TargetAssemblyTypeName: "\u5DE6\u4E0B\u89D2\u7F29\u653E\u5F00\u542F\u52A8\u753B,
+          Assembly-CSharp"
+        m_MethodName: "\u5173\u95ED\u5185\u5BB9"
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
