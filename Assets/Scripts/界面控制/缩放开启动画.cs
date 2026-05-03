@@ -1,9 +1,10 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public sealed class 左下角缩放开启动画 : MonoBehaviour
+public sealed class 缩放开启动画 : MonoBehaviour
 {
     public enum 缩放轴心位置
     {
@@ -23,6 +24,11 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
     [FormerlySerializedAs("自动改为左下轴心")]
     [SerializeField] private bool 自动改为指定轴心 = true;
     [SerializeField] private 缩放轴心位置 轴心位置 = 缩放轴心位置.左下角;
+
+    [Header("Toggle")]
+    [SerializeField] private Toggle 控制Toggle;
+    [SerializeField] private bool 启用时监听Toggle = true;
+    [SerializeField] private bool 启用时应用Toggle当前状态;
 
     [Header("时间")]
     [SerializeField] private float 打开时长 = 0.18f;
@@ -44,6 +50,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
     private Vector3 原始缩放;
     private bool 已缓存原始缩放;
     private bool 已经过首次启用;
+    private bool 已绑定Toggle监听;
     private Coroutine 动画协程;
 
     private RectTransform 当前目标
@@ -56,6 +63,15 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
             }
 
             return 动画目标;
+        }
+    }
+
+    private GameObject 当前目标物体
+    {
+        get
+        {
+            RectTransform target = 当前目标;
+            return target != null ? target.gameObject : gameObject;
         }
     }
 
@@ -72,8 +88,16 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
 
     private void OnEnable()
     {
+        绑定Toggle监听();
         缓存原始缩放();
         准备指定轴心();
+
+        if (启用时应用Toggle当前状态 && 控制Toggle != null)
+        {
+            设置显示(控制Toggle.isOn);
+            已经过首次启用 = true;
+            return;
+        }
 
         if (!启用时播放开启动画)
         {
@@ -88,6 +112,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
 
     private void OnDisable()
     {
+        解绑Toggle监听();
         if (动画协程 != null)
         {
             StopCoroutine(动画协程);
@@ -107,23 +132,41 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
         }
     }
 
+    public void 应用Toggle状态(bool 是否开启)
+    {
+        设置显示(是否开启);
+    }
+
     public void 打开内容()
     {
         缓存原始缩放();
         准备指定轴心();
 
-        if (!gameObject.activeSelf)
+        GameObject targetObject = 当前目标物体;
+        bool targetIsSelf = targetObject == gameObject;
+        bool wasInactive = !targetObject.activeSelf;
+        if (wasInactive)
         {
-            gameObject.SetActive(true);
+            targetObject.SetActive(true);
+            if (targetIsSelf)
+            {
+                return;
+            }
+        }
+
+        if (!targetObject.activeInHierarchy)
+        {
             return;
         }
 
-        播放打开动画(false);
+        播放打开动画(wasInactive || !已经过首次启用);
+        已经过首次启用 = true;
     }
 
     public void 关闭内容()
     {
-        if (!gameObject.activeInHierarchy)
+        GameObject targetObject = 当前目标物体;
+        if (!targetObject.activeInHierarchy)
         {
             return;
         }
@@ -135,7 +178,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
 
     public void 切换显示()
     {
-        设置显示(!gameObject.activeSelf);
+        设置显示(!当前目标物体.activeSelf);
     }
 
     private void 播放打开动画(bool 从隐藏状态开始)
@@ -157,7 +200,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
         {
             if (关闭完成后禁用物体)
             {
-                gameObject.SetActive(false);
+                当前目标物体.SetActive(false);
             }
 
             return;
@@ -184,7 +227,7 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
 
             if (完成后禁用)
             {
-                gameObject.SetActive(false);
+                当前目标物体.SetActive(false);
             }
 
             return;
@@ -222,8 +265,30 @@ public sealed class 左下角缩放开启动画 : MonoBehaviour
 
         if (完成后禁用)
         {
-            gameObject.SetActive(false);
+            当前目标物体.SetActive(false);
         }
+    }
+
+    private void 绑定Toggle监听()
+    {
+        if (!启用时监听Toggle || 控制Toggle == null || 已绑定Toggle监听)
+        {
+            return;
+        }
+
+        控制Toggle.onValueChanged.AddListener(应用Toggle状态);
+        已绑定Toggle监听 = true;
+    }
+
+    private void 解绑Toggle监听()
+    {
+        if (控制Toggle == null || !已绑定Toggle监听)
+        {
+            return;
+        }
+
+        控制Toggle.onValueChanged.RemoveListener(应用Toggle状态);
+        已绑定Toggle监听 = false;
     }
 
     private void 设置为打开状态()

@@ -555,7 +555,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        左下角缩放开启动画 开启动画 = 目标对象.GetComponent<左下角缩放开启动画>();
+        缩放开启动画 开启动画 = 目标对象.GetComponent<缩放开启动画>();
         if (开启动画 != null)
         {
             开启动画.打开内容();
@@ -572,7 +572,7 @@ public sealed class 对话运行时 : MonoBehaviour
             return;
         }
 
-        左下角缩放开启动画 开启动画 = 目标对象.GetComponent<左下角缩放开启动画>();
+        缩放开启动画 开启动画 = 目标对象.GetComponent<缩放开启动画>();
         if (开启动画 != null)
         {
             开启动画.关闭内容();
