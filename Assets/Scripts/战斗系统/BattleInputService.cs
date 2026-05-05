@@ -1,9 +1,13 @@
 using System;
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 internal sealed class BattleInputService
 {
+    private static readonly Image[] EmptyUiBlockerImages = new Image[0];
+    private static Image[] cachedUiBlockerImages = EmptyUiBlockerImages;
+    private static int cachedUiBlockerFrame = -1;
+
     public void HandleCombatInput(
         BattleGrid grid,
         Camera battleCamera,
@@ -104,7 +108,73 @@ internal sealed class BattleInputService
 
     public static bool IsPointerBlockedByUi()
     {
-        EventSystem eventSystem = EventSystem.current;
-        return eventSystem != null && eventSystem.IsPointerOverGameObject();
+        RefreshUiBlockerImageCacheIfNeeded();
+
+        Vector2 pointerPosition = Input.mousePosition;
+        for (int i = cachedUiBlockerImages.Length - 1; i >= 0; i--)
+        {
+            Image image = cachedUiBlockerImages[i];
+            if (!IsVisibleUiBlockerImage(image))
+            {
+                continue;
+            }
+
+            Camera eventCamera = ResolveUiEventCamera(image);
+            if (RectTransformUtility.RectangleContainsScreenPoint(image.rectTransform, pointerPosition, eventCamera))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void RefreshUiBlockerImageCacheIfNeeded()
+    {
+        if (cachedUiBlockerFrame == Time.frameCount)
+        {
+            return;
+        }
+
+        cachedUiBlockerFrame = Time.frameCount;
+        cachedUiBlockerImages = UnityEngine.Object.FindObjectsOfType<Image>(false) ?? EmptyUiBlockerImages;
+    }
+
+    private static bool IsVisibleUiBlockerImage(Image image)
+    {
+        return image != null &&
+            image.enabled &&
+            image.isActiveAndEnabled &&
+            image.gameObject.activeInHierarchy &&
+            image.color.a > 0.001f &&
+            HasVisibleCanvasGroupAlpha(image.transform);
+    }
+
+    private static bool HasVisibleCanvasGroupAlpha(Transform transform)
+    {
+        Transform current = transform;
+        while (current != null)
+        {
+            CanvasGroup canvasGroup = current.GetComponent<CanvasGroup>();
+            if (canvasGroup != null && canvasGroup.alpha <= 0.001f)
+            {
+                return false;
+            }
+
+            current = current.parent;
+        }
+
+        return true;
+    }
+
+    private static Camera ResolveUiEventCamera(Image image)
+    {
+        Canvas canvas = image != null ? image.canvas : null;
+        if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+        {
+            return null;
+        }
+
+        return canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
     }
 }
