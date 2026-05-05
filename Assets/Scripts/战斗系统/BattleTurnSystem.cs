@@ -481,6 +481,11 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (inputService != null && inputService.HandleWorldClickableInput(battleCamera, TryNavigateToDoor))
+        {
+            return;
+        }
+
         inputService?.HandleExplorationInput(
             activeExplorationActionId,
             grid,

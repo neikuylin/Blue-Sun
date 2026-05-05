@@ -106,6 +106,41 @@ internal sealed class BattleInputService
         tryMoveFreely?.Invoke(activeUnit, clickedCell);
     }
 
+    public bool HandleWorldClickableInput(
+        Camera battleCamera,
+        Action<MapTemplateDatabase.ConnectionDirection> tryNavigateToDoor)
+    {
+        if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || battleCamera == null)
+        {
+            return false;
+        }
+
+        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit[] hits = Physics.RaycastAll(ray, float.PositiveInfinity);
+        if (hits == null || hits.Length == 0)
+        {
+            return false;
+        }
+
+        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+        for (int i = 0; i < hits.Length; i++)
+        {
+            房间方向按钮 doorButton = hits[i].collider != null
+                ? hits[i].collider.GetComponentInParent<房间方向按钮>()
+                : null;
+            if (doorButton == null ||
+                !doorButton.TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection direction))
+            {
+                continue;
+            }
+
+            tryNavigateToDoor?.Invoke(direction);
+            return true;
+        }
+
+        return false;
+    }
+
     public static bool IsPointerBlockedByUi()
     {
         RefreshUiBlockerImageCacheIfNeeded();

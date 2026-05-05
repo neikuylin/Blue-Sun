@@ -15,20 +15,9 @@ public sealed class 房间方向按钮 : MonoBehaviour
 
     [SerializeField, InspectorName("方向")] private Direction direction = Direction.东;
 
-    private void OnMouseUpAsButton()
+    public bool TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection resolvedDirection)
     {
-        if (!TryConvertDirection(direction, out MapTemplateDatabase.ConnectionDirection resolvedDirection))
-        {
-            return;
-        }
-
-        BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
-        if (turnSystem == null)
-        {
-            return;
-        }
-
-        turnSystem.TryNavigateToDoor(resolvedDirection);
+        return TryConvertDirection(direction, out resolvedDirection);
     }
 
     private static bool TryConvertDirection(
