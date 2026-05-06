@@ -16,9 +16,9 @@ MonoBehaviour:
   - templateId: "\u5730\u72621"
     displayName: "\u5730\u72621"
     nodes:
-    - nodeId: "\u5165\u53E3"
-      displayName: "\u5165\u53E3"
-      position: {x: 771, y: 87}
+    - nodeId: node_3
+      displayName: node_3
+      position: {x: 771, y: 86.20001}
       roomTypeId: encounter_battle
       encounterPresetId: "\u7A7A\u623F\u95F4"
       battleGridTemplateId: "\u796D\u7940\u623F"
@@ -28,12 +28,12 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
-      position: {x: 650, y: 160}
+      position: {x: 650, y: 159.19998}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u6D4B\u8BD5\u7528"
       connections:
-      - targetNodeId: "\u5165\u53E3"
+      - targetNodeId: node_3
         direction: 0
       - targetNodeId: node_2
         direction: 2
@@ -50,12 +50,12 @@ MonoBehaviour:
       - targetNodeId: node_1
         direction: 0
       nextNodeIds: []
-    - nodeId: node_3
-      displayName: node_3
-      position: {x: 768, y: 246}
+    - nodeId: "\u5165\u53E3"
+      displayName: "\u5165\u53E3"
+      position: {x: 769.6, y: 246}
       roomTypeId: encounter_battle
-      encounterPresetId: 
-      battleGridTemplateId: 
+      encounterPresetId: "\u7A7A\u623F\u95F4"
+      battleGridTemplateId: "\u796D\u7940\u623F"
       connections:
       - targetNodeId: node_1
         direction: 3
