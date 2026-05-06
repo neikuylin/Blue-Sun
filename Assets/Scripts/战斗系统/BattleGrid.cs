@@ -6,6 +6,7 @@ public class BattleGrid : MonoBehaviour
     private const string Below3DNoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
     private const int GridOutlineSortingOrderBase = -9000;
     private const int GridOutlineSortingOrderRelativeLimit = 999;
+    private const int FootprintOverlaySortingOrder = -10005;
 
     private static readonly Vector2Int[] CardinalDirections =
     {
@@ -820,7 +821,7 @@ public class BattleGrid : MonoBehaviour
         meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + (highlightLayerOrder * 0.002f));
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = highlightLayerOrder * 10;
+        meshRenderer.sortingOrder = FootprintOverlaySortingOrder;
 
         List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
         for (int i = 0; i < loops.Count; i++)
@@ -830,7 +831,8 @@ public class BattleGrid : MonoBehaviour
                 loops[i],
                 outlineColor,
                 overlayY + 0.001f + (highlightLayerOrder * 0.002f),
-                (highlightLayerOrder * 10) + 1);
+                FootprintOverlaySortingOrder,
+                true);
         }
 
         highlightLayerOrder++;
@@ -1307,9 +1309,9 @@ public class BattleGrid : MonoBehaviour
         return lineColor;
     }
 
-    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder)
+    private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder, bool useAbsoluteSortingOrder = false)
     {
-        CreateOutlineLoopRenderer(parent, loop, lineColor, y, sortingOrder);
+        CreateOutlineLoopRenderer(parent, loop, lineColor, y, sortingOrder, useAbsoluteSortingOrder);
     }
 
     private void CreateCircleOutline(Transform parent, Vector3 center, float radiusWorld, Color lineColor, float y, int sortingOrder)
@@ -1462,7 +1464,8 @@ public class BattleGrid : MonoBehaviour
         List<Vector2Int> loop,
         Color lineColor,
         float y,
-        int sortingOrder)
+        int sortingOrder,
+        bool useAbsoluteSortingOrder = false)
     {
         if (loop == null || loop.Count < 2)
         {
@@ -1474,7 +1477,7 @@ public class BattleGrid : MonoBehaviour
 
         LineRenderer line = lineObject.AddComponent<LineRenderer>();
         line.sharedMaterial = CreateGridLineMaterial(lineColor);
-        line.sortingOrder = ResolveGridOutlineSortingOrder(sortingOrder);
+        line.sortingOrder = useAbsoluteSortingOrder ? sortingOrder : ResolveGridOutlineSortingOrder(sortingOrder);
         line.loop = true;
         line.useWorldSpace = false;
         line.textureMode = LineTextureMode.Stretch;

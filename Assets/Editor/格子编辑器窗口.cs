@@ -46,6 +46,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private 绘制工具 currentTool = 绘制工具.可用格;
     private int selectedPropVisualIndex = -1;
     private readonly HashSet<string> expandedPropVisualKeys = new HashSet<string>();
+    private readonly HashSet<string> expandedWallVisualKeys = new HashSet<string>();
     private 拖拽模式 currentDragMode = 拖拽模式.无;
     private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
 
@@ -923,12 +924,14 @@ public sealed class 格子编辑器窗口 : EditorWindow
             if (GUILayout.Button("新增墙/门"))
             {
                 Undo.RecordObject(EnsureDatabase(), "新增格子墙");
+                int newWallIndex = entry.wallVisuals.Count;
                 entry.wallVisuals.Add(new 格子模板数据库.WallVisualEntry
                 {
-                    wallName = $"墙{entry.wallVisuals.Count + 1}",
+                    wallName = $"墙{newWallIndex + 1}",
                     cell = new 格子模板数据库.CellPosition(0, 0),
                     side = 格子模板数据库.WallSide.North
                 });
+                expandedWallVisualKeys.Add(GetWallVisualFoldoutKey(entry, newWallIndex));
                 MarkDirtyAndRepaint();
             }
 
@@ -942,9 +945,22 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
                 using (new EditorGUILayout.VerticalScope("box"))
                 {
+                    string foldoutKey = GetWallVisualFoldoutKey(entry, i);
+                    bool isExpanded = expandedWallVisualKeys.Contains(foldoutKey);
+                    string displayName = ResolveWallVisualDisplayName(wall, i);
+
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        wall.wallName = EditorGUILayout.TextField("名称", wall.wallName);
+                        bool nextExpanded = EditorGUILayout.Foldout(isExpanded, displayName, true);
+                        if (nextExpanded)
+                        {
+                            expandedWallVisualKeys.Add(foldoutKey);
+                        }
+                        else
+                        {
+                            expandedWallVisualKeys.Remove(foldoutKey);
+                        }
+
                         if (GUILayout.Button("删除", GUILayout.Width(56f)))
                         {
                             Undo.RecordObject(EnsureDatabase(), "删除格子墙");
@@ -954,6 +970,12 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         }
                     }
 
+                    if (!expandedWallVisualKeys.Contains(foldoutKey))
+                    {
+                        continue;
+                    }
+
+                    wall.wallName = EditorGUILayout.TextField("名称", wall.wallName);
                     wall.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", wall.prefab, typeof(GameObject), false);
                     wall.cell = DrawCellPositionField("挂在哪格", wall.cell);
                     wall.side = (格子模板数据库.WallSide)EditorGUILayout.EnumPopup("边", wall.side);
@@ -962,6 +984,24 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 }
             }
         }
+    }
+
+    private static string GetWallVisualFoldoutKey(格子模板数据库.格子模板条目 entry, int index)
+    {
+        string templateId = entry != null && !string.IsNullOrWhiteSpace(entry.templateId)
+            ? entry.templateId.Trim()
+            : "未命名模板";
+        return $"{templateId}:wall:{index}";
+    }
+
+    private static string ResolveWallVisualDisplayName(格子模板数据库.WallVisualEntry wall, int index)
+    {
+        if (wall != null && !string.IsNullOrWhiteSpace(wall.wallName))
+        {
+            return wall.wallName.Trim();
+        }
+
+        return $"墙{index + 1}";
     }
 
     private static 格子模板数据库.CellPosition DrawCellPositionField(string label, 格子模板数据库.CellPosition cell)

@@ -484,7 +484,7 @@ public class BattleBootstrap : MonoBehaviour
     private static List<Vector2Int> BuildRuntimeWalkableCells(格子模板数据库.格子模板条目 gridTemplate)
     {
         List<Vector2Int> result = ConvertCells(gridTemplate != null ? gridTemplate.walkableCells : null);
-        RemoveDoorEntranceCells(result, gridTemplate);
+        AddDoorEntranceCells(result, gridTemplate);
         if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
         {
             return result;
@@ -522,7 +522,7 @@ public class BattleBootstrap : MonoBehaviour
         return result;
     }
 
-    private static void RemoveDoorEntranceCells(List<Vector2Int> cells, 格子模板数据库.格子模板条目 gridTemplate)
+    private static void AddDoorEntranceCells(List<Vector2Int> cells, 格子模板数据库.格子模板条目 gridTemplate)
     {
         if (cells == null || gridTemplate == null)
         {
@@ -531,23 +531,33 @@ public class BattleBootstrap : MonoBehaviour
 
         if (gridTemplate.hasEastDoorEntrance)
         {
-            cells.Remove(gridTemplate.eastDoorEntranceCell.ToVector2Int());
+            AddCellIfMissing(cells, gridTemplate.eastDoorEntranceCell.ToVector2Int());
         }
 
         if (gridTemplate.hasSouthDoorEntrance)
         {
-            cells.Remove(gridTemplate.southDoorEntranceCell.ToVector2Int());
+            AddCellIfMissing(cells, gridTemplate.southDoorEntranceCell.ToVector2Int());
         }
 
         if (gridTemplate.hasWestDoorEntrance)
         {
-            cells.Remove(gridTemplate.westDoorEntranceCell.ToVector2Int());
+            AddCellIfMissing(cells, gridTemplate.westDoorEntranceCell.ToVector2Int());
         }
 
         if (gridTemplate.hasNorthDoorEntrance)
         {
-            cells.Remove(gridTemplate.northDoorEntranceCell.ToVector2Int());
+            AddCellIfMissing(cells, gridTemplate.northDoorEntranceCell.ToVector2Int());
         }
+    }
+
+    private static void AddCellIfMissing(List<Vector2Int> cells, Vector2Int cell)
+    {
+        if (cells == null || cells.Contains(cell))
+        {
+            return;
+        }
+
+        cells.Add(cell);
     }
 
     private static string FindConnectionTargetInDirection(
