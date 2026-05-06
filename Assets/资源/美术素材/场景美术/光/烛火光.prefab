@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3785263974267779948}
   - component: {fileID: 6020478550112806444}
   - component: {fileID: 7084165514289617378}
+  - component: {fileID: 1542672627865147437}
   m_Layer: 0
   m_Name: Point Light
   m_TagString: Untagged
@@ -146,6 +147,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1542672627865147437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6177277842865531576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
+  targetRenderers: []
 --- !u!1 &9021532890759952778
 GameObject:
   m_ObjectHideFlags: 0

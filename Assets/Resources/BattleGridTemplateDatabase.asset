@@ -2409,10 +2409,6 @@ MonoBehaviour:
     - x: 8
       y: 2
     - x: 8
-      y: 1
-    - x: 8
-      y: 0
-    - x: 8
       y: 11
     - x: 8
       y: 13
@@ -3012,6 +3008,10 @@ MonoBehaviour:
       y: 10
     - x: 0
       y: 10
+    - x: 8
+      y: 1
+    - x: 8
+      y: 0
     enemySpawnSlots: []
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
     alignFloorToBattleCamera: 1
@@ -3019,37 +3019,90 @@ MonoBehaviour:
     - propName: "\u7BDD\u706B\u7ACB\u67F1"
       prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
       anchorCell:
-        x: 18
-        y: 6
+        x: 20
+        y: 12
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
       blockedCells:
-      - x: 18
-        y: 6
-      - x: 18
-        y: 5
-      - x: 17
-        y: 5
-      - x: 17
-        y: 6
+      - x: 20
+        y: 12
+      - x: 20
+        y: 11
+      - x: 19
+        y: 11
+      - x: 19
+        y: 12
     - propName: "\u7BDD\u706B\u7ACB\u67F1\uFF08\u6B8B\u7F3A\uFF09"
       prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
       anchorCell:
-        x: 16
-        y: 6
+        x: 5
+        y: 12
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
       blockedCells:
-      - x: 16
-        y: 6
-      - x: 16
-        y: 5
+      - x: 5
+        y: 12
+      - x: 5
+        y: 11
+      - x: 4
+        y: 11
+      - x: 4
+        y: 12
+    - propName: "\u8840\u6C60"
+      prefab: {fileID: 4693388357262292093, guid: eb5222f5d0a2e2244916641dbc1efb4e, type: 3}
+      anchorCell:
+        x: 10
+        y: 0
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells:
+      - x: 10
+        y: 0
+      - x: 9
+        y: 0
+      - x: 9
+        y: 1
+      - x: 10
+        y: 1
+      - x: 11
+        y: 1
+      - x: 12
+        y: 1
+      - x: 13
+        y: 1
+      - x: 14
+        y: 1
       - x: 15
-        y: 5
+        y: 1
+      - x: 16
+        y: 1
+      - x: 17
+        y: 1
+      - x: 18
+        y: 1
+      - x: 19
+        y: 1
+      - x: 19
+        y: 0
+      - x: 18
+        y: 0
+      - x: 17
+        y: 0
+      - x: 16
+        y: 0
       - x: 15
-        y: 6
+        y: 0
+      - x: 14
+        y: 0
+      - x: 13
+        y: 0
+      - x: 12
+        y: 0
+      - x: 11
+        y: 0
     wallVisuals:
     - wallName: "\u897F\u5899"
       prefab: {fileID: 7192146739375267032, guid: 0c20ab905c82bb941b0423743896f1e3, type: 3}
