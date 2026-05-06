@@ -80,7 +80,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -10001
+  m_SortingOrder: -10005
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 65591981e6f82ef4cb6f10e77894b7a0, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -106,7 +106,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mode: 0
   overwriteSortingOrder: 1
-  sortingOrder: -10001
+  sortingOrder: -10005
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 0}
@@ -143,7 +143,7 @@ Transform:
   m_GameObject: {fileID: 7251117421244317471}
   serializedVersion: 2
   m_LocalRotation: {x: 0.26323888, y: -0.07723132, z: -0.046365228, w: 0.96051604}
-  m_LocalPosition: {x: 3.26, y: 3.52, z: -7.54}
+  m_LocalPosition: {x: 0.27, y: 2.65, z: -7.83}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -191,7 +191,7 @@ Light:
       e32: 0
       e33: 1
     m_UseCullingMatrixOverride: 0
-  m_Cookie: {fileID: 2800000, guid: c60108b57788c66459cd2b306f255159, type: 3}
+  m_Cookie: {fileID: 0}
   m_DrawHalo: 0
   m_Flare: {fileID: 0}
   m_RenderMode: 0

@@ -2067,8 +2067,6 @@ MonoBehaviour:
     - x: 1
       y: 9
     - x: 1
-      y: 11
-    - x: 1
       y: 12
     - x: 2
       y: 12
@@ -2162,8 +2160,6 @@ MonoBehaviour:
       y: 14
     - x: 0
       y: 15
-    - x: 1
-      y: 13
     - x: 0
       y: 12
     - x: 0
@@ -2999,8 +2995,6 @@ MonoBehaviour:
     - x: 15
       y: 9
     - x: 0
-      y: 0
-    - x: 0
       y: 9
     - x: 0
       y: 8
@@ -3011,6 +3005,12 @@ MonoBehaviour:
     - x: 8
       y: 1
     - x: 8
+      y: 0
+    - x: 1
+      y: 13
+    - x: 1
+      y: 11
+    - x: 0
       y: 0
     enemySpawnSlots: []
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
@@ -3133,7 +3133,7 @@ MonoBehaviour:
       cell:
         x: 0
         y: 0
-      side: 3
+      side: 0
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
@@ -3167,7 +3167,7 @@ MonoBehaviour:
     hasWestDoorEntrance: 1
     westDoorEntranceCell:
       x: 1
-      y: 13
+      y: 12
     hasNorthDoorEntrance: 0
     northDoorEntranceCell:
       x: 0

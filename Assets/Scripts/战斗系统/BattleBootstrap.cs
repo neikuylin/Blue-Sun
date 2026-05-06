@@ -318,7 +318,7 @@ public class BattleBootstrap : MonoBehaviour
         GameObject contentRoot = new GameObject(RoomContentRootName);
         contentRoot.transform.SetParent(runtimeRoot, false);
         战斗格子沙盘辅助 floorSandbox = CreateFloorVisuals(gridTemplate, contentRoot.transform);
-        CreatePropVisuals(gridTemplate, contentRoot.transform);
+        CreatePropVisuals(gridTemplate, contentRoot.transform, floorSandbox);
         CreateWallVisuals(gridTemplate, contentRoot.transform, floorSandbox);
     }
 
@@ -368,7 +368,10 @@ public class BattleBootstrap : MonoBehaviour
         return sandbox;
     }
 
-    private void CreatePropVisuals(格子模板数据库.格子模板条目 gridTemplate, Transform contentRoot)
+    private void CreatePropVisuals(
+        格子模板数据库.格子模板条目 gridTemplate,
+        Transform contentRoot,
+        战斗格子沙盘辅助 floorSandbox)
     {
         if (gridTemplate == null || contentRoot == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
         {
@@ -389,9 +392,14 @@ public class BattleBootstrap : MonoBehaviour
             instance.name = string.IsNullOrWhiteSpace(prop.propName) ? $"Prop_{cell.x}_{cell.y}" : prop.propName.Trim();
             PlaceVisualInstance(
                 instance.transform,
-                CellToWorldPosition(cell) + prop.localOffset,
+                GetFloorAlignedCellPosition(cell, floorSandbox) + prop.localOffset,
                 prop.alignToBattleCamera);
         }
+    }
+
+    private Vector3 GetFloorAlignedCellPosition(Vector2Int cell, 战斗格子沙盘辅助 floorSandbox)
+    {
+        return floorSandbox != null ? floorSandbox.GetCellCenterWorld(cell) : CellToWorldPosition(cell);
     }
 
     private void CreateWallVisuals(

@@ -113,7 +113,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: "Assembly-CSharp::\u7CBE\u7075\u5C40\u90E8\u5149\u786C\u8FB9\u63A7\u5236\u5668"
   targetLight: {fileID: 5930280915248316142}
   hardEdge: 1
-  colorMultiplier: {r: 1, g: 0.9671159, b: 0.3754716, a: 1}
+  colorMultiplier: {r: 0.9547169, g: 0.7982287, b: 0.28641498, a: 1}
   intensityMultiplier: 0.7
   radiusMultiplier: 1
   positionOffset: {x: 0, y: 0, z: 0}
@@ -469,7 +469,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: "Assembly-CSharp::\u7CBE\u7075\u5C40\u90E8\u5149\u786C\u8FB9\u63A7\u5236\u5668"
   targetLight: {fileID: 1128997928231480951}
   hardEdge: 1
-  colorMultiplier: {r: 1, g: 0.9671159, b: 0.3754716, a: 1}
+  colorMultiplier: {r: 1, g: 0.82930034, b: 0.37647057, a: 1}
   intensityMultiplier: 0.7
   radiusMultiplier: 1
   positionOffset: {x: 0, y: 0, z: 0}
@@ -542,6 +542,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 724068630677092619}
     m_Modifications:
+    - target: {fileID: 6020478550112806444, guid: d71ac162143a79b43b6637ad4cac8d08, type: 3}
+      propertyPath: colorMultiplier.b
+      value: 0.37647057
+      objectReference: {fileID: 0}
+    - target: {fileID: 6020478550112806444, guid: d71ac162143a79b43b6637ad4cac8d08, type: 3}
+      propertyPath: colorMultiplier.g
+      value: 0.85014933
+      objectReference: {fileID: 0}
     - target: {fileID: 7587785392073407210, guid: d71ac162143a79b43b6637ad4cac8d08, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.831
