@@ -3013,7 +3013,7 @@ MonoBehaviour:
     - x: 0
       y: 10
     enemySpawnSlots: []
-    defaultFloorPrefab: {fileID: 9178832381914440453, guid: de57d356d2b2dd74ea04b6307976a2a0, type: 3}
+    defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
     alignFloorToBattleCamera: 1
     propVisuals:
     - propName: "\u7BDD\u706B\u7ACB\u67F1"
@@ -3052,11 +3052,35 @@ MonoBehaviour:
         y: 6
     wallVisuals:
     - wallName: "\u897F\u5899"
-      prefab: {fileID: 2377435375497047331, guid: d3a835ed6c505a6488aa9e5534493296, type: 3}
+      prefab: {fileID: 7192146739375267032, guid: 0c20ab905c82bb941b0423743896f1e3, type: 3}
       cell:
         x: 0
         y: 0
       side: 2
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u5317\u5899"
+      prefab: {fileID: 3669094254085269450, guid: cdd59e51072e68c40be6f35c56d0431d, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 3
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u5357\u5899"
+      prefab: {fileID: 4712844981043306322, guid: 492c00accbdb5014fbf01f8609d251fc, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 1
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u4E1C\u5899"
+      prefab: {fileID: 1741499523350922593, guid: e46492848e5fae746a0dfb317931a5d2, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 3
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
