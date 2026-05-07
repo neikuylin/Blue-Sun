@@ -70,6 +70,14 @@ public sealed class 格子模板数据库 : ScriptableObject
     }
 
     [Serializable]
+    public sealed class 花瓣曝光区域Entry
+    {
+        public string areaName = string.Empty;
+        public CellPosition startCell;
+        public Vector2Int size = Vector2Int.one;
+    }
+
+    [Serializable]
     public sealed class 格子模板条目
     {
         public string templateId = string.Empty;
@@ -81,6 +89,7 @@ public sealed class 格子模板数据库 : ScriptableObject
         public GameObject defaultFloorPrefab;
         public bool alignFloorToBattleCamera = true;
         public GameObject 花瓣粒子预制体;
+        public List<花瓣曝光区域Entry> 花瓣曝光区域列表 = new List<花瓣曝光区域Entry>();
         public List<PropVisualEntry> propVisuals = new List<PropVisualEntry>();
         public List<WallVisualEntry> wallVisuals = new List<WallVisualEntry>();
         public bool hasDefaultPlayerSpawn;
@@ -210,6 +219,11 @@ public sealed class 格子模板数据库 : ScriptableObject
             entry.propVisuals = new List<PropVisualEntry>();
         }
 
+        if (entry.花瓣曝光区域列表 == null)
+        {
+            entry.花瓣曝光区域列表 = new List<花瓣曝光区域Entry>();
+        }
+
         if (entry.wallVisuals == null)
         {
             entry.wallVisuals = new List<WallVisualEntry>();
@@ -256,6 +270,24 @@ public sealed class 格子模板数据库 : ScriptableObject
             {
                 prop.propName = $"物件{i + 1}";
             }
+        }
+
+        for (int i = entry.花瓣曝光区域列表.Count - 1; i >= 0; i--)
+        {
+            花瓣曝光区域Entry area = entry.花瓣曝光区域列表[i];
+            if (area == null)
+            {
+                entry.花瓣曝光区域列表.RemoveAt(i);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(area.areaName))
+            {
+                area.areaName = $"曝光区域{i + 1}";
+            }
+
+            area.size.x = Mathf.Max(1, area.size.x);
+            area.size.y = Mathf.Max(1, area.size.y);
         }
 
         for (int i = entry.wallVisuals.Count - 1; i >= 0; i--)

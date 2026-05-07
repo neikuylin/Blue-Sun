@@ -458,6 +458,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        petalSystem.设置模板曝光区域(gridTemplate.花瓣曝光区域列表);
         petalSystem.绑定地板沙盘(floorSandbox);
     }
 

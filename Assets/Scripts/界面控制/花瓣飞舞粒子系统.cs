@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -34,6 +35,13 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         public float 摆动相位;
         public float 摆动频率;
         public Vector3 摆动方向;
+    }
+
+    [System.Serializable]
+    private struct 曝光格子区域
+    {
+        public Vector2Int 起点格子;
+        public Vector2Int 尺寸;
     }
 
     [Header("美术")]
@@ -83,10 +91,9 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     [SerializeField, Min(0f)] private float 南风天空偏移 = 0f;
     [SerializeField, Min(0f)] private float 北风天空偏移 = 0f;
 
-    [Header("曝光")]
-    [SerializeField] private bool 启用中段曝光 = true;
-    [SerializeField, Range(0f, 1f)] private float 曝光中心进度 = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float 曝光范围比例 = 0.18f;
+    [Header("格子空间曝光")]
+    [SerializeField] private bool 启用格子空间曝光 = true;
+    [SerializeField] private List<曝光格子区域> 曝光格子区域列表 = new List<曝光格子区域>();
     [SerializeField, Min(0f)] private float 曝光强度 = 4f;
     [SerializeField] private Color 曝光颜色 = new Color(1f, 0.86f, 0.55f, 1f);
 
@@ -102,6 +109,36 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     public void 绑定地板沙盘(战斗格子沙盘辅助 沙盘)
     {
         地板沙盘 = 沙盘;
+        应用设置();
+    }
+
+    public void 设置模板曝光区域(IReadOnlyList<格子模板数据库.花瓣曝光区域Entry> 区域列表)
+    {
+        if (曝光格子区域列表 == null)
+        {
+            曝光格子区域列表 = new List<曝光格子区域>();
+        }
+
+        曝光格子区域列表.Clear();
+        if (区域列表 != null)
+        {
+            for (int i = 0; i < 区域列表.Count; i++)
+            {
+                格子模板数据库.花瓣曝光区域Entry source = 区域列表[i];
+                if (source == null)
+                {
+                    continue;
+                }
+
+                曝光格子区域列表.Add(new 曝光格子区域
+                {
+                    起点格子 = source.startCell.ToVector2Int(),
+                    尺寸 = source.size
+                });
+            }
+        }
+
+        NormalizeExposureAreas();
         应用设置();
     }
 
@@ -132,6 +169,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         摆动频率范围 = NormalizeRange(摆动频率范围, 0.01f);
         本地预览范围.x = Mathf.Max(0.01f, 本地预览范围.x);
         本地预览范围.y = Mathf.Max(0.01f, 本地预览范围.y);
+        NormalizeExposureAreas();
         if (最大旋转速度 < 最小旋转速度)
         {
             最大旋转速度 = 最小旋转速度;
@@ -381,8 +419,9 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             return false;
         }
 
-        Vector3 ground = ResolveGroundPosition();
-        Vector3 sky = ground + Vector3.up * 天空高度 + ResolveSkyDirectionOffset();
+        Vector3 skyAndGroundOffset = ResolveSkyDirectionOffset();
+        Vector3 ground = ResolveGroundPosition() + skyAndGroundOffset;
+        Vector3 sky = ground + Vector3.up * 天空高度;
 
         petalStates[index] = new 花瓣状态
         {
@@ -479,7 +518,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             : 1f - Mathf.Clamp01((state.已存活时间 - fadeStart) / state.消失时间);
 
         Color color = 花瓣颜色;
-        ApplyExposureColor(ref color, fallProgress);
+        ApplyExposureColor(ref color, position);
         color.a *= alpha;
 
         ParticleSystem.Particle particle = new ParticleSystem.Particle
@@ -495,24 +534,119 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         return particle;
     }
 
-    private void ApplyExposureColor(ref Color color, float fallProgress)
+    private void ApplyExposureColor(ref Color color, Vector3 position)
     {
-        if (!启用中段曝光 || 曝光范围比例 <= 0f || 曝光强度 <= 0f)
+        if (!启用格子空间曝光 || 曝光强度 <= 0f || !IsInsideExposureArea(position))
         {
             return;
         }
 
-        float halfRange = 曝光范围比例 * 0.5f;
-        float distance = Mathf.Abs(fallProgress - 曝光中心进度);
-        if (distance > halfRange)
+        color.r += 曝光颜色.r * 曝光强度;
+        color.g += 曝光颜色.g * 曝光强度;
+        color.b += 曝光颜色.b * 曝光强度;
+    }
+
+    private bool IsInsideExposureArea(Vector3 position)
+    {
+        if (地板沙盘 == null || 曝光格子区域列表 == null || 曝光格子区域列表.Count == 0)
         {
+            return false;
+        }
+
+        if (!TryResolveVerticalGridLine(position, out Vector2 gridAtGround, out Vector2 gridPerHeight))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < 曝光格子区域列表.Count; i++)
+        {
+            曝光格子区域 area = 曝光格子区域列表[i];
+            Vector2 min = new Vector2(area.起点格子.x - 0.5f, area.起点格子.y - 0.5f);
+            Vector2 max = new Vector2(area.起点格子.x + area.尺寸.x - 0.5f, area.起点格子.y + area.尺寸.y - 0.5f);
+            if (VerticalGridLineIntersectsArea(gridAtGround, gridPerHeight, min, max, Mathf.Max(0f, 天空高度)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryResolveVerticalGridLine(Vector3 position, out Vector2 gridAtGround, out Vector2 gridPerHeight)
+    {
+        gridAtGround = Vector2.zero;
+        gridPerHeight = Vector2.zero;
+
+        Vector3 origin = 地板沙盘.GetSandboxGridPointWorld(0f, 0f);
+        Vector3 east = 地板沙盘.GetSandboxGridPointWorld(1f, 0f) - origin;
+        Vector3 north = 地板沙盘.GetSandboxGridPointWorld(0f, 1f) - origin;
+
+        Vector2 east2D = new Vector2(east.x, east.y);
+        Vector2 north2D = new Vector2(north.x, north.y);
+        float determinant = east2D.x * north2D.y - east2D.y * north2D.x;
+        if (Mathf.Abs(determinant) <= 0.0001f)
+        {
+            return false;
+        }
+
+        Vector2 relative = new Vector2(position.x - origin.x, position.y - origin.y);
+        Vector2 verticalStep = Vector2.up;
+        gridAtGround = InverseBasisMultiply(relative, east2D, north2D, determinant);
+        gridPerHeight = -InverseBasisMultiply(verticalStep, east2D, north2D, determinant);
+        return true;
+    }
+
+    private static Vector2 InverseBasisMultiply(Vector2 value, Vector2 basisX, Vector2 basisY, float determinant)
+    {
+        return new Vector2(
+            (value.x * basisY.y - value.y * basisY.x) / determinant,
+            (basisX.x * value.y - basisX.y * value.x) / determinant);
+    }
+
+    private static bool VerticalGridLineIntersectsArea(Vector2 gridAtGround, Vector2 gridPerHeight, Vector2 min, Vector2 max, float height)
+    {
+        float intervalMin = 0f;
+        float intervalMax = height;
+        return ApplyAxisInterval(gridAtGround.x, gridPerHeight.x, min.x, max.x, ref intervalMin, ref intervalMax)
+            && ApplyAxisInterval(gridAtGround.y, gridPerHeight.y, min.y, max.y, ref intervalMin, ref intervalMax);
+    }
+
+    private static bool ApplyAxisInterval(float origin, float slope, float min, float max, ref float intervalMin, ref float intervalMax)
+    {
+        if (Mathf.Abs(slope) <= 0.0001f)
+        {
+            return origin >= min && origin <= max;
+        }
+
+        float enter = (min - origin) / slope;
+        float exit = (max - origin) / slope;
+        if (enter > exit)
+        {
+            float temp = enter;
+            enter = exit;
+            exit = temp;
+        }
+
+        intervalMin = Mathf.Max(intervalMin, enter);
+        intervalMax = Mathf.Min(intervalMax, exit);
+        return intervalMin <= intervalMax;
+    }
+
+    private void NormalizeExposureAreas()
+    {
+        if (曝光格子区域列表 == null)
+        {
+            曝光格子区域列表 = new List<曝光格子区域>();
             return;
         }
 
-        float exposure = 1f - Mathf.Clamp01(distance / Mathf.Max(0.0001f, halfRange));
-        color.r += 曝光颜色.r * 曝光强度 * exposure;
-        color.g += 曝光颜色.g * 曝光强度 * exposure;
-        color.b += 曝光颜色.b * 曝光强度 * exposure;
+        for (int i = 0; i < 曝光格子区域列表.Count; i++)
+        {
+            曝光格子区域 area = 曝光格子区域列表[i];
+            area.尺寸.x = Mathf.Max(1, area.尺寸.x);
+            area.尺寸.y = Mathf.Max(1, area.尺寸.y);
+            曝光格子区域列表[i] = area;
+        }
     }
 
     private static float SmoothFall(float value)

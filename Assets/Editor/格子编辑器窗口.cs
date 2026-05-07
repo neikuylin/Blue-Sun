@@ -45,10 +45,13 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private string newTemplateName = string.Empty;
     private 绘制工具 currentTool = 绘制工具.可用格;
     private int selectedPropVisualIndex = -1;
+    private int selectedPetalExposureAreaIndex = -1;
     private readonly HashSet<string> expandedPropVisualKeys = new HashSet<string>();
+    private readonly HashSet<string> expandedPetalExposureAreaKeys = new HashSet<string>();
     private readonly HashSet<string> expandedWallVisualKeys = new HashSet<string>();
     private 拖拽模式 currentDragMode = 拖拽模式.无;
     private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+    private Vector2Int exposureDragStartCell = new Vector2Int(int.MinValue, int.MinValue);
 
     [MenuItem("Tools/地图/格子编辑器")]
     private static void Open()
@@ -85,6 +88,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             currentDragMode = 拖拽模式.无;
             lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+            exposureDragStartCell = new Vector2Int(int.MinValue, int.MinValue);
         }
     }
 
@@ -142,6 +146,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 {
                     selectedTemplateId = entry.templateId;
                     selectedPropVisualIndex = -1;
+                    selectedPetalExposureAreaIndex = -1;
                     GUI.FocusControl(null);
                 }
             }
@@ -207,6 +212,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         DrawPropPlacementButtons(entry);
+        DrawPetalExposureAreaButtons(entry);
     }
 
     private void DrawDoorEntranceButtons()
@@ -222,7 +228,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
     private void DrawDoorEntranceButton(绘制工具 tool, string label)
     {
-        bool selected = selectedPropVisualIndex < 0 && currentTool == tool;
+        bool selected = selectedPropVisualIndex < 0 && selectedPetalExposureAreaIndex < 0 && currentTool == tool;
         Color previousColor = GUI.backgroundColor;
         if (selected)
         {
@@ -233,6 +239,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             currentTool = tool;
             selectedPropVisualIndex = -1;
+            selectedPetalExposureAreaIndex = -1;
             currentDragMode = 拖拽模式.无;
         }
 
@@ -241,7 +248,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
     private void DrawToolButton(绘制工具 tool, string label)
     {
-        bool selected = selectedPropVisualIndex < 0 && currentTool == tool;
+        bool selected = selectedPropVisualIndex < 0 && selectedPetalExposureAreaIndex < 0 && currentTool == tool;
         Color previousColor = GUI.backgroundColor;
         if (selected)
         {
@@ -252,6 +259,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             currentTool = tool;
             selectedPropVisualIndex = -1;
+            selectedPetalExposureAreaIndex = -1;
         }
 
         GUI.backgroundColor = previousColor;
@@ -288,6 +296,45 @@ public sealed class 格子编辑器窗口 : EditorWindow
                     if (GUILayout.Button(label, GUILayout.Height(26f)))
                     {
                         selectedPropVisualIndex = index;
+                        selectedPetalExposureAreaIndex = -1;
+                    }
+
+                    GUI.backgroundColor = previousColor;
+                }
+            }
+        }
+    }
+
+    private void DrawPetalExposureAreaButtons(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.花瓣曝光区域列表 == null || entry.花瓣曝光区域列表.Count == 0)
+        {
+            return;
+        }
+
+        EditorGUILayout.Space(2f);
+        EditorGUILayout.LabelField("花瓣曝光画笔", EditorStyles.miniBoldLabel);
+        int columns = 3;
+        for (int i = 0; i < entry.花瓣曝光区域列表.Count; i += columns)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                for (int j = 0; j < columns && i + j < entry.花瓣曝光区域列表.Count; j++)
+                {
+                    int index = i + j;
+                    格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[index];
+                    string label = ResolvePetalExposureAreaDisplayName(area, index);
+
+                    Color previousColor = GUI.backgroundColor;
+                    if (selectedPetalExposureAreaIndex == index)
+                    {
+                        GUI.backgroundColor = new Color(0.95f, 0.86f, 0.22f, 1f);
+                    }
+
+                    if (GUILayout.Button(label, GUILayout.Height(26f)))
+                    {
+                        selectedPetalExposureAreaIndex = index;
+                        selectedPropVisualIndex = -1;
                     }
 
                     GUI.backgroundColor = previousColor;
@@ -331,7 +378,43 @@ public sealed class 格子编辑器窗口 : EditorWindow
             }
         }
 
+        DrawPetalExposureAreas(entry, canvasRect);
         DrawHeaders(entry, canvasRect);
+    }
+
+    private void DrawPetalExposureAreas(格子模板数据库.格子模板条目 entry, Rect canvasRect)
+    {
+        if (entry == null || entry.花瓣曝光区域列表 == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < entry.花瓣曝光区域列表.Count; i++)
+        {
+            格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[i];
+            if (area == null)
+            {
+                continue;
+            }
+
+            Rect areaRect = ResolvePetalExposureAreaRect(entry, canvasRect, area);
+            Color fillColor = i == selectedPetalExposureAreaIndex
+                ? new Color(1f, 0.92f, 0.18f, 0.34f)
+                : new Color(1f, 0.92f, 0.18f, 0.18f);
+            Color outlineColor = i == selectedPetalExposureAreaIndex
+                ? new Color(1f, 0.96f, 0.42f, 1f)
+                : new Color(1f, 0.86f, 0.22f, 0.75f);
+
+            EditorGUI.DrawRect(areaRect, fillColor);
+            Handles.DrawSolidRectangleWithOutline(areaRect, Color.clear, outlineColor);
+
+            GUIStyle style = new GUIStyle(EditorStyles.miniBoldLabel)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = Color.white }
+            };
+            GUI.Label(areaRect, ResolvePetalExposureAreaDisplayName(area, i), style);
+        }
     }
 
     private void DrawHeaders(格子模板数据库.格子模板条目 entry, Rect canvasRect)
@@ -419,6 +502,28 @@ public sealed class 格子编辑器窗口 : EditorWindow
         Vector2Int cell;
         if (!TryGetCellAtPosition(entry, canvasRect, currentEvent.mousePosition, out cell))
         {
+            return;
+        }
+
+        if (IsPetalExposureAreaTool(entry))
+        {
+            if (currentEvent.button == 0)
+            {
+                if (currentEvent.type == EventType.MouseDown)
+                {
+                    Undo.RecordObject(EnsureDatabase(), "拉花瓣曝光范围");
+                    currentDragMode = 拖拽模式.涂格;
+                    exposureDragStartCell = cell;
+                    ApplyPetalExposureDrag(entry, cell);
+                    currentEvent.Use();
+                }
+                else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.涂格)
+                {
+                    ApplyPetalExposureDrag(entry, cell);
+                    currentEvent.Use();
+                }
+            }
+
             return;
         }
 
@@ -609,6 +714,32 @@ public sealed class 格子编辑器窗口 : EditorWindow
             entry.propVisuals[selectedPropVisualIndex] != null;
     }
 
+    private bool IsPetalExposureAreaTool(格子模板数据库.格子模板条目 entry)
+    {
+        return entry != null &&
+            entry.花瓣曝光区域列表 != null &&
+            selectedPetalExposureAreaIndex >= 0 &&
+            selectedPetalExposureAreaIndex < entry.花瓣曝光区域列表.Count &&
+            entry.花瓣曝光区域列表[selectedPetalExposureAreaIndex] != null;
+    }
+
+    private void ApplyPetalExposureDrag(格子模板数据库.格子模板条目 entry, Vector2Int currentCell)
+    {
+        if (exposureDragStartCell.x == int.MinValue || !IsPetalExposureAreaTool(entry))
+        {
+            return;
+        }
+
+        格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[selectedPetalExposureAreaIndex];
+        int minX = Mathf.Min(exposureDragStartCell.x, currentCell.x);
+        int maxX = Mathf.Max(exposureDragStartCell.x, currentCell.x);
+        int minY = Mathf.Min(exposureDragStartCell.y, currentCell.y);
+        int maxY = Mathf.Max(exposureDragStartCell.y, currentCell.y);
+        area.startCell = new 格子模板数据库.CellPosition(minX, minY);
+        area.size = new Vector2Int(maxX - minX + 1, maxY - minY + 1);
+        MarkDirtyAndRepaint();
+    }
+
     private void BeginPropPlacementTool(格子模板数据库.格子模板条目 entry, Vector2Int cell)
     {
         格子模板数据库.PropVisualEntry prop = GetSelectedPropVisual(entry);
@@ -786,10 +917,121 @@ public sealed class 格子编辑器窗口 : EditorWindow
         entry.花瓣粒子预制体 = (GameObject)EditorGUILayout.ObjectField("花瓣粒子Prefab", entry.花瓣粒子预制体, typeof(GameObject), false);
 
         EditorGUILayout.Space(4f);
+        DrawPetalExposureAreaList(entry);
+
+        EditorGUILayout.Space(4f);
         DrawPropVisualList(entry);
 
         EditorGUILayout.Space(4f);
         DrawWallVisualList(entry);
+    }
+
+    private void DrawPetalExposureAreaList(格子模板数据库.格子模板条目 entry)
+    {
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("花瓣曝光区域", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("新增区域后，点中间画布上方的同名画笔，左键拖拽矩形范围。运行时该范围会沿世界Y轴向上形成曝光空间。", MessageType.None);
+            if (GUILayout.Button("新增曝光区域"))
+            {
+                Undo.RecordObject(EnsureDatabase(), "新增花瓣曝光区域");
+                if (entry.花瓣曝光区域列表 == null)
+                {
+                    entry.花瓣曝光区域列表 = new List<格子模板数据库.花瓣曝光区域Entry>();
+                }
+
+                int newIndex = entry.花瓣曝光区域列表.Count;
+                selectedPetalExposureAreaIndex = newIndex;
+                selectedPropVisualIndex = -1;
+                entry.花瓣曝光区域列表.Add(new 格子模板数据库.花瓣曝光区域Entry
+                {
+                    areaName = $"曝光区域{newIndex + 1}",
+                    startCell = new 格子模板数据库.CellPosition(0, 0),
+                    size = Vector2Int.one
+                });
+                expandedPetalExposureAreaKeys.Add(GetPetalExposureAreaFoldoutKey(entry, newIndex));
+                MarkDirtyAndRepaint();
+            }
+
+            if (entry.花瓣曝光区域列表 == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < entry.花瓣曝光区域列表.Count; i++)
+            {
+                格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[i];
+                if (area == null)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.VerticalScope("box"))
+                {
+                    string foldoutKey = GetPetalExposureAreaFoldoutKey(entry, i);
+                    bool isExpanded = expandedPetalExposureAreaKeys.Contains(foldoutKey);
+                    string displayName = ResolvePetalExposureAreaDisplayName(area, i);
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        bool nextExpanded = EditorGUILayout.Foldout(isExpanded, displayName, true);
+                        if (nextExpanded)
+                        {
+                            expandedPetalExposureAreaKeys.Add(foldoutKey);
+                        }
+                        else
+                        {
+                            expandedPetalExposureAreaKeys.Remove(foldoutKey);
+                        }
+
+                        Color previousColor = GUI.backgroundColor;
+                        if (selectedPetalExposureAreaIndex == i)
+                        {
+                            GUI.backgroundColor = new Color(0.95f, 0.86f, 0.22f, 1f);
+                        }
+
+                        if (GUILayout.Button("画", GUILayout.Width(40f)))
+                        {
+                            selectedPetalExposureAreaIndex = i;
+                            selectedPropVisualIndex = -1;
+                        }
+
+                        GUI.backgroundColor = previousColor;
+
+                        if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                        {
+                            Undo.RecordObject(EnsureDatabase(), "删除花瓣曝光区域");
+                            entry.花瓣曝光区域列表.RemoveAt(i);
+                            if (selectedPetalExposureAreaIndex == i)
+                            {
+                                selectedPetalExposureAreaIndex = -1;
+                            }
+                            else if (selectedPetalExposureAreaIndex > i)
+                            {
+                                selectedPetalExposureAreaIndex--;
+                            }
+                            MarkDirtyAndRepaint();
+                            return;
+                        }
+                    }
+
+                    if (!expandedPetalExposureAreaKeys.Contains(foldoutKey))
+                    {
+                        continue;
+                    }
+
+                    area.areaName = EditorGUILayout.TextField("名称", area.areaName);
+                    area.startCell = DrawCellPositionField("起点格子", area.startCell);
+                    area.size = EditorGUILayout.Vector2IntField("尺寸", area.size);
+                    Vector2Int start = area.startCell.ToVector2Int();
+                    start.x = Mathf.Clamp(start.x, 0, entry.width - 1);
+                    start.y = Mathf.Clamp(start.y, 0, entry.height - 1);
+                    area.startCell = 格子模板数据库.CellPosition.FromVector2Int(start);
+                    area.size.x = Mathf.Clamp(area.size.x, 1, entry.width - start.x);
+                    area.size.y = Mathf.Clamp(area.size.y, 1, entry.height - start.y);
+                }
+            }
+        }
     }
 
     private void DrawPropVisualList(格子模板数据库.格子模板条目 entry)
@@ -801,6 +1043,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             {
                 Undo.RecordObject(EnsureDatabase(), "新增格子物件");
                 selectedPropVisualIndex = entry.propVisuals.Count;
+                selectedPetalExposureAreaIndex = -1;
                 entry.propVisuals.Add(new 格子模板数据库.PropVisualEntry
                 {
                     propName = $"物件{entry.propVisuals.Count + 1}",
@@ -878,6 +1121,14 @@ public sealed class 格子编辑器窗口 : EditorWindow
         return $"{templateId}:prop:{index}";
     }
 
+    private static string GetPetalExposureAreaFoldoutKey(格子模板数据库.格子模板条目 entry, int index)
+    {
+        string templateId = entry != null && !string.IsNullOrWhiteSpace(entry.templateId)
+            ? entry.templateId.Trim()
+            : "未命名模板";
+        return $"{templateId}:petal-exposure:{index}";
+    }
+
     private static string ResolvePropVisualDisplayName(格子模板数据库.PropVisualEntry prop, int index)
     {
         if (prop != null && !string.IsNullOrWhiteSpace(prop.propName))
@@ -886,6 +1137,16 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         return $"物件{index + 1}";
+    }
+
+    private static string ResolvePetalExposureAreaDisplayName(格子模板数据库.花瓣曝光区域Entry area, int index)
+    {
+        if (area != null && !string.IsNullOrWhiteSpace(area.areaName))
+        {
+            return area.areaName.Trim();
+        }
+
+        return $"曝光区域{index + 1}";
     }
 
     private void DrawBlockedCellList(格子模板数据库.PropVisualEntry prop)
@@ -1083,6 +1344,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
         entry.displayName = string.IsNullOrWhiteSpace(newTemplateName) ? templateId : newTemplateName.Trim();
         格子模板数据库.EnsureValidEntry(entry);
         selectedTemplateId = entry.templateId;
+        selectedPropVisualIndex = -1;
+        selectedPetalExposureAreaIndex = -1;
         newTemplateId = string.Empty;
         newTemplateName = string.Empty;
         MarkDirtyAndRepaint();
@@ -1099,6 +1362,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
         Undo.RecordObject(database, "删除格子模板");
         database.RemoveEntry(entry.templateId);
         selectedTemplateId = string.Empty;
+        selectedPropVisualIndex = -1;
+        selectedPetalExposureAreaIndex = -1;
         EnsureSelection(database);
         MarkDirtyAndRepaint();
     }
@@ -1173,6 +1438,25 @@ public sealed class 格子编辑器窗口 : EditorWindow
             canvasRect.y + HeaderSize + CellGap + (height - 1 - cell.y) * (CellSize + CellGap),
             CellSize,
             CellSize);
+    }
+
+    private static Rect ResolvePetalExposureAreaRect(
+        格子模板数据库.格子模板条目 entry,
+        Rect canvasRect,
+        格子模板数据库.花瓣曝光区域Entry area)
+    {
+        Vector2Int start = area.startCell.ToVector2Int();
+        Vector2Int size = new Vector2Int(Mathf.Max(1, area.size.x), Mathf.Max(1, area.size.y));
+        int minX = Mathf.Clamp(start.x, 0, entry.width - 1);
+        int minY = Mathf.Clamp(start.y, 0, entry.height - 1);
+        int maxX = Mathf.Clamp(start.x + size.x - 1, 0, entry.width - 1);
+        int maxY = Mathf.Clamp(start.y + size.y - 1, 0, entry.height - 1);
+
+        return new Rect(
+            canvasRect.x + HeaderSize + CellGap + minX * (CellSize + CellGap),
+            canvasRect.y + HeaderSize + CellGap + (entry.height - 1 - maxY) * (CellSize + CellGap),
+            (maxX - minX + 1) * CellSize + (maxX - minX) * CellGap,
+            (maxY - minY + 1) * CellSize + (maxY - minY) * CellGap);
     }
 
     private static bool TryGetCellAtPosition(
@@ -1453,6 +1737,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         ClampCellListToBounds(entry.walkableCells, entry);
         ClampEnemySpawnSlotsToBounds(entry);
         ClampPropVisualsToBounds(entry);
+        ClampPetalExposureAreasToBounds(entry);
         ClampWallVisualsToBounds(entry);
         ClampSpawnToBounds(ref entry.hasDefaultPlayerSpawn, ref entry.defaultPlayerSpawnCell, entry);
         ClampSpawnToBounds(ref entry.hasEastDoorPlayerSpawn, ref entry.eastDoorPlayerSpawnCell, entry);
@@ -1533,6 +1818,34 @@ public sealed class 格子编辑器窗口 : EditorWindow
             }
 
             ClampCellListToBounds(prop.blockedCells, entry);
+        }
+    }
+
+    private static void ClampPetalExposureAreasToBounds(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.花瓣曝光区域列表 == null)
+        {
+            return;
+        }
+
+        for (int i = entry.花瓣曝光区域列表.Count - 1; i >= 0; i--)
+        {
+            格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[i];
+            if (area == null)
+            {
+                entry.花瓣曝光区域列表.RemoveAt(i);
+                continue;
+            }
+
+            Vector2Int start = area.startCell.ToVector2Int();
+            if (!IsCellInside(entry, start))
+            {
+                entry.花瓣曝光区域列表.RemoveAt(i);
+                continue;
+            }
+
+            area.size.x = Mathf.Clamp(area.size.x, 1, entry.width - start.x);
+            area.size.y = Mathf.Clamp(area.size.y, 1, entry.height - start.y);
         }
     }
 
@@ -1709,6 +2022,12 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 ? prop.propName.Trim()
                 : $"物件{selectedPropVisualIndex + 1}";
             return $"物件：{propName}";
+        }
+
+        if (IsPetalExposureAreaTool(entry))
+        {
+            格子模板数据库.花瓣曝光区域Entry area = entry.花瓣曝光区域列表[selectedPetalExposureAreaIndex];
+            return $"花瓣曝光区域：{ResolvePetalExposureAreaDisplayName(area, selectedPetalExposureAreaIndex)}";
         }
 
         return ResolveToolLabel(currentTool);
