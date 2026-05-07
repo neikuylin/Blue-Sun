@@ -76,6 +76,12 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     [SerializeField, Min(0f)] private float 阵风强度 = 0.25f;
     [SerializeField, Min(0.01f)] private float 阵风频率 = 0.45f;
 
+    [Header("天空方向偏移")]
+    [SerializeField, Min(0f)] private float 东风天空偏移 = 0f;
+    [SerializeField, Min(0f)] private float 西风天空偏移 = 0f;
+    [SerializeField, Min(0f)] private float 南风天空偏移 = 0f;
+    [SerializeField, Min(0f)] private float 北风天空偏移 = 0f;
+
     private ParticleSystem cachedParticleSystem;
     private ParticleSystemRenderer cachedRenderer;
     private ParticleSystem.Particle[] particles;
@@ -368,11 +374,12 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         }
 
         Vector3 ground = ResolveGroundPosition();
+        Vector3 sky = ground + Vector3.up * 天空高度 + ResolveSkyDirectionOffset();
 
         petalStates[index] = new 花瓣状态
         {
             激活 = true,
-            天空位置 = ground + Vector3.up * 天空高度,
+            天空位置 = sky,
             地面位置 = ground,
             已存活时间 = 0f,
             下落时间 = Random.Range(下落时间.x, 下落时间.y),
@@ -504,6 +511,34 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         float swayDistance = Mathf.Sin(windTime * state.摆动频率 + state.摆动相位) * 摆动强度;
 
         return windDirection * windDistance + state.摆动方向 * swayDistance;
+    }
+
+    private Vector3 ResolveSkyDirectionOffset()
+    {
+        Vector3 offsetDirection = -ResolveTemplateWindDirection();
+        if (offsetDirection.sqrMagnitude <= 0.0001f)
+        {
+            return Vector3.zero;
+        }
+
+        return offsetDirection.normalized * ResolveCurrentSkyOffsetDistance();
+    }
+
+    private float ResolveCurrentSkyOffsetDistance()
+    {
+        switch (风)
+        {
+            case 风向模板.东风:
+                return 东风天空偏移;
+            case 风向模板.西风:
+                return 西风天空偏移;
+            case 风向模板.南风:
+                return 南风天空偏移;
+            case 风向模板.北风:
+                return 北风天空偏移;
+            default:
+                return 0f;
+        }
     }
 
     private Vector3 ResolveSwayDirection()
