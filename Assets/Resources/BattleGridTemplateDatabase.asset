@@ -3335,9 +3335,14 @@ MonoBehaviour:
     "\u82B1\u74E3\u66DD\u5149\u533A\u57DF\u5217\u8868":
     - areaName: "\u66DD\u5149\u533A\u57DF1"
       startCell:
-        x: 8
-        y: 7
-      size: {x: 9, y: 8}
+        x: 11
+        y: 8
+      size: {x: 7, y: 6}
+    - areaName: "\u66DD\u5149\u533A\u57DF2"
+      startCell:
+        x: 24
+        y: 16
+      size: {x: 1, y: 6}
     propVisuals:
     - propName: "\u7BDD\u706B\u7ACB\u67F1"
       prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
