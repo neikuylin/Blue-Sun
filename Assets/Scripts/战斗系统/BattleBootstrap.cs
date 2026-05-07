@@ -26,6 +26,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string RuntimeRootName = "BattleRuntime";
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
+    private const string RoomPetalParticleName = "花瓣下落粒子系统";
     private const string RoomClearedEventId = "清空房间";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
@@ -61,6 +62,9 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Board")]
     public float boardDistance = 18f;
     public Vector3 boardOffset = new Vector3(0f, -2f, 0f);
+
+    [Header("房间花瓣")]
+    public bool 生成房间花瓣 = true;
 
     [Header("Camera")]
     public float cameraSize = 8f;
@@ -320,6 +324,7 @@ public class BattleBootstrap : MonoBehaviour
         战斗格子沙盘辅助 floorSandbox = CreateFloorVisuals(gridTemplate, contentRoot.transform);
         CreatePropVisuals(gridTemplate, contentRoot.transform, floorSandbox);
         CreateWallVisuals(gridTemplate, contentRoot.transform, floorSandbox);
+        CreateRoomPetalParticles(contentRoot.transform, floorSandbox);
     }
 
     private BattleGrid CreateGrid(Transform runtimeRoot)
@@ -435,6 +440,20 @@ public class BattleBootstrap : MonoBehaviour
                 floorSandbox.GetCellCenterWorld(anchorCell) + wall.localOffset,
                 wall.alignToBattleCamera);
         }
+    }
+
+    private void CreateRoomPetalParticles(Transform contentRoot, 战斗格子沙盘辅助 floorSandbox)
+    {
+        if (!生成房间花瓣 || contentRoot == null || floorSandbox == null)
+        {
+            return;
+        }
+
+        GameObject particleObject = new GameObject(RoomPetalParticleName);
+        particleObject.transform.SetParent(contentRoot, false);
+        particleObject.AddComponent<ParticleSystem>();
+        花瓣飞舞粒子系统 petalSystem = particleObject.AddComponent<花瓣飞舞粒子系统>();
+        petalSystem.绑定地板沙盘(floorSandbox);
     }
 
     private static 战斗格子沙盘辅助 ResolveRequiredSandbox(GameObject instance, string context)

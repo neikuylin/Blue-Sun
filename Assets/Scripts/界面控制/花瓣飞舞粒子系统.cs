@@ -5,46 +5,58 @@ using UnityEngine;
 [RequireComponent(typeof(ParticleSystem), typeof(ParticleSystemRenderer))]
 public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
 {
+    private struct 花瓣状态
+    {
+        public bool 激活;
+        public Vector3 天空位置;
+        public Vector3 地面位置;
+        public float 已存活时间;
+        public float 下落时间;
+        public float 停留时间;
+        public float 消失时间;
+        public float 尺寸;
+        public float 旋转角度;
+        public float 旋转速度;
+        public Vector3 旋转轴;
+    }
+
     [Header("美术")]
     [SerializeField] private Sprite 花瓣Sprite;
     [SerializeField] private Material 粒子材质模板;
+    [SerializeField] private Color 花瓣颜色 = new Color(1f, 0.62f, 0.78f, 1f);
 
-    [Header("相机前景")]
-    [SerializeField] private bool 相机前景模式 = true;
-    [SerializeField] private bool 自动移动到相机前方 = true;
-    [SerializeField] private bool 自动适配相机画面 = true;
-    [SerializeField, Min(0.31f)] private float 相机前方距离 = 5f;
-    [SerializeField, Min(0.1f)] private float 屏幕覆盖倍率 = 1.2f;
-    [SerializeField] private Vector2 屏幕中心偏移 = Vector2.zero;
-
-    [Header("范围")]
-    [SerializeField, Min(0f)] private float 发射宽度 = 4.5f;
-    [SerializeField, Min(0f)] private float 发射高度 = 1.6f;
-    [SerializeField, Min(0f)] private float 发射深度 = 0.6f;
+    [Header("房间沙盘")]
+    [SerializeField] private 战斗格子沙盘辅助 地板沙盘;
+    [SerializeField, Min(0f)] private float 天空高度 = 5f;
+    [SerializeField, Min(0f)] private float 地面浮起 = 0.04f;
 
     [Header("数量")]
-    [SerializeField, Min(0f)] private float 每秒数量 = 12f;
-    [SerializeField, Min(1)] private int 最大数量 = 160;
+    [SerializeField, Min(0f)] private float 每秒数量 = 18f;
+    [SerializeField, Min(1)] private int 最大数量 = 180;
 
-    [Header("飘动")]
-    [SerializeField] private Vector2 生命周期 = new Vector2(4.5f, 8f);
-    [SerializeField] private Vector2 初始速度 = new Vector2(0.08f, 0.38f);
-    [SerializeField] private Vector2 花瓣尺寸 = new Vector2(0.18f, 0.36f);
-    [SerializeField] private Vector2 横向风速 = new Vector2(-0.35f, 0.65f);
-    [SerializeField] private Vector2 上下漂移 = new Vector2(-0.18f, 0.25f);
-    [SerializeField] private Vector2 前后漂移 = new Vector2(-0.18f, 0.18f);
-    [SerializeField, Min(0f)] private float 重力 = 0.035f;
+    [Header("生命周期")]
+    [SerializeField] private Vector2 下落时间 = new Vector2(2.8f, 4.2f);
+    [SerializeField] private Vector2 地面停留时间 = new Vector2(0.8f, 1.4f);
+    [SerializeField] private Vector2 透明消失时间 = new Vector2(0.7f, 1.1f);
+    [SerializeField] private Vector2 花瓣尺寸 = new Vector2(0.14f, 0.28f);
 
     [Header("翻飞")]
-    [SerializeField, Min(0f)] private float 噪声强度 = 0.45f;
-    [SerializeField, Min(0.01f)] private float 噪声频率 = 0.32f;
-    [SerializeField, Min(0f)] private float 翻面速度 = 145f;
-    [SerializeField, Min(0f)] private float 旋转速度 = 190f;
+    [SerializeField, Min(0f)] private float 最小旋转速度 = 100f;
+    [SerializeField, Min(0f)] private float 最大旋转速度 = 260f;
 
     private ParticleSystem cachedParticleSystem;
     private ParticleSystemRenderer cachedRenderer;
+    private ParticleSystem.Particle[] particles;
+    private 花瓣状态[] petalStates;
     private Material runtimeMaterial;
     private Mesh runtimeMesh;
+    private float emissionAccumulator;
+
+    public void 绑定地板沙盘(战斗格子沙盘辅助 沙盘)
+    {
+        地板沙盘 = 沙盘;
+        应用设置();
+    }
 
     private void Reset()
     {
@@ -56,58 +68,64 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         应用设置();
     }
 
+    private void OnDisable()
+    {
+        if (cachedParticleSystem != null)
+        {
+            cachedParticleSystem.Clear(true);
+        }
+    }
+
     private void OnValidate()
     {
-        生命周期 = NormalizeRange(生命周期, 0.05f);
-        初始速度 = NormalizeRange(初始速度, 0f);
+        下落时间 = NormalizeRange(下落时间, 0.05f);
+        地面停留时间 = NormalizeRange(地面停留时间, 0f);
+        透明消失时间 = NormalizeRange(透明消失时间, 0.05f);
         花瓣尺寸 = NormalizeRange(花瓣尺寸, 0.001f);
-        横向风速 = NormalizeRange(横向风速, float.NegativeInfinity);
-        上下漂移 = NormalizeRange(上下漂移, float.NegativeInfinity);
-        前后漂移 = NormalizeRange(前后漂移, float.NegativeInfinity);
+        if (最大旋转速度 < 最小旋转速度)
+        {
+            最大旋转速度 = 最小旋转速度;
+        }
 
         应用设置();
     }
 
-    [ContextMenu("重新应用花瓣粒子设置")]
-    public void 应用设置()
+    private void Update()
     {
-        ResolveComponents();
-        if (cachedParticleSystem == null || cachedRenderer == null)
+        if (!Application.isPlaying)
         {
             return;
         }
 
-        ApplyForegroundCameraSettings();
-
-        cachedParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-        ConfigureMain(cachedParticleSystem.main);
-        ConfigureEmission(cachedParticleSystem.emission);
-        ConfigureShape(cachedParticleSystem.shape);
-        ConfigureVelocity(cachedParticleSystem.velocityOverLifetime);
-        ConfigureNoise(cachedParticleSystem.noise);
-        ConfigureRotation(cachedParticleSystem.rotationOverLifetime);
-        ConfigureSize(cachedParticleSystem.sizeOverLifetime);
-        ConfigureColor(cachedParticleSystem.colorOverLifetime);
-        ConfigureTextureSheet(cachedParticleSystem.textureSheetAnimation);
-        ConfigureRenderer();
-
-        if (Application.isPlaying || gameObject.activeInHierarchy)
+        if (地板沙盘 == null)
         {
-            cachedParticleSystem.Play();
+            return;
         }
+
+        ResolveComponents();
+        if (cachedParticleSystem == null)
+        {
+            return;
+        }
+
+        EnsureCapacity();
+        float deltaTime = Time.deltaTime;
+        if (!cachedParticleSystem.isPlaying)
+        {
+            cachedParticleSystem.Play(false);
+        }
+
+        SpawnByDeltaTime(deltaTime);
+        UpdateParticles(deltaTime);
     }
 
-    [ContextMenu("适配当前相机前景")]
-    public void 适配当前相机前景()
+    [ContextMenu("重新应用房间花瓣设置")]
+    public void 应用设置()
     {
-        相机前景模式 = true;
-        自动移动到相机前方 = true;
-        自动适配相机画面 = true;
-        相机前方距离 = Mathf.Max(0.31f, 相机前方距离);
-        屏幕覆盖倍率 = Mathf.Max(1f, 屏幕覆盖倍率);
-        ApplyForegroundCameraSettings();
-        应用设置();
+        ResolveComponents();
+        EnsureCapacity();
+        ConfigureParticleSystem();
+        ConfigureRenderer();
     }
 
     private void ResolveComponents()
@@ -123,182 +141,207 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         }
     }
 
-    private void ConfigureMain(ParticleSystem.MainModule main)
+    private void EnsureCapacity()
     {
-        main.duration = 8f;
-        main.loop = true;
-        main.playOnAwake = true;
-        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        int capacity = Mathf.Max(1, 最大数量);
+        if (particles == null || particles.Length != capacity)
+        {
+            particles = new ParticleSystem.Particle[capacity];
+        }
+
+        if (petalStates == null || petalStates.Length != capacity)
+        {
+            petalStates = new 花瓣状态[capacity];
+        }
+    }
+
+    private void ConfigureParticleSystem()
+    {
+        if (cachedParticleSystem == null)
+        {
+            return;
+        }
+
+        cachedParticleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        ClearRuntimeParticles();
+
+        ParticleSystem.MainModule main = cachedParticleSystem.main;
+        main.loop = false;
+        main.playOnAwake = false;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.scalingMode = ParticleSystemScalingMode.Local;
         main.maxParticles = Mathf.Max(1, 最大数量);
-        main.gravityModifier = 重力;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(生命周期.x, 生命周期.y);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(初始速度.x, 初始速度.y);
-        main.startSize = new ParticleSystem.MinMaxCurve(花瓣尺寸.x, 花瓣尺寸.y);
+        main.startLifetime = 1f;
+        main.startSpeed = 0f;
+        main.startSize = 1f;
+        main.startColor = 花瓣颜色;
         main.startRotation3D = true;
-        main.startRotationX = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
-        main.startRotationY = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
-        main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
+
+        ParticleSystem.EmissionModule emission = cachedParticleSystem.emission;
+        emission.enabled = false;
+        ParticleSystem.ShapeModule shape = cachedParticleSystem.shape;
+        shape.enabled = false;
+        ParticleSystem.VelocityOverLifetimeModule velocity = cachedParticleSystem.velocityOverLifetime;
+        velocity.enabled = false;
+        ParticleSystem.NoiseModule noise = cachedParticleSystem.noise;
+        noise.enabled = false;
+        ParticleSystem.RotationOverLifetimeModule rotation = cachedParticleSystem.rotationOverLifetime;
+        rotation.enabled = false;
+        ParticleSystem.SizeOverLifetimeModule size = cachedParticleSystem.sizeOverLifetime;
+        size.enabled = false;
+        ParticleSystem.ColorOverLifetimeModule color = cachedParticleSystem.colorOverLifetime;
+        color.enabled = false;
+        ParticleSystem.TextureSheetAnimationModule textureSheet = cachedParticleSystem.textureSheetAnimation;
+        textureSheet.enabled = false;
     }
 
-    private void ConfigureEmission(ParticleSystem.EmissionModule emission)
+    private void ClearRuntimeParticles()
     {
-        emission.enabled = true;
-        emission.rateOverTime = 每秒数量;
-    }
-
-    private void ConfigureShape(ParticleSystem.ShapeModule shape)
-    {
-        shape.enabled = true;
-        shape.shapeType = ParticleSystemShapeType.Box;
-        shape.scale = new Vector3(发射宽度, 发射高度, 发射深度);
-        shape.randomDirectionAmount = 0.35f;
-    }
-
-    private void ApplyForegroundCameraSettings()
-    {
-        if (!相机前景模式)
+        emissionAccumulator = 0f;
+        if (petalStates != null)
         {
-            return;
-        }
-
-        Camera targetCamera = ResolveTargetCamera();
-        if (targetCamera == null)
-        {
-            return;
-        }
-
-        float visibleHeight = ResolveCameraVisibleHeight(targetCamera);
-        if (visibleHeight <= 0f)
-        {
-            return;
-        }
-
-        if (自动移动到相机前方 && transform.parent == targetCamera.transform)
-        {
-            transform.localPosition = new Vector3(屏幕中心偏移.x, 屏幕中心偏移.y, 相机前方距离);
-            transform.localRotation = Quaternion.identity;
-        }
-
-        if (自动适配相机画面)
-        {
-            float visibleWidth = visibleHeight * Mathf.Max(0.01f, targetCamera.aspect);
-            发射宽度 = visibleWidth * 屏幕覆盖倍率;
-            发射高度 = visibleHeight * 屏幕覆盖倍率;
-            发射深度 = Mathf.Max(0.2f, 相机前方距离 * 0.25f);
-        }
-    }
-
-    private Camera ResolveTargetCamera()
-    {
-        Camera parentCamera = GetComponentInParent<Camera>();
-        if (parentCamera != null)
-        {
-            return parentCamera;
-        }
-
-        return Camera.main;
-    }
-
-    private float ResolveCameraVisibleHeight(Camera targetCamera)
-    {
-        if (targetCamera.orthographic)
-        {
-            return targetCamera.orthographicSize * 2f;
-        }
-
-        return 2f * Mathf.Tan(targetCamera.fieldOfView * 0.5f * Mathf.Deg2Rad) * Mathf.Max(0.31f, 相机前方距离);
-    }
-
-    private void ConfigureVelocity(ParticleSystem.VelocityOverLifetimeModule velocity)
-    {
-        velocity.enabled = true;
-        velocity.space = ParticleSystemSimulationSpace.Local;
-        velocity.x = new ParticleSystem.MinMaxCurve(横向风速.x, 横向风速.y);
-        velocity.y = new ParticleSystem.MinMaxCurve(上下漂移.x, 上下漂移.y);
-        velocity.z = new ParticleSystem.MinMaxCurve(前后漂移.x, 前后漂移.y);
-    }
-
-    private void ConfigureNoise(ParticleSystem.NoiseModule noise)
-    {
-        noise.enabled = true;
-        noise.separateAxes = true;
-        noise.strengthX = 噪声强度;
-        noise.strengthY = 噪声强度 * 0.7f;
-        noise.strengthZ = 噪声强度 * 0.45f;
-        noise.frequency = 噪声频率;
-        noise.scrollSpeed = 0.35f;
-        noise.damping = true;
-        noise.quality = ParticleSystemNoiseQuality.High;
-    }
-
-    private void ConfigureRotation(ParticleSystem.RotationOverLifetimeModule rotation)
-    {
-        float flipRadians = 翻面速度 * Mathf.Deg2Rad;
-        float spinRadians = 旋转速度 * Mathf.Deg2Rad;
-
-        rotation.enabled = true;
-        rotation.separateAxes = true;
-        rotation.x = new ParticleSystem.MinMaxCurve(-flipRadians, flipRadians);
-        rotation.y = new ParticleSystem.MinMaxCurve(-flipRadians * 0.75f, flipRadians * 0.75f);
-        rotation.z = new ParticleSystem.MinMaxCurve(-spinRadians, spinRadians);
-    }
-
-    private static void ConfigureSize(ParticleSystem.SizeOverLifetimeModule sizeOverLifetime)
-    {
-        sizeOverLifetime.enabled = true;
-
-        AnimationCurve curve = new AnimationCurve(
-            new Keyframe(0f, 0.35f),
-            new Keyframe(0.12f, 1f),
-            new Keyframe(0.72f, 0.9f),
-            new Keyframe(1f, 0.18f));
-
-        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, curve);
-    }
-
-    private static void ConfigureColor(ParticleSystem.ColorOverLifetimeModule colorOverLifetime)
-    {
-        colorOverLifetime.enabled = true;
-
-        Gradient gradient = new Gradient();
-        gradient.SetKeys(
-            new[]
+            for (int i = 0; i < petalStates.Length; i++)
             {
-                new GradientColorKey(Color.white, 0f),
-                new GradientColorKey(Color.white, 1f)
-            },
-            new[]
-            {
-                new GradientAlphaKey(0f, 0f),
-                new GradientAlphaKey(1f, 0.12f),
-                new GradientAlphaKey(0.85f, 0.78f),
-                new GradientAlphaKey(0f, 1f)
-            });
+                petalStates[i] = new 花瓣状态();
+            }
+        }
 
-        colorOverLifetime.color = gradient;
+        if (cachedParticleSystem != null)
+        {
+            cachedParticleSystem.Clear(true);
+        }
     }
 
-    private void ConfigureTextureSheet(ParticleSystem.TextureSheetAnimationModule textureSheet)
+    private void SpawnByDeltaTime(float deltaTime)
     {
-        textureSheet.enabled = 花瓣Sprite != null;
-        if (花瓣Sprite == null)
+        emissionAccumulator += Mathf.Max(0f, 每秒数量) * deltaTime;
+        int spawnCount = Mathf.FloorToInt(emissionAccumulator);
+        if (spawnCount <= 0)
         {
             return;
         }
 
-        textureSheet.mode = ParticleSystemAnimationMode.Sprites;
-        while (textureSheet.spriteCount > 0)
+        emissionAccumulator -= spawnCount;
+        for (int i = 0; i < spawnCount; i++)
         {
-            textureSheet.RemoveSprite(0);
+            if (!SpawnOnePetal())
+            {
+                return;
+            }
+        }
+    }
+
+    private bool SpawnOnePetal()
+    {
+        int index = FindInactiveStateIndex();
+        if (index < 0)
+        {
+            return false;
         }
 
-        textureSheet.AddSprite(花瓣Sprite);
-        textureSheet.frameOverTime = 0f;
+        float gridX = Random.Range(-0.5f, 地板沙盘.GridWidth - 0.5f);
+        float gridY = Random.Range(-0.5f, 地板沙盘.GridHeight - 0.5f);
+        Vector3 ground = 地板沙盘.GetSandboxGridPointWorld(gridX, gridY) + Vector3.up * 地面浮起;
+
+        petalStates[index] = new 花瓣状态
+        {
+            激活 = true,
+            天空位置 = ground + Vector3.up * 天空高度,
+            地面位置 = ground,
+            已存活时间 = 0f,
+            下落时间 = Random.Range(下落时间.x, 下落时间.y),
+            停留时间 = Random.Range(地面停留时间.x, 地面停留时间.y),
+            消失时间 = Random.Range(透明消失时间.x, 透明消失时间.y),
+            尺寸 = Random.Range(花瓣尺寸.x, 花瓣尺寸.y),
+            旋转角度 = Random.Range(0f, 360f),
+            旋转速度 = Random.Range(最小旋转速度, 最大旋转速度),
+            旋转轴 = Random.onUnitSphere
+        };
+
+        return true;
+    }
+
+    private int FindInactiveStateIndex()
+    {
+        for (int i = 0; i < petalStates.Length; i++)
+        {
+            if (!petalStates[i].激活)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void UpdateParticles(float deltaTime)
+    {
+        int particleCount = 0;
+        for (int i = 0; i < petalStates.Length; i++)
+        {
+            花瓣状态 state = petalStates[i];
+            if (!state.激活)
+            {
+                continue;
+            }
+
+            state.已存活时间 += deltaTime;
+            float totalLifetime = state.下落时间 + state.停留时间 + state.消失时间;
+            if (state.已存活时间 >= totalLifetime)
+            {
+                state.激活 = false;
+                petalStates[i] = state;
+                continue;
+            }
+
+            particles[particleCount] = BuildParticle(state);
+            particleCount++;
+            petalStates[i] = state;
+        }
+
+        cachedParticleSystem.SetParticles(particles, particleCount);
+    }
+
+    private ParticleSystem.Particle BuildParticle(花瓣状态 state)
+    {
+        float fallProgress = Mathf.Clamp01(state.已存活时间 / state.下落时间);
+        Vector3 position = fallProgress < 1f
+            ? Vector3.Lerp(state.天空位置, state.地面位置, SmoothFall(fallProgress))
+            : state.地面位置;
+
+        float fadeStart = state.下落时间 + state.停留时间;
+        float alpha = state.已存活时间 <= fadeStart
+            ? 1f
+            : 1f - Mathf.Clamp01((state.已存活时间 - fadeStart) / state.消失时间);
+
+        Color color = 花瓣颜色;
+        color.a *= alpha;
+
+        ParticleSystem.Particle particle = new ParticleSystem.Particle
+        {
+            position = position,
+            startSize = state.尺寸,
+            startColor = color,
+            startLifetime = 1f,
+            remainingLifetime = 1f,
+            rotation3D = state.旋转轴 * (state.旋转角度 + state.旋转速度 * Mathf.Min(state.已存活时间, state.下落时间))
+        };
+
+        return particle;
+    }
+
+    private static float SmoothFall(float value)
+    {
+        return value * value * (3f - 2f * value);
     }
 
     private void ConfigureRenderer()
     {
+        if (cachedRenderer == null)
+        {
+            return;
+        }
+
         cachedRenderer.renderMode = ParticleSystemRenderMode.Mesh;
         cachedRenderer.mesh = ResolvePetalMesh();
         cachedRenderer.sortMode = ParticleSystemSortMode.Distance;
@@ -367,10 +410,16 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             runtimeMaterial.hideFlags = HideFlags.HideAndDontSave;
         }
 
-        Texture texture = 花瓣Sprite != null ? 花瓣Sprite.texture : Texture2D.whiteTexture;
-        runtimeMaterial.mainTexture = texture;
-        SetTextureIfExists(runtimeMaterial, "_BaseMap", texture);
-        SetTextureIfExists(runtimeMaterial, "_MainTex", texture);
+        if (花瓣Sprite != null)
+        {
+            Texture texture = 花瓣Sprite.texture;
+            runtimeMaterial.mainTexture = texture;
+            SetTextureIfExists(runtimeMaterial, "_BaseMap", texture);
+            SetTextureIfExists(runtimeMaterial, "_MainTex", texture);
+        }
+
+        SetColorIfExists(runtimeMaterial, "_Color", 花瓣颜色);
+        SetColorIfExists(runtimeMaterial, "_BaseColor", 花瓣颜色);
         ConfigureTransparentMaterial(runtimeMaterial);
         return runtimeMaterial;
     }
@@ -390,6 +439,14 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         if (material != null && material.HasProperty(propertyName))
         {
             material.SetTexture(propertyName, texture);
+        }
+    }
+
+    private static void SetColorIfExists(Material material, string propertyName, Color color)
+    {
+        if (material != null && material.HasProperty(propertyName))
+        {
+            material.SetColor(propertyName, color);
         }
     }
 

@@ -30,11 +30,21 @@ public sealed class 战斗格子沙盘辅助 : MonoBehaviour
     [SerializeField] private Color anchorColor = new Color(1f, 0.55f, 0.1f, 0.9f);
 
     public Vector2Int AnchorCellInSandbox => anchorCellInSandbox;
+    public int GridWidth => gridWidth;
+    public int GridHeight => gridHeight;
+    public float CellSize => cellSize;
 
     public Vector3 GetCellCenterWorld(Vector2Int cell)
     {
         float deltaX = (cell.x - anchorCellInSandbox.x) * cellSize;
         float deltaZ = (cell.y - anchorCellInSandbox.y) * cellSize;
+        return TransformProjectedGridPoint(deltaX, deltaZ);
+    }
+
+    public Vector3 GetSandboxGridPointWorld(float gridX, float gridY)
+    {
+        float deltaX = (gridX - anchorCellInSandbox.x) * cellSize;
+        float deltaZ = (gridY - anchorCellInSandbox.y) * cellSize;
         return TransformProjectedGridPoint(deltaX, deltaZ);
     }
 
