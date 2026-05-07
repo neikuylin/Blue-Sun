@@ -1,5 +1,9 @@
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(ParticleSystem), typeof(ParticleSystemRenderer))]
@@ -27,14 +31,20 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
 
     [Header("房间沙盘")]
     [SerializeField] private 战斗格子沙盘辅助 地板沙盘;
+    [SerializeField] private bool 无地板时自动读取运行地板 = true;
     [SerializeField, Min(0f)] private float 天空高度 = 5f;
     [SerializeField, Min(0f)] private float 地面浮起 = 0.04f;
+
+    [Header("无地板预览")]
+    [SerializeField] private bool 无地板时启用本地预览 = true;
+    [SerializeField] private Vector2 本地预览范围 = new Vector2(10f, 10f);
 
     [Header("数量")]
     [SerializeField, Min(0f)] private float 每秒数量 = 18f;
     [SerializeField, Min(1)] private int 最大数量 = 180;
 
     [Header("生命周期")]
+    [SerializeField, Min(0f)] private float 预热时间 = 0f;
     [SerializeField] private Vector2 下落时间 = new Vector2(2.8f, 4.2f);
     [SerializeField] private Vector2 地面停留时间 = new Vector2(0.8f, 1.4f);
     [SerializeField] private Vector2 透明消失时间 = new Vector2(0.7f, 1.1f);
@@ -51,6 +61,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     private Material runtimeMaterial;
     private Mesh runtimeMesh;
     private float emissionAccumulator;
+    private double lastEditorUpdateTime;
 
     public void 绑定地板沙盘(战斗格子沙盘辅助 沙盘)
     {
@@ -82,22 +93,30 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         地面停留时间 = NormalizeRange(地面停留时间, 0f);
         透明消失时间 = NormalizeRange(透明消失时间, 0.05f);
         花瓣尺寸 = NormalizeRange(花瓣尺寸, 0.001f);
+        本地预览范围.x = Mathf.Max(0.01f, 本地预览范围.x);
+        本地预览范围.y = Mathf.Max(0.01f, 本地预览范围.y);
         if (最大旋转速度 < 最小旋转速度)
         {
             最大旋转速度 = 最小旋转速度;
         }
 
         应用设置();
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            lastEditorUpdateTime = EditorApplication.timeSinceStartup;
+            EditorApplication.QueuePlayerLoopUpdate();
+            SceneView.RepaintAll();
+        }
+#endif
     }
 
     private void Update()
     {
-        if (!Application.isPlaying)
-        {
-            return;
-        }
+        TryAutoBindRuntimeFloor();
 
-        if (地板沙盘 == null)
+        if (!CanUpdateParticles())
         {
             return;
         }
@@ -109,7 +128,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         }
 
         EnsureCapacity();
-        float deltaTime = Time.deltaTime;
+        float deltaTime = ResolveDeltaTime();
         if (!cachedParticleSystem.isPlaying)
         {
             cachedParticleSystem.Play(false);
@@ -117,6 +136,14 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
 
         SpawnByDeltaTime(deltaTime);
         UpdateParticles(deltaTime);
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            EditorApplication.QueuePlayerLoopUpdate();
+            SceneView.RepaintAll();
+        }
+#endif
     }
 
     [ContextMenu("重新应用房间花瓣设置")]
@@ -126,6 +153,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         EnsureCapacity();
         ConfigureParticleSystem();
         ConfigureRenderer();
+        预热粒子();
     }
 
     private void ResolveComponents()
@@ -195,6 +223,65 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         textureSheet.enabled = false;
     }
 
+    private bool CanUpdateParticles()
+    {
+        return 地板沙盘 != null || 无地板时启用本地预览;
+    }
+
+    private void TryAutoBindRuntimeFloor()
+    {
+        if (!无地板时自动读取运行地板 || 地板沙盘 != null)
+        {
+            return;
+        }
+
+        地板沙盘 = FindRuntimeFloorSandbox();
+        if (地板沙盘 != null)
+        {
+            应用设置();
+        }
+    }
+
+    private static 战斗格子沙盘辅助 FindRuntimeFloorSandbox()
+    {
+        GameObject runtimeRoot = GameObject.Find("BattleRuntime");
+        if (runtimeRoot == null)
+        {
+            return null;
+        }
+
+        Transform floorRoot = runtimeRoot.transform.Find("RoomContent/Floor");
+        if (floorRoot == null)
+        {
+            return null;
+        }
+
+        return floorRoot.GetComponentInChildren<战斗格子沙盘辅助>(true);
+    }
+
+    private float ResolveDeltaTime()
+    {
+        if (Application.isPlaying)
+        {
+            return Time.deltaTime;
+        }
+
+#if UNITY_EDITOR
+        double currentTime = EditorApplication.timeSinceStartup;
+        if (lastEditorUpdateTime <= 0d)
+        {
+            lastEditorUpdateTime = currentTime;
+            return 0f;
+        }
+
+        float deltaTime = Mathf.Clamp((float)(currentTime - lastEditorUpdateTime), 0f, 0.05f);
+        lastEditorUpdateTime = currentTime;
+        return deltaTime;
+#else
+        return 0f;
+#endif
+    }
+
     private void ClearRuntimeParticles()
     {
         emissionAccumulator = 0f;
@@ -231,6 +318,24 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         }
     }
 
+    private void 预热粒子()
+    {
+        if (!Application.isPlaying || 预热时间 <= 0f || !CanUpdateParticles())
+        {
+            return;
+        }
+
+        float step = Mathf.Max(0.02f, 1f / Mathf.Max(1f, 每秒数量));
+        float elapsed = 0f;
+        while (elapsed < 预热时间)
+        {
+            float deltaTime = Mathf.Min(step, 预热时间 - elapsed);
+            SpawnByDeltaTime(deltaTime);
+            UpdateParticles(deltaTime);
+            elapsed += deltaTime;
+        }
+    }
+
     private bool SpawnOnePetal()
     {
         int index = FindInactiveStateIndex();
@@ -239,9 +344,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             return false;
         }
 
-        float gridX = Random.Range(-0.5f, 地板沙盘.GridWidth - 0.5f);
-        float gridY = Random.Range(-0.5f, 地板沙盘.GridHeight - 0.5f);
-        Vector3 ground = 地板沙盘.GetSandboxGridPointWorld(gridX, gridY) + Vector3.up * 地面浮起;
+        Vector3 ground = ResolveGroundPosition();
 
         petalStates[index] = new 花瓣状态
         {
@@ -259,6 +362,24 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         };
 
         return true;
+    }
+
+    private Vector3 ResolveGroundPosition()
+    {
+        if (地板沙盘 != null)
+        {
+            float gridX = Random.Range(-0.5f, 地板沙盘.GridWidth - 0.5f);
+            float gridY = Random.Range(-0.5f, 地板沙盘.GridHeight - 0.5f);
+            return 地板沙盘.GetSandboxGridPointWorld(gridX, gridY) + Vector3.up * 地面浮起;
+        }
+
+        float halfWidth = 本地预览范围.x * 0.5f;
+        float halfDepth = 本地预览范围.y * 0.5f;
+        Vector3 localPosition = new Vector3(
+            Random.Range(-halfWidth, halfWidth),
+            地面浮起,
+            Random.Range(-halfDepth, halfDepth));
+        return transform.TransformPoint(localPosition);
     }
 
     private int FindInactiveStateIndex()
