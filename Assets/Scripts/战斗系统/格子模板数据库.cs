@@ -80,6 +80,7 @@ public sealed class 格子模板数据库 : ScriptableObject
         public List<EnemySpawnSlot> enemySpawnSlots = new List<EnemySpawnSlot>();
         public GameObject defaultFloorPrefab;
         public bool alignFloorToBattleCamera = true;
+        public GameObject 花瓣粒子预制体;
         public List<PropVisualEntry> propVisuals = new List<PropVisualEntry>();
         public List<WallVisualEntry> wallVisuals = new List<WallVisualEntry>();
         public bool hasDefaultPlayerSpawn;

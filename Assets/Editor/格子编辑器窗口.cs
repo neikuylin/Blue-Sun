@@ -783,6 +783,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         EditorGUILayout.LabelField("房间美术", EditorStyles.boldLabel);
         entry.defaultFloorPrefab = (GameObject)EditorGUILayout.ObjectField("整张地板Prefab", entry.defaultFloorPrefab, typeof(GameObject), false);
         entry.alignFloorToBattleCamera = EditorGUILayout.Toggle("地板平行战斗相机", entry.alignFloorToBattleCamera);
+        entry.花瓣粒子预制体 = (GameObject)EditorGUILayout.ObjectField("花瓣粒子Prefab", entry.花瓣粒子预制体, typeof(GameObject), false);
 
         EditorGUILayout.Space(4f);
         DrawPropVisualList(entry);
