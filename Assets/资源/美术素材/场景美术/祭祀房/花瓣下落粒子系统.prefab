@@ -4850,7 +4850,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u82B1\u74E3\u98DE\u821E\u7C92\u5B50\u7CFB\u7EDF"
   "\u82B1\u74E3Sprite": {fileID: 21300000, guid: 27b965ad9ba2c324bae28c098e553cbb, type: 3}
-  "\u7C92\u5B50\u6750\u8D28\u6A21\u677F": {fileID: 0}
+  "\u7C92\u5B50\u6750\u8D28\u6A21\u677F": {fileID: 2100000, guid: 3c615d3ec52f4578b3d34934a373c528, type: 2}
   "\u82B1\u74E3\u989C\u8272": {r: 0.5038874, g: 0.6642119, b: 0.6830188, a: 1}
   "\u6750\u8D28\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
   "\u5730\u677F\u6C99\u76D8": {fileID: 0}
