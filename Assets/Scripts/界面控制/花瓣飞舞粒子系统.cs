@@ -40,6 +40,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     [SerializeField] private Sprite 花瓣Sprite;
     [SerializeField] private Material 粒子材质模板;
     [SerializeField] private Color 花瓣颜色 = new Color(1f, 0.62f, 0.78f, 1f);
+    [SerializeField] private Color 材质颜色 = Color.white;
 
     [Header("房间沙盘")]
     [SerializeField] private 战斗格子沙盘辅助 地板沙盘;
@@ -81,6 +82,13 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     [SerializeField, Min(0f)] private float 西风天空偏移 = 0f;
     [SerializeField, Min(0f)] private float 南风天空偏移 = 0f;
     [SerializeField, Min(0f)] private float 北风天空偏移 = 0f;
+
+    [Header("曝光")]
+    [SerializeField] private bool 启用中段曝光 = true;
+    [SerializeField, Range(0f, 1f)] private float 曝光中心进度 = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float 曝光范围比例 = 0.18f;
+    [SerializeField, Min(0f)] private float 曝光强度 = 4f;
+    [SerializeField] private Color 曝光颜色 = new Color(1f, 0.86f, 0.55f, 1f);
 
     private ParticleSystem cachedParticleSystem;
     private ParticleSystemRenderer cachedRenderer;
@@ -471,6 +479,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             : 1f - Mathf.Clamp01((state.已存活时间 - fadeStart) / state.消失时间);
 
         Color color = 花瓣颜色;
+        ApplyExposureColor(ref color, fallProgress);
         color.a *= alpha;
 
         ParticleSystem.Particle particle = new ParticleSystem.Particle
@@ -484,6 +493,26 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         };
 
         return particle;
+    }
+
+    private void ApplyExposureColor(ref Color color, float fallProgress)
+    {
+        if (!启用中段曝光 || 曝光范围比例 <= 0f || 曝光强度 <= 0f)
+        {
+            return;
+        }
+
+        float halfRange = 曝光范围比例 * 0.5f;
+        float distance = Mathf.Abs(fallProgress - 曝光中心进度);
+        if (distance > halfRange)
+        {
+            return;
+        }
+
+        float exposure = 1f - Mathf.Clamp01(distance / Mathf.Max(0.0001f, halfRange));
+        color.r += 曝光颜色.r * 曝光强度 * exposure;
+        color.g += 曝光颜色.g * 曝光强度 * exposure;
+        color.b += 曝光颜色.b * 曝光强度 * exposure;
     }
 
     private static float SmoothFall(float value)
@@ -684,8 +713,8 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             SetTextureIfExists(runtimeMaterial, "_MainTex", texture);
         }
 
-        SetColorIfExists(runtimeMaterial, "_Color", 花瓣颜色);
-        SetColorIfExists(runtimeMaterial, "_BaseColor", 花瓣颜色);
+        SetColorIfExists(runtimeMaterial, "_Color", 材质颜色);
+        SetColorIfExists(runtimeMaterial, "_BaseColor", 材质颜色);
         ConfigureTransparentMaterial(runtimeMaterial);
         return runtimeMaterial;
     }
