@@ -9,6 +9,14 @@ using UnityEditor;
 [RequireComponent(typeof(ParticleSystem), typeof(ParticleSystemRenderer))]
 public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
 {
+    private enum 风向模板
+    {
+        东风 = 0,
+        西风 = 1,
+        南风 = 2,
+        北风 = 3
+    }
+
     private struct 花瓣状态
     {
         public bool 激活;
@@ -22,6 +30,10 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         public float 旋转角度;
         public float 旋转速度;
         public Vector3 旋转轴;
+        public float 风倍率;
+        public float 摆动相位;
+        public float 摆动频率;
+        public Vector3 摆动方向;
     }
 
     [Header("美术")]
@@ -53,6 +65,16 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     [Header("翻飞")]
     [SerializeField, Min(0f)] private float 最小旋转速度 = 100f;
     [SerializeField, Min(0f)] private float 最大旋转速度 = 260f;
+
+    [Header("风")]
+    [SerializeField] private bool 启用风 = false;
+    [SerializeField] private 风向模板 风 = 风向模板.东风;
+    [SerializeField, Min(0f)] private float 风速 = 0.35f;
+    [SerializeField, Min(0f)] private float 风随机强度 = 0.35f;
+    [SerializeField, Min(0f)] private float 摆动强度 = 0.18f;
+    [SerializeField] private Vector2 摆动频率范围 = new Vector2(0.7f, 1.4f);
+    [SerializeField, Min(0f)] private float 阵风强度 = 0.25f;
+    [SerializeField, Min(0.01f)] private float 阵风频率 = 0.45f;
 
     private ParticleSystem cachedParticleSystem;
     private ParticleSystemRenderer cachedRenderer;
@@ -93,6 +115,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         地面停留时间 = NormalizeRange(地面停留时间, 0f);
         透明消失时间 = NormalizeRange(透明消失时间, 0.05f);
         花瓣尺寸 = NormalizeRange(花瓣尺寸, 0.001f);
+        摆动频率范围 = NormalizeRange(摆动频率范围, 0.01f);
         本地预览范围.x = Mathf.Max(0.01f, 本地预览范围.x);
         本地预览范围.y = Mathf.Max(0.01f, 本地预览范围.y);
         if (最大旋转速度 < 最小旋转速度)
@@ -358,7 +381,11 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
             尺寸 = Random.Range(花瓣尺寸.x, 花瓣尺寸.y),
             旋转角度 = Random.Range(0f, 360f),
             旋转速度 = Random.Range(最小旋转速度, 最大旋转速度),
-            旋转轴 = Random.onUnitSphere
+            旋转轴 = Random.onUnitSphere,
+            风倍率 = Random.Range(Mathf.Max(0f, 1f - 风随机强度), 1f + 风随机强度),
+            摆动相位 = Random.Range(0f, Mathf.PI * 2f),
+            摆动频率 = Random.Range(摆动频率范围.x, 摆动频率范围.y),
+            摆动方向 = ResolveSwayDirection()
         };
 
         return true;
@@ -429,6 +456,7 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
         Vector3 position = fallProgress < 1f
             ? Vector3.Lerp(state.天空位置, state.地面位置, SmoothFall(fallProgress))
             : state.地面位置;
+        position += ResolveWindOffset(state);
 
         float fadeStart = state.下落时间 + state.停留时间;
         float alpha = state.已存活时间 <= fadeStart
@@ -454,6 +482,88 @@ public sealed class 花瓣飞舞粒子系统 : MonoBehaviour
     private static float SmoothFall(float value)
     {
         return value * value * (3f - 2f * value);
+    }
+
+    private Vector3 ResolveWindOffset(花瓣状态 state)
+    {
+        if (!启用风)
+        {
+            return Vector3.zero;
+        }
+
+        Vector3 windDirection = ResolveTemplateWindDirection();
+        if (windDirection.sqrMagnitude <= 0.0001f)
+        {
+            return Vector3.zero;
+        }
+
+        windDirection.Normalize();
+        float windTime = Mathf.Min(state.已存活时间, state.下落时间);
+        float gust = 1f + Mathf.Sin((windTime + state.摆动相位) * 阵风频率) * 阵风强度;
+        float windDistance = 风速 * state.风倍率 * Mathf.Max(0f, gust) * windTime;
+        float swayDistance = Mathf.Sin(windTime * state.摆动频率 + state.摆动相位) * 摆动强度;
+
+        return windDirection * windDistance + state.摆动方向 * swayDistance;
+    }
+
+    private Vector3 ResolveSwayDirection()
+    {
+        Vector3 swayDirection = ResolveTemplateSwayDirection();
+        if (swayDirection.sqrMagnitude > 0.0001f)
+        {
+            return swayDirection.normalized;
+        }
+
+        float angle = Random.Range(0f, Mathf.PI * 2f);
+        return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+    }
+
+    private Vector3 ResolveTemplateWindDirection()
+    {
+        Vector3 east = ResolveTemplateAxis(1f, 0f);
+        Vector3 north = ResolveTemplateAxis(0f, 1f);
+
+        switch (风)
+        {
+            case 风向模板.东风:
+                return -east;
+            case 风向模板.西风:
+                return east;
+            case 风向模板.南风:
+                return north;
+            case 风向模板.北风:
+                return -north;
+            default:
+                return -east;
+        }
+    }
+
+    private Vector3 ResolveTemplateSwayDirection()
+    {
+        switch (风)
+        {
+            case 风向模板.东风:
+            case 风向模板.西风:
+                return ResolveTemplateAxis(0f, 1f);
+            case 风向模板.南风:
+            case 风向模板.北风:
+                return ResolveTemplateAxis(1f, 0f);
+            default:
+                return ResolveTemplateAxis(0f, 1f);
+        }
+    }
+
+    private Vector3 ResolveTemplateAxis(float deltaGridX, float deltaGridY)
+    {
+        if (地板沙盘 != null)
+        {
+            Vector3 origin = 地板沙盘.GetSandboxGridPointWorld(0f, 0f);
+            Vector3 target = 地板沙盘.GetSandboxGridPointWorld(deltaGridX, deltaGridY);
+            return target - origin;
+        }
+
+        Vector3 localAxis = new Vector3(deltaGridX, 0f, deltaGridY);
+        return transform.TransformDirection(localAxis);
     }
 
     private void ConfigureRenderer()
