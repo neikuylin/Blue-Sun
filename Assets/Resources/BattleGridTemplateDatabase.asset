@@ -3491,7 +3491,7 @@ MonoBehaviour:
     westDoorEntranceCell:
       x: 0
       y: 0
-    hasNorthDoorEntrance: 0
+    hasNorthDoorEntrance: 1
     northDoorEntranceCell:
-      x: 0
-      y: 0
+      x: 13
+      y: 24
