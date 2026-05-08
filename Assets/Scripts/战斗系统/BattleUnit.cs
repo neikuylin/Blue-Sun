@@ -130,6 +130,11 @@ public class BattleUnit : MonoBehaviour
 
     public bool IsMoving { get; private set; }
 
+    public Vector3 GetOcclusionRevealAnchorWorldPosition()
+    {
+        return useAutoVisualAnchor ? GetVisualAnchorWorldPosition() : transform.position;
+    }
+
     public void ConfigureAnimationBindings(BattleCharacterBindingDatabase.BindingEntry binding)
     {
         idleStateName = string.Empty;

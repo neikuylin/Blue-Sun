@@ -20,6 +20,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private static readonly int RevealRadiusPixelsId = Shader.PropertyToID("_OcclusionRevealRadiusPixels");
     private static readonly int RevealSoftnessPixelsId = Shader.PropertyToID("_OcclusionRevealSoftnessPixels");
     private static readonly int RevealCentersId = Shader.PropertyToID("_OcclusionRevealCenters");
+    private static readonly int RevealAnchorScreenYId = Shader.PropertyToID("_OcclusionRevealAnchorScreenY");
     private static readonly int RevealDepthModeId = Shader.PropertyToID("_OcclusionRevealDepthMode");
     private static readonly int DissolveNoiseScaleId = Shader.PropertyToID("_DissolveNoiseScale");
     private static readonly int DissolveStrengthId = Shader.PropertyToID("_DissolveStrength");
@@ -84,7 +85,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         float revealDepth = ResolveRevealDepth(revealCount);
         float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.RadiusWorld);
         float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.SoftnessWorld);
-        ApplyReveal(revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
+        ApplyReveal(cameraToUse, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
     }
 
     private Renderer[] ResolveRenderers()
@@ -144,7 +145,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
-            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, screenPosition.z, 0f);
+            Vector3 anchorScreenPosition = cameraToUse.WorldToScreenPoint(unit.GetOcclusionRevealAnchorWorldPosition());
+            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, screenPosition.z, anchorScreenPosition.y);
             writeIndex++;
         }
 
@@ -189,6 +191,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     }
 
     private void ApplyReveal(
+        Camera cameraToUse,
         int revealCount,
         float revealRadiusPixels,
         float revealSoftnessPixels,
@@ -212,6 +215,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
+            block.SetFloat(RevealAnchorScreenYId, ResolveAnchorScreenY(cameraToUse, renderer));
             block.SetFloat(DissolveNoiseScaleId, settings.DissolveNoiseScale);
             block.SetFloat(DissolveStrengthId, settings.DissolveStrength);
             block.SetFloat(DissolveEdgeWidthId, settings.DissolveEdgeWidth);
@@ -220,6 +224,23 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetVectorArray(RevealCentersId, RevealCenters);
             renderer.SetPropertyBlock(block);
         }
+    }
+
+    private static float ResolveAnchorScreenY(Camera cameraToUse, Renderer renderer)
+    {
+        if (cameraToUse == null || renderer == null)
+        {
+            return 0f;
+        }
+
+        Vector3 anchorWorldPosition = renderer.transform.position;
+        战斗格子沙盘辅助 sandbox = renderer.GetComponentInParent<战斗格子沙盘辅助>();
+        if (sandbox != null)
+        {
+            anchorWorldPosition = sandbox.GetCellCenterWorld(sandbox.AnchorCellInSandbox);
+        }
+
+        return cameraToUse.WorldToScreenPoint(anchorWorldPosition).y;
     }
 
     private void ClearReveal()

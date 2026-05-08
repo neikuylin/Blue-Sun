@@ -60,6 +60,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
             int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
+            float _OcclusionRevealAnchorScreenY;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
             float _DissolveNoiseScale;
             float _DissolveStrength;
@@ -152,7 +153,7 @@ Shader "项目/特效/粒子Alpha遮挡挖空"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
-                    if (_OcclusionRevealDepthMode == 2 && eyeDepth > _OcclusionRevealCenters[i].z)
+                    if (_OcclusionRevealDepthMode == 2 && _OcclusionRevealAnchorScreenY > _OcclusionRevealCenters[i].w)
                     {
                         continue;
                     }
