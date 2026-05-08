@@ -395,6 +395,7 @@ GameObject:
   - component: {fileID: 3305202497607856773}
   - component: {fileID: 3537123433194694274}
   - component: {fileID: 516846914881282162}
+  - component: {fileID: 1202777741229760257}
   m_Layer: 0
   m_Name: "\u796D\u7940\u623F\u5317\u5899"
   m_TagString: Untagged
@@ -488,6 +489,21 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 1
   includeInactiveChildren: 1
+--- !u!114 &1202777741229760257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3669094254085269450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
+  direction: 3
+  targetSpriteObject: {fileID: 4696664757059318516}
+  positionOffset: 0
 --- !u!1 &4337151684796814482
 GameObject:
   m_ObjectHideFlags: 0

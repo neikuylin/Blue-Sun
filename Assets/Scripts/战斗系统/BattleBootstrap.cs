@@ -256,6 +256,7 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         ConfigureCurrentRoomDoorExitCells(grid);
+        RefreshBattleCameraBounds(mainCamera);
 
         if (units.Count < 1)
         {
@@ -1564,6 +1565,20 @@ public class BattleBootstrap : MonoBehaviour
         if (mainCamera.GetComponent<BattleCameraController>() == null)
         {
             mainCamera.gameObject.AddComponent<BattleCameraController>();
+        }
+    }
+
+    private static void RefreshBattleCameraBounds(Camera mainCamera)
+    {
+        if (mainCamera == null)
+        {
+            return;
+        }
+
+        BattleCameraController controller = mainCamera.GetComponent<BattleCameraController>();
+        if (controller != null)
+        {
+            controller.RefreshBoundaryReferences();
         }
     }
 

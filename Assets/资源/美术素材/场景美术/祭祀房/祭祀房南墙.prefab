@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5074544834760837045}
   - component: {fileID: 6880063060747594305}
   - component: {fileID: 1740961536822945933}
+  - component: {fileID: 7729879538651219843}
   m_Layer: 0
   m_Name: "\u5357\u5899"
   m_TagString: Untagged
@@ -108,6 +109,7 @@ MonoBehaviour:
   mode: 1
   overwriteSortingOrder: 1
   sortingOrder: -9998
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -131,6 +133,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 1
+--- !u!114 &7729879538651219843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2885856568036626106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
+  direction: 2
+  targetSpriteObject: {fileID: 2885856568036626106}
+  positionOffset: 0
 --- !u!1 &4712844981043306322
 GameObject:
   m_ObjectHideFlags: 0
@@ -141,6 +160,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8580273841405967334}
   - component: {fileID: 4187791914664407171}
+  - component: {fileID: 6265537380507437671}
   m_Layer: 0
   m_Name: "\u796D\u7940\u623F\u5357\u5899"
   m_TagString: Untagged
@@ -188,6 +208,21 @@ MonoBehaviour:
   drawAnchorLabel: 1
   gridColor: {r: 0.1, g: 0.85, b: 1, a: 0.85}
   anchorColor: {r: 1, g: 0.55, b: 0.1, a: 0.9}
+--- !u!114 &6265537380507437671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4712844981043306322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
+  direction: 1
+  targetSpriteObject: {fileID: 2885856568036626106}
+  positionOffset: 0
 --- !u!1 &5122931344118367176
 GameObject:
   m_ObjectHideFlags: 0
