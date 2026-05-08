@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BoxCollider))]
@@ -14,10 +15,96 @@ public sealed class 房间方向按钮 : MonoBehaviour
     }
 
     [SerializeField, InspectorName("方向")] private Direction direction = Direction.东;
+    [SerializeField, InspectorName("普通状态图片对象")] private Image normalImageObject;
+    [SerializeField, InspectorName("悬浮状态图片对象")] private Image highlightedImageObject;
+    [SerializeField, InspectorName("选中状态图片对象")] private Image selectedImageObject;
+
+    private static 房间方向按钮 selectedButton;
+    private bool isHighlighted;
+    private bool isSelected;
+
+    private void OnEnable()
+    {
+        isHighlighted = false;
+        isSelected = selectedButton == this;
+        ApplyVisualState();
+    }
+
+    private void OnDisable()
+    {
+        if (selectedButton == this)
+        {
+            selectedButton = null;
+        }
+
+        isHighlighted = false;
+        isSelected = false;
+        ApplyVisualState();
+    }
+
+    public void 标记为选中()
+    {
+        if (selectedButton != null && selectedButton != this)
+        {
+            selectedButton.取消选中();
+        }
+
+        selectedButton = this;
+        isSelected = true;
+        ApplyVisualState();
+    }
+
+    public void 设置悬浮(bool highlighted)
+    {
+        if (isHighlighted == highlighted)
+        {
+            return;
+        }
+
+        isHighlighted = highlighted;
+        ApplyVisualState();
+    }
 
     public bool TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection resolvedDirection)
     {
         return TryConvertDirection(direction, out resolvedDirection);
+    }
+
+    private void 取消选中()
+    {
+        isSelected = false;
+        ApplyVisualState();
+    }
+
+    private void ApplyVisualState()
+    {
+        Image activeImageObject = ResolveActiveObject();
+        SetImageObjectActive(normalImageObject, activeImageObject);
+        SetImageObjectActive(highlightedImageObject, activeImageObject);
+        SetImageObjectActive(selectedImageObject, activeImageObject);
+    }
+
+    private Image ResolveActiveObject()
+    {
+        if (isSelected && selectedImageObject != null)
+        {
+            return selectedImageObject;
+        }
+
+        if (isHighlighted && highlightedImageObject != null)
+        {
+            return highlightedImageObject;
+        }
+
+        return normalImageObject;
+    }
+
+    private static void SetImageObjectActive(Image target, Image activeImageObject)
+    {
+        if (target != null)
+        {
+            target.gameObject.SetActive(target == activeImageObject);
+        }
     }
 
     private static bool TryConvertDirection(

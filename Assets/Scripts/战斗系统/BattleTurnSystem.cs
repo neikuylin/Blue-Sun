@@ -485,6 +485,8 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        inputService?.UpdateWorldClickableHover(battleCamera);
+
         if (inputService != null && inputService.HandleWorldClickableInput(battleCamera, TryNavigateToDoor))
         {
             return;
