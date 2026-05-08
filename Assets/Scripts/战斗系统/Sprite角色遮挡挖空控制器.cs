@@ -37,6 +37,10 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     [Header("作用目标")]
     [InspectorName("目标Renderer（为空时使用当前物体Renderer）")]
     [SerializeField] private Renderer[] targetRenderers;
+    [InspectorName("包含子物体Renderer")]
+    [SerializeField] private bool includeChildRenderers;
+    [InspectorName("包含未激活子物体")]
+    [SerializeField] private bool includeInactiveChildren = true;
 
     private Renderer[] cachedRenderers;
     private MaterialPropertyBlock propertyBlock;
@@ -105,7 +109,9 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private void CacheRenderers()
     {
-        cachedRenderers = GetComponents<Renderer>();
+        cachedRenderers = includeChildRenderers
+            ? GetComponentsInChildren<Renderer>(includeInactiveChildren)
+            : GetComponents<Renderer>();
     }
 
     private void RefreshUnitsIfNeeded()

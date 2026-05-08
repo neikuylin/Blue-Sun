@@ -394,6 +394,7 @@ GameObject:
   - component: {fileID: 724068630677092619}
   - component: {fileID: 3305202497607856773}
   - component: {fileID: 3537123433194694274}
+  - component: {fileID: 516846914881282162}
   m_Layer: 0
   m_Name: "\u796D\u7940\u623F\u5317\u5899"
   m_TagString: Untagged
@@ -472,6 +473,21 @@ MonoBehaviour:
   "\u5904\u7406LineRenderer": 0
   "\u5904\u7406TrailRenderer": 0
   "\u5904\u7406MeshRenderer": 0
+--- !u!114 &516846914881282162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3669094254085269450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
+  targetRenderers: []
+  includeChildRenderers: 1
+  includeInactiveChildren: 1
 --- !u!1 &4337151684796814482
 GameObject:
   m_ObjectHideFlags: 0

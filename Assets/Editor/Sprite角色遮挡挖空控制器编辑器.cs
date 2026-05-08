@@ -17,6 +17,8 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
     private SerializedProperty sharedDissolveScrollSpeed;
     private SerializedProperty sharedDissolveSmoothEdges;
     private SerializedProperty targetRenderers;
+    private SerializedProperty includeChildRenderers;
+    private SerializedProperty includeInactiveChildren;
 
     private void OnEnable()
     {
@@ -35,6 +37,8 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         }
 
         targetRenderers = serializedObject.FindProperty("targetRenderers");
+        includeChildRenderers = serializedObject.FindProperty("includeChildRenderers");
+        includeInactiveChildren = serializedObject.FindProperty("includeInactiveChildren");
     }
 
     public override void OnInspectorGUI()
@@ -46,6 +50,14 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("作用目标", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(targetRenderers, new GUIContent("目标Renderer（为空时使用当前物体Renderer）"), true);
+        if (targetRenderers == null || targetRenderers.arraySize == 0)
+        {
+            EditorGUILayout.PropertyField(includeChildRenderers, new GUIContent("包含子物体Renderer"));
+            if (includeChildRenderers.boolValue)
+            {
+                EditorGUILayout.PropertyField(includeInactiveChildren, new GUIContent("包含未激活子物体"));
+            }
+        }
 
         serializedObject.ApplyModifiedProperties();
     }
