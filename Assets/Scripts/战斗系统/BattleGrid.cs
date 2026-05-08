@@ -8,8 +8,7 @@ public class BattleGrid : MonoBehaviour
     private const int GridOutlineSortingOrderRelativeLimit = 999;
     private const int FootprintOverlaySortingOrder = -10005;
     private const int DoorExitHalfWidth = 1;
-    private const int DoorExitLength = 6;
-    private const int DoorExitTransitionDepth = 3;
+    private const int DoorExitLength = 10;
 
     private static readonly Vector2Int[] CardinalDirections =
     {
@@ -38,9 +37,11 @@ public class BattleGrid : MonoBehaviour
     private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitEntryDirections =
         new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
     private readonly Dictionary<Vector2Int, Vector2Int> doorExitAutoDestinations = new Dictionary<Vector2Int, Vector2Int>();
+    private readonly Dictionary<Vector2Int, DoorExitNavigation> doorExitNavigations =
+        new Dictionary<Vector2Int, DoorExitNavigation>();
     private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitTransitionDirections =
         new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
-    private readonly Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int> doorExitDefaultEntryCells =
+    private readonly Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int> doorExitDefaultTargetCells =
         new Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int>();
 
     private Material fillMaterialTemplate;
@@ -116,6 +117,18 @@ public class BattleGrid : MonoBehaviour
         {
             this.direction = direction;
             this.coreCell = coreCell;
+        }
+    }
+
+    private struct DoorExitNavigation
+    {
+        public readonly MapTemplateDatabase.ConnectionDirection direction;
+        public readonly Vector2Int destination;
+
+        public DoorExitNavigation(MapTemplateDatabase.ConnectionDirection direction, Vector2Int destination)
+        {
+            this.direction = direction;
+            this.destination = destination;
         }
     }
 
@@ -205,8 +218,9 @@ public class BattleGrid : MonoBehaviour
         doorExitCells.Clear();
         doorExitEntryDirections.Clear();
         doorExitAutoDestinations.Clear();
+        doorExitNavigations.Clear();
         doorExitTransitionDirections.Clear();
-        doorExitDefaultEntryCells.Clear();
+        doorExitDefaultTargetCells.Clear();
     }
 
     public void SetDoorExitDefinitions(IEnumerable<DoorExitDefinition> definitions)
@@ -234,31 +248,32 @@ public class BattleGrid : MonoBehaviour
                     Vector2Int cell = definition.coreCell + (forward * depth) + (side * offset);
                     Vector2Int deepestCell = definition.coreCell + (forward * DoorExitLength) + (side * offset);
                     doorExitCells.Add(cell);
+                    doorExitNavigations[cell] = new DoorExitNavigation(definition.direction, deepestCell);
 
                     if (depth == 1)
                     {
                         doorExitEntryDirections[cell] = definition.direction;
                         doorExitAutoDestinations[cell] = deepestCell;
-                        if (offset == 0)
-                        {
-                            doorExitDefaultEntryCells[definition.direction] = cell;
-                        }
                     }
 
-                    if (depth > DoorExitLength - DoorExitTransitionDepth)
+                    if (depth == DoorExitLength)
                     {
                         doorExitTransitionDirections[cell] = definition.direction;
+                        if (offset == 0)
+                        {
+                            doorExitDefaultTargetCells[definition.direction] = cell;
+                        }
                     }
                 }
             }
         }
     }
 
-    public bool TryGetDoorExitDefaultEntryCell(
+    public bool TryGetDoorExitDefaultTargetCell(
         MapTemplateDatabase.ConnectionDirection direction,
         out Vector2Int cell)
     {
-        return doorExitDefaultEntryCells.TryGetValue(direction, out cell);
+        return doorExitDefaultTargetCells.TryGetValue(direction, out cell);
     }
 
     public bool TryGetDoorExitEntry(
@@ -273,6 +288,24 @@ public class BattleGrid : MonoBehaviour
         }
 
         return doorExitAutoDestinations.TryGetValue(cell, out autoDestination);
+    }
+
+    public bool TryGetDoorExitNavigation(
+        Vector2Int cell,
+        out MapTemplateDatabase.ConnectionDirection direction,
+        out Vector2Int destination)
+    {
+        DoorExitNavigation navigation;
+        if (doorExitNavigations.TryGetValue(cell, out navigation))
+        {
+            direction = navigation.direction;
+            destination = navigation.destination;
+            return true;
+        }
+
+        direction = default;
+        destination = default;
+        return false;
     }
 
     public bool TryGetDoorExitTransition(
