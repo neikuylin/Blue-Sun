@@ -17,6 +17,8 @@ public class BattleCameraController : MonoBehaviour
     private float southBoundary;
     private float northBoundary;
     private float boundaryMaxOrthographicSize;
+    private float lastBoundaryWidth;
+    private float lastBoundaryHeight;
 
     private void Awake()
     {
@@ -68,6 +70,11 @@ public class BattleCameraController : MonoBehaviour
         if (positionChanged || zoomChanged)
         {
             ApplyBoundaryConstraints();
+        }
+
+        if (zoomChanged)
+        {
+            DebugCameraBoundaryState("滚轮缩放");
         }
     }
 
@@ -217,7 +224,7 @@ public class BattleCameraController : MonoBehaviour
 
         boundaryMaxOrthographicSize = Mathf.Min(
             boundaryWidth / (2f * attachedCamera.aspect),
-            boundaryHeight * 0.5f);
+            boundaryHeight * 0.5f) - 1f;
         if (boundaryMaxOrthographicSize <= 0f)
         {
             hasBoundary = false;
@@ -225,12 +232,15 @@ public class BattleCameraController : MonoBehaviour
             return;
         }
 
+        lastBoundaryWidth = boundaryWidth;
+        lastBoundaryHeight = boundaryHeight;
         hasBoundary = true;
         attachedCamera.orthographicSize = Mathf.Clamp(
             attachedCamera.orthographicSize,
             ResolveEffectiveMinZoom(),
             ResolveEffectiveMaxZoom());
         ApplyBoundaryConstraints();
+        DebugCameraBoundaryState("刷新边界");
     }
 
     private void ApplyBoundaryConstraints()
@@ -273,6 +283,20 @@ public class BattleCameraController : MonoBehaviour
         return hasBoundary
             ? Mathf.Min(minZoom, ResolveEffectiveMaxZoom())
             : minZoom;
+    }
+
+    private void DebugCameraBoundaryState(string context)
+    {
+        if (!hasBoundary || attachedCamera == null || !attachedCamera.orthographic)
+        {
+            return;
+        }
+
+        float cameraHeight = attachedCamera.orthographicSize * 2f;
+        float cameraWidth = cameraHeight * attachedCamera.aspect;
+        Debug.Log(
+            $"摄像机边界调试 | 阶段={context} | 边界宽={lastBoundaryWidth:F3} | 边界高={lastBoundaryHeight:F3} | 相机宽高比={attachedCamera.aspect:F3} | 边界最大OrthographicSize={boundaryMaxOrthographicSize:F3} | 当前OrthographicSize={attachedCamera.orthographicSize:F3} | 当前相机可视宽={cameraWidth:F3} | 当前相机可视高={cameraHeight:F3} | minZoom={minZoom:F3} | maxZoom={maxZoom:F3} | 实际min={ResolveEffectiveMinZoom():F3} | 实际max={ResolveEffectiveMaxZoom():F3}",
+            this);
     }
 
     private Vector3 GetCameraFocusPointOnPlane(float planeY)
