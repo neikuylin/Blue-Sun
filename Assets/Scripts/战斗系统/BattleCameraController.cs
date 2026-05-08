@@ -16,6 +16,7 @@ public class BattleCameraController : MonoBehaviour
     private float eastBoundary;
     private float southBoundary;
     private float northBoundary;
+    private float boundaryMaxOrthographicSize;
 
     private void Awake()
     {
@@ -59,8 +60,8 @@ public class BattleCameraController : MonoBehaviour
             float previousSize = attachedCamera.orthographicSize;
             attachedCamera.orthographicSize = Mathf.Clamp(
                 attachedCamera.orthographicSize - scroll * zoomSpeed,
-                minZoom,
-                maxZoom);
+                ResolveEffectiveMinZoom(),
+                ResolveEffectiveMaxZoom());
             zoomChanged = !Mathf.Approximately(previousSize, attachedCamera.orthographicSize);
         }
 
@@ -198,7 +199,37 @@ public class BattleCameraController : MonoBehaviour
             return;
         }
 
+        float boundaryWidth = eastBoundary - westBoundary;
+        float boundaryHeight = northBoundary - southBoundary;
+        if (boundaryWidth <= 0f || boundaryHeight <= 0f)
+        {
+            hasBoundary = false;
+            Debug.LogError("BattleCameraController：摄像机边界范围无效，东必须大于西，北必须大于南。", this);
+            return;
+        }
+
+        if (attachedCamera == null || !attachedCamera.orthographic || attachedCamera.aspect <= 0f)
+        {
+            hasBoundary = false;
+            Debug.LogError("BattleCameraController：摄像机边界只支持有效的正交摄像机。", this);
+            return;
+        }
+
+        boundaryMaxOrthographicSize = Mathf.Min(
+            boundaryWidth / (2f * attachedCamera.aspect),
+            boundaryHeight * 0.5f);
+        if (boundaryMaxOrthographicSize <= 0f)
+        {
+            hasBoundary = false;
+            Debug.LogError("BattleCameraController：摄像机边界无法得到有效缩放上限。", this);
+            return;
+        }
+
         hasBoundary = true;
+        attachedCamera.orthographicSize = Mathf.Clamp(
+            attachedCamera.orthographicSize,
+            ResolveEffectiveMinZoom(),
+            ResolveEffectiveMaxZoom());
         ApplyBoundaryConstraints();
     }
 
@@ -228,6 +259,20 @@ public class BattleCameraController : MonoBehaviour
         float clampedX = Mathf.Clamp(currentX, minCenterX, maxCenterX);
         float clampedY = Mathf.Clamp(currentY, minCenterY, maxCenterY);
         transform.position += right * (clampedX - currentX) + up * (clampedY - currentY);
+    }
+
+    private float ResolveEffectiveMaxZoom()
+    {
+        return hasBoundary
+            ? Mathf.Min(maxZoom, boundaryMaxOrthographicSize)
+            : maxZoom;
+    }
+
+    private float ResolveEffectiveMinZoom()
+    {
+        return hasBoundary
+            ? Mathf.Min(minZoom, ResolveEffectiveMaxZoom())
+            : minZoom;
     }
 
     private Vector3 GetCameraFocusPointOnPlane(float planeY)
