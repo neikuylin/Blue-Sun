@@ -640,12 +640,21 @@ public class BattleTurnSystem : MonoBehaviour
 
     private bool TryMoveFreely(BattleUnit unit, Vector2Int destination)
     {
-        if (hasPendingDoorNavigationCell && destination != pendingDoorNavigationCell)
+        return TryMoveFreely(unit, destination, true, true);
+    }
+
+    private bool TryMoveFreely(
+        BattleUnit unit,
+        Vector2Int destination,
+        bool clearDoorNavigationOnDifferentDestination,
+        bool startDoorExitNavigation)
+    {
+        if (clearDoorNavigationOnDifferentDestination && hasPendingDoorNavigationCell && destination != pendingDoorNavigationCell)
         {
             ClearPendingDoorNavigation();
         }
 
-        return explorationMoveService != null && explorationMoveService.尝试自由移动(
+        bool moved = explorationMoveService != null && explorationMoveService.尝试自由移动(
             this,
             unit,
             destination,
@@ -660,6 +669,23 @@ public class BattleTurnSystem : MonoBehaviour
             ResolveExplorationMoveSoundPrefab,
             battleCamera,
             RefreshHighlights);
+        if (!moved || grid == null || !startDoorExitNavigation)
+        {
+            return moved;
+        }
+
+        MapTemplateDatabase.ConnectionDirection exitDirection;
+        Vector2Int autoDestination;
+        if (grid.TryGetDoorExitEntry(destination, out exitDirection, out autoDestination))
+        {
+            StartDoorExitAutoNavigation(unit, exitDirection, destination, autoDestination);
+        }
+        else if (grid.TryGetDoorExitTransition(destination, out exitDirection))
+        {
+            StartDoorExitTransitionNavigation(unit, exitDirection, destination);
+        }
+
+        return true;
     }
 
     public void TryNavigateToDoor(MapTemplateDatabase.ConnectionDirection direction)
@@ -669,54 +695,139 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        if (!BattleBootstrap.IsCurrentRoomEncounterCleared())
+        {
+            return;
+        }
+
         if (!BattleBootstrap.TryResolveCurrentRoomTarget(direction, out _))
         {
             return;
         }
 
-        if (!BattleBootstrap.TryResolveCurrentDoorEntrance(direction, out Vector2Int doorCell))
+        if (!grid.TryGetDoorExitDefaultEntryCell(direction, out Vector2Int entryCell))
         {
             return;
         }
 
         ClearPendingDoorNavigation();
-        grid.EnableCell(doorCell);
-        hasPendingDoorNavigationCell = true;
-        pendingDoorNavigationCell = doorCell;
-
-        if (grid.WorldToCell(activeUnit.transform.position) == doorCell)
-        {
-            ClearPendingDoorNavigation();
-            BattleBootstrap.NavigateToDirection(direction);
-            return;
-        }
-
-        if (!TryMoveFreely(activeUnit, doorCell))
-        {
-            ClearPendingDoorNavigation();
-            return;
-        }
-
-        pendingDoorNavigationRoutine = StartCoroutine(WaitForDoorNavigation(activeUnit, direction, doorCell));
+        TryMoveFreely(activeUnit, entryCell);
     }
 
-    private IEnumerator WaitForDoorNavigation(
+    private void StartDoorExitAutoNavigation(
         BattleUnit unit,
         MapTemplateDatabase.ConnectionDirection direction,
-        Vector2Int doorCell)
+        Vector2Int entryCell,
+        Vector2Int autoDestination)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        if (pendingDoorNavigationRoutine != null)
+        {
+            StopCoroutine(pendingDoorNavigationRoutine);
+            pendingDoorNavigationRoutine = null;
+        }
+
+        hasPendingDoorNavigationCell = true;
+        pendingDoorNavigationCell = entryCell;
+        pendingDoorNavigationRoutine = StartCoroutine(WaitForDoorExitAutoNavigation(unit, direction, entryCell, autoDestination));
+    }
+
+    private void StartDoorExitTransitionNavigation(
+        BattleUnit unit,
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2Int transitionCell)
+    {
+        if (unit == null)
+        {
+            return;
+        }
+
+        if (pendingDoorNavigationRoutine != null)
+        {
+            StopCoroutine(pendingDoorNavigationRoutine);
+            pendingDoorNavigationRoutine = null;
+        }
+
+        hasPendingDoorNavigationCell = true;
+        pendingDoorNavigationCell = transitionCell;
+        pendingDoorNavigationRoutine = StartCoroutine(WaitForDoorExitTransition(unit, direction, transitionCell));
+    }
+
+    private IEnumerator WaitForDoorExitAutoNavigation(
+        BattleUnit unit,
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2Int entryCell,
+        Vector2Int autoDestination)
     {
         while (unit != null && unit.IsMoving)
         {
             yield return null;
         }
 
-        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != doorCell)
+        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != entryCell)
         {
             pendingDoorNavigationRoutine = null;
             yield break;
         }
 
-        if (grid == null || grid.WorldToCell(unit.transform.position) != doorCell)
+        if (grid == null || grid.WorldToCell(unit.transform.position) != entryCell)
+        {
+            pendingDoorNavigationRoutine = null;
+            ClearPendingDoorNavigation();
+            yield break;
+        }
+
+        pendingDoorNavigationCell = autoDestination;
+        if (!TryMoveFreely(unit, autoDestination, false, false))
+        {
+            ClearPendingDoorNavigation();
+            yield break;
+        }
+
+        while (unit != null && unit.IsMoving)
+        {
+            yield return null;
+        }
+
+        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != autoDestination)
+        {
+            pendingDoorNavigationRoutine = null;
+            yield break;
+        }
+
+        if (grid == null || grid.WorldToCell(unit.transform.position) != autoDestination)
+        {
+            pendingDoorNavigationRoutine = null;
+            ClearPendingDoorNavigation();
+            yield break;
+        }
+
+        pendingDoorNavigationRoutine = null;
+        ClearPendingDoorNavigation();
+        BattleBootstrap.NavigateToDirection(direction);
+    }
+
+    private IEnumerator WaitForDoorExitTransition(
+        BattleUnit unit,
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2Int transitionCell)
+    {
+        while (unit != null && unit.IsMoving)
+        {
+            yield return null;
+        }
+
+        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != transitionCell)
+        {
+            pendingDoorNavigationRoutine = null;
+            yield break;
+        }
+
+        if (grid == null || grid.WorldToCell(unit.transform.position) != transitionCell)
         {
             pendingDoorNavigationRoutine = null;
             ClearPendingDoorNavigation();
@@ -734,11 +845,6 @@ public class BattleTurnSystem : MonoBehaviour
         {
             StopCoroutine(pendingDoorNavigationRoutine);
             pendingDoorNavigationRoutine = null;
-        }
-
-        if (hasPendingDoorNavigationCell && grid != null)
-        {
-            grid.DisableCell(pendingDoorNavigationCell);
         }
 
         hasPendingDoorNavigationCell = false;
@@ -775,6 +881,7 @@ public class BattleTurnSystem : MonoBehaviour
         if (BattleBootstrap.IsCurrentRoomEncounterBattleRoom() && !HasLivingEnemies())
         {
             BattleBootstrap.MarkCurrentRoomEncounterCleared();
+            BattleBootstrap.ConfigureCurrentRoomDoorExitCells(grid);
         }
 
         bool switchedFromCombat = currentMode == BattleFlowMode.Combat;

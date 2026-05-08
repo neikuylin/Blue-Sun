@@ -7,6 +7,9 @@ public class BattleGrid : MonoBehaviour
     private const int GridOutlineSortingOrderBase = -9000;
     private const int GridOutlineSortingOrderRelativeLimit = 999;
     private const int FootprintOverlaySortingOrder = -10005;
+    private const int DoorExitHalfWidth = 1;
+    private const int DoorExitLength = 6;
+    private const int DoorExitTransitionDepth = 3;
 
     private static readonly Vector2Int[] CardinalDirections =
     {
@@ -31,6 +34,14 @@ public class BattleGrid : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, BattleUnit> occupants = new Dictionary<Vector2Int, BattleUnit>();
     private HashSet<Vector2Int> validCells;
+    private readonly HashSet<Vector2Int> doorExitCells = new HashSet<Vector2Int>();
+    private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitEntryDirections =
+        new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
+    private readonly Dictionary<Vector2Int, Vector2Int> doorExitAutoDestinations = new Dictionary<Vector2Int, Vector2Int>();
+    private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitTransitionDirections =
+        new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
+    private readonly Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int> doorExitDefaultEntryCells =
+        new Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int>();
 
     private Material fillMaterialTemplate;
     private Material lineMaterialTemplate;
@@ -96,6 +107,18 @@ public class BattleGrid : MonoBehaviour
         highlightLayerOrder = 0;
     }
 
+    public struct DoorExitDefinition
+    {
+        public readonly MapTemplateDatabase.ConnectionDirection direction;
+        public readonly Vector2Int coreCell;
+
+        public DoorExitDefinition(MapTemplateDatabase.ConnectionDirection direction, Vector2Int coreCell)
+        {
+            this.direction = direction;
+            this.coreCell = coreCell;
+        }
+    }
+
     public Vector3 GetWorldPosition(Vector2Int cell, float y = 0f)
     {
         return new Vector3(cell.x * cellSize, y, cell.y * cellSize);
@@ -144,6 +167,11 @@ public class BattleGrid : MonoBehaviour
 
     public bool IsInside(Vector2Int cell)
     {
+        if (doorExitCells.Contains(cell))
+        {
+            return true;
+        }
+
         if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= height)
         {
             return false;
@@ -172,6 +200,88 @@ public class BattleGrid : MonoBehaviour
         validCells.Remove(cell);
     }
 
+    public void ClearDoorExitCells()
+    {
+        doorExitCells.Clear();
+        doorExitEntryDirections.Clear();
+        doorExitAutoDestinations.Clear();
+        doorExitTransitionDirections.Clear();
+        doorExitDefaultEntryCells.Clear();
+    }
+
+    public void SetDoorExitDefinitions(IEnumerable<DoorExitDefinition> definitions)
+    {
+        ClearDoorExitCells();
+        if (definitions == null)
+        {
+            return;
+        }
+
+        foreach (DoorExitDefinition definition in definitions)
+        {
+            Vector2Int forward;
+            Vector2Int side;
+            if (!TryResolveDoorExitAxes(definition.direction, out forward, out side))
+            {
+                continue;
+            }
+
+            doorExitCells.Add(definition.coreCell);
+            for (int depth = 1; depth <= DoorExitLength; depth++)
+            {
+                for (int offset = -DoorExitHalfWidth; offset <= DoorExitHalfWidth; offset++)
+                {
+                    Vector2Int cell = definition.coreCell + (forward * depth) + (side * offset);
+                    Vector2Int deepestCell = definition.coreCell + (forward * DoorExitLength) + (side * offset);
+                    doorExitCells.Add(cell);
+
+                    if (depth == 1)
+                    {
+                        doorExitEntryDirections[cell] = definition.direction;
+                        doorExitAutoDestinations[cell] = deepestCell;
+                        if (offset == 0)
+                        {
+                            doorExitDefaultEntryCells[definition.direction] = cell;
+                        }
+                    }
+
+                    if (depth > DoorExitLength - DoorExitTransitionDepth)
+                    {
+                        doorExitTransitionDirections[cell] = definition.direction;
+                    }
+                }
+            }
+        }
+    }
+
+    public bool TryGetDoorExitDefaultEntryCell(
+        MapTemplateDatabase.ConnectionDirection direction,
+        out Vector2Int cell)
+    {
+        return doorExitDefaultEntryCells.TryGetValue(direction, out cell);
+    }
+
+    public bool TryGetDoorExitEntry(
+        Vector2Int cell,
+        out MapTemplateDatabase.ConnectionDirection direction,
+        out Vector2Int autoDestination)
+    {
+        autoDestination = default;
+        if (!doorExitEntryDirections.TryGetValue(cell, out direction))
+        {
+            return false;
+        }
+
+        return doorExitAutoDestinations.TryGetValue(cell, out autoDestination);
+    }
+
+    public bool TryGetDoorExitTransition(
+        Vector2Int cell,
+        out MapTemplateDatabase.ConnectionDirection direction)
+    {
+        return doorExitTransitionDirections.TryGetValue(cell, out direction);
+    }
+
     public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)
     {
         return IsWalkableInternal(unit, centerCell, false, false);
@@ -184,6 +294,11 @@ public class BattleGrid : MonoBehaviour
 
     private bool IsWalkableInternal(BattleUnit unit, Vector2Int centerCell, bool ignoreAlliedOccupants, bool allowDestinationOnAllies)
     {
+        if (doorExitCells.Contains(centerCell))
+        {
+            return true;
+        }
+
         int radius = unit != null ? unit.FootprintRadius : 0;
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
@@ -1549,6 +1664,20 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
+        foreach (Vector2Int cell in doorExitCells)
+        {
+            if (cell == origin)
+            {
+                continue;
+            }
+
+            List<Vector2Int> path = FindPath(unit, cell);
+            if (path != null && path.Count > 1 && path.Count - 1 <= range)
+            {
+                cells.Add(cell);
+            }
+        }
+
         return cells;
     }
 
@@ -1653,6 +1782,11 @@ public class BattleGrid : MonoBehaviour
 
     private void SetOccupancy(BattleUnit unit, Vector2Int centerCell, bool occupied)
     {
+        if (occupied && doorExitCells.Contains(centerCell))
+        {
+            return;
+        }
+
         int radius = unit.FootprintRadius;
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
@@ -1666,6 +1800,11 @@ public class BattleGrid : MonoBehaviour
 
                 if (occupied)
                 {
+                    if (doorExitCells.Contains(cell))
+                    {
+                        continue;
+                    }
+
                     occupants[cell] = unit;
                 }
                 else if (occupants.ContainsKey(cell) && occupants[cell] == unit)
@@ -1690,6 +1829,36 @@ public class BattleGrid : MonoBehaviour
 
         path.Reverse();
         return path;
+    }
+
+    private static bool TryResolveDoorExitAxes(
+        MapTemplateDatabase.ConnectionDirection direction,
+        out Vector2Int forward,
+        out Vector2Int side)
+    {
+        switch (direction)
+        {
+            case MapTemplateDatabase.ConnectionDirection.East:
+                forward = Vector2Int.right;
+                side = Vector2Int.up;
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.South:
+                forward = Vector2Int.down;
+                side = Vector2Int.right;
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.West:
+                forward = Vector2Int.left;
+                side = Vector2Int.up;
+                return true;
+            case MapTemplateDatabase.ConnectionDirection.North:
+                forward = Vector2Int.up;
+                side = Vector2Int.right;
+                return true;
+            default:
+                forward = default;
+                side = default;
+                return false;
+        }
     }
 
     private static void ClearChildren(Transform target)

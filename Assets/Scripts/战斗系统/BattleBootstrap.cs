@@ -183,7 +183,23 @@ public class BattleBootstrap : MonoBehaviour
     public static bool IsCurrentRoomEncounterCleared()
     {
         RoomStateMemory memory = GetCurrentRoomStateMemory();
-        return memory != null && memory.encounterCleared;
+        return (memory != null && memory.encounterCleared) || EventRuntimeState.IsEnabled(RoomClearedEventId);
+    }
+
+    public static void ConfigureCurrentRoomDoorExitCells(BattleGrid grid)
+    {
+        if (grid == null)
+        {
+            return;
+        }
+
+        if (!IsCurrentRoomEncounterCleared())
+        {
+            grid.ClearDoorExitCells();
+            return;
+        }
+
+        grid.SetDoorExitDefinitions(BuildCurrentRoomDoorExitDefinitions());
     }
 
     public static bool IsCurrentRoomEncounterBattleRoom()
@@ -238,6 +254,8 @@ public class BattleBootstrap : MonoBehaviour
             Debug.LogWarning("BattleBootstrap: failed to resolve BattleGrid for current room.");
             return;
         }
+
+        ConfigureCurrentRoomDoorExitCells(grid);
 
         if (units.Count < 1)
         {
@@ -340,6 +358,7 @@ public class BattleBootstrap : MonoBehaviour
         grid.width = Mathf.Max(1, gridTemplate.width);
         grid.height = Mathf.Max(1, gridTemplate.height);
         grid.SetValidCells(BuildRuntimeWalkableCells(gridTemplate));
+        ConfigureCurrentRoomDoorExitCells(grid);
         grid.cellSize = gridCellSize;
         grid.BuildVisuals();
         return grid;
@@ -517,7 +536,6 @@ public class BattleBootstrap : MonoBehaviour
     private static List<Vector2Int> BuildRuntimeWalkableCells(格子模板数据库.格子模板条目 gridTemplate)
     {
         List<Vector2Int> result = ConvertCells(gridTemplate != null ? gridTemplate.walkableCells : null);
-        AddDoorEntranceCells(result, gridTemplate);
         if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
         {
             return result;
@@ -555,42 +573,62 @@ public class BattleBootstrap : MonoBehaviour
         return result;
     }
 
-    private static void AddDoorEntranceCells(List<Vector2Int> cells, 格子模板数据库.格子模板条目 gridTemplate)
+    private static List<BattleGrid.DoorExitDefinition> BuildCurrentRoomDoorExitDefinitions()
     {
-        if (cells == null || gridTemplate == null)
+        List<BattleGrid.DoorExitDefinition> definitions = new List<BattleGrid.DoorExitDefinition>();
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        MapTemplateDatabase.MapNodeEntry roomNode = ResolveBattleRoomNode();
+        if (gridTemplate == null || roomNode == null)
         {
-            return;
+            return definitions;
         }
 
-        if (gridTemplate.hasEastDoorEntrance)
-        {
-            AddCellIfMissing(cells, gridTemplate.eastDoorEntranceCell.ToVector2Int());
-        }
+        AddDoorExitDefinitionIfConnected(
+            definitions,
+            roomNode,
+            MapTemplateDatabase.ConnectionDirection.East,
+            gridTemplate.hasEastDoorEntrance,
+            gridTemplate.eastDoorEntranceCell.ToVector2Int());
+        AddDoorExitDefinitionIfConnected(
+            definitions,
+            roomNode,
+            MapTemplateDatabase.ConnectionDirection.South,
+            gridTemplate.hasSouthDoorEntrance,
+            gridTemplate.southDoorEntranceCell.ToVector2Int());
+        AddDoorExitDefinitionIfConnected(
+            definitions,
+            roomNode,
+            MapTemplateDatabase.ConnectionDirection.West,
+            gridTemplate.hasWestDoorEntrance,
+            gridTemplate.westDoorEntranceCell.ToVector2Int());
+        AddDoorExitDefinitionIfConnected(
+            definitions,
+            roomNode,
+            MapTemplateDatabase.ConnectionDirection.North,
+            gridTemplate.hasNorthDoorEntrance,
+            gridTemplate.northDoorEntranceCell.ToVector2Int());
 
-        if (gridTemplate.hasSouthDoorEntrance)
-        {
-            AddCellIfMissing(cells, gridTemplate.southDoorEntranceCell.ToVector2Int());
-        }
-
-        if (gridTemplate.hasWestDoorEntrance)
-        {
-            AddCellIfMissing(cells, gridTemplate.westDoorEntranceCell.ToVector2Int());
-        }
-
-        if (gridTemplate.hasNorthDoorEntrance)
-        {
-            AddCellIfMissing(cells, gridTemplate.northDoorEntranceCell.ToVector2Int());
-        }
+        return definitions;
     }
 
-    private static void AddCellIfMissing(List<Vector2Int> cells, Vector2Int cell)
+    private static void AddDoorExitDefinitionIfConnected(
+        List<BattleGrid.DoorExitDefinition> definitions,
+        MapTemplateDatabase.MapNodeEntry roomNode,
+        MapTemplateDatabase.ConnectionDirection direction,
+        bool hasDoorEntrance,
+        Vector2Int coreCell)
     {
-        if (cells == null || cells.Contains(cell))
+        if (definitions == null || !hasDoorEntrance)
         {
             return;
         }
 
-        cells.Add(cell);
+        if (string.IsNullOrWhiteSpace(FindConnectionTargetInDirection(roomNode, direction)))
+        {
+            return;
+        }
+
+        definitions.Add(new BattleGrid.DoorExitDefinition(direction, coreCell));
     }
 
     private static string FindConnectionTargetInDirection(
