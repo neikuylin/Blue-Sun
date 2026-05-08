@@ -43,8 +43,14 @@ public sealed class 摄像机边界参考图 : MonoBehaviour
             return false;
         }
 
+        if (spriteRenderer.sprite == null)
+        {
+            Debug.LogError($"摄像机边界参考图：目标Sprite物体 '{targetSpriteObject.name}' 没有 Sprite。", this);
+            return false;
+        }
+
         Vector3 axis = IsHorizontalBoundary(direction) ? cameraToUse.transform.up : cameraToUse.transform.right;
-        Bounds bounds = spriteRenderer.bounds;
+        Bounds bounds = spriteRenderer.sprite.bounds;
         bool useMax = direction == 边界方向.北 || direction == 边界方向.东;
         float resolvedValue = useMax ? float.NegativeInfinity : float.PositiveInfinity;
 
@@ -52,17 +58,15 @@ public sealed class 摄像机边界参考图 : MonoBehaviour
         {
             for (int y = 0; y <= 1; y++)
             {
-                for (int z = 0; z <= 1; z++)
-                {
-                    Vector3 corner = new Vector3(
-                        x == 0 ? bounds.min.x : bounds.max.x,
-                        y == 0 ? bounds.min.y : bounds.max.y,
-                        z == 0 ? bounds.min.z : bounds.max.z);
-                    float projected = Vector3.Dot(corner, axis);
-                    resolvedValue = useMax
-                        ? Mathf.Max(resolvedValue, projected)
-                        : Mathf.Min(resolvedValue, projected);
-                }
+                Vector3 localCorner = new Vector3(
+                    x == 0 ? bounds.min.x : bounds.max.x,
+                    y == 0 ? bounds.min.y : bounds.max.y,
+                    0f);
+                Vector3 worldCorner = spriteRenderer.transform.TransformPoint(localCorner);
+                float projected = Vector3.Dot(worldCorner, axis);
+                resolvedValue = useMax
+                    ? Mathf.Max(resolvedValue, projected)
+                    : Mathf.Min(resolvedValue, projected);
             }
         }
 
