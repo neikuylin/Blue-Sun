@@ -7,6 +7,7 @@ public sealed class 渲染层级应用器编辑器 : Editor
     private SerializedProperty mode;
     private SerializedProperty overwriteSortingOrder;
     private SerializedProperty sortingOrder;
+    private SerializedProperty replaceMaterial;
     private SerializedProperty below3DMaterial;
     private SerializedProperty above3DMaterial;
     private SerializedProperty undecidedMaterial;
@@ -23,6 +24,7 @@ public sealed class 渲染层级应用器编辑器 : Editor
         mode = serializedObject.FindProperty("mode");
         overwriteSortingOrder = serializedObject.FindProperty("overwriteSortingOrder");
         sortingOrder = serializedObject.FindProperty("sortingOrder");
+        replaceMaterial = serializedObject.FindProperty("replaceMaterial");
         below3DMaterial = serializedObject.FindProperty("below3DMaterial");
         above3DMaterial = serializedObject.FindProperty("above3DMaterial");
         undecidedMaterial = serializedObject.FindProperty("undecidedMaterial");
@@ -46,6 +48,7 @@ public sealed class 渲染层级应用器编辑器 : Editor
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("材质", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(replaceMaterial, new GUIContent("替换材质", "关闭时只应用排序和目标筛选，不修改 Renderer 材质。"));
         EditorGUILayout.PropertyField(below3DMaterial, new GUIContent("低于3D材质", "为空会自动从 Resources 加载。"));
         EditorGUILayout.PropertyField(above3DMaterial, new GUIContent("高于3D材质", "为空会自动从 Resources 加载。"));
         EditorGUILayout.PropertyField(undecidedMaterial, new GUIContent("不决定材质", "为空会自动从 Resources 加载。"));

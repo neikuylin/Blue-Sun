@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BoxCollider))]
@@ -15,9 +14,9 @@ public sealed class 房间方向按钮 : MonoBehaviour
     }
 
     [SerializeField, InspectorName("方向")] private Direction direction = Direction.东;
-    [SerializeField, InspectorName("普通状态图片对象")] private Image normalImageObject;
-    [SerializeField, InspectorName("悬浮状态图片对象")] private Image highlightedImageObject;
-    [SerializeField, InspectorName("选中状态图片对象")] private Image selectedImageObject;
+    [SerializeField] private GameObject normalStateObject;
+    [SerializeField] private GameObject highlightedStateObject;
+    [SerializeField] private GameObject selectedStateObject;
 
     private static 房间方向按钮 selectedButton;
     private bool isHighlighted;
@@ -78,32 +77,32 @@ public sealed class 房间方向按钮 : MonoBehaviour
 
     private void ApplyVisualState()
     {
-        Image activeImageObject = ResolveActiveObject();
-        SetImageObjectActive(normalImageObject, activeImageObject);
-        SetImageObjectActive(highlightedImageObject, activeImageObject);
-        SetImageObjectActive(selectedImageObject, activeImageObject);
+        GameObject activeObject = ResolveActiveObject();
+        SetObjectActive(normalStateObject, activeObject);
+        SetObjectActive(highlightedStateObject, activeObject);
+        SetObjectActive(selectedStateObject, activeObject);
     }
 
-    private Image ResolveActiveObject()
+    private GameObject ResolveActiveObject()
     {
-        if (isSelected && selectedImageObject != null)
+        if (isSelected && selectedStateObject != null)
         {
-            return selectedImageObject;
+            return selectedStateObject;
         }
 
-        if (isHighlighted && highlightedImageObject != null)
+        if (isHighlighted && highlightedStateObject != null)
         {
-            return highlightedImageObject;
+            return highlightedStateObject;
         }
 
-        return normalImageObject;
+        return normalStateObject;
     }
 
-    private static void SetImageObjectActive(Image target, Image activeImageObject)
+    private static void SetObjectActive(GameObject target, GameObject activeObject)
     {
         if (target != null)
         {
-            target.gameObject.SetActive(target == activeImageObject);
+            target.SetActive(target == activeObject);
         }
     }
 

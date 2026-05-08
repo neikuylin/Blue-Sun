@@ -108,6 +108,7 @@ MonoBehaviour:
   mode: 2
   overwriteSortingOrder: 1
   sortingOrder: -9999
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -325,6 +326,7 @@ MonoBehaviour:
   mode: 1
   overwriteSortingOrder: 1
   sortingOrder: -1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -381,6 +383,7 @@ MonoBehaviour:
   mode: 2
   overwriteSortingOrder: 1
   sortingOrder: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -424,6 +427,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 1
   sortingOrder: 0
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}

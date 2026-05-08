@@ -19,11 +19,13 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     [Tooltip("低于3D：适合地板/背景。高于3D：适合高亮/提示/部分特效。不决定：受光，但按正常深度关系处理遮挡。")]
     [SerializeField] private 渲染层级模式 mode = 渲染层级模式.低于3D;
     [Tooltip("开启时会把目标渲染器的排序值改成下面的值。关闭时保留 SpriteRenderer 自身排序。")]
-    [SerializeField] private bool overwriteSortingOrder = true;
+    [SerializeField] private bool overwriteSortingOrder;
     [Tooltip("同类2D渲染之间的前后顺序。数值越大越靠前。")]
     [SerializeField] private int sortingOrder = -10000;
 
     [Header("材质")]
+    [Tooltip("开启时才会按渲染模式替换目标渲染器材质。关闭时只处理层级，不改材质。")]
+    [SerializeField] private bool replaceMaterial;
     [Tooltip("低于3D时使用的材质。为空会自动从 Resources 加载。")]
     [SerializeField] private Material below3DMaterial;
     [Tooltip("高于3D时使用的材质。为空会自动从 Resources 加载。")]
@@ -63,7 +65,7 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     [ContextMenu("应用渲染层级")]
     public void Apply()
     {
-        Material targetMaterial = ResolveMaterial();
+        Material targetMaterial = replaceMaterial ? ResolveMaterial() : null;
 
         if (applySpriteRenderers)
         {
