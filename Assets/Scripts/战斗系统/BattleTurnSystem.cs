@@ -73,6 +73,8 @@ public class BattleTurnSystem : MonoBehaviour
     private Camera battleCamera;
     private BattleCameraController battleCameraController;
     private BattleUnit activeUnit;
+    private bool cameraSpaceLockActive;
+    private BattleUnit cameraSpaceLockUnit;
     private bool waitingForEnemyAction;
     private TMP_Text activeUnitIdText;
     private Button endTurnButton;
@@ -402,6 +404,8 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void Update()
     {
+        HandleCameraReturnInput();
+
         if (IsExplorationMode)
         {
             UpdateExplorationMode();
@@ -1184,6 +1188,68 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         battleCameraController.StopFollowing();
+    }
+
+    private void HandleCameraReturnInput()
+    {
+        if (battleCameraController == null)
+        {
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            BattleUnit targetUnit = ResolveCurrentIdCameraTarget();
+            if (targetUnit == null)
+            {
+                return;
+            }
+
+            battleCameraController.SnapToTarget(targetUnit.transform);
+            battleCameraController.StartFollowing(targetUnit.transform, snapImmediately: false);
+            cameraSpaceLockActive = true;
+            cameraSpaceLockUnit = targetUnit;
+            return;
+        }
+
+        if (cameraSpaceLockActive && Input.GetKey(KeyCode.Space))
+        {
+            BattleUnit targetUnit = ResolveCurrentIdCameraTarget();
+            if (targetUnit == null)
+            {
+                battleCameraController.StopFollowing();
+                cameraSpaceLockActive = false;
+                cameraSpaceLockUnit = null;
+                return;
+            }
+
+            if (targetUnit != cameraSpaceLockUnit)
+            {
+                battleCameraController.StartFollowing(targetUnit.transform, snapImmediately: true);
+                cameraSpaceLockUnit = targetUnit;
+            }
+
+            return;
+        }
+
+        if (cameraSpaceLockActive && Input.GetKeyUp(KeyCode.Space))
+        {
+            battleCameraController.StopFollowing();
+            cameraSpaceLockActive = false;
+            cameraSpaceLockUnit = null;
+        }
+    }
+
+    private BattleUnit ResolveCurrentIdCameraTarget()
+    {
+        string currentId = 界面ID列表.当前ID;
+        BattleUnit targetUnit = FindUnitByCharacterId(currentId);
+        if (targetUnit != null && targetUnit.IsAlive)
+        {
+            return targetUnit;
+        }
+
+        return null;
     }
 
     private void StopCameraFollow()
