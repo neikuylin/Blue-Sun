@@ -393,6 +393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 724068630677092619}
   - component: {fileID: 3305202497607856773}
+  - component: {fileID: 3537123433194694274}
   m_Layer: 0
   m_Name: "\u796D\u7940\u623F\u5317\u5899"
   m_TagString: Untagged
@@ -452,6 +453,25 @@ MonoBehaviour:
   drawAnchorLabel: 1
   gridColor: {r: 0.1, g: 0.85, b: 1, a: 0.85}
   anchorColor: {r: 1, g: 0.55, b: 0.1, a: 0.9}
+--- !u!114 &3537123433194694274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3669094254085269450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78412e8a82d6c841961f91e24cf1efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6362\u623F\u65F6\u5899\u4F53\u9AD8\u4E8E3D\u6750\u8D28\u5207\u6362\u5668"
+  "\u9AD8\u4E8E3D\u4E0D\u5199\u6DF1\u5EA6\u6750\u8D28": {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  "\u5305\u542B\u672A\u6FC0\u6D3B\u5B50\u7269\u4F53": 1
+  "\u5904\u7406SpriteRenderer": 1
+  "\u5904\u7406ParticleSystemRenderer": 0
+  "\u5904\u7406LineRenderer": 0
+  "\u5904\u7406TrailRenderer": 0
+  "\u5904\u7406MeshRenderer": 0
 --- !u!1 &4337151684796814482
 GameObject:
   m_ObjectHideFlags: 0

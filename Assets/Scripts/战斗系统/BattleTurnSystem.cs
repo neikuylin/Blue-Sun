@@ -8,6 +8,8 @@ using UnityEngine.UI;
 
 public class BattleTurnSystem : MonoBehaviour
 {
+    public static event System.Action<MapTemplateDatabase.ConnectionDirection> 换房移动开始;
+
     public const string ExplorationIdleSkillId = "探索待机";
     public const string ExplorationMoveSkillId = "探索移动";
 
@@ -809,6 +811,7 @@ public class BattleTurnSystem : MonoBehaviour
         pendingDoorNavigationCell = autoDestination;
         doorExitNavigationLocked = true;
         hasPendingDoorNavigationCell = true;
+        换房移动开始?.Invoke(direction);
 
         Vector2Int currentCell = grid != null
             ? (unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell)
