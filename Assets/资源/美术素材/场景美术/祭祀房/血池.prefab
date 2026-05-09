@@ -132,6 +132,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 1
 --- !u!1 &4693388357262292093
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,6 +352,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 0
 --- !u!1 &7250629205486972163 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6084187369538701814, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
@@ -368,6 +372,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 1
 --- !u!114 &8960985063259033105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,6 +418,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 1
 --- !u!114 &4895998813510050548
 MonoBehaviour:
   m_ObjectHideFlags: 0
