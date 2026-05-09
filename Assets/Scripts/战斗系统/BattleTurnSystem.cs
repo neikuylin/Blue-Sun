@@ -1200,6 +1200,12 @@ public class BattleTurnSystem : MonoBehaviour
                 skillAllyOccupiedColor,
                 skillEnemyOccupiedColor);
         }
+        RefreshSkillHoverHighlights();
+    }
+
+    private void RefreshSkillHoverHighlights()
+    {
+        grid.ResetSkillPreviewHighlights();
         skillPreviewAreaService?.应用技能悬停预览(
             activeUnit,
             activeSkill,
@@ -1867,7 +1873,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 hasSkillHoverPreview = false;
                 skillHoverHasAnyVisibleCells = false;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -1883,7 +1889,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -1904,7 +1910,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -1919,7 +1925,7 @@ public class BattleTurnSystem : MonoBehaviour
             {
                 hasSkillHoverPreview = false;
                 skillHoverHasAnyVisibleCells = false;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -1945,7 +1951,7 @@ public class BattleTurnSystem : MonoBehaviour
                 hasSkillHoverPreview = false;
                 skillHoverValid = false;
                 skillHoverActionPointCost = 0;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -1963,7 +1969,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
-                RefreshHighlights();
+                RefreshSkillHoverHighlights();
             }
 
             skillPreviewService?.隐藏行动点提示();
@@ -2006,7 +2012,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverValid = canCastAtHover;
         skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
         skillHoverActionPointCost = actionPointCost;
-        RefreshHighlights();
+        RefreshSkillHoverHighlights();
         skillPreviewService?.更新行动点提示(
             IsSkillModeActive(),
             skillHoverValid,

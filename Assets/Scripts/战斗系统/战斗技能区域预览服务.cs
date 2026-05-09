@@ -49,69 +49,77 @@ internal sealed class 战斗技能区域预览服务
             return;
         }
 
-        if (usesContinuousCircularArea != null && usesContinuousCircularArea(activeSkill))
+        grid.BeginSkillPreviewHighlights();
+        try
         {
-            if (isMovementSkillActive)
+            if (usesContinuousCircularArea != null && usesContinuousCircularArea(activeSkill))
             {
-                Color movePreviewColor = skillHoverValid ? validColor : invalidColor;
-                movePreviewColor.a = skillHoverValid ? 0.24f : 0.20f;
-                grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, movePreviewColor);
+                if (isMovementSkillActive)
+                {
+                    Color movePreviewColor = skillHoverValid ? validColor : invalidColor;
+                    movePreviewColor.a = skillHoverValid ? 0.24f : 0.20f;
+                    grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, movePreviewColor);
+                    return;
+                }
+
+                Color previewColor = skillHoverValid ? validColor : invalidColor;
+                previewColor.a = skillHoverValid ? 0.18f : 0.16f;
+                float radiusWorld = getContinuousAreaRadiusWorld != null
+                    ? getContinuousAreaRadiusWorld(activeSkill)
+                    : 0f;
+                grid.HighlightCircleAt(skillHoverCell, radiusWorld, previewColor);
+                grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, previewColor);
                 return;
             }
 
-            Color previewColor = skillHoverValid ? validColor : invalidColor;
-            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
-            float radiusWorld = getContinuousAreaRadiusWorld != null
-                ? getContinuousAreaRadiusWorld(activeSkill)
-                : 0f;
-            grid.HighlightCircleAt(skillHoverCell, radiusWorld, previewColor);
-            grid.HighlightFootprintAt(skillHoverCell, activeUnit.footprintSize, previewColor);
-            return;
-        }
-
-        if (isCircularAxisAreaSkill != null && isCircularAxisAreaSkill(activeSkill))
-        {
-            Color previewColor = skillHoverValid ? validColor : invalidColor;
-            previewColor.a = skillHoverValid ? 0.18f : 0.16f;
-
-            Vector3 origin = grid.GetWorldPosition(activeUnit.currentCell);
-            Vector3 direction = resolveAxisDirectionWorld != null
-                ? resolveAxisDirectionWorld(activeUnit, skillHoverCell)
-                : Vector3.right;
-            float rangeWorld = getAxisRangeWorld != null
-                ? getAxisRangeWorld(activeUnit, activeSkill)
-                : 0f;
-
-            if (activeSkill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
+            if (isCircularAxisAreaSkill != null && isCircularAxisAreaSkill(activeSkill))
             {
-                grid.HighlightAxisFan(origin, direction, rangeWorld, activeSkill.axisAngle, previewColor);
-            }
-            else
-            {
-                float widthWorld = getAxisWidthWorld != null ? getAxisWidthWorld(activeSkill) : 0f;
-                grid.HighlightAxisRay(origin, direction, rangeWorld, widthWorld, previewColor);
+                Color previewColor = skillHoverValid ? validColor : invalidColor;
+                previewColor.a = skillHoverValid ? 0.18f : 0.16f;
+
+                Vector3 origin = grid.GetWorldPosition(activeUnit.currentCell);
+                Vector3 direction = resolveAxisDirectionWorld != null
+                    ? resolveAxisDirectionWorld(activeUnit, skillHoverCell)
+                    : Vector3.right;
+                float rangeWorld = getAxisRangeWorld != null
+                    ? getAxisRangeWorld(activeUnit, activeSkill)
+                    : 0f;
+
+                if (activeSkill.circularAxisAreaType == BattleSkillDatabase.CircularAxisAreaType.Fan)
+                {
+                    grid.HighlightAxisFan(origin, direction, rangeWorld, activeSkill.axisAngle, previewColor);
+                }
+                else
+                {
+                    float widthWorld = getAxisWidthWorld != null ? getAxisWidthWorld(activeSkill) : 0f;
+                    grid.HighlightAxisRay(origin, direction, rangeWorld, widthWorld, previewColor);
+                }
+
+                return;
             }
 
-            return;
-        }
+            HashSet<Vector2Int> previewCells = 收集可见区域效果格(activeUnit, skillHoverCell, activeSkill);
+            if (previewCells == null || previewCells.Count == 0)
+            {
+                return;
+            }
 
-        HashSet<Vector2Int> previewCells = 收集可见区域效果格(activeUnit, skillHoverCell, activeSkill);
-        if (previewCells == null || previewCells.Count == 0)
+            if (skillHoverValid)
+            {
+                Color previewColor = validColor;
+                previewColor.a = 0.18f;
+                grid.HighlightCells(previewCells, previewColor);
+                return;
+            }
+
+            Color partialColor = invalidColor;
+            partialColor.a = 0.16f;
+            grid.HighlightPartialCells(previewCells, activeUnit, partialColor);
+        }
+        finally
         {
-            return;
+            grid.EndSkillPreviewHighlights();
         }
-
-        if (skillHoverValid)
-        {
-            Color previewColor = validColor;
-            previewColor.a = 0.18f;
-            grid.HighlightCells(previewCells, previewColor);
-            return;
-        }
-
-        Color partialColor = invalidColor;
-        partialColor.a = 0.16f;
-        grid.HighlightPartialCells(previewCells, activeUnit, partialColor);
     }
 
     public bool 是否存在可见技能预览格(

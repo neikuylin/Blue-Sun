@@ -49,8 +49,11 @@ public class BattleGrid : MonoBehaviour
     private Material gridOutlineMaterialTemplate;
     private Transform boardVisualRoot;
     private Transform highlightRoot;
+    private Transform skillPreviewHighlightRoot;
     private Transform hoverHighlightRoot;
     private int highlightLayerOrder;
+    private int skillPreviewLayerOrder;
+    private bool writingSkillPreviewHighlights;
     private GameObject hoverOverlayObject;
     private MeshRenderer hoverOverlayRenderer;
     private readonly List<LineRenderer> hoverOutlineRenderers = new List<LineRenderer>();
@@ -98,6 +101,7 @@ public class BattleGrid : MonoBehaviour
         EnsureVisualRoots();
         ClearChildren(boardVisualRoot);
         ClearChildren(highlightRoot);
+        ClearChildren(skillPreviewHighlightRoot);
         ClearHoveredFootprint();
         ClearChildren(hoverHighlightRoot);
 
@@ -106,6 +110,8 @@ public class BattleGrid : MonoBehaviour
         gridOutlineMaterialTemplate = Resources.Load<Material>(Below3DNoDepthSpriteMaterialResourcePath);
 
         highlightLayerOrder = 0;
+        skillPreviewLayerOrder = 0;
+        writingSkillPreviewHighlights = false;
     }
 
     public struct DoorExitDefinition
@@ -525,7 +531,28 @@ public class BattleGrid : MonoBehaviour
     {
         EnsureVisualRoots();
         ClearChildren(highlightRoot);
+        ClearChildren(skillPreviewHighlightRoot);
         highlightLayerOrder = 0;
+        skillPreviewLayerOrder = 0;
+        writingSkillPreviewHighlights = false;
+    }
+
+    public void ResetSkillPreviewHighlights()
+    {
+        EnsureVisualRoots();
+        ClearChildren(skillPreviewHighlightRoot);
+        skillPreviewLayerOrder = 0;
+    }
+
+    public void BeginSkillPreviewHighlights()
+    {
+        EnsureVisualRoots();
+        writingSkillPreviewHighlights = true;
+    }
+
+    public void EndSkillPreviewHighlights()
+    {
+        writingSkillPreviewHighlights = false;
     }
 
     public void HighlightActive(Vector2Int cell)
@@ -931,6 +958,21 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
+        if (skillPreviewHighlightRoot == null)
+        {
+            Transform existing = transform.Find("SkillPreviewHighlightVisuals");
+            if (existing != null)
+            {
+                skillPreviewHighlightRoot = existing;
+            }
+            else
+            {
+                GameObject root = new GameObject("SkillPreviewHighlightVisuals");
+                root.transform.SetParent(transform, false);
+                skillPreviewHighlightRoot = root.transform;
+            }
+        }
+
         if (hoverHighlightRoot == null)
         {
             Transform existing = transform.Find("HoverHighlightVisuals");
@@ -960,13 +1002,16 @@ public class BattleGrid : MonoBehaviour
         }
 
         EnsureVisualRoots();
+        Transform root = GetActiveHighlightRoot();
+        int layerOrder = GetActiveHighlightLayerOrder();
+        float layerY = GetActiveHighlightY(layerOrder);
 
-        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
-        overlay.transform.SetParent(highlightRoot, false);
+        GameObject overlay = new GameObject(name + "_" + layerOrder);
+        overlay.transform.SetParent(root, false);
 
         MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + (highlightLayerOrder * 0.002f));
+        meshFilter.sharedMesh = BuildFillMesh(cells, layerY);
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
         meshRenderer.sortingOrder = FootprintOverlaySortingOrder;
@@ -978,9 +1023,36 @@ public class BattleGrid : MonoBehaviour
                 overlay.transform,
                 loops[i],
                 outlineColor,
-                overlayY + 0.001f + (highlightLayerOrder * 0.002f),
+                layerY + 0.001f,
                 FootprintOverlaySortingOrder,
                 true);
+        }
+
+        IncrementActiveHighlightLayerOrder();
+    }
+
+    private Transform GetActiveHighlightRoot()
+    {
+        return writingSkillPreviewHighlights ? skillPreviewHighlightRoot : highlightRoot;
+    }
+
+    private int GetActiveHighlightLayerOrder()
+    {
+        return writingSkillPreviewHighlights ? skillPreviewLayerOrder : highlightLayerOrder;
+    }
+
+    private float GetActiveHighlightY(int layerOrder)
+    {
+        float layerY = overlayY + (layerOrder * 0.002f);
+        return writingSkillPreviewHighlights ? layerY + 0.02f : layerY;
+    }
+
+    private void IncrementActiveHighlightLayerOrder()
+    {
+        if (writingSkillPreviewHighlights)
+        {
+            skillPreviewLayerOrder++;
+            return;
         }
 
         highlightLayerOrder++;
@@ -994,26 +1066,29 @@ public class BattleGrid : MonoBehaviour
         }
 
         EnsureVisualRoots();
+        Transform root = GetActiveHighlightRoot();
+        int layerOrder = GetActiveHighlightLayerOrder();
+        float layerY = GetActiveHighlightY(layerOrder);
 
-        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
-        overlay.transform.SetParent(highlightRoot, false);
+        GameObject overlay = new GameObject(name + "_" + layerOrder);
+        overlay.transform.SetParent(root, false);
 
         MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildCircleFillMesh(center, radiusWorld, overlayY + (highlightLayerOrder * 0.002f));
+        meshFilter.sharedMesh = BuildCircleFillMesh(center, radiusWorld, layerY);
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = highlightLayerOrder * 10;
+        meshRenderer.sortingOrder = layerOrder * 10;
 
         CreateCircleOutline(
             overlay.transform,
             center,
             radiusWorld,
             outlineColor,
-            overlayY + 0.001f + (highlightLayerOrder * 0.002f),
-            (highlightLayerOrder * 10) + 1);
+            layerY + 0.001f,
+            (layerOrder * 10) + 1);
 
-        highlightLayerOrder++;
+        IncrementActiveHighlightLayerOrder();
     }
 
     private void CreateClippedRayOverlay(Vector3 origin, Vector3 direction, float lengthWorld, float widthWorld, Color fillColor, Color outlineColor, string name)
@@ -1024,16 +1099,19 @@ public class BattleGrid : MonoBehaviour
         }
 
         EnsureVisualRoots();
+        Transform root = GetActiveHighlightRoot();
+        int layerOrder = GetActiveHighlightLayerOrder();
+        float layerY = GetActiveHighlightY(layerOrder);
 
-        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
-        overlay.transform.SetParent(highlightRoot, false);
+        GameObject overlay = new GameObject(name + "_" + layerOrder);
+        overlay.transform.SetParent(root, false);
 
         MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildClippedRayFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, overlayY + (highlightLayerOrder * 0.002f));
+        meshFilter.sharedMesh = BuildClippedRayFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, layerY);
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = highlightLayerOrder * 10;
+        meshRenderer.sortingOrder = layerOrder * 10;
 
         CreateClippedRayOutline(
             overlay.transform,
@@ -1042,10 +1120,10 @@ public class BattleGrid : MonoBehaviour
             lengthWorld,
             widthWorld * 0.5f,
             outlineColor,
-            overlayY + 0.001f + (highlightLayerOrder * 0.002f),
-            (highlightLayerOrder * 10) + 1);
+            layerY + 0.001f,
+            (layerOrder * 10) + 1);
 
-        highlightLayerOrder++;
+        IncrementActiveHighlightLayerOrder();
     }
 
     private void CreateSectorOverlay(Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, Color fillColor, Color outlineColor, string name)
@@ -1056,16 +1134,19 @@ public class BattleGrid : MonoBehaviour
         }
 
         EnsureVisualRoots();
+        Transform root = GetActiveHighlightRoot();
+        int layerOrder = GetActiveHighlightLayerOrder();
+        float layerY = GetActiveHighlightY(layerOrder);
 
-        GameObject overlay = new GameObject(name + "_" + highlightLayerOrder);
-        overlay.transform.SetParent(highlightRoot, false);
+        GameObject overlay = new GameObject(name + "_" + layerOrder);
+        overlay.transform.SetParent(root, false);
 
         MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildSectorFillMesh(origin, direction, radiusWorld, angleDegrees, overlayY + (highlightLayerOrder * 0.002f));
+        meshFilter.sharedMesh = BuildSectorFillMesh(origin, direction, radiusWorld, angleDegrees, layerY);
         meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
         meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = highlightLayerOrder * 10;
+        meshRenderer.sortingOrder = layerOrder * 10;
 
         CreateSectorOutline(
             overlay.transform,
@@ -1074,10 +1155,10 @@ public class BattleGrid : MonoBehaviour
             radiusWorld,
             angleDegrees,
             outlineColor,
-            overlayY + 0.001f + (highlightLayerOrder * 0.002f),
-            (highlightLayerOrder * 10) + 1);
+            layerY + 0.001f,
+            (layerOrder * 10) + 1);
 
-        highlightLayerOrder++;
+        IncrementActiveHighlightLayerOrder();
     }
 
     private Mesh BuildClippedRayFillMesh(Vector3 origin, Vector3 direction, float lengthWorld, float halfWidthWorld, float y)
