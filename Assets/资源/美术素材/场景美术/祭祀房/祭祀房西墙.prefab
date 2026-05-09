@@ -81,7 +81,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -10000
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 19bbb84bd547b0a40bfabd965a12c828, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -106,7 +106,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 1
-  overwriteSortingOrder: 0
+  overwriteSortingOrder: 1
   sortingOrder: -10000
   replaceMaterial: 1
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -144,6 +144,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7876850443102925298}
   - component: {fileID: 8498634188950456813}
+  - component: {fileID: 2244464562124016422}
   m_Layer: 0
   m_Name: "\u796D\u7940\u623F\u897F\u5899"
   m_TagString: Untagged
@@ -191,6 +192,21 @@ MonoBehaviour:
   drawAnchorLabel: 1
   gridColor: {r: 0.1, g: 0.85, b: 1, a: 0.85}
   anchorColor: {r: 1, g: 0.55, b: 0.1, a: 0.9}
+--- !u!114 &2244464562124016422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5632756567187869152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
+  direction: 2
+  targetSpriteObject: {fileID: 8564811846414956512}
+  positionOffset: 0
 --- !u!1 &8564811846414956512
 GameObject:
   m_ObjectHideFlags: 0
@@ -201,7 +217,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8373319270314391214}
   - component: {fileID: 7399342963584770318}
-  - component: {fileID: 3743642378225422553}
+  - component: {fileID: 2393334308127919822}
   m_Layer: 0
   m_Name: "\u80CC\u666F"
   m_TagString: Untagged
@@ -250,7 +266,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -283,7 +299,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &3743642378225422553
+--- !u!114 &2393334308127919822
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -292,9 +308,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 8564811846414956512}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
-  direction: 1
-  targetSpriteObject: {fileID: 8564811846414956512}
-  positionOffset: 0
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
+  mode: 0
+  overwriteSortingOrder: 1
+  sortingOrder: -12000
+  replaceMaterial: 1
+  below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+  above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
+  undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  includeInactive: 1
+  applyOnValidate: 1
+  applySpriteRenderers: 1
+  applyParticleRenderers: 0
+  applyLineRenderers: 0
+  applyTrailRenderers: 0
+  applyMeshRenderers: 0
