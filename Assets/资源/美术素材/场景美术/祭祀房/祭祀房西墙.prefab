@@ -134,6 +134,7 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 1
   includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 0
 --- !u!1 &5632756567187869152
 GameObject:
   m_ObjectHideFlags: 0
@@ -341,3 +342,4 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 0
   includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 1
