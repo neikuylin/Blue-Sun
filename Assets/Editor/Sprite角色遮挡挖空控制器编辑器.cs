@@ -19,6 +19,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
     private SerializedProperty targetRenderers;
     private SerializedProperty includeChildRenderers;
     private SerializedProperty includeInactiveChildren;
+    private SerializedProperty revealRegardlessOfRenderLevel;
 
     private void OnEnable()
     {
@@ -39,6 +40,7 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
         targetRenderers = serializedObject.FindProperty("targetRenderers");
         includeChildRenderers = serializedObject.FindProperty("includeChildRenderers");
         includeInactiveChildren = serializedObject.FindProperty("includeInactiveChildren");
+        revealRegardlessOfRenderLevel = serializedObject.FindProperty("revealRegardlessOfRenderLevel");
     }
 
     public override void OnInspectorGUI()
@@ -58,6 +60,9 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
                 EditorGUILayout.PropertyField(includeInactiveChildren, new GUIContent("包含未激活子物体"));
             }
         }
+        EditorGUILayout.PropertyField(
+            revealRegardlessOfRenderLevel,
+            new GUIContent("无视高低3D都挖空", "默认关闭。开启后，这个控制器管理的Renderer即使使用低于3D材质，也会参与角色遮挡挖空。"));
 
         serializedObject.ApplyModifiedProperties();
     }

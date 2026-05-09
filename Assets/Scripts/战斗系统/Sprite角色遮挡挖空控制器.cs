@@ -41,6 +41,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     [SerializeField] private bool includeChildRenderers;
     [InspectorName("包含未激活子物体")]
     [SerializeField] private bool includeInactiveChildren = true;
+    [InspectorName("无视高低3D都挖空")]
+    [SerializeField] private bool revealRegardlessOfRenderLevel;
 
     private Renderer[] cachedRenderers;
     private MaterialPropertyBlock propertyBlock;
@@ -214,7 +216,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
-            int depthMode = ResolveRevealDepthMode(renderer);
+            int depthMode = ResolveRevealDepthMode(renderer, revealRegardlessOfRenderLevel);
             renderer.GetPropertyBlock(block);
             block.SetInt(RevealEnabledId, revealCount > 0 && depthMode != RevealDepthModeDisabled ? 1 : 0);
             block.SetInt(RevealCountId, revealCount);
@@ -275,7 +277,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         }
     }
 
-    private static int ResolveRevealDepthMode(Renderer renderer)
+    private static int ResolveRevealDepthMode(Renderer renderer, bool revealRegardlessOfRenderLevel)
     {
         Material material = renderer.sharedMaterial;
         if (material == null)
@@ -286,7 +288,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         int renderQueue = material.renderQueue;
         if (renderQueue < TransparentQueue)
         {
-            return RevealDepthModeDisabled;
+            return revealRegardlessOfRenderLevel ? RevealDepthModeAlways : RevealDepthModeDisabled;
         }
 
         int zTest = material.HasProperty(ZTestId) ? Mathf.RoundToInt(material.GetFloat(ZTestId)) : ZTestLessEqual;
