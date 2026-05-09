@@ -3428,7 +3428,7 @@ MonoBehaviour:
         y: 0
     wallVisuals:
     - wallName: "\u897F\u5899"
-      prefab: {fileID: 7192146739375267032, guid: 0c20ab905c82bb941b0423743896f1e3, type: 3}
+      prefab: {fileID: 5632756567187869152, guid: e251d871d4ef4a147a7e351c3d2599a6, type: 3}
       cell:
         x: 0
         y: 0
@@ -3444,7 +3444,7 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     - wallName: "\u5357\u5899"
-      prefab: {fileID: 4712844981043306322, guid: 492c00accbdb5014fbf01f8609d251fc, type: 3}
+      prefab: {fileID: 380155066419184732, guid: 80d3657c687a93440b7f2d008395d088, type: 3}
       cell:
         x: 0
         y: 0
