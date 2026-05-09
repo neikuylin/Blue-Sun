@@ -19,7 +19,7 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private SerializedProperty 粒子朝向扩散方向;
     private SerializedProperty 随机旋转偏移;
     private SerializedProperty 半月弧度;
-    private SerializedProperty 弧宽比例;
+    private SerializedProperty 中心最大宽度;
     private SerializedProperty 弧线段数;
 
     private void OnEnable()
@@ -39,7 +39,7 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         粒子朝向扩散方向 = serializedObject.FindProperty("粒子朝向扩散方向");
         随机旋转偏移 = serializedObject.FindProperty("随机旋转偏移");
         半月弧度 = serializedObject.FindProperty("半月弧度");
-        弧宽比例 = serializedObject.FindProperty("弧宽比例");
+        中心最大宽度 = serializedObject.FindProperty("中心最大宽度");
         弧线段数 = serializedObject.FindProperty("弧线段数");
     }
 
@@ -110,8 +110,8 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     {
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("半月形状", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(半月弧度, new GUIContent("半月弧度", "单个粒子的弧形张开角度。180度就是半月。"));
-        EditorGUILayout.PropertyField(弧宽比例, new GUIContent("弧宽比例", "弧形线条本身的宽度。"));
+        EditorGUILayout.PropertyField(半月弧度, new GUIContent("弯月弧度", "单个粒子的弯月张开角度。180度就是半月。"));
+        EditorGUILayout.PropertyField(中心最大宽度, new GUIContent("中心最大宽度", "弯月中间最粗处的宽度，两端会自动收尖。"));
         EditorGUILayout.PropertyField(弧线段数, new GUIContent("弧线段数", "数值越高弧线越圆滑。"));
     }
 

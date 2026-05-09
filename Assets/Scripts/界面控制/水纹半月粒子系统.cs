@@ -40,7 +40,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     [SerializeField, Min(0f)] private float 随机旋转偏移 = 8f;
 
     [SerializeField, Range(15f, 360f)] private float 半月弧度 = 180f;
-    [SerializeField, Range(0.02f, 0.45f)] private float 弧宽比例 = 0.11f;
+    [SerializeField, Range(0.02f, 0.45f)] private float 中心最大宽度 = 0.16f;
     [SerializeField, Range(6, 64)] private int 弧线段数 = 24;
 
     private ParticleSystem cachedParticleSystem;
@@ -427,11 +427,13 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         float halfArc = 半月弧度 * 0.5f;
         float startAngle = 90f - halfArc;
         float outerRadius = 0.5f;
-        float innerRadius = Mathf.Max(0.01f, outerRadius - 弧宽比例);
+        float minTipWidth = 0.001f;
         for (int i = 0; i <= segments; i++)
         {
             float t = i / (float)segments;
             float angle = (startAngle + 半月弧度 * t) * Mathf.Deg2Rad;
+            float width = Mathf.Max(minTipWidth, Mathf.Sin(t * Mathf.PI) * 中心最大宽度);
+            float innerRadius = Mathf.Max(0.01f, outerRadius - width);
             Vector3 outer = new Vector3(Mathf.Cos(angle) * outerRadius, 0f, Mathf.Sin(angle) * outerRadius);
             Vector3 inner = new Vector3(Mathf.Cos(angle) * innerRadius, 0f, Mathf.Sin(angle) * innerRadius);
             int vertexIndex = i * 2;
