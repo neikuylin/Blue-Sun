@@ -53,6 +53,13 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private Vector2Int lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
     private Vector2Int exposureDragStartCell = new Vector2Int(int.MinValue, int.MinValue);
 
+    private sealed class 边界参考图显示信息
+    {
+        public 摄像机边界参考图 reference;
+        public GameObject targetSpriteObject;
+        public string sourceName = string.Empty;
+    }
+
     [MenuItem("Tools/地图/格子编辑器")]
     private static void Open()
     {
@@ -917,6 +924,9 @@ public sealed class 格子编辑器窗口 : EditorWindow
         entry.花瓣粒子预制体 = (GameObject)EditorGUILayout.ObjectField("花瓣粒子Prefab", entry.花瓣粒子预制体, typeof(GameObject), false);
 
         EditorGUILayout.Space(4f);
+        DrawCameraBoundaryReferenceInfo(entry);
+
+        EditorGUILayout.Space(4f);
         DrawPetalExposureAreaList(entry);
 
         EditorGUILayout.Space(4f);
@@ -1264,6 +1274,153 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         return $"墙{index + 1}";
+    }
+
+    private static void DrawCameraBoundaryReferenceInfo(格子模板数据库.格子模板条目 entry)
+    {
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("摄像机边界参考图", EditorStyles.boldLabel);
+            Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>> referencesByDirection = CollectCameraBoundaryReferences(entry);
+            DrawBoundaryDirectionInfo(referencesByDirection, 摄像机边界参考图.边界方向.北, "北");
+            DrawBoundaryDirectionInfo(referencesByDirection, 摄像机边界参考图.边界方向.南, "南");
+            DrawBoundaryDirectionInfo(referencesByDirection, 摄像机边界参考图.边界方向.东, "东");
+            DrawBoundaryDirectionInfo(referencesByDirection, 摄像机边界参考图.边界方向.西, "西");
+        }
+    }
+
+    private static Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>> CollectCameraBoundaryReferences(格子模板数据库.格子模板条目 entry)
+    {
+        Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>> result =
+            new Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>>();
+
+        if (entry == null)
+        {
+            return result;
+        }
+
+        AddPrefabBoundaryReferences(result, entry.defaultFloorPrefab, "整张地板Prefab");
+
+        if (entry.propVisuals != null)
+        {
+            for (int i = 0; i < entry.propVisuals.Count; i++)
+            {
+                格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+                if (prop == null)
+                {
+                    continue;
+                }
+
+                string sourceName = !string.IsNullOrWhiteSpace(prop.propName) ? prop.propName.Trim() : $"物件{i + 1}";
+                AddPrefabBoundaryReferences(result, prop.prefab, sourceName);
+            }
+        }
+
+        if (entry.wallVisuals != null)
+        {
+            for (int i = 0; i < entry.wallVisuals.Count; i++)
+            {
+                格子模板数据库.WallVisualEntry wall = entry.wallVisuals[i];
+                if (wall == null)
+                {
+                    continue;
+                }
+
+                string sourceName = ResolveWallVisualDisplayName(wall, i);
+                AddPrefabBoundaryReferences(result, wall.prefab, sourceName);
+            }
+        }
+
+        return result;
+    }
+
+    private static void AddPrefabBoundaryReferences(
+        Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>> referencesByDirection,
+        GameObject prefab,
+        string sourceName)
+    {
+        if (referencesByDirection == null || prefab == null)
+        {
+            return;
+        }
+
+        摄像机边界参考图[] references = prefab.GetComponentsInChildren<摄像机边界参考图>(true);
+        for (int i = 0; i < references.Length; i++)
+        {
+            摄像机边界参考图 reference = references[i];
+            if (reference == null)
+            {
+                continue;
+            }
+
+            List<边界参考图显示信息> directionReferences;
+            if (!referencesByDirection.TryGetValue(reference.Direction, out directionReferences))
+            {
+                directionReferences = new List<边界参考图显示信息>();
+                referencesByDirection.Add(reference.Direction, directionReferences);
+            }
+
+            directionReferences.Add(new 边界参考图显示信息
+            {
+                reference = reference,
+                targetSpriteObject = ResolveBoundaryTargetSpriteObject(reference),
+                sourceName = string.IsNullOrWhiteSpace(sourceName) ? prefab.name : sourceName.Trim()
+            });
+        }
+    }
+
+    private static GameObject ResolveBoundaryTargetSpriteObject(摄像机边界参考图 reference)
+    {
+        if (reference == null)
+        {
+            return null;
+        }
+
+        SerializedObject serializedReference = new SerializedObject(reference);
+        SerializedProperty targetSpriteObject = serializedReference.FindProperty("targetSpriteObject");
+        return targetSpriteObject != null ? targetSpriteObject.objectReferenceValue as GameObject : null;
+    }
+
+    private static void DrawBoundaryDirectionInfo(
+        Dictionary<摄像机边界参考图.边界方向, List<边界参考图显示信息>> referencesByDirection,
+        摄像机边界参考图.边界方向 direction,
+        string directionLabel)
+    {
+        List<边界参考图显示信息> references = null;
+        if (referencesByDirection != null)
+        {
+            referencesByDirection.TryGetValue(direction, out references);
+        }
+
+        if (references == null || references.Count == 0)
+        {
+            EditorGUILayout.LabelField($"{directionLabel}边界", "未找到");
+            return;
+        }
+
+        if (references.Count > 1)
+        {
+            EditorGUILayout.HelpBox($"{directionLabel}边界找到 {references.Count} 个参考图，运行时会按摄像机边界规则一起参与计算。", MessageType.Info);
+        }
+
+        for (int i = 0; i < references.Count; i++)
+        {
+            边界参考图显示信息 info = references[i];
+            if (info == null || info.reference == null)
+            {
+                continue;
+            }
+
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                EditorGUILayout.LabelField($"{directionLabel}边界", info.sourceName);
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.ObjectField("参考图组件所在物体", info.reference.gameObject, typeof(GameObject), false);
+                    EditorGUILayout.ObjectField("引用的目标Sprite物体", info.targetSpriteObject, typeof(GameObject), false);
+                }
+            }
+        }
     }
 
     private static 格子模板数据库.CellPosition DrawCellPositionField(string label, 格子模板数据库.CellPosition cell)
