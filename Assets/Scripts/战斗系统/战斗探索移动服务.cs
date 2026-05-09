@@ -60,15 +60,21 @@ internal sealed class 战斗探索移动服务
             return false;
         }
 
+        Vector2Int resolvedDestination;
+        if (!尝试解析探索移动核心格(unit, destination, grid, out resolvedDestination))
+        {
+            return false;
+        }
+
         Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
-        if (destination == currentCell)
+        if (resolvedDestination == currentCell)
         {
             return false;
         }
 
         if (!unit.IsMoving)
         {
-            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, destination);
+            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, resolvedDestination);
             if (path == null || path.Count <= 1)
             {
                 return false;
@@ -79,8 +85,8 @@ internal sealed class 战斗探索移动服务
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
         bool redirected = unit.IsMoving;
         float moveDuration = redirected
-            ? grid.RedirectMovingUnitIgnoringAllies(unit, destination)
-            : grid.MoveUnitIgnoringAllies(unit, destination);
+            ? grid.RedirectMovingUnitIgnoringAllies(unit, resolvedDestination)
+            : grid.MoveUnitIgnoringAllies(unit, resolvedDestination);
         unit.moveSpeed = originalMoveSpeed;
         if (moveDuration <= 0f)
         {
@@ -107,6 +113,102 @@ internal sealed class 战斗探索移动服务
             refreshHighlights);
         refreshHighlights?.Invoke();
         return true;
+    }
+
+    private static bool 尝试解析探索移动核心格(
+        BattleUnit unit,
+        Vector2Int clickedCell,
+        BattleGrid grid,
+        out Vector2Int resolvedDestination)
+    {
+        resolvedDestination = clickedCell;
+        if (unit == null || grid == null)
+        {
+            return false;
+        }
+
+        Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
+        if (是否在单位占地内(unit, currentCell, clickedCell))
+        {
+            resolvedDestination = currentCell;
+            return true;
+        }
+
+        List<Vector2Int> exactPath;
+        if (尝试评估探索移动核心格(unit, clickedCell, grid, out exactPath))
+        {
+            resolvedDestination = clickedCell;
+            return true;
+        }
+
+        int radius = Mathf.Max(0, unit.FootprintRadius);
+        bool found = false;
+        int bestPathLength = int.MaxValue;
+        int bestCoreDistance = int.MaxValue;
+
+        for (int yOffset = -radius; yOffset <= radius; yOffset++)
+        {
+            for (int xOffset = -radius; xOffset <= radius; xOffset++)
+            {
+                Vector2Int candidate = new Vector2Int(clickedCell.x - xOffset, clickedCell.y - yOffset);
+                if (candidate == clickedCell)
+                {
+                    continue;
+                }
+
+                List<Vector2Int> path;
+                if (!尝试评估探索移动核心格(unit, candidate, grid, out path))
+                {
+                    continue;
+                }
+
+                int pathLength = path.Count - 1;
+                int coreDistance = Mathf.Abs(candidate.x - clickedCell.x) + Mathf.Abs(candidate.y - clickedCell.y);
+                if (found &&
+                    (pathLength > bestPathLength ||
+                     (pathLength == bestPathLength && coreDistance >= bestCoreDistance)))
+                {
+                    continue;
+                }
+
+                found = true;
+                bestPathLength = pathLength;
+                bestCoreDistance = coreDistance;
+                resolvedDestination = candidate;
+            }
+        }
+
+        return found;
+    }
+
+    private static bool 是否在单位占地内(BattleUnit unit, Vector2Int centerCell, Vector2Int targetCell)
+    {
+        int radius = unit != null ? Mathf.Max(0, unit.FootprintRadius) : 0;
+        return targetCell.x >= centerCell.x - radius &&
+            targetCell.x <= centerCell.x + radius &&
+            targetCell.y >= centerCell.y - radius &&
+            targetCell.y <= centerCell.y + radius;
+    }
+
+    private static bool 尝试评估探索移动核心格(
+        BattleUnit unit,
+        Vector2Int coreCell,
+        BattleGrid grid,
+        out List<Vector2Int> path)
+    {
+        path = null;
+        if (unit == null || grid == null)
+        {
+            return false;
+        }
+
+        if (!grid.IsWalkableIgnoringAllies(unit, coreCell))
+        {
+            return false;
+        }
+
+        path = grid.FindPathIgnoringAllies(unit, coreCell);
+        return path != null && path.Count > 1;
     }
 
     private void 排队跟随移动(
