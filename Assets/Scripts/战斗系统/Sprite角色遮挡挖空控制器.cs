@@ -94,6 +94,12 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         ApplyReveal(cameraToUse, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
     }
 
+    public void 开启无视高低3D都挖空()
+    {
+        revealRegardlessOfRenderLevel = true;
+        Apply();
+    }
+
     private Renderer[] ResolveRenderers()
     {
         if (targetRenderers != null && targetRenderers.Length > 0)

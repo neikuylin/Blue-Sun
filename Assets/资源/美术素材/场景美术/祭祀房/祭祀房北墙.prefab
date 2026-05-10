@@ -467,13 +467,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b78412e8a82d6c841961f91e24cf1efe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6362\u623F\u65F6\u5899\u4F53\u9AD8\u4E8E3D\u6750\u8D28\u5207\u6362\u5668"
-  "\u9AD8\u4E8E3D\u4E0D\u5199\u6DF1\u5EA6\u6750\u8D28": {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
-  "\u5305\u542B\u672A\u6FC0\u6D3B\u5B50\u7269\u4F53": 1
-  "\u5904\u7406SpriteRenderer": 1
-  "\u5904\u7406ParticleSystemRenderer": 0
-  "\u5904\u7406LineRenderer": 0
-  "\u5904\u7406TrailRenderer": 0
-  "\u5904\u7406MeshRenderer": 0
 --- !u!114 &516846914881282162
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -489,6 +482,7 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 1
   includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 0
 --- !u!114 &1202777741229760257
 MonoBehaviour:
   m_ObjectHideFlags: 0
