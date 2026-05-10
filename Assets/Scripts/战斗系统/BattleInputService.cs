@@ -78,7 +78,7 @@ internal sealed class BattleInputService
             return;
         }
 
-        if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || grid == null || battleCamera == null)
+        if (!Input.GetMouseButtonDown(1) || IsPointerBlockedByUi() || grid == null || battleCamera == null)
         {
             return;
         }
