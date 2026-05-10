@@ -3,7 +3,7 @@ Shader "项目/特效/水纹半月扭曲"
     Properties
     {
         _Color ("水纹颜色", Color) = (1, 1, 1, 1)
-        _DistortionStrength ("扭曲强度", Range(0, 0.08)) = 0.018
+        _DistortionStrength ("扭曲强度", Range(0, 1)) = 0.018
         _EdgeFade ("边缘淡出", Range(0.01, 0.5)) = 0.12
         _TintStrength ("颜色影响", Range(0, 1)) = 0.12
         _WaveFrequency ("波纹频率", Range(0.1, 4)) = 1.4

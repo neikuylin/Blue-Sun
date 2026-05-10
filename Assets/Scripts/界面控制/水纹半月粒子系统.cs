@@ -29,7 +29,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     [SerializeField] private Color 粒子颜色 = new Color(0f, 0f, 0f, 0.45f);
     [SerializeField, Min(0f)] private float 地面浮起 = 0.04f;
     [SerializeField] private bool 编辑模式预览 = true;
-    [SerializeField, Range(0f, 0.08f)] private float 扭曲强度 = 0.018f;
+    [SerializeField, Range(0f, 1f)] private float 扭曲强度 = 0.018f;
     [SerializeField, Range(0.01f, 0.5f)] private float 边缘淡出 = 0.12f;
     [SerializeField, Range(0f, 1f)] private float 颜色影响 = 0.12f;
     [SerializeField, Range(0.1f, 4f)] private float 波纹频率 = 1.4f;
@@ -106,7 +106,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         每秒数量 = Mathf.Max(0f, 每秒数量);
         地面浮起 = Mathf.Max(0f, 地面浮起);
         随机旋转偏移 = Mathf.Max(0f, 随机旋转偏移);
-        扭曲强度 = Mathf.Clamp(扭曲强度, 0f, 0.08f);
+        扭曲强度 = Mathf.Clamp01(扭曲强度);
         边缘淡出 = Mathf.Clamp(边缘淡出, 0.01f, 0.5f);
         颜色影响 = Mathf.Clamp01(颜色影响);
         波纹频率 = Mathf.Clamp(波纹频率, 0.1f, 4f);
