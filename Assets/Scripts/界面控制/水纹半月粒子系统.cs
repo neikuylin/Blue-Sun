@@ -48,7 +48,6 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     [SerializeField] private bool 粒子朝向扩散方向 = true;
     [SerializeField, Min(0f)] private float 随机旋转偏移 = 8f;
 
-    [SerializeField, Range(15f, 360f)] private float 半月弧度 = 180f;
     [SerializeField, Range(0.02f, 0.45f)] private float 中心最大宽度 = 0.16f;
     [SerializeField, Range(6, 64)] private int 弧线段数 = 24;
 
@@ -291,7 +290,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
             激活 = true,
             存活时间 = 0f,
             生命周期 = RandomRange(生命周期),
-            角度 = RandomAngle(),
+            角度 = ResolveWaveCenterAngle(),
             扩散距离 = RandomRange(扩散距离),
             起始尺寸 = RandomRange(起始尺寸),
             结束尺寸 = RandomRange(结束尺寸),
@@ -386,7 +385,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         return transform.TransformDirection(localDirection).normalized;
     }
 
-    private float RandomAngle()
+    private float ResolveWaveCenterAngle()
     {
         float span = ResolvePositiveAngleSpan(起始角度, 结束角度);
         if (span <= 0.001f)
@@ -394,7 +393,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
             return 起始角度;
         }
 
-        return 起始角度 + Random.Range(0f, span);
+        return 起始角度 + span * 0.5f;
     }
 
     private float ResolveDeltaTime()
@@ -440,14 +439,15 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         Vector2[] uvs = new Vector2[vertexCount];
         int[] triangles = new int[segments * 6 * 2];
 
-        float halfArc = 半月弧度 * 0.5f;
+        float waveArc = ResolveWaveArc();
+        float halfArc = waveArc * 0.5f;
         float startAngle = 90f - halfArc;
         float outerRadius = 0.5f;
         float minTipWidth = 0.001f;
         for (int i = 0; i <= segments; i++)
         {
             float t = i / (float)segments;
-            float angle = (startAngle + 半月弧度 * t) * Mathf.Deg2Rad;
+            float angle = (startAngle + waveArc * t) * Mathf.Deg2Rad;
             float visibleWidth = Mathf.Max(minTipWidth, Mathf.Sin(t * Mathf.PI) * 中心最大宽度);
             float width = visibleWidth + 扭曲外扩宽度;
             float innerRadius = Mathf.Max(0.01f, outerRadius - width);
@@ -578,6 +578,17 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         }
 
         return Mathf.Repeat(rawSpan, 360f);
+    }
+
+    private float ResolveWaveArc()
+    {
+        float span = ResolvePositiveAngleSpan(起始角度, 结束角度);
+        if (span <= 0.001f)
+        {
+            return 15f;
+        }
+
+        return Mathf.Clamp(span, 15f, 360f);
     }
 
     private static float RandomRange(Vector2 range)

@@ -24,7 +24,6 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private SerializedProperty 结束角度;
     private SerializedProperty 粒子朝向扩散方向;
     private SerializedProperty 随机旋转偏移;
-    private SerializedProperty 半月弧度;
     private SerializedProperty 中心最大宽度;
     private SerializedProperty 弧线段数;
 
@@ -50,7 +49,6 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         结束角度 = serializedObject.FindProperty("结束角度");
         粒子朝向扩散方向 = serializedObject.FindProperty("粒子朝向扩散方向");
         随机旋转偏移 = serializedObject.FindProperty("随机旋转偏移");
-        半月弧度 = serializedObject.FindProperty("半月弧度");
         中心最大宽度 = serializedObject.FindProperty("中心最大宽度");
         弧线段数 = serializedObject.FindProperty("弧线段数");
     }
@@ -120,18 +118,17 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private void DrawAngleSettings()
     {
         EditorGUILayout.Space(6f);
-        EditorGUILayout.LabelField("角度范围", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(起始角度, new GUIContent("起始角度", "0度是本地X正方向，90度是本地Z正方向。结束角度小于起始角度时会跨过360度。"));
-        EditorGUILayout.PropertyField(结束角度, new GUIContent("结束角度", "控制粒子发射扇区的结束角度。"));
-        EditorGUILayout.PropertyField(粒子朝向扩散方向, new GUIContent("粒子朝向扩散方向", "开启后半月弧形会朝向自身扩散方向。"));
-        EditorGUILayout.PropertyField(随机旋转偏移, new GUIContent("随机旋转偏移", "给每个粒子增加少量随机旋转，避免水纹完全一致。"));
+        EditorGUILayout.LabelField("波纹方向和幅度", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(起始角度, new GUIContent("起始角度", "决定弯月波纹的一端。0度是本地X正方向，90度是本地Z正方向。"));
+        EditorGUILayout.PropertyField(结束角度, new GUIContent("结束角度", "决定弯月波纹的另一端。起始角度到结束角度的跨度就是弯月幅度，中间角度就是扩散方向。"));
+        EditorGUILayout.PropertyField(粒子朝向扩散方向, new GUIContent("粒子朝向扩散方向", "开启后弯月会朝向角度范围的中心方向扩散。"));
+        EditorGUILayout.PropertyField(随机旋转偏移, new GUIContent("随机旋转偏移", "给每个波纹增加少量随机旋转。需要每一圈完全一致时设为0。"));
     }
 
     private void DrawShapeSettings()
     {
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("半月形状", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(半月弧度, new GUIContent("弯月弧度", "单个粒子的弯月张开角度。180度就是半月。"));
         EditorGUILayout.PropertyField(中心最大宽度, new GUIContent("中心最大宽度", "弯月中间最粗处的宽度，两端会自动收尖。"));
         EditorGUILayout.PropertyField(弧线段数, new GUIContent("弧线段数", "数值越高弧线越圆滑。"));
     }
@@ -177,7 +174,7 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         Handles.DrawWireDisc(center, normal, radius);
         Handles.DrawLine(center, center + startDirection * radius);
         Handles.DrawLine(center, center + AngleToWorldDirection(transform, startAngle + span) * radius);
-        Handles.Label(center + normal * 0.2f, $"水纹角度 {startAngle:0.#}° -> {ripple.Scene结束角度:0.#}°");
+        Handles.Label(center + normal * 0.2f, $"波纹幅度 {startAngle:0.#}° -> {ripple.Scene结束角度:0.#}°");
         Handles.color = oldColor;
     }
 
