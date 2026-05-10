@@ -9,6 +9,8 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private SerializedProperty 地面浮起;
     private SerializedProperty 编辑模式预览;
     private SerializedProperty 扭曲强度;
+    private SerializedProperty 扭曲外扩宽度;
+    private SerializedProperty 可见弯月宽度倍率;
     private SerializedProperty 边缘淡出;
     private SerializedProperty 颜色影响;
     private SerializedProperty 波纹频率;
@@ -33,6 +35,8 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         地面浮起 = serializedObject.FindProperty("地面浮起");
         编辑模式预览 = serializedObject.FindProperty("编辑模式预览");
         扭曲强度 = serializedObject.FindProperty("扭曲强度");
+        扭曲外扩宽度 = serializedObject.FindProperty("扭曲外扩宽度");
+        可见弯月宽度倍率 = serializedObject.FindProperty("可见弯月宽度倍率");
         边缘淡出 = serializedObject.FindProperty("边缘淡出");
         颜色影响 = serializedObject.FindProperty("颜色影响");
         波纹频率 = serializedObject.FindProperty("波纹频率");
@@ -94,6 +98,8 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         EditorGUILayout.Space(4f);
         EditorGUILayout.LabelField("背后画面扭曲", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(扭曲强度, new GUIContent("扭曲强度", "弯月范围内偏移背后画面的强度，0表示不扭曲。"));
+        EditorGUILayout.PropertyField(扭曲外扩宽度, new GUIContent("扭曲外扩宽度", "在弯月本体之外额外扩出的透明扭曲范围，只影响背后画面，不直接显示为月牙。"));
+        EditorGUILayout.PropertyField(可见弯月宽度倍率, new GUIContent("可见弯月宽度倍率", "可见月牙占整体扭曲宽度的比例。数值越小，越多外扩区域只扭曲不显色。"));
         EditorGUILayout.PropertyField(边缘淡出, new GUIContent("边缘淡出", "让弯月内外边缘逐渐减弱，数值越大边缘越柔。"));
         EditorGUILayout.PropertyField(颜色影响, new GUIContent("颜色影响", "用粒子颜色轻微影响扭曲后的画面，0表示只扭曲不染色。"));
         EditorGUILayout.PropertyField(波纹频率, new GUIContent("波纹频率", "沿弯月方向的起伏次数，数值越高水纹变化越密。"));

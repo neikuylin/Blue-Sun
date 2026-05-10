@@ -4,6 +4,7 @@ Shader "项目/特效/水纹半月扭曲"
     {
         _Color ("水纹颜色", Color) = (1, 1, 1, 1)
         _DistortionStrength ("扭曲强度", Range(0, 1)) = 0.018
+        _VisibleWidthScale ("可见弯月宽度倍率", Range(0.05, 1)) = 0.45
         _EdgeFade ("边缘淡出", Range(0.01, 0.5)) = 0.12
         _TintStrength ("颜色影响", Range(0, 1)) = 0.12
         _WaveFrequency ("波纹频率", Range(0.1, 4)) = 1.4
@@ -40,6 +41,7 @@ Shader "项目/特效/水纹半月扭曲"
             float4 _GrabTexture_TexelSize;
             float4 _Color;
             float _DistortionStrength;
+            float _VisibleWidthScale;
             float _EdgeFade;
             float _TintStrength;
             float _WaveFrequency;
@@ -75,11 +77,18 @@ Shader "项目/特效/水纹半月扭曲"
                 float tipFade = saturate(sin(saturate(input.uv.x) * UNITY_PI));
                 float outerFade = smoothstep(0.0, max(_EdgeFade, 0.001), input.uv.y);
                 float innerFade = smoothstep(0.0, max(_EdgeFade, 0.001), 1.0 - input.uv.y);
-                float mask = alpha * tipFade * outerFade * innerFade;
+                float distortionMask = alpha * tipFade * outerFade * innerFade;
+
+                float visibleScale = saturate(_VisibleWidthScale);
+                float visibleStart = 1.0 - visibleScale;
+                float visibleCoord = saturate((input.uv.y - visibleStart) / max(visibleScale, 0.001));
+                float visibleOuterFade = smoothstep(0.0, max(_EdgeFade, 0.001), visibleCoord);
+                float visibleInnerFade = smoothstep(0.0, max(_EdgeFade, 0.001), 1.0 - visibleCoord);
+                float visibleMask = alpha * tipFade * visibleOuterFade * visibleInnerFade * step(visibleStart, input.uv.y);
 
                 float side = input.uv.y * 2.0 - 1.0;
                 float wave = sin((input.uv.x - 0.5) * UNITY_PI * 2.0 * _WaveFrequency);
-                float2 offset = float2(side, wave * 0.35) * (_DistortionStrength * mask);
+                float2 offset = float2(side, wave * 0.35) * (_DistortionStrength * distortionMask);
                 offset.y *= _GrabTexture_TexelSize.y / max(abs(_GrabTexture_TexelSize.x), 0.000001);
 
                 float4 distortedScreenPos = input.screenPos;
@@ -88,7 +97,9 @@ Shader "项目/特效/水纹半月扭曲"
                 float3 background = tex2Dproj(_GrabTexture, UNITY_PROJ_COORD(input.screenPos)).rgb;
                 float3 distorted = tex2Dproj(_GrabTexture, UNITY_PROJ_COORD(distortedScreenPos)).rgb;
                 float3 tinted = lerp(distorted, distorted * input.color.rgb, saturate(_TintStrength));
-                float3 finalColor = lerp(background, tinted, mask);
+                float3 filtered = lerp(background, tinted, distortionMask);
+                float3 visibleTint = lerp(filtered, filtered * input.color.rgb, visibleMask * saturate(_TintStrength));
+                float3 finalColor = lerp(filtered, visibleTint, visibleMask);
                 return float4(finalColor, 1.0);
             }
             ENDCG

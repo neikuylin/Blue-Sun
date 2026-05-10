@@ -30,6 +30,8 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     [SerializeField, Min(0f)] private float 地面浮起 = 0.04f;
     [SerializeField] private bool 编辑模式预览 = true;
     [SerializeField, Range(0f, 1f)] private float 扭曲强度 = 0.018f;
+    [SerializeField, Range(0f, 1.5f)] private float 扭曲外扩宽度 = 0.18f;
+    [SerializeField, Range(0.05f, 1f)] private float 可见弯月宽度倍率 = 0.45f;
     [SerializeField, Range(0.01f, 0.5f)] private float 边缘淡出 = 0.12f;
     [SerializeField, Range(0f, 1f)] private float 颜色影响 = 0.12f;
     [SerializeField, Range(0.1f, 4f)] private float 波纹频率 = 1.4f;
@@ -107,6 +109,8 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         地面浮起 = Mathf.Max(0f, 地面浮起);
         随机旋转偏移 = Mathf.Max(0f, 随机旋转偏移);
         扭曲强度 = Mathf.Clamp01(扭曲强度);
+        扭曲外扩宽度 = Mathf.Clamp(扭曲外扩宽度, 0f, 1.5f);
+        可见弯月宽度倍率 = Mathf.Clamp(可见弯月宽度倍率, 0.05f, 1f);
         边缘淡出 = Mathf.Clamp(边缘淡出, 0.01f, 0.5f);
         颜色影响 = Mathf.Clamp01(颜色影响);
         波纹频率 = Mathf.Clamp(波纹频率, 0.1f, 4f);
@@ -444,7 +448,8 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         {
             float t = i / (float)segments;
             float angle = (startAngle + 半月弧度 * t) * Mathf.Deg2Rad;
-            float width = Mathf.Max(minTipWidth, Mathf.Sin(t * Mathf.PI) * 中心最大宽度);
+            float visibleWidth = Mathf.Max(minTipWidth, Mathf.Sin(t * Mathf.PI) * 中心最大宽度);
+            float width = visibleWidth + 扭曲外扩宽度;
             float innerRadius = Mathf.Max(0.01f, outerRadius - width);
             Vector3 outer = new Vector3(Mathf.Cos(angle) * outerRadius, 0f, Mathf.Sin(angle) * outerRadius);
             Vector3 inner = new Vector3(Mathf.Cos(angle) * innerRadius, 0f, Mathf.Sin(angle) * innerRadius);
@@ -515,6 +520,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         SetColorIfExists(runtimeMaterial, "_Color", Color.white);
         SetColorIfExists(runtimeMaterial, "_BaseColor", Color.white);
         SetFloatIfExists(runtimeMaterial, "_DistortionStrength", 扭曲强度);
+        SetFloatIfExists(runtimeMaterial, "_VisibleWidthScale", 可见弯月宽度倍率);
         SetFloatIfExists(runtimeMaterial, "_EdgeFade", 边缘淡出);
         SetFloatIfExists(runtimeMaterial, "_TintStrength", 颜色影响);
         SetFloatIfExists(runtimeMaterial, "_WaveFrequency", 波纹频率);
