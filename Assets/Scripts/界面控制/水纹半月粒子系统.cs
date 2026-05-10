@@ -10,6 +10,9 @@ using UnityEditor;
 [AddComponentMenu("特效/水纹半月粒子系统")]
 public sealed class 水纹半月粒子系统 : MonoBehaviour
 {
+    private const string DefaultDistortionMaterialResourcePath = "水纹半月扭曲材质";
+    private const string DefaultDistortionShaderName = "项目/特效/水纹半月扭曲";
+
     private struct 水纹粒子状态
     {
         public bool 激活;
@@ -26,6 +29,10 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     [SerializeField] private Color 粒子颜色 = new Color(0f, 0f, 0f, 0.45f);
     [SerializeField, Min(0f)] private float 地面浮起 = 0.04f;
     [SerializeField] private bool 编辑模式预览 = true;
+    [SerializeField, Range(0f, 0.08f)] private float 扭曲强度 = 0.018f;
+    [SerializeField, Range(0.01f, 0.5f)] private float 边缘淡出 = 0.12f;
+    [SerializeField, Range(0f, 1f)] private float 颜色影响 = 0.12f;
+    [SerializeField, Range(0.1f, 4f)] private float 波纹频率 = 1.4f;
 
     [SerializeField, Min(0f)] private float 每秒数量 = 8f;
     [SerializeField, Min(1)] private int 最大数量 = 80;
@@ -48,6 +55,7 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
     private ParticleSystem.Particle[] particles;
     private 水纹粒子状态[] particleStates;
     private Material runtimeMaterial;
+    private Material runtimeMaterialTemplateSource;
     private Mesh runtimeMesh;
     private float emissionAccumulator;
     private double lastEditorUpdateTime;
@@ -98,6 +106,10 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         每秒数量 = Mathf.Max(0f, 每秒数量);
         地面浮起 = Mathf.Max(0f, 地面浮起);
         随机旋转偏移 = Mathf.Max(0f, 随机旋转偏移);
+        扭曲强度 = Mathf.Clamp(扭曲强度, 0f, 0.08f);
+        边缘淡出 = Mathf.Clamp(边缘淡出, 0.01f, 0.5f);
+        颜色影响 = Mathf.Clamp01(颜色影响);
+        波纹频率 = Mathf.Clamp(波纹频率, 0.1f, 4f);
         应用设置();
 
 #if UNITY_EDITOR
@@ -474,23 +486,54 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
 
     private Material ResolveParticleMaterial()
     {
-        Shader shader = 粒子材质模板 != null ? 粒子材质模板.shader : Shader.Find("Particles/Standard Unlit");
+        Material materialTemplate = ResolveParticleMaterialTemplate();
+        Shader shader = materialTemplate != null ? materialTemplate.shader : Shader.Find(DefaultDistortionShaderName);
+        if (shader == null)
+        {
+            shader = Shader.Find("Particles/Standard Unlit");
+        }
+
         if (shader == null)
         {
             shader = Shader.Find("Sprites/Default");
         }
 
-        if (runtimeMaterial == null || runtimeMaterial.shader != shader)
+        if (runtimeMaterial == null || runtimeMaterial.shader != shader || runtimeMaterialTemplateSource != materialTemplate)
         {
-            runtimeMaterial = 粒子材质模板 != null ? new Material(粒子材质模板) : new Material(shader);
+            if (runtimeMaterial != null)
+            {
+                DestroyRuntimeObject(runtimeMaterial);
+            }
+
+            runtimeMaterial = materialTemplate != null ? new Material(materialTemplate) : new Material(shader);
             runtimeMaterial.name = "RuntimeCrescentRippleParticleMaterial";
             runtimeMaterial.hideFlags = HideFlags.HideAndDontSave;
+            runtimeMaterialTemplateSource = materialTemplate;
         }
 
         ConfigureTransparentMaterial(runtimeMaterial);
         SetColorIfExists(runtimeMaterial, "_Color", Color.white);
         SetColorIfExists(runtimeMaterial, "_BaseColor", Color.white);
+        SetFloatIfExists(runtimeMaterial, "_DistortionStrength", 扭曲强度);
+        SetFloatIfExists(runtimeMaterial, "_EdgeFade", 边缘淡出);
+        SetFloatIfExists(runtimeMaterial, "_TintStrength", 颜色影响);
+        SetFloatIfExists(runtimeMaterial, "_WaveFrequency", 波纹频率);
+        if (runtimeMaterial.HasProperty("_DistortionStrength"))
+        {
+            runtimeMaterial.renderQueue = 3060;
+        }
+
         return runtimeMaterial;
+    }
+
+    private Material ResolveParticleMaterialTemplate()
+    {
+        if (粒子材质模板 != null)
+        {
+            return 粒子材质模板;
+        }
+
+        return Resources.Load<Material>(DefaultDistortionMaterialResourcePath);
     }
 
     private void ClearRuntimeParticles()
@@ -553,6 +596,14 @@ public sealed class 水纹半月粒子系统 : MonoBehaviour
         if (material != null && material.HasProperty(propertyName))
         {
             material.SetColor(propertyName, color);
+        }
+    }
+
+    private static void SetFloatIfExists(Material material, string propertyName, float value)
+    {
+        if (material != null && material.HasProperty(propertyName))
+        {
+            material.SetFloat(propertyName, value);
         }
     }
 

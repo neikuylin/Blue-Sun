@@ -8,6 +8,10 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private SerializedProperty 粒子颜色;
     private SerializedProperty 地面浮起;
     private SerializedProperty 编辑模式预览;
+    private SerializedProperty 扭曲强度;
+    private SerializedProperty 边缘淡出;
+    private SerializedProperty 颜色影响;
+    private SerializedProperty 波纹频率;
     private SerializedProperty 每秒数量;
     private SerializedProperty 最大数量;
     private SerializedProperty 生命周期;
@@ -28,6 +32,10 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
         粒子颜色 = serializedObject.FindProperty("粒子颜色");
         地面浮起 = serializedObject.FindProperty("地面浮起");
         编辑模式预览 = serializedObject.FindProperty("编辑模式预览");
+        扭曲强度 = serializedObject.FindProperty("扭曲强度");
+        边缘淡出 = serializedObject.FindProperty("边缘淡出");
+        颜色影响 = serializedObject.FindProperty("颜色影响");
+        波纹频率 = serializedObject.FindProperty("波纹频率");
         每秒数量 = serializedObject.FindProperty("每秒数量");
         最大数量 = serializedObject.FindProperty("最大数量");
         生命周期 = serializedObject.FindProperty("生命周期");
@@ -78,10 +86,17 @@ public sealed class 水纹半月粒子系统编辑器 : Editor
     private void DrawAppearanceSettings()
     {
         EditorGUILayout.LabelField("外观", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(粒子材质模板, new GUIContent("粒子材质模板", "可选。为空时自动使用透明粒子材质。"));
+        EditorGUILayout.PropertyField(粒子材质模板, new GUIContent("粒子材质模板", "可选。为空时自动使用水纹半月扭曲材质。"));
         EditorGUILayout.PropertyField(粒子颜色, new GUIContent("粒子颜色", "水纹半月粒子的颜色和初始透明度。"));
         EditorGUILayout.PropertyField(地面浮起, new GUIContent("地面浮起", "粒子离对象原点所在平面的高度，避免和地面重叠闪烁。"));
         EditorGUILayout.PropertyField(编辑模式预览, new GUIContent("编辑模式预览", "开启后不进入播放模式也会在Scene里播放预览。"));
+
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("背后画面扭曲", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(扭曲强度, new GUIContent("扭曲强度", "弯月范围内偏移背后画面的强度，0表示不扭曲。"));
+        EditorGUILayout.PropertyField(边缘淡出, new GUIContent("边缘淡出", "让弯月内外边缘逐渐减弱，数值越大边缘越柔。"));
+        EditorGUILayout.PropertyField(颜色影响, new GUIContent("颜色影响", "用粒子颜色轻微影响扭曲后的画面，0表示只扭曲不染色。"));
+        EditorGUILayout.PropertyField(波纹频率, new GUIContent("波纹频率", "沿弯月方向的起伏次数，数值越高水纹变化越密。"));
     }
 
     private void DrawEmissionSettings()
