@@ -687,7 +687,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
-        NavigateToNode(targetNodeId);
+        墨血换房转场控制器.尝试播放换房转场(() => NavigateToNode(targetNodeId));
     }
 
     public static bool TryResolveCurrentDoorEntrance(

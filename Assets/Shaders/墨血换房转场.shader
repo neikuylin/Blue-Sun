@@ -1,0 +1,74 @@
+Shader "项目/UI/幕布换房转场"
+{
+    Properties
+    {
+        [PerRendererData] _MainTex ("UI贴图", 2D) = "white" {}
+        _Color ("UI颜色", Color) = (1,1,1,1)
+        _CurtainColor ("幕布颜色", Color) = (0,0,0,1)
+        _Progress ("覆盖进度", Range(0, 1)) = 0
+    }
+
+    SubShader
+    {
+        Tags
+        {
+            "Queue"="Overlay"
+            "IgnoreProjector"="True"
+            "RenderType"="Transparent"
+            "PreviewType"="Plane"
+            "CanUseSpriteAtlas"="True"
+        }
+
+        Cull Off
+        Lighting Off
+        ZWrite Off
+        ZTest Always
+        Blend SrcAlpha OneMinusSrcAlpha
+
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "UnityCG.cginc"
+
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed4 _Color;
+            fixed4 _CurtainColor;
+            float _Progress;
+
+            struct appdata_t
+            {
+                float4 vertex : POSITION;
+                fixed4 color : COLOR;
+                float2 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 vertex : SV_POSITION;
+                fixed4 color : COLOR;
+                float2 uv : TEXCOORD0;
+            };
+
+            v2f vert(appdata_t input)
+            {
+                v2f output;
+                output.vertex = UnityObjectToClipPos(input.vertex);
+                output.uv = TRANSFORM_TEX(input.texcoord, _MainTex);
+                output.color = input.color * _Color;
+                return output;
+            }
+
+            fixed4 frag(v2f input) : SV_Target
+            {
+                fixed4 baseColor = tex2D(_MainTex, input.uv) * input.color;
+                fixed visible = step(1.0 - saturate(_Progress), input.uv.y);
+                fixed alpha = visible * _CurtainColor.a * baseColor.a;
+                return fixed4(_CurtainColor.rgb, alpha);
+            }
+            ENDCG
+        }
+    }
+}
