@@ -1,4 +1,5 @@
 using System.Collections;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -71,7 +72,7 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
             StopCoroutine(transitionRoutine);
         }
 
-        transitionRoutine = StartCoroutine(PlayRevealOnly());
+        transitionRoutine = StartCoroutine(PlayRevealAfterSceneLoaded());
     }
 
     private void OnEnable()
@@ -177,15 +178,38 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
         Debug.Log($"{DebugPrefix} 掀开完成，转场结束。对象={name}。", this);
     }
 
+    private IEnumerator PlayRevealAfterSceneLoaded()
+    {
+        Debug.Log($"{DebugPrefix} 开始检测场景是否加载完成，加载完成后再掀开。对象={name}，当前场景={SceneManager.GetActiveScene().name}。", this);
+
+        while (!IsActiveSceneLoaded())
+        {
+            yield return null;
+        }
+
+        Debug.Log($"{DebugPrefix} 场景加载完成检测通过，开始掀开幕布。对象={name}，当前场景={SceneManager.GetActiveScene().name}。", this);
+        yield return PlayRevealOnly();
+    }
+
+    private static bool IsActiveSceneLoaded()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        return activeScene.IsValid() && activeScene.isLoaded;
+    }
+
     private IEnumerator AnimateProgress(float from, float to, float duration)
     {
         float elapsed = 0f;
+        float previousTime = Time.realtimeSinceStartup;
         Debug.Log($"{DebugPrefix} 进度动画开始：{from} -> {to}，duration={duration}，对象={name}。", this);
         SetProgress(from);
 
         while (elapsed < duration)
         {
-            elapsed += Time.unscaledDeltaTime;
+            float currentTime = Time.realtimeSinceStartup;
+            elapsed += Mathf.Max(0f, currentTime - previousTime);
+            previousTime = currentTime;
+
             float t = Mathf.Clamp01(elapsed / duration);
             t = t * t * (3f - 2f * t);
             SetProgress(Mathf.Lerp(from, to, t));
