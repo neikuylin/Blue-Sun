@@ -763,7 +763,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingDoorNavigationRoutine = null;
         ClearPendingDoorNavigation();
-        墨血换房转场控制器.尝试播放换房转场(() => BattleBootstrap.NavigateToDirection(direction));
+        Debug.Log($"[换房转场Debug] 按钮/点击门口导航到达目标格，准备播放转场后切房。direction={direction}，unit={unit.name}，targetCell={targetCell}。", this);
+        墨血换房转场控制器.尝试播放换房转场(() =>
+        {
+            Debug.Log($"[换房转场Debug] 按钮/点击门口导航：幕布盖满回调触发，开始真正切房。direction={direction}。", this);
+            BattleBootstrap.NavigateToDirection(direction);
+        });
     }
 
     private bool UpdateDoorExitNavigationLock(BattleUnit unit)
@@ -850,7 +855,12 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingDoorNavigationRoutine = null;
         ClearPendingDoorNavigation();
-        墨血换房转场控制器.尝试播放换房转场(() => BattleBootstrap.NavigateToDirection(direction));
+        Debug.Log($"[换房转场Debug] 自动门口导航到达目标格，准备播放转场后切房。direction={direction}，unit={unit.name}，autoDestination={autoDestination}。", this);
+        墨血换房转场控制器.尝试播放换房转场(() =>
+        {
+            Debug.Log($"[换房转场Debug] 自动门口导航：幕布盖满回调触发，开始真正切房。direction={direction}。", this);
+            BattleBootstrap.NavigateToDirection(direction);
+        });
     }
 
     private void ClearPendingDoorNavigation()
