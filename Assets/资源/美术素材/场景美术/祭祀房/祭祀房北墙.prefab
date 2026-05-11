@@ -80,7 +80,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -1
+  m_SortingOrder: -3
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: eb6c9763127f8c74d9d460445347ddba, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -820,7 +820,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -3
+  m_SortingOrder: -5
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: afcd3cb25ae84f044997e13b2c48131e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1112,7 +1112,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -2
+  m_SortingOrder: -4
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: f87c83e1c5854fe49b9198c6e69babe7, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1192,7 +1192,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: -3
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -1307,7 +1307,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: -1
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -1531,7 +1531,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -2
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 8e5598c7a4c011b4ab4815bf7adcb070, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1556,7 +1556,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: 0
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -1615,7 +1615,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: -2
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -1638,7 +1638,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1246153040806426264, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: m_SortingOrder
-      value: 1
+      value: -2
       objectReference: {fileID: 0}
     - target: {fileID: 1246153040806426264, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -1651,7 +1651,7 @@ PrefabInstance:
     - target: {fileID: 3204177829536251797, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 3725875222009511330, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: m_Name
       value: "\u74F6\u5B50\u7EC4\u70B9\u4F4D"
@@ -1697,6 +1697,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5424549172835634116, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5424549172835634116, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
@@ -1728,7 +1732,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -1822,6 +1826,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 724068630677092619}
     m_Modifications:
+    - target: {fileID: 246029894284264502, guid: d3af5e565789c7640bb4086ad494ed1e, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3588251432175338585, guid: d3af5e565789c7640bb4086ad494ed1e, type: 3}
       propertyPath: m_Name
       value: "\u7F50\u5B503\u70B9\u4F4D"
@@ -1844,7 +1852,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
     - target: {fileID: 7658016840776087961, guid: d3af5e565789c7640bb4086ad494ed1e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -7.29
+      value: -7.72
       objectReference: {fileID: 0}
     - target: {fileID: 7658016840776087961, guid: d3af5e565789c7640bb4086ad494ed1e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1915,7 +1923,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -2020,7 +2028,7 @@ PrefabInstance:
     - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 6384333158346698777, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: m_LocalScale.x
       value: -1
@@ -2114,7 +2122,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -2143,12 +2151,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2041164683134986959, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: m_SortingOrder
-      value: 1
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 2041164683134986959, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+    - target: {fileID: 2406416790434101904, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2837357980800840494, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.85
@@ -2200,14 +2212,14 @@ PrefabInstance:
     - target: {fileID: 6503633320108814995, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 7913202879871080831, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: m_Name
       value: "\u76D8\u5B50\u70B9\u4F4D"
       objectReference: {fileID: 0}
     - target: {fileID: 8177976666806917770, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: m_SortingOrder
-      value: 0
+      value: -2
       objectReference: {fileID: 0}
     - target: {fileID: 8177976666806917770, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -2241,7 +2253,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -2316,7 +2328,7 @@ PrefabInstance:
     - target: {fileID: 2050394123779647874, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 3916657872593677402, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
       propertyPath: m_SortingOrder
       value: 1
@@ -2361,7 +2373,7 @@ MonoBehaviour:
   mode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
