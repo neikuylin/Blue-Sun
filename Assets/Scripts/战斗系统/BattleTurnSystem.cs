@@ -763,7 +763,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingDoorNavigationRoutine = null;
         ClearPendingDoorNavigation();
-        BattleBootstrap.NavigateToDirection(direction);
+        墨血换房转场控制器.尝试播放换房转场(() => BattleBootstrap.NavigateToDirection(direction));
     }
 
     private bool UpdateDoorExitNavigationLock(BattleUnit unit)
@@ -850,7 +850,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingDoorNavigationRoutine = null;
         ClearPendingDoorNavigation();
-        BattleBootstrap.NavigateToDirection(direction);
+        墨血换房转场控制器.尝试播放换房转场(() => BattleBootstrap.NavigateToDirection(direction));
     }
 
     private void ClearPendingDoorNavigation()
