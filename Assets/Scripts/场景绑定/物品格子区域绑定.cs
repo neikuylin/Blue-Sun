@@ -21,6 +21,7 @@ public sealed class 物品格子区域绑定 : MonoBehaviour
     [Header("基础")]
     public 数据来源类型 数据来源 = 数据来源类型.仓库;
     public 右键拖拽目标类型 右键拖拽目标 = 右键拖拽目标类型.背包;
+    public int 宝箱序列号;
 
     [Header("区域")]
     public RectTransform 格子区域;

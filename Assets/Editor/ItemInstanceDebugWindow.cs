@@ -16,6 +16,7 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
     private Vector2 scroll;
     private int selectedSection;
     private int selectedCharacterIndex;
+    private int selectedChestIndex;
     private int warehouseSlotCountDraft;
     private int backpackSlotCountDraft;
     private int chestSlotCountDraft;
@@ -77,7 +78,7 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
                 DrawSection("\u80cc\u5305\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetBackpackSnapshots(), string.Empty);
                 break;
             case 2:
-                DrawSection("\u5b9d\u7bb1\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetChestSnapshots(), string.Empty);
+                DrawChestSection();
                 break;
             default:
                 DrawCharacterSection();
@@ -105,6 +106,30 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             $"\u89d2\u8272\u88c5\u5907\u5b9e\u4f8b - {characterId}",
             InventoryShortcutRuntimeBinder.GetEquipmentSnapshots(characterId),
             characterId);
+    }
+
+    private void DrawChestSection()
+    {
+        List<int> chestSerials = InventoryShortcutRuntimeBinder.GetChestSerialNumbers();
+        if (chestSerials.Count == 0)
+        {
+            EditorGUILayout.HelpBox("当前还没有宝箱实例序列号。先在运行时打开一个宝箱。", MessageType.Info);
+            return;
+        }
+
+        selectedChestIndex = Mathf.Clamp(selectedChestIndex, 0, chestSerials.Count - 1);
+        string[] options = new string[chestSerials.Count];
+        for (int i = 0; i < chestSerials.Count; i++)
+        {
+            options[i] = $"宝箱（{chestSerials[i]}）";
+        }
+
+        selectedChestIndex = EditorGUILayout.Popup("宝箱序列号", selectedChestIndex, options);
+        int chestSerial = chestSerials[selectedChestIndex];
+        DrawSection(
+            $"宝箱实例 - 宝箱（{chestSerial}）",
+            InventoryShortcutRuntimeBinder.GetChestSnapshots(chestSerial),
+            string.Empty);
     }
 
     private void DrawSection(string title, List<InventoryShortcutRuntimeBinder.ItemSlotSnapshot> snapshots, string ownerCharacterId)
@@ -200,11 +225,7 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
 
             if (selectedSection == 2)
             {
-                chestSlotCountDraft = InventoryShortcutRuntimeBinder.ChestSlotCount;
-                if (chestSlotCountDraft < 0 && fallbackValue > 0)
-                {
-                    chestSlotCountDraft = fallbackValue;
-                }
+                chestSlotCountDraft = fallbackValue;
                 return chestSlotCountDraft;
             }
 

@@ -203,7 +203,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
     private GameObject runtimeTooltipSourcePrefab;
 
     public static int BackpackSlotCount => instance != null ? instance.仓储状态.背包数据.Count : 0;
-    public static int ChestSlotCount => instance != null ? instance.仓储状态.宝箱数据.Count : 0;
+    public static int ChestSlotCount => instance != null ? instance.GetCurrentChestSlotCount() : 0;
+    public static int CurrentChestSerial => instance != null ? instance.仓储状态.当前宝箱序列号 : 0;
     public static int WarehouseSlotCount => instance != null ? instance.仓储状态.仓库数据.Count : 0;
     public static int EquipmentSlotCount => instance != null ? instance.equipmentSlots.Count : 0;
     public static int GetWarehouseUsableSlotCount()
@@ -377,7 +378,42 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static List<ItemSlotSnapshot> GetChestSnapshots()
     {
-        return instance != null ? BuildSnapshots(instance.仓储状态.宝箱数据) : new List<ItemSlotSnapshot>();
+        return instance != null ? BuildSnapshots(instance.GetCurrentChestData(false)) : new List<ItemSlotSnapshot>();
+    }
+
+    public static List<ItemSlotSnapshot> GetChestSnapshots(int chestSerial)
+    {
+        if (instance == null)
+        {
+            return new List<ItemSlotSnapshot>();
+        }
+
+        return BuildSnapshots(instance.仓储状态.获取宝箱数据(chestSerial, false));
+    }
+
+    public static List<int> GetChestSerialNumbers()
+    {
+        return instance != null ? instance.仓储状态.获取宝箱序列号列表() : new List<int>();
+    }
+
+    public static int RegisterChestInstance()
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        return instance != null ? instance.仓储状态.注册宝箱序列号() : 0;
+    }
+
+    public static void OpenChest(int chestSerial)
+    {
+        if (instance == null)
+        {
+            Bootstrap();
+        }
+
+        instance?.ActivateChest(chestSerial);
     }
 
     public static List<ItemSlotSnapshot> GetWarehouseSnapshots()
@@ -456,13 +492,19 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static bool TryGetChestSlotData(int index, out ItemSlotData data)
     {
+        return TryGetChestSlotData(CurrentChestSerial, index, out data);
+    }
+
+    public static bool TryGetChestSlotData(int chestSerial, int index, out ItemSlotData data)
+    {
         data = default;
-        if (instance == null || index < 0 || index >= instance.仓储状态.宝箱数据.Count)
+        List<ItemSlotData> chestData = instance != null ? instance.仓储状态.获取宝箱数据(chestSerial, false) : null;
+        if (chestData == null || index < 0 || index >= chestData.Count)
         {
             return false;
         }
 
-        data = instance.仓储状态.宝箱数据[index];
+        data = chestData[index];
         return true;
     }
 
@@ -493,13 +535,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static bool TrySetChestSlotData(int index, ItemSlotData data)
     {
-        if (instance == null || index < 0 || index >= instance.仓储状态.宝箱数据.Count)
+        return TrySetChestSlotData(CurrentChestSerial, index, data);
+    }
+
+    public static bool TrySetChestSlotData(int chestSerial, int index, ItemSlotData data)
+    {
+        List<ItemSlotData> chestData = instance != null ? instance.仓储状态.获取宝箱数据(chestSerial, false) : null;
+        if (chestData == null || index < 0 || index >= chestData.Count)
         {
             return false;
         }
 
-        instance.仓储状态.宝箱数据[index] = PrepareItemSlotDataForStorage(data, $"宝箱格 {index}");
-        instance.RefreshChestSlot(index);
+        chestData[index] = PrepareItemSlotDataForStorage(data, $"宝箱{chestSerial}格 {index}");
+        if (chestSerial == CurrentChestSerial)
+        {
+            instance.RefreshChestSlot(index);
+        }
+
         return true;
     }
 
@@ -581,7 +633,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static int AddItemToChest(ItemDatabase.ItemEntry itemEntry, int count, int maxStack = 99)
     {
-        return AddItemToStorage(SlotKind.Chest, itemEntry, count, maxStack);
+        return AddItemToChest(CurrentChestSerial, itemEntry, count, maxStack);
+    }
+
+    public static int AddItemToChest(int chestSerial, ItemDatabase.ItemEntry itemEntry, int count, int maxStack = 99)
+    {
+        if (instance == null || chestSerial <= 0)
+        {
+            return count;
+        }
+
+        int previousChestSerial = instance.仓储状态.当前宝箱序列号;
+        instance.仓储状态.设置当前宝箱序列号(chestSerial);
+        instance.仓储状态.确保当前宝箱数据容量(instance.chestSlots.Count);
+        int remain = AddItemToStorage(SlotKind.Chest, itemEntry, count, maxStack);
+        if (previousChestSerial != chestSerial)
+        {
+            instance.仓储状态.设置当前宝箱序列号(previousChestSerial);
+        }
+
+        instance.RefreshAll();
+        return remain;
     }
 
     private static int AddItemToStorage(SlotKind targetKind, ItemDatabase.ItemEntry itemEntry, int count, int maxStack = 99)
@@ -948,9 +1020,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             backpackWidgetCount = Mathf.Max(backpackWidgetCount, extraBackpackSlots[i].Count);
         }
         仓储状态.确保背包数据容量(backpackWidgetCount);
-        仓储状态.确保宝箱数据容量(chestSlots.Count);
+        仓储状态.确保当前宝箱数据容量(chestSlots.Count);
         仓储界面绑定规则.BindCategoryFilters(创建仓储界面绑定上下文());
         仓储界面绑定规则.BindDragRelays(创建仓储界面绑定上下文());
+        RefreshAll();
+    }
+
+    private void ActivateChest(int chestSerial)
+    {
+        if (chestSerial <= 0)
+        {
+            return;
+        }
+
+        仓储状态.设置当前宝箱序列号(chestSerial);
+        if (chestSlots.Count == 0)
+        {
+            BindScene();
+            return;
+        }
+
+        仓储状态.确保当前宝箱数据容量(chestSlots.Count);
         RefreshAll();
     }
 
@@ -1369,12 +1459,23 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             case SlotKind.Backpack:
                 return 仓储状态.背包数据;
             case SlotKind.Chest:
-                return 仓储状态.宝箱数据;
+                return GetCurrentChestData(true);
             case SlotKind.Equipment:
                 return GetCurrentEquipmentData(true);
             default:
                 return null;
         }
+    }
+
+    private List<ItemSlotData> GetCurrentChestData(bool createIfMissing)
+    {
+        return 仓储状态.获取当前宝箱数据(createIfMissing);
+    }
+
+    private int GetCurrentChestSlotCount()
+    {
+        List<ItemSlotData> data = GetCurrentChestData(false);
+        return data != null ? data.Count : 0;
     }
 
     private SlotWidget GetWidget(SlotRef slot)
@@ -1530,7 +1631,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             ExtraEquipmentSlots = extraEquipmentSlots,
             WarehouseData = 仓储状态.仓库数据,
             BackpackData = 仓储状态.背包数据,
-            ChestData = 仓储状态.宝箱数据,
+            ChestData = GetCurrentChestData(false),
             GetCurrentEquipmentData = () => GetCurrentEquipmentData(true),
             GetExpectedEquipmentSlotCount = GetExpectedEquipmentSlotCount,
             ResolveEquipmentCharacterId = ResolveEquipmentCharacterId,
@@ -1555,7 +1656,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             FixedStorageSlotCount = FixedStorageSlotCount,
             WarehouseData = 仓储状态.仓库数据,
             BackpackData = 仓储状态.背包数据,
-            ChestData = 仓储状态.宝箱数据,
+            ChestData = GetCurrentChestData(false),
             WarehouseSlots = warehouseSlots,
             BackpackSlots = backpackSlots,
             ChestSlots = chestSlots,
@@ -1945,7 +2046,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             case SlotKind.Backpack:
                 return Mathf.Max(backpackSlots.Count, 仓储状态.背包数据.Count);
             case SlotKind.Chest:
-                return Mathf.Max(chestSlots.Count, 仓储状态.宝箱数据.Count);
+                return Mathf.Max(chestSlots.Count, GetCurrentChestSlotCount());
             case SlotKind.Equipment:
                 return GetExpectedEquipmentSlotCount();
             default:

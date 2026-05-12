@@ -6,7 +6,8 @@ internal sealed class 仓储状态服务
 {
     private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> warehouseData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
     private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> backpackData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
-    private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> chestData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
+    private readonly Dictionary<int, List<InventoryShortcutRuntimeBinder.ItemSlotData>> chestDataBySerial =
+        new Dictionary<int, List<InventoryShortcutRuntimeBinder.ItemSlotData>>();
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> equipmentDataByCharacter =
         new Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>>(StringComparer.Ordinal);
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> boundEnemyEquipmentDataCache =
@@ -16,10 +17,13 @@ internal sealed class 仓储状态服务
 
     private int warehouseUsableSlotCount = -1;
     private int backpackUsableSlotCount = -1;
+    private int nextChestSerial = 1;
+    private int currentChestSerial;
 
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 仓库数据 => warehouseData;
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 背包数据 => backpackData;
-    public List<InventoryShortcutRuntimeBinder.ItemSlotData> 宝箱数据 => chestData;
+    public List<InventoryShortcutRuntimeBinder.ItemSlotData> 宝箱数据 => 获取当前宝箱数据(false);
+    public int 当前宝箱序列号 => currentChestSerial;
     public IReadOnlyDictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> 角色装备数据 => equipmentDataByCharacter;
     public IReadOnlyDictionary<string, int> 角色装备可用槽位数量 => equipmentUsableSlotCounts;
 
@@ -30,12 +34,14 @@ internal sealed class 仓储状态服务
     {
         warehouseData.Clear();
         backpackData.Clear();
-        chestData.Clear();
+        chestDataBySerial.Clear();
         equipmentDataByCharacter.Clear();
         boundEnemyEquipmentDataCache.Clear();
         equipmentUsableSlotCounts.Clear();
         warehouseUsableSlotCount = -1;
         backpackUsableSlotCount = -1;
+        nextChestSerial = 1;
+        currentChestSerial = 0;
     }
 
     public static void 确保容量(List<InventoryShortcutRuntimeBinder.ItemSlotData> data, int size)
@@ -64,12 +70,86 @@ internal sealed class 仓储状态服务
         }
     }
 
-    public void 确保宝箱数据容量(int size)
+    public int 注册宝箱序列号()
     {
-        while (chestData.Count < size)
+        int serial = nextChestSerial++;
+        if (!chestDataBySerial.ContainsKey(serial))
         {
-            chestData.Add(default);
+            chestDataBySerial[serial] = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
         }
+
+        return serial;
+    }
+
+    public void 设置当前宝箱序列号(int serial)
+    {
+        if (serial <= 0)
+        {
+            currentChestSerial = 0;
+            return;
+        }
+
+        currentChestSerial = serial;
+        if (!chestDataBySerial.ContainsKey(serial))
+        {
+            chestDataBySerial[serial] = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
+        }
+
+        nextChestSerial = Mathf.Max(nextChestSerial, serial + 1);
+    }
+
+    public List<int> 获取宝箱序列号列表()
+    {
+        List<int> result = new List<int>(chestDataBySerial.Keys);
+        result.Sort();
+        return result;
+    }
+
+    public List<InventoryShortcutRuntimeBinder.ItemSlotData> 获取宝箱数据(int serial, bool createIfMissing)
+    {
+        if (serial <= 0)
+        {
+            return null;
+        }
+
+        if (chestDataBySerial.TryGetValue(serial, out List<InventoryShortcutRuntimeBinder.ItemSlotData> data))
+        {
+            return data;
+        }
+
+        if (!createIfMissing)
+        {
+            return null;
+        }
+
+        data = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
+        chestDataBySerial[serial] = data;
+        nextChestSerial = Mathf.Max(nextChestSerial, serial + 1);
+        return data;
+    }
+
+    public List<InventoryShortcutRuntimeBinder.ItemSlotData> 获取当前宝箱数据(bool createIfMissing)
+    {
+        return 获取宝箱数据(currentChestSerial, createIfMissing);
+    }
+
+    public void 确保宝箱数据容量(int serial, int size)
+    {
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> data = 获取宝箱数据(serial, true);
+        while (data.Count < size)
+        {
+            data.Add(default);
+        }
+    }
+
+    public void 确保当前宝箱数据容量(int size)
+    {
+        if (currentChestSerial <= 0)
+        {
+            return;
+        }
+
+        确保宝箱数据容量(currentChestSerial, size);
     }
 
     public void 确保仓库数据容量(int fixedStorageSlotCount)

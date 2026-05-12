@@ -121,11 +121,16 @@ public sealed class InventoryDebugWindow : EditorWindow
                 Repaint();
             }
 
-            if (GUILayout.Button("添加物品到宝箱"))
+            List<int> chestSerials = InventoryShortcutRuntimeBinder.GetChestSerialNumbers();
+            for (int i = 0; i < chestSerials.Count; i++)
             {
-                int remain = InventoryShortcutRuntimeBinder.AddItemToChest(selectedEntry, addCount);
-                Debug.Log($"[物品调试] 添加到宝箱完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
-                Repaint();
+                int chestSerial = chestSerials[i];
+                if (GUILayout.Button($"添加物品到宝箱（{chestSerial}）"))
+                {
+                    int remain = InventoryShortcutRuntimeBinder.AddItemToChest(chestSerial, selectedEntry, addCount);
+                    Debug.Log($"[物品调试] 添加到宝箱（{chestSerial}）完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
+                    Repaint();
+                }
             }
         }
     }

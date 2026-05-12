@@ -858,6 +858,15 @@ MonoBehaviour:
         y: 3
       - x: 3
         y: 4
+    - propName: "\u5B9D\u7BB1"
+      prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
+      anchorCell:
+        x: 0
+        y: 0
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells: []
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
@@ -3436,6 +3445,33 @@ MonoBehaviour:
         y: 0
       - x: 11
         y: 0
+    - propName: "\u5B9D\u7BB1"
+      prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
+      anchorCell:
+        x: 13
+        y: 5
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      blockedCells:
+      - x: 13
+        y: 5
+      - x: 13
+        y: 4
+      - x: 12
+        y: 4
+      - x: 12
+        y: 5
+      - x: 12
+        y: 6
+      - x: 13
+        y: 6
+      - x: 14
+        y: 6
+      - x: 14
+        y: 5
+      - x: 14
+        y: 4
     wallVisuals:
     - wallName: "\u897F\u5899"
       prefab: {fileID: 5632756567187869152, guid: e251d871d4ef4a147a7e351c3d2599a6, type: 3}
