@@ -17,13 +17,11 @@ public sealed class InventoryDebugWindow : EditorWindow
     private int moveFrom;
     private int moveTo = 1;
 
-    private Vector2 scroll;
-
-    [MenuItem("Tools/\u7269\u54c1/\u80cc\u5305\u8c03\u8bd5\u7a97\u53e3")]
+    [MenuItem("Tools/物品/物品调试窗口")]
     private static void Open()
     {
         InventoryDebugWindow window = CreateInstance<InventoryDebugWindow>();
-        window.titleContent = new GUIContent("\u80cc\u5305\u8c03\u8bd5");
+        window.titleContent = new GUIContent("物品调试");
         window.minSize = new Vector2(360f, 420f);
         window.maxSize = new Vector2(900f, 1200f);
         window.position = new Rect(160f, 120f, 420f, 520f);
@@ -40,7 +38,7 @@ public sealed class InventoryDebugWindow : EditorWindow
     {
         database = database != null ? database : ItemDatabase.LoadDefault();
 
-        EditorGUILayout.LabelField("\u80cc\u5305\u8c03\u8bd5\u5668", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("物品调试器", EditorStyles.boldLabel);
         EditorGUILayout.Space(4f);
 
         if (database == null)
@@ -60,13 +58,11 @@ public sealed class InventoryDebugWindow : EditorWindow
         DrawRemovePanel();
         EditorGUILayout.Space(8f);
         DrawMovePanel();
-        EditorGUILayout.Space(10f);
-        DrawSlotsPanel();
     }
 
     private void DrawAddPanel()
     {
-        EditorGUILayout.LabelField("\u6dfb\u52a0\u7269\u54c1", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("添加物品", EditorStyles.boldLabel);
 
         selectedCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
             "\u5206\u7c7b",
@@ -111,10 +107,24 @@ public sealed class InventoryDebugWindow : EditorWindow
 
         using (new EditorGUI.DisabledScope(selectedEntry == null || selectedEntry.prefab == null))
         {
-            if (GUILayout.Button("\u6dfb\u52a0\u7269\u54c1"))
+            if (GUILayout.Button("添加物品到仓库"))
             {
-                int remain = InventoryShortcutRuntimeBinder.AddItem(selectedEntry, addCount);
-                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u6dfb\u52a0\u5b8c\u6210\uff0c\u7269\u54c1={selectedEntry.itemId}\uff0c\u5269\u4f59\u672a\u653e\u5165\u6570\u91cf={remain}");
+                int remain = InventoryShortcutRuntimeBinder.AddItemToWarehouse(selectedEntry, addCount);
+                Debug.Log($"[物品调试] 添加到仓库完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
+                Repaint();
+            }
+
+            if (GUILayout.Button("添加物品到背包"))
+            {
+                int remain = InventoryShortcutRuntimeBinder.AddItemToBackpack(selectedEntry, addCount);
+                Debug.Log($"[物品调试] 添加到背包完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
+                Repaint();
+            }
+
+            if (GUILayout.Button("添加物品到宝箱"))
+            {
+                int remain = InventoryShortcutRuntimeBinder.AddItemToChest(selectedEntry, addCount);
+                Debug.Log($"[物品调试] 添加到宝箱完成，物品={selectedEntry.itemId}，剩余未放入数量={remain}");
                 Repaint();
             }
         }
@@ -133,14 +143,14 @@ public sealed class InventoryDebugWindow : EditorWindow
             if (GUILayout.Button("\u79fb\u9664"))
             {
                 bool ok = InventoryShortcutRuntimeBinder.RemoveItemAt(removeSlot, removeCount);
-                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u79fb\u9664 \u7d22\u5f15={removeSlot} \u6570\u91cf={removeCount} \u7ed3\u679c={ok}");
+                Debug.Log($"[物品调试] 移除背包物品，索引={removeSlot} 数量={removeCount} 结果={ok}");
                 Repaint();
             }
 
             if (GUILayout.Button("\u6e05\u7a7a\u6b64\u683c"))
             {
                 bool ok = InventoryShortcutRuntimeBinder.RemoveItemAt(removeSlot, int.MaxValue);
-                Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u6e05\u7a7a\u683c\u5b50 \u7d22\u5f15={removeSlot} \u7ed3\u679c={ok}");
+                Debug.Log($"[物品调试] 清空背包格子，索引={removeSlot} 结果={ok}");
                 Repaint();
             }
         }
@@ -157,38 +167,9 @@ public sealed class InventoryDebugWindow : EditorWindow
         if (GUILayout.Button("\u6267\u884c\u79fb\u52a8/\u4ea4\u6362"))
         {
             bool ok = InventoryShortcutRuntimeBinder.MoveItem(moveFrom, moveTo);
-            Debug.Log($"[\u80cc\u5305\u8c03\u8bd5] \u79fb\u52a8/\u4ea4\u6362 from={moveFrom} to={moveTo} \u7ed3\u679c={ok}");
+            Debug.Log($"[物品调试] 背包移动/交换 from={moveFrom} to={moveTo} 结果={ok}");
             Repaint();
         }
-    }
-
-    private void DrawSlotsPanel()
-    {
-        EditorGUILayout.LabelField("\u5f53\u524d\u80cc\u5305\u6570\u636e", EditorStyles.boldLabel);
-
-        int count = InventoryShortcutRuntimeBinder.BackpackSlotCount;
-        if (count <= 0)
-        {
-            EditorGUILayout.HelpBox("\u672a\u68c0\u6d4b\u5230\u80cc\u5305\u69fd\u4f4d\u6570\u636e\u3002", MessageType.Warning);
-            return;
-        }
-
-        scroll = EditorGUILayout.BeginScrollView(scroll, GUILayout.Height(260f));
-        for (int i = 0; i < count; i++)
-        {
-            if (!InventoryShortcutRuntimeBinder.TryGetBackpackSlotData(i, out InventoryShortcutRuntimeBinder.ItemSlotData slot))
-            {
-                continue;
-            }
-
-            string text = slot.IsEmpty
-                ? $"[{i}](\u7a7a)"
-                : $"[{i}] {slot.itemId} \u6570\u91cf:{slot.count} \u5355\u683c\u4e0a\u9650:{slot.maxStack}";
-
-            EditorGUILayout.LabelField(text);
-        }
-
-        EditorGUILayout.EndScrollView();
     }
 
     private static void DrawWeaponCategoryPopup(

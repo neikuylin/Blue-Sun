@@ -52,6 +52,8 @@ internal sealed class 物品转移服务
                         return TryAutoMoveToFirstEmpty(context, source, SlotKind.Backpack, sourceData);
                     case StorageRightClickTarget.TargetIdEquipment:
                         return TryAutoEquipToTargetEquipment(context, source, sourceData);
+                    case StorageRightClickTarget.Chest:
+                        return TryAutoMoveToFirstEmpty(context, source, SlotKind.Chest, sourceData);
                     case StorageRightClickTarget.Warehouse:
                     default:
                         return TryAutoMoveToFirstEmpty(context, source, SlotKind.Warehouse, sourceData);

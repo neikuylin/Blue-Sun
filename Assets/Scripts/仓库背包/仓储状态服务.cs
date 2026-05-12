@@ -6,6 +6,7 @@ internal sealed class 仓储状态服务
 {
     private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> warehouseData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
     private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> backpackData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
+    private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> chestData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> equipmentDataByCharacter =
         new Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>>(StringComparer.Ordinal);
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> boundEnemyEquipmentDataCache =
@@ -18,6 +19,7 @@ internal sealed class 仓储状态服务
 
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 仓库数据 => warehouseData;
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 背包数据 => backpackData;
+    public List<InventoryShortcutRuntimeBinder.ItemSlotData> 宝箱数据 => chestData;
     public IReadOnlyDictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> 角色装备数据 => equipmentDataByCharacter;
     public IReadOnlyDictionary<string, int> 角色装备可用槽位数量 => equipmentUsableSlotCounts;
 
@@ -28,6 +30,7 @@ internal sealed class 仓储状态服务
     {
         warehouseData.Clear();
         backpackData.Clear();
+        chestData.Clear();
         equipmentDataByCharacter.Clear();
         boundEnemyEquipmentDataCache.Clear();
         equipmentUsableSlotCounts.Clear();
@@ -58,6 +61,14 @@ internal sealed class 仓储状态服务
         while (backpackData.Count < size)
         {
             backpackData.Add(default);
+        }
+    }
+
+    public void 确保宝箱数据容量(int size)
+    {
+        while (chestData.Count < size)
+        {
+            chestData.Add(default);
         }
     }
 
@@ -148,6 +159,8 @@ internal sealed class 仓储状态服务
             case InventoryShortcutRuntimeBinder.SlotKind.Backpack:
                 backpackUsableSlotCount = normalized;
                 break;
+            case InventoryShortcutRuntimeBinder.SlotKind.Chest:
+                break;
             case InventoryShortcutRuntimeBinder.SlotKind.Equipment:
                 equipmentUsableSlotCounts[规范化角色ID(characterId)] = normalized;
                 break;
@@ -174,6 +187,9 @@ internal sealed class 仓储状态服务
                 break;
             case InventoryShortcutRuntimeBinder.SlotKind.Backpack:
                 configuredCount = 解析背包可用槽位数量(totalCount, backpackLevelEventIds, backpackLevelSlotCounts);
+                break;
+            case InventoryShortcutRuntimeBinder.SlotKind.Chest:
+                configuredCount = totalCount;
                 break;
             case InventoryShortcutRuntimeBinder.SlotKind.Equipment:
                 if (!equipmentUsableSlotCounts.TryGetValue(规范化角色ID(characterId), out configuredCount))

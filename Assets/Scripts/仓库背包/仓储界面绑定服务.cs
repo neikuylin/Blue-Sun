@@ -12,8 +12,10 @@ internal sealed class 仓储界面绑定服务
         public int FixedStorageSlotCount;
         public List<InventoryShortcutRuntimeBinder.ItemSlotData> WarehouseData;
         public List<InventoryShortcutRuntimeBinder.ItemSlotData> BackpackData;
+        public List<InventoryShortcutRuntimeBinder.ItemSlotData> ChestData;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> WarehouseSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> BackpackSlots;
+        public List<InventoryShortcutRuntimeBinder.SlotWidget> ChestSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraBackpackSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> EquipmentSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraEquipmentSlots;
@@ -29,6 +31,7 @@ internal sealed class 仓储界面绑定服务
     {
         context.WarehouseSlots.Clear();
         context.BackpackSlots.Clear();
+        context.ChestSlots.Clear();
         context.ExtraBackpackSlots.Clear();
 
         物品格子区域绑定[] bindings = UnityEngine.Object.FindObjectsOfType<物品格子区域绑定>(true);
@@ -46,11 +49,7 @@ internal sealed class 仓储界面绑定服务
                 continue;
             }
 
-            int targetCount = Mathf.Max(
-                context.FixedStorageSlotCount,
-                binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库
-                    ? context.WarehouseData.Count
-                    : context.BackpackData.Count);
+            int targetCount = Mathf.Max(context.FixedStorageSlotCount, ResolveDataCount(context, binding.数据来源));
             EnsureBoundSlots(binding, container, targetCount);
 
             if (binding.数据来源 == 物品格子区域绑定.数据来源类型.仓库)
@@ -59,6 +58,17 @@ internal sealed class 仓储界面绑定服务
                 {
                     CollectSlotsFromContainer(container, context.WarehouseSlots);
                     ApplyStorageRightClickTarget(context.WarehouseSlots, MapRightClickTarget(binding.右键拖拽目标));
+                }
+
+                continue;
+            }
+
+            if (binding.数据来源 == 物品格子区域绑定.数据来源类型.宝箱)
+            {
+                if (context.ChestSlots.Count == 0)
+                {
+                    CollectSlotsFromContainer(container, context.ChestSlots);
+                    ApplyStorageRightClickTarget(context.ChestSlots, MapRightClickTarget(binding.右键拖拽目标));
                 }
 
                 continue;
@@ -118,6 +128,7 @@ internal sealed class 仓储界面绑定服务
     {
         BindDragRelaysForList(context, context.WarehouseSlots, InventoryShortcutRuntimeBinder.SlotKind.Warehouse, InventoryShortcutRuntimeBinder.SlotSurface.Warehouse);
         BindDragRelaysForList(context, context.BackpackSlots, InventoryShortcutRuntimeBinder.SlotKind.Backpack, InventoryShortcutRuntimeBinder.SlotSurface.WarehouseBackpack);
+        BindDragRelaysForList(context, context.ChestSlots, InventoryShortcutRuntimeBinder.SlotKind.Chest, InventoryShortcutRuntimeBinder.SlotSurface.WarehouseBackpack);
         for (int i = 0; i < context.ExtraBackpackSlots.Count; i++)
         {
             BindDragRelaysForList(context, context.ExtraBackpackSlots[i], InventoryShortcutRuntimeBinder.SlotKind.Backpack, InventoryShortcutRuntimeBinder.SlotSurface.WarehouseBackpack);
@@ -152,9 +163,25 @@ internal sealed class 仓储界面绑定服务
                 return InventoryShortcutRuntimeBinder.StorageRightClickTarget.Backpack;
             case 物品格子区域绑定.右键拖拽目标类型.目标ID装备栏:
                 return InventoryShortcutRuntimeBinder.StorageRightClickTarget.TargetIdEquipment;
+            case 物品格子区域绑定.右键拖拽目标类型.宝箱:
+                return InventoryShortcutRuntimeBinder.StorageRightClickTarget.Chest;
             case 物品格子区域绑定.右键拖拽目标类型.仓库:
             default:
                 return InventoryShortcutRuntimeBinder.StorageRightClickTarget.Warehouse;
+        }
+    }
+
+    private static int ResolveDataCount(Context context, 物品格子区域绑定.数据来源类型 sourceType)
+    {
+        switch (sourceType)
+        {
+            case 物品格子区域绑定.数据来源类型.仓库:
+                return context.WarehouseData != null ? context.WarehouseData.Count : 0;
+            case 物品格子区域绑定.数据来源类型.宝箱:
+                return context.ChestData != null ? context.ChestData.Count : 0;
+            case 物品格子区域绑定.数据来源类型.背包:
+            default:
+                return context.BackpackData != null ? context.BackpackData.Count : 0;
         }
     }
 

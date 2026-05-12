@@ -6,14 +6,16 @@ public sealed class 物品格子区域绑定 : MonoBehaviour
     public enum 数据来源类型
     {
         仓库,
-        背包
+        背包,
+        宝箱
     }
 
     public enum 右键拖拽目标类型
     {
         背包,
         仓库,
-        目标ID装备栏
+        目标ID装备栏,
+        宝箱
     }
 
     [Header("基础")]

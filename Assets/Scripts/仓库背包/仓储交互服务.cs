@@ -22,6 +22,7 @@ internal sealed class 仓储交互服务
     {
         public List<InventoryShortcutRuntimeBinder.SlotWidget> WarehouseSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> BackpackSlots;
+        public List<InventoryShortcutRuntimeBinder.SlotWidget> ChestSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraBackpackSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> EquipmentSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraEquipmentSlots;
@@ -506,6 +507,11 @@ internal sealed class 仓储交互服务
         if (kind == InventoryShortcutRuntimeBinder.SlotKind.Warehouse)
         {
             return FindWidgetByTransform(context.WarehouseSlots, target);
+        }
+
+        if (kind == InventoryShortcutRuntimeBinder.SlotKind.Chest)
+        {
+            return FindWidgetByTransform(context.ChestSlots, target);
         }
 
         InventoryShortcutRuntimeBinder.SlotWidget equipmentWidget = FindWidgetByTransform(context.EquipmentSlots, target);

@@ -9,11 +9,13 @@ internal sealed class 仓储界面刷新服务
     {
         public List<InventoryShortcutRuntimeBinder.SlotWidget> WarehouseSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> BackpackSlots;
+        public List<InventoryShortcutRuntimeBinder.SlotWidget> ChestSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraBackpackSlots;
         public List<InventoryShortcutRuntimeBinder.SlotWidget> EquipmentSlots;
         public List<List<InventoryShortcutRuntimeBinder.SlotWidget>> ExtraEquipmentSlots;
         public List<InventoryShortcutRuntimeBinder.ItemSlotData> WarehouseData;
         public List<InventoryShortcutRuntimeBinder.ItemSlotData> BackpackData;
+        public List<InventoryShortcutRuntimeBinder.ItemSlotData> ChestData;
         public Func<List<InventoryShortcutRuntimeBinder.ItemSlotData>> GetCurrentEquipmentData;
         public Func<int> GetExpectedEquipmentSlotCount;
         public Func<string> ResolveEquipmentCharacterId;
@@ -63,6 +65,15 @@ internal sealed class 仓储界面刷新服务
         }
     }
 
+    public void RefreshChestFilteredView(Context context)
+    {
+        int count = context.ChestSlots != null ? context.ChestSlots.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            RefreshChestSlot(context, i);
+        }
+    }
+
     public void RefreshWarehouseSlot(Context context, int index)
     {
         if (context.WarehouseSlots == null || context.WarehouseData == null ||
@@ -89,6 +100,18 @@ internal sealed class 仓储界面刷新服务
         bool shouldDisplay = context.ShouldDisplayBackpackItem == null || context.ShouldDisplayBackpackItem(data);
         ApplyItemToWidget(context, context.BackpackSlots[index], shouldDisplay ? data : default);
         ApplyWidgetAvailability(context, context.BackpackSlots[index], IsSlotUsable(context, InventoryShortcutRuntimeBinder.SlotKind.Backpack, index));
+    }
+
+    public void RefreshChestSlot(Context context, int index)
+    {
+        if (context.ChestSlots == null || context.ChestData == null ||
+            index < 0 || index >= context.ChestSlots.Count || index >= context.ChestData.Count)
+        {
+            return;
+        }
+
+        ApplyItemToWidget(context, context.ChestSlots[index], context.ChestData[index]);
+        ApplyWidgetAvailability(context, context.ChestSlots[index], IsSlotUsable(context, InventoryShortcutRuntimeBinder.SlotKind.Chest, index));
     }
 
     public void RefreshEquipmentSlot(Context context, int index)

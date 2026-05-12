@@ -8,6 +8,7 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
     {
         "\u4ed3\u5e93",
         "\u80cc\u5305",
+        "\u5b9d\u7bb1",
         "\u89d2\u8272"
     };
 
@@ -17,6 +18,7 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
     private int selectedCharacterIndex;
     private int warehouseSlotCountDraft;
     private int backpackSlotCountDraft;
+    private int chestSlotCountDraft;
     private readonly Dictionary<string, int> equipmentSlotCountDrafts = new Dictionary<string, int>();
 
     [MenuItem("Tools/\u7269\u54c1/\u73b0\u6709\u7269\u54c1\u5b9e\u4f8b")]
@@ -74,6 +76,9 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             case 1:
                 DrawSection("\u80cc\u5305\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetBackpackSnapshots(), string.Empty);
                 break;
+            case 2:
+                DrawSection("\u5b9d\u7bb1\u5b9e\u4f8b", InventoryShortcutRuntimeBinder.GetChestSnapshots(), string.Empty);
+                break;
             default:
                 DrawCharacterSection();
                 break;
@@ -116,7 +121,8 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
         {
             int slotCountDraft = GetSlotCountDraft(ownerCharacterId, snapshots != null ? snapshots.Count : 0);
             bool isBackpackSection = string.IsNullOrWhiteSpace(ownerCharacterId) && selectedSection == 1;
-            using (new EditorGUI.DisabledScope(isBackpackSection))
+            bool isChestSection = string.IsNullOrWhiteSpace(ownerCharacterId) && selectedSection == 2;
+            using (new EditorGUI.DisabledScope(isBackpackSection || isChestSection))
             {
                 EditorGUI.BeginChangeCheck();
                 slotCountDraft = EditorGUILayout.IntField("\u66F4\u6539\u69FD\u4F4D\u6570\u91CF", slotCountDraft);
@@ -129,6 +135,11 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             if (isBackpackSection)
             {
                 EditorGUILayout.HelpBox("\u80cc\u5305\u69FD\u4F4D\u6570\u91CF\u7531 Tools/\u4E8B\u4EF6/\u4E8B\u4EF6\u7F16\u8F91\u5668 \u4E2D\u7684\u80CC\u5305lv1~lv5 \u4E8B\u4EF6\u51B3\u5B9A\u3002", MessageType.Info);
+            }
+
+            if (isChestSection)
+            {
+                EditorGUILayout.HelpBox("\u5b9d\u7bb1\u69fd\u4f4d\u6570\u91cf\u7531\u5b9d\u7bb1\u7684\u7269\u54c1\u683c\u5b50\u533a\u57df\u51b3\u5b9a\u3002", MessageType.Info);
             }
         }
 
@@ -187,6 +198,16 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
                 return warehouseSlotCountDraft;
             }
 
+            if (selectedSection == 2)
+            {
+                chestSlotCountDraft = InventoryShortcutRuntimeBinder.ChestSlotCount;
+                if (chestSlotCountDraft < 0 && fallbackValue > 0)
+                {
+                    chestSlotCountDraft = fallbackValue;
+                }
+                return chestSlotCountDraft;
+            }
+
             backpackSlotCountDraft = InventoryShortcutRuntimeBinder.GetBackpackUsableSlotCount();
             if (backpackSlotCountDraft < 0 && fallbackValue > 0)
             {
@@ -214,6 +235,12 @@ public sealed class ItemInstanceDebugWindow : EditorWindow
             {
                 warehouseSlotCountDraft = value;
                 InventoryShortcutRuntimeBinder.SetWarehouseUsableSlotCount(value);
+                return;
+            }
+
+            if (selectedSection == 2)
+            {
+                chestSlotCountDraft = value;
                 return;
             }
 
