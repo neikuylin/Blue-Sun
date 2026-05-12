@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 237082759472210972}
-  - component: {fileID: 4747792703273216496}
   - component: {fileID: 321193121695614612}
   m_Layer: 0
   m_Name: "\u5B9D\u7BB1"
@@ -34,23 +33,6 @@ Transform:
   - {fileID: 3606386413329375756}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4747792703273216496
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 212658068931087221}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9932819f02384a6f9e2b3ce9238e7ccc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::\u5B9D\u7BB1\u63A7\u5236\u5668"
-  "\u5B9D\u7BB1\u5E8F\u5217\u53F7": 0
-  "\u5B9D\u7BB1\u5185\u5BB9\u8DEF\u5F84": "Canvas/\u5B9D\u7BB1\u5185\u5BB9"
-  "\u52A8\u753B\u5668": {fileID: 8418767190596628019}
-  "\u6253\u5F00\u52A8\u753B\u89E6\u53D1\u5668": "\u6253\u5F00"
-  "\u97F3\u6548": {fileID: 9080170155508261937}
 --- !u!114 &321193121695614612
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -89,6 +71,7 @@ GameObject:
   - component: {fileID: 7749914176385192543}
   - component: {fileID: 1021355622659714590}
   - component: {fileID: 2526968535827466678}
+  - component: {fileID: 7628573580937569959}
   m_Layer: 0
   m_Name: "\u56FE\u50CF"
   m_TagString: Untagged
@@ -272,3 +255,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4.3, y: 4.347059, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7628573580937569959
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7080670656217165548}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9932819f02384a6f9e2b3ce9238e7ccc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u5B9D\u7BB1\u63A7\u5236\u5668"
+  "\u5B9D\u7BB1\u5E8F\u5217\u53F7": 0
+  "\u5B9D\u7BB1\u5185\u5BB9\u8DEF\u5F84": "Canvas/\u5B9D\u7BB1\u5185\u5BB9"
+  "\u52A8\u753B\u5668": {fileID: 8418767190596628019}
+  "\u6253\u5F00\u52A8\u753B\u89E6\u53D1\u5668": "\u6253\u5F00"
+  "\u97F3\u6548": {fileID: 9080170155508261937}
