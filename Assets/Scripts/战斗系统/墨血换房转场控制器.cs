@@ -11,6 +11,7 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
 
     private static readonly int ProgressId = Shader.PropertyToID("_Progress");
     private static readonly int CurtainColorId = Shader.PropertyToID("_CurtainColor");
+    private static readonly int RevealFromTopId = Shader.PropertyToID("_RevealFromTop");
 
     private static 墨血换房转场控制器 activeController;
     private static bool 等待新场景揭开;
@@ -152,6 +153,7 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
         Debug.Log($"{DebugPrefix} 盖屏协程开始。对象={name}，盖屏时间={coverDuration}。", this);
         EnsureRuntimeMaterial();
         ApplyMaterialSettings();
+        SetRevealFromTop(false);
         SetImageVisible(true);
         yield return AnimateProgress(0f, 1f, coverDuration);
 
@@ -168,6 +170,7 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
         Debug.Log($"{DebugPrefix} 掀开协程开始。对象={name}，揭开时间={revealDuration}。", this);
         EnsureRuntimeMaterial();
         ApplyMaterialSettings();
+        SetRevealFromTop(true);
         SetImageVisible(true);
         yield return AnimateProgress(1f, 0f, revealDuration);
 
@@ -269,6 +272,15 @@ public sealed class 墨血换房转场控制器 : MonoBehaviour
         }
 
         material.SetColor(CurtainColorId, curtainColor);
+    }
+
+    private void SetRevealFromTop(bool revealFromTop)
+    {
+        Material material = runtimeMaterial != null ? runtimeMaterial : ResolveMaterial();
+        if (material != null && material.HasProperty(RevealFromTopId))
+        {
+            material.SetFloat(RevealFromTopId, revealFromTop ? 1f : 0f);
+        }
     }
 
     private void SetProgress(float progress)

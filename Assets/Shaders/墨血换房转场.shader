@@ -6,6 +6,7 @@ Shader "项目/UI/幕布换房转场"
         _Color ("UI颜色", Color) = (1,1,1,1)
         _CurtainColor ("幕布颜色", Color) = (0,0,0,1)
         _Progress ("覆盖进度", Range(0, 1)) = 0
+        _RevealFromTop ("从上往下揭开", Float) = 0
     }
 
     SubShader
@@ -37,6 +38,7 @@ Shader "项目/UI/幕布换房转场"
             fixed4 _Color;
             fixed4 _CurtainColor;
             float _Progress;
+            float _RevealFromTop;
 
             struct appdata_t
             {
@@ -64,7 +66,10 @@ Shader "项目/UI/幕布换房转场"
             fixed4 frag(v2f input) : SV_Target
             {
                 fixed4 baseColor = tex2D(_MainTex, input.uv) * input.color;
-                fixed visible = step(1.0 - saturate(_Progress), input.uv.y);
+                float progress = saturate(_Progress);
+                fixed coverVisible = step(1.0 - progress, input.uv.y);
+                fixed revealVisible = step(input.uv.y, progress);
+                fixed visible = lerp(coverVisible, revealVisible, step(0.5, _RevealFromTop));
                 fixed alpha = visible * _CurtainColor.a * baseColor.a;
                 return fixed4(_CurtainColor.rgb, alpha);
             }
