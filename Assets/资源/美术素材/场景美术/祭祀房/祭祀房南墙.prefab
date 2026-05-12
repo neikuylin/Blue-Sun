@@ -99,6 +99,7 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 1
   includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 0
 --- !u!1 &4108875832911708268
 GameObject:
   m_ObjectHideFlags: 0

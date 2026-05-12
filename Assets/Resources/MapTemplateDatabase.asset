@@ -54,7 +54,7 @@ MonoBehaviour:
       displayName: "\u5165\u53E3"
       position: {x: 769.6, y: 246}
       roomTypeId: encounter_battle
-      encounterPresetId: "\u7A7A\u623F\u95F4"
+      encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u796D\u7940\u623F"
       connections:
       - targetNodeId: node_1
