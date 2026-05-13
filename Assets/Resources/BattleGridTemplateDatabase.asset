@@ -832,6 +832,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells:
       - x: 3
         y: 17
@@ -849,6 +851,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells:
       - x: 4
         y: 4
@@ -866,6 +870,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells: []
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
@@ -1341,8 +1347,6 @@ MonoBehaviour:
       y: 2
     - x: 9
       y: 2
-    - x: 10
-      y: 2
     - x: 11
       y: 2
     - x: 12
@@ -1523,8 +1527,6 @@ MonoBehaviour:
       y: 10
     - x: 11
       y: 10
-    - x: 10
-      y: 10
     - x: 9
       y: 10
     - x: 8
@@ -1552,10 +1554,6 @@ MonoBehaviour:
     - x: 8
       y: 11
     - x: 7
-      y: 11
-    - x: 15
-      y: 11
-    - x: 16
       y: 11
     - x: 17
       y: 11
@@ -1611,8 +1609,6 @@ MonoBehaviour:
       y: 13
     - x: 18
       y: 13
-    - x: 13
-      y: 14
     - x: 12
       y: 14
     - x: 11
@@ -1709,22 +1705,93 @@ MonoBehaviour:
       y: 16
     - x: 6
       y: 15
+    - x: 15
+      y: 11
+    - x: 16
+      y: 11
+    - x: 13
+      y: 14
+    - x: 10
+      y: 10
+    - x: 10
+      y: 2
     enemySpawnSlots:
     - slotName: "\u654C\u4EBA\u4F4D1"
       cell:
-        x: 8
-        y: 9
-      encounterEnemyIndex: 0
+        x: 4
+        y: 15
+      encounterEnemyIndex: -1
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
-        x: 11
-        y: 11
-      encounterEnemyIndex: 1
+        x: 15
+        y: 15
+      encounterEnemyIndex: -1
     defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 0}
     "\u82B1\u74E3\u66DD\u5149\u533A\u57DF\u5217\u8868": []
-    propVisuals: []
+    propVisuals:
+    - propName: "\u5B9D\u7BB1"
+      prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
+      anchorCell:
+        x: 10
+        y: 10
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      isTriggerable: 1
+      triggerCells:
+      - x: 8
+        y: 12
+      - x: 8
+        y: 11
+      - x: 8
+        y: 10
+      - x: 8
+        y: 9
+      - x: 8
+        y: 8
+      - x: 9
+        y: 8
+      - x: 10
+        y: 8
+      - x: 11
+        y: 8
+      - x: 12
+        y: 8
+      - x: 12
+        y: 9
+      - x: 12
+        y: 10
+      - x: 12
+        y: 11
+      - x: 12
+        y: 12
+      - x: 11
+        y: 12
+      - x: 10
+        y: 12
+      - x: 9
+        y: 12
+      blockedCells:
+      - x: 10
+        y: 10
+      - x: 9
+        y: 10
+      - x: 9
+        y: 9
+      - x: 10
+        y: 9
+      - x: 11
+        y: 9
+      - x: 11
+        y: 10
+      - x: 11
+        y: 11
+      - x: 10
+        y: 11
+      - x: 9
+        y: 11
     wallVisuals:
     - wallName: "\u4E1C\u5899"
       prefab: {fileID: 8711905010607594450, guid: 64df42f58d758824f884cf678609a8ee, type: 3}
@@ -1737,7 +1804,7 @@ MonoBehaviour:
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
       x: 10
-      y: 10
+      y: 2
     hasEastDoorPlayerSpawn: 1
     eastDoorPlayerSpawnCell:
       x: 18
@@ -3342,12 +3409,12 @@ MonoBehaviour:
       cell:
         x: 11
         y: 21
-      encounterEnemyIndex: 0
+      encounterEnemyIndex: -1
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
         x: 14
         y: 21
-      encounterEnemyIndex: 1
+      encounterEnemyIndex: -1
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 8362068888821564721, guid: 17a07624249b6ab45afbfa2f06e9a025, type: 3}
@@ -3366,6 +3433,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells:
       - x: 20
         y: 12
@@ -3383,6 +3452,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells:
       - x: 5
         y: 12
@@ -3400,6 +3471,8 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
+      isTriggerable: 0
+      triggerCells: []
       blockedCells:
       - x: 10
         y: 0
@@ -3445,33 +3518,6 @@ MonoBehaviour:
         y: 0
       - x: 11
         y: 0
-    - propName: "\u5B9D\u7BB1"
-      prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
-      anchorCell:
-        x: 13
-        y: 5
-      localOffset: {x: 0, y: 0, z: 0}
-      alignToBattleCamera: 1
-      blocksMovement: 1
-      blockedCells:
-      - x: 13
-        y: 5
-      - x: 13
-        y: 4
-      - x: 12
-        y: 4
-      - x: 12
-        y: 5
-      - x: 12
-        y: 6
-      - x: 13
-        y: 6
-      - x: 14
-        y: 6
-      - x: 14
-        y: 5
-      - x: 14
-        y: 4
     wallVisuals:
     - wallName: "\u897F\u5899"
       prefab: {fileID: 5632756567187869152, guid: e251d871d4ef4a147a7e351c3d2599a6, type: 3}

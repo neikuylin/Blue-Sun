@@ -55,6 +55,8 @@ public sealed class 格子模板数据库 : ScriptableObject
         public Vector3 localOffset = Vector3.zero;
         public bool alignToBattleCamera = true;
         public bool blocksMovement = true;
+        public bool isTriggerable;
+        public List<CellPosition> triggerCells = new List<CellPosition>();
         public List<CellPosition> blockedCells = new List<CellPosition>();
     }
 
@@ -264,6 +266,11 @@ public sealed class 格子模板数据库 : ScriptableObject
             if (prop.blockedCells == null)
             {
                 prop.blockedCells = new List<CellPosition>();
+            }
+
+            if (prop.triggerCells == null)
+            {
+                prop.triggerCells = new List<CellPosition>();
             }
 
             if (string.IsNullOrWhiteSpace(prop.propName))

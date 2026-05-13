@@ -45,6 +45,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
     private string newTemplateName = string.Empty;
     private 绘制工具 currentTool = 绘制工具.可用格;
     private int selectedPropVisualIndex = -1;
+    private bool selectedPropTriggerCellTool;
     private int selectedPetalExposureAreaIndex = -1;
     private readonly HashSet<string> expandedPropVisualKeys = new HashSet<string>();
     private readonly HashSet<string> expandedPetalExposureAreaKeys = new HashSet<string>();
@@ -153,6 +154,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 {
                     selectedTemplateId = entry.templateId;
                     selectedPropVisualIndex = -1;
+                    selectedPropTriggerCellTool = false;
                     selectedPetalExposureAreaIndex = -1;
                     GUI.FocusControl(null);
                 }
@@ -246,6 +248,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             currentTool = tool;
             selectedPropVisualIndex = -1;
+            selectedPropTriggerCellTool = false;
             selectedPetalExposureAreaIndex = -1;
             currentDragMode = 拖拽模式.无;
         }
@@ -266,6 +269,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             currentTool = tool;
             selectedPropVisualIndex = -1;
+            selectedPropTriggerCellTool = false;
             selectedPetalExposureAreaIndex = -1;
         }
 
@@ -295,7 +299,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         : $"物件{index + 1}";
 
                     Color previousColor = GUI.backgroundColor;
-                    if (selectedPropVisualIndex == index)
+                    if (selectedPropVisualIndex == index && !selectedPropTriggerCellTool)
                     {
                         GUI.backgroundColor = new Color(0.85f, 0.48f, 0.18f, 1f);
                     }
@@ -303,6 +307,50 @@ public sealed class 格子编辑器窗口 : EditorWindow
                     if (GUILayout.Button(label, GUILayout.Height(26f)))
                     {
                         selectedPropVisualIndex = index;
+                        selectedPropTriggerCellTool = false;
+                        selectedPetalExposureAreaIndex = -1;
+                    }
+
+                    GUI.backgroundColor = previousColor;
+                }
+            }
+        }
+
+        if (!HasTriggerableProp(entry))
+        {
+            return;
+        }
+
+        EditorGUILayout.Space(2f);
+        EditorGUILayout.LabelField("物件触发格画笔", EditorStyles.miniBoldLabel);
+        for (int i = 0; i < entry.propVisuals.Count; i += columns)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                for (int j = 0; j < columns && i + j < entry.propVisuals.Count; j++)
+                {
+                    int index = i + j;
+                    格子模板数据库.PropVisualEntry prop = entry.propVisuals[index];
+                    if (prop == null || !prop.isTriggerable)
+                    {
+                        continue;
+                    }
+
+                    string propName = !string.IsNullOrWhiteSpace(prop.propName)
+                        ? prop.propName.Trim()
+                        : $"物件{index + 1}";
+                    string label = $"{propName}触发格";
+
+                    Color previousColor = GUI.backgroundColor;
+                    if (selectedPropVisualIndex == index && selectedPropTriggerCellTool)
+                    {
+                        GUI.backgroundColor = new Color(0.35f, 0.78f, 0.48f, 1f);
+                    }
+
+                    if (GUILayout.Button(label, GUILayout.Height(26f)))
+                    {
+                        selectedPropVisualIndex = index;
+                        selectedPropTriggerCellTool = true;
                         selectedPetalExposureAreaIndex = -1;
                     }
 
@@ -342,6 +390,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                     {
                         selectedPetalExposureAreaIndex = index;
                         selectedPropVisualIndex = -1;
+                        selectedPropTriggerCellTool = false;
                     }
 
                     GUI.backgroundColor = previousColor;
@@ -382,6 +431,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 DrawCellMarker(cellRect, "锚", HasPropAnchorAtCell(entry, cell), new Color(0.85f, 0.48f, 0.18f), 1);
                 DrawCellMarker(cellRect, "物", HasPropOccupiedCell(entry, cell), new Color(0.72f, 0.39f, 0.14f), 2);
                 DrawCellMarker(cellRect, "墙", HasWallVisualAtCell(entry, cell), new Color(0.55f, 0.55f, 0.62f), 3);
+                DrawCellMarker(cellRect, "触", HasPropTriggerCellAtCell(entry, cell), new Color(0.18f, 0.68f, 0.32f), 4);
             }
         }
 
@@ -477,6 +527,12 @@ public sealed class 格子编辑器窗口 : EditorWindow
             badgeX = cellRect.xMax - badgeWidth - 3f;
             badgeY = cellRect.yMax - badgeHeight - 3f;
         }
+        else if (markerSlot == 4)
+        {
+            badgeWidth = 14f;
+            badgeX = cellRect.center.x - badgeWidth * 0.5f;
+            badgeY = cellRect.center.y - badgeHeight * 0.5f;
+        }
 
         Rect badgeRect = new Rect(badgeX, badgeY, badgeWidth, badgeHeight);
         EditorGUI.DrawRect(badgeRect, color);
@@ -507,7 +563,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         Vector2Int cell;
-        if (!TryGetCellAtPosition(entry, canvasRect, currentEvent.mousePosition, out cell))
+        bool resolvedCell = IsPropTriggerCellTool(entry)
+            ? TryGetNearestCellAtPosition(entry, canvasRect, currentEvent.mousePosition, out cell)
+            : TryGetCellAtPosition(entry, canvasRect, currentEvent.mousePosition, out cell);
+        if (!resolvedCell)
         {
             return;
         }
@@ -527,6 +586,44 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.涂格)
                 {
                     ApplyPetalExposureDrag(entry, cell);
+                    currentEvent.Use();
+                }
+            }
+
+            return;
+        }
+
+        if (IsPropTriggerCellTool(entry))
+        {
+            if (currentEvent.button == 0)
+            {
+                if (currentEvent.type == EventType.MouseDown)
+                {
+                    Undo.RecordObject(EnsureDatabase(), "绘制物件触发格");
+                    currentDragMode = 拖拽模式.涂格;
+                    lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+                    AddPropTriggerCell(entry, cell);
+                    currentEvent.Use();
+                }
+                else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.涂格)
+                {
+                    AddPropTriggerCell(entry, cell);
+                    currentEvent.Use();
+                }
+            }
+            else if (currentEvent.button == 1)
+            {
+                if (currentEvent.type == EventType.MouseDown)
+                {
+                    Undo.RecordObject(EnsureDatabase(), "擦除物件触发格");
+                    currentDragMode = 拖拽模式.擦除;
+                    lastPaintedCell = new Vector2Int(int.MinValue, int.MinValue);
+                    RemovePropTriggerCell(entry, cell);
+                    currentEvent.Use();
+                }
+                else if (currentEvent.type == EventType.MouseDrag && currentDragMode == 拖拽模式.擦除)
+                {
+                    RemovePropTriggerCell(entry, cell);
                     currentEvent.Use();
                 }
             }
@@ -655,6 +752,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             ClearSpawnIfMatches(ref entry.hasSouthDoorEntrance, ref entry.southDoorEntranceCell, cell);
             ClearSpawnIfMatches(ref entry.hasWestDoorEntrance, ref entry.westDoorEntranceCell, cell);
             ClearSpawnIfMatches(ref entry.hasNorthDoorEntrance, ref entry.northDoorEntranceCell, cell);
+            ClearPropTriggerIfMatches(entry, cell);
         }
 
         MarkDirtyAndRepaint();
@@ -718,7 +816,23 @@ public sealed class 格子编辑器窗口 : EditorWindow
             entry.propVisuals != null &&
             selectedPropVisualIndex >= 0 &&
             selectedPropVisualIndex < entry.propVisuals.Count &&
+            !selectedPropTriggerCellTool &&
             entry.propVisuals[selectedPropVisualIndex] != null;
+    }
+
+    private bool IsPropTriggerCellTool(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null ||
+            entry.propVisuals == null ||
+            selectedPropVisualIndex < 0 ||
+            selectedPropVisualIndex >= entry.propVisuals.Count ||
+            !selectedPropTriggerCellTool)
+        {
+            return false;
+        }
+
+        格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
+        return prop != null && prop.isTriggerable;
     }
 
     private bool IsPetalExposureAreaTool(格子模板数据库.格子模板条目 entry)
@@ -822,9 +936,61 @@ public sealed class 格子编辑器窗口 : EditorWindow
         MarkDirtyAndRepaint();
     }
 
+    private void AddPropTriggerCell(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        if (lastPaintedCell == cell)
+        {
+            return;
+        }
+
+        lastPaintedCell = cell;
+        格子模板数据库.PropVisualEntry prop = GetSelectedPropVisualForTrigger(entry);
+        if (prop == null)
+        {
+            return;
+        }
+
+        if (prop.triggerCells == null)
+        {
+            prop.triggerCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        AddCell(prop.triggerCells, cell);
+        AddCell(entry.walkableCells, cell);
+        MarkDirtyAndRepaint();
+    }
+
+    private void RemovePropTriggerCell(格子模板数据库.格子模板条目 entry, Vector2Int cell)
+    {
+        if (lastPaintedCell == cell)
+        {
+            return;
+        }
+
+        lastPaintedCell = cell;
+        格子模板数据库.PropVisualEntry prop = GetSelectedPropVisualForTrigger(entry);
+        if (prop == null)
+        {
+            return;
+        }
+
+        if (prop.triggerCells == null)
+        {
+            prop.triggerCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        RemoveCell(prop.triggerCells, cell);
+        MarkDirtyAndRepaint();
+    }
+
     private 格子模板数据库.PropVisualEntry GetSelectedPropVisual(格子模板数据库.格子模板条目 entry)
     {
         return IsPropPlacementTool(entry) ? entry.propVisuals[selectedPropVisualIndex] : null;
+    }
+
+    private 格子模板数据库.PropVisualEntry GetSelectedPropVisualForTrigger(格子模板数据库.格子模板条目 entry)
+    {
+        return IsPropTriggerCellTool(entry) ? entry.propVisuals[selectedPropVisualIndex] : null;
     }
 
     private void DrawDetailPanel(格子模板数据库 database, RoomEnemyPresetDatabase encounterDatabase)
@@ -953,6 +1119,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                 int newIndex = entry.花瓣曝光区域列表.Count;
                 selectedPetalExposureAreaIndex = newIndex;
                 selectedPropVisualIndex = -1;
+                selectedPropTriggerCellTool = false;
                 entry.花瓣曝光区域列表.Add(new 格子模板数据库.花瓣曝光区域Entry
                 {
                     areaName = $"曝光区域{newIndex + 1}",
@@ -1004,6 +1171,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         {
                             selectedPetalExposureAreaIndex = i;
                             selectedPropVisualIndex = -1;
+                            selectedPropTriggerCellTool = false;
                         }
 
                         GUI.backgroundColor = previousColor;
@@ -1053,6 +1221,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
             {
                 Undo.RecordObject(EnsureDatabase(), "新增格子物件");
                 selectedPropVisualIndex = entry.propVisuals.Count;
+                selectedPropTriggerCellTool = false;
                 selectedPetalExposureAreaIndex = -1;
                 entry.propVisuals.Add(new 格子模板数据库.PropVisualEntry
                 {
@@ -1096,6 +1265,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
                             if (selectedPropVisualIndex == i)
                             {
                                 selectedPropVisualIndex = -1;
+                                selectedPropTriggerCellTool = false;
                             }
                             else if (selectedPropVisualIndex > i)
                             {
@@ -1117,10 +1287,60 @@ public sealed class 格子编辑器窗口 : EditorWindow
                     prop.localOffset = EditorGUILayout.Vector3Field("美术偏移", prop.localOffset);
                     prop.alignToBattleCamera = EditorGUILayout.Toggle("平行战斗相机", prop.alignToBattleCamera);
                     prop.blocksMovement = EditorGUILayout.Toggle("阻挡移动", prop.blocksMovement);
+                    bool nextTriggerable = EditorGUILayout.Toggle("是否可触发", prop.isTriggerable);
+                    if (nextTriggerable != prop.isTriggerable)
+                    {
+                        Undo.RecordObject(EnsureDatabase(), "切换物件触发");
+                        prop.isTriggerable = nextTriggerable;
+                        if (prop.isTriggerable)
+                        {
+                            if (prop.triggerCells == null)
+                            {
+                                prop.triggerCells = new List<格子模板数据库.CellPosition>();
+                            }
+
+                            AddCell(prop.triggerCells, prop.anchorCell.ToVector2Int());
+                            AddCell(entry.walkableCells, prop.anchorCell.ToVector2Int());
+                        }
+
+                        if (!prop.isTriggerable &&
+                            selectedPropVisualIndex == i &&
+                            selectedPropTriggerCellTool)
+                        {
+                            selectedPropTriggerCellTool = false;
+                        }
+
+                        MarkDirtyAndRepaint();
+                    }
+
+                    if (prop.isTriggerable)
+                    {
+                        DrawPropTriggerCellList(entry, prop);
+                    }
+
                     DrawBlockedCellList(prop);
                 }
             }
         }
+    }
+
+    private static bool HasTriggerableProp(格子模板数据库.格子模板条目 entry)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop != null && prop.isTriggerable)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string GetPropVisualFoldoutKey(格子模板数据库.格子模板条目 entry, int index)
@@ -1502,6 +1722,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         格子模板数据库.EnsureValidEntry(entry);
         selectedTemplateId = entry.templateId;
         selectedPropVisualIndex = -1;
+        selectedPropTriggerCellTool = false;
         selectedPetalExposureAreaIndex = -1;
         newTemplateId = string.Empty;
         newTemplateName = string.Empty;
@@ -1520,6 +1741,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
         database.RemoveEntry(entry.templateId);
         selectedTemplateId = string.Empty;
         selectedPropVisualIndex = -1;
+        selectedPropTriggerCellTool = false;
         selectedPetalExposureAreaIndex = -1;
         EnsureSelection(database);
         MarkDirtyAndRepaint();
@@ -1659,6 +1881,31 @@ public sealed class 格子编辑器窗口 : EditorWindow
         return true;
     }
 
+    private static bool TryGetNearestCellAtPosition(
+        格子模板数据库.格子模板条目 entry,
+        Rect canvasRect,
+        Vector2 mousePosition,
+        out Vector2Int cell)
+    {
+        cell = default;
+        Rect gridRect = new Rect(
+            canvasRect.x + HeaderSize,
+            canvasRect.y + HeaderSize,
+            entry.width * (CellSize + CellGap) + CellGap,
+            entry.height * (CellSize + CellGap) + CellGap);
+        if (!gridRect.Contains(mousePosition))
+        {
+            return false;
+        }
+
+        float localX = mousePosition.x - gridRect.x - CellGap - CellSize * 0.5f;
+        float localY = mousePosition.y - gridRect.y - CellGap - CellSize * 0.5f;
+        int column = Mathf.Clamp(Mathf.RoundToInt(localX / (CellSize + CellGap)), 0, entry.width - 1);
+        int rowFromTop = Mathf.Clamp(Mathf.RoundToInt(localY / (CellSize + CellGap)), 0, entry.height - 1);
+        cell = new Vector2Int(column, entry.height - 1 - rowFromTop);
+        return true;
+    }
+
     private static HashSet<Vector2Int> BuildCellSet(List<格子模板数据库.CellPosition> cells)
     {
         HashSet<Vector2Int> result = new HashSet<Vector2Int>();
@@ -1734,6 +1981,30 @@ public sealed class 格子编辑器窗口 : EditorWindow
             }
 
             if (ContainsCell(prop.blockedCells, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasPropTriggerCellAtCell(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < entry.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null || !prop.isTriggerable)
+            {
+                continue;
+            }
+
+            if (ContainsCell(prop.triggerCells, target))
             {
                 return true;
             }
@@ -1884,6 +2155,83 @@ public sealed class 格子编辑器窗口 : EditorWindow
         spawnCell = default;
     }
 
+    private void ClearPropTriggerIfMatches(格子模板数据库.格子模板条目 entry, Vector2Int target)
+    {
+        if (entry == null || entry.propVisuals == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < entry.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[i];
+            if (prop == null || !prop.isTriggerable)
+            {
+                continue;
+            }
+
+            if (!ContainsCell(prop.triggerCells, target))
+            {
+                continue;
+            }
+
+            if (prop.triggerCells == null)
+            {
+                prop.triggerCells = new List<格子模板数据库.CellPosition>();
+            }
+
+            RemoveCell(prop.triggerCells, target);
+            if (prop.triggerCells.Count > 0)
+            {
+                continue;
+            }
+
+            prop.isTriggerable = false;
+            if (selectedPropVisualIndex == i && selectedPropTriggerCellTool)
+            {
+                selectedPropTriggerCellTool = false;
+            }
+        }
+    }
+
+    private void DrawPropTriggerCellList(
+        格子模板数据库.格子模板条目 entry,
+        格子模板数据库.PropVisualEntry prop)
+    {
+        if (prop.triggerCells == null)
+        {
+            prop.triggerCells = new List<格子模板数据库.CellPosition>();
+        }
+
+        EditorGUILayout.LabelField("触发格", EditorStyles.miniBoldLabel);
+        EditorGUILayout.HelpBox("选中左侧同名触发格画笔后，左键拖拽添加触发格，右键拖拽擦除触发格。角色核心格进入任意触发格后才算到达该物件触发区域。", MessageType.None);
+
+        if (GUILayout.Button("新增触发格"))
+        {
+            AddCell(prop.triggerCells, prop.anchorCell.ToVector2Int());
+            AddCell(entry.walkableCells, prop.anchorCell.ToVector2Int());
+        }
+
+        for (int i = 0; i < prop.triggerCells.Count; i++)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                格子模板数据库.CellPosition previous = prop.triggerCells[i];
+                prop.triggerCells[i] = DrawCellPositionField($"触发格 {i + 1}", prop.triggerCells[i]);
+                if (previous.x != prop.triggerCells[i].x || previous.y != prop.triggerCells[i].y)
+                {
+                    AddCell(entry.walkableCells, prop.triggerCells[i].ToVector2Int());
+                }
+
+                if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                {
+                    prop.triggerCells.RemoveAt(i);
+                    return;
+                }
+            }
+        }
+    }
+
     private static bool IsCellInside(格子模板数据库.格子模板条目 entry, Vector2Int cell)
     {
         return cell.x >= 0 && cell.x < entry.width && cell.y >= 0 && cell.y < entry.height;
@@ -1975,6 +2323,16 @@ public sealed class 格子编辑器窗口 : EditorWindow
             }
 
             ClampCellListToBounds(prop.blockedCells, entry);
+            if (prop.triggerCells == null)
+            {
+                prop.triggerCells = new List<格子模板数据库.CellPosition>();
+            }
+
+            ClampCellListToBounds(prop.triggerCells, entry);
+            if (prop.isTriggerable && prop.triggerCells.Count == 0)
+            {
+                prop.isTriggerable = false;
+            }
         }
     }
 
@@ -2172,6 +2530,15 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
     private string ResolveCurrentToolLabel(格子模板数据库.格子模板条目 entry)
     {
+        if (IsPropTriggerCellTool(entry))
+        {
+            格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
+            string propName = prop != null && !string.IsNullOrWhiteSpace(prop.propName)
+                ? prop.propName.Trim()
+                : $"物件{selectedPropVisualIndex + 1}";
+            return $"物件触发格：{propName}";
+        }
+
         if (IsPropPlacementTool(entry))
         {
             格子模板数据库.PropVisualEntry prop = entry.propVisuals[selectedPropVisualIndex];
