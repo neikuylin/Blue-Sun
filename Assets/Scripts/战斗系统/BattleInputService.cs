@@ -7,7 +7,6 @@ internal sealed class BattleInputService
     private static readonly Image[] EmptyUiBlockerImages = new Image[0];
     private static Image[] cachedUiBlockerImages = EmptyUiBlockerImages;
     private static int cachedUiBlockerFrame = -1;
-    private 房间方向按钮 hoveredDoorButton;
 
     public void HandleCombatInput(
         BattleGrid grid,
@@ -100,83 +99,6 @@ internal sealed class BattleInputService
         }
 
         tryMoveFreely?.Invoke(activeUnit, clickedCell);
-    }
-
-    public bool HandleWorldClickableInput(
-        Camera battleCamera,
-        Action<MapTemplateDatabase.ConnectionDirection> tryNavigateToDoor)
-    {
-        if (!Input.GetMouseButtonDown(0) || IsPointerBlockedByUi() || battleCamera == null)
-        {
-            return false;
-        }
-
-        房间方向按钮 doorButton = FindDoorButtonUnderPointer(battleCamera);
-        if (doorButton == null ||
-            !doorButton.TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection direction))
-        {
-            return false;
-        }
-
-        SetHoveredDoorButton(doorButton);
-        doorButton.标记为选中();
-        tryNavigateToDoor?.Invoke(direction);
-        return true;
-    }
-
-    public void UpdateWorldClickableHover(Camera battleCamera)
-    {
-        if (IsPointerBlockedByUi() || battleCamera == null)
-        {
-            SetHoveredDoorButton(null);
-            return;
-        }
-
-        SetHoveredDoorButton(FindDoorButtonUnderPointer(battleCamera));
-    }
-
-    private void SetHoveredDoorButton(房间方向按钮 doorButton)
-    {
-        if (hoveredDoorButton == doorButton)
-        {
-            return;
-        }
-
-        if (hoveredDoorButton != null)
-        {
-            hoveredDoorButton.设置悬浮(false);
-        }
-
-        hoveredDoorButton = doorButton;
-
-        if (hoveredDoorButton != null)
-        {
-            hoveredDoorButton.设置悬浮(true);
-        }
-    }
-
-    private static 房间方向按钮 FindDoorButtonUnderPointer(Camera battleCamera)
-    {
-        Ray ray = battleCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit[] hits = Physics.RaycastAll(ray, float.PositiveInfinity);
-        if (hits == null || hits.Length == 0)
-        {
-            return null;
-        }
-
-        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
-        for (int i = 0; i < hits.Length; i++)
-        {
-            房间方向按钮 doorButton = hits[i].collider != null
-                ? hits[i].collider.GetComponentInParent<房间方向按钮>()
-                : null;
-            if (doorButton != null)
-            {
-                return doorButton;
-            }
-        }
-
-        return null;
     }
 
     public static bool IsPointerBlockedByUi()

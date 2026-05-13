@@ -59,6 +59,15 @@ public sealed class 格子物件触发器 : MonoBehaviour, IPointerClickHandler
 
     public bool 请求点击触发()
     {
+        return 请求点击触发(trigger =>
+        {
+            BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
+            return turnSystem != null && turnSystem.TryTriggerGridInteraction(trigger);
+        });
+    }
+
+    public bool 请求点击触发(Func<格子物件触发器, bool> 请求交互)
+    {
         if (最近点击帧 == Time.frameCount)
         {
             return true;
@@ -71,13 +80,12 @@ public sealed class 格子物件触发器 : MonoBehaviour, IPointerClickHandler
         }
 
         播放点击反馈();
-        BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
-        if (turnSystem == null)
+        if (请求交互 == null)
         {
             return false;
         }
 
-        return turnSystem.TryTriggerGridInteraction(this);
+        return 请求交互(this);
     }
 
     public bool 包含触发格(Vector2Int cell)

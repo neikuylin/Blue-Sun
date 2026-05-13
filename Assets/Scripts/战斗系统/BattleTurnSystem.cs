@@ -106,6 +106,7 @@ public class BattleTurnSystem : MonoBehaviour
     private AudioSource modeMusicSource;
     private bool pendingExplorationModeEnter;
     private BattleInputService inputService;
+    private 格子交互点击接入器 gridInteractionClickAdapter;
     private BattleTargetPanelService targetPanelService;
     private BattleTurnTimelineService timelineService;
     private 战斗模式服务 modeService;
@@ -203,6 +204,11 @@ public class BattleTurnSystem : MonoBehaviour
         if (inputService == null)
         {
             inputService = new BattleInputService();
+        }
+
+        if (gridInteractionClickAdapter == null)
+        {
+            gridInteractionClickAdapter = new 格子交互点击接入器();
         }
 
         if (targetPanelService == null)
@@ -423,8 +429,9 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        inputService?.UpdateWorldClickableHover(battleCamera);
-        if (inputService != null && inputService.HandleWorldClickableInput(battleCamera, TryNavigateToDoor))
+        gridInteractionClickAdapter?.更新悬浮(battleCamera);
+        if (gridInteractionClickAdapter != null &&
+            gridInteractionClickAdapter.处理点击(battleCamera, TryNavigateToDoor, TryTriggerGridInteraction))
         {
             return;
         }
@@ -507,9 +514,10 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        inputService?.UpdateWorldClickableHover(battleCamera);
+        gridInteractionClickAdapter?.更新悬浮(battleCamera);
 
-        if (inputService != null && inputService.HandleWorldClickableInput(battleCamera, TryNavigateToDoor))
+        if (gridInteractionClickAdapter != null &&
+            gridInteractionClickAdapter.处理点击(battleCamera, TryNavigateToDoor, TryTriggerGridInteraction))
         {
             return;
         }
