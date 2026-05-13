@@ -282,6 +282,24 @@ public class BattleGrid : MonoBehaviour
         return doorExitDefaultTargetCells.TryGetValue(direction, out cell);
     }
 
+    public void CollectDoorExitTriggerCells(
+        MapTemplateDatabase.ConnectionDirection direction,
+        List<Vector2Int> result)
+    {
+        if (result == null)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<Vector2Int, DoorExitNavigation> item in doorExitNavigations)
+        {
+            if (item.Value.direction == direction)
+            {
+                result.Add(item.Key);
+            }
+        }
+    }
+
     public bool TryGetDoorExitEntry(
         Vector2Int cell,
         out MapTemplateDatabase.ConnectionDirection direction,

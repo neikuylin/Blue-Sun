@@ -31,12 +31,50 @@ public sealed class 宝箱控制器 : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (尝试请求格子触发())
+        {
+            return;
+        }
+
+        if (战斗中禁用直接交互())
+        {
+            return;
+        }
+
         打开宝箱();
     }
 
     private void OnMouseDown()
     {
+        if (尝试请求格子触发())
+        {
+            return;
+        }
+
+        if (战斗中禁用直接交互())
+        {
+            return;
+        }
+
         打开宝箱();
+    }
+
+    private bool 尝试请求格子触发()
+    {
+        格子物件触发器 trigger = GetComponentInParent<格子物件触发器>();
+        return trigger != null && trigger.enabled && trigger.请求点击触发();
+    }
+
+    private bool 战斗中禁用直接交互()
+    {
+        BattleTurnSystem turnSystem = FindObjectOfType<BattleTurnSystem>();
+        if (turnSystem == null || turnSystem.IsExplorationMode)
+        {
+            return false;
+        }
+
+        Debug.Log("宝箱控制器：点击已收到，但当前还在战斗中，暂时不能打开宝箱。", this);
+        return true;
     }
 
     private void 确保宝箱序列号()

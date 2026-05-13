@@ -415,6 +415,29 @@ public class BattleBootstrap : MonoBehaviour
                 instance.transform,
                 GetFloorAlignedCellPosition(cell, floorSandbox) + prop.localOffset,
                 prop.alignToBattleCamera);
+            ConfigurePropTrigger(instance, prop);
+        }
+    }
+
+    private static void ConfigurePropTrigger(GameObject instance, 格子模板数据库.PropVisualEntry prop)
+    {
+        if (instance == null || prop == null || !prop.isTriggerable || prop.triggerCells == null || prop.triggerCells.Count == 0)
+        {
+            return;
+        }
+
+        格子物件触发器 trigger = instance.GetComponent<格子物件触发器>();
+        if (trigger == null)
+        {
+            trigger = instance.AddComponent<格子物件触发器>();
+        }
+
+        trigger.初始化(prop.propName, prop.triggerCells);
+
+        宝箱控制器 chest = instance.GetComponentInChildren<宝箱控制器>(true);
+        if (chest != null)
+        {
+            trigger.设置运行时触发动作(chest.打开宝箱);
         }
     }
 
