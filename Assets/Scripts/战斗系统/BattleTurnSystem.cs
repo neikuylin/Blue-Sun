@@ -97,7 +97,6 @@ public class BattleTurnSystem : MonoBehaviour
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
     private Coroutine pendingDoorNavigationRoutine;
-    private Coroutine pendingGridTriggerRoutine;
     private bool hasPendingDoorNavigationCell;
     private Vector2Int pendingDoorNavigationCell;
     private bool doorExitNavigationLocked;
@@ -126,6 +125,7 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗技能表现服务 skillPresentationService;
     private 战斗技能动作解析服务 skillActionResolverService;
     private 战斗探索移动服务 explorationMoveService;
+    private 格子触发导航服务 gridTriggerNavigationService;
     private 战斗伤害弹字服务 damagePopupService;
 
     public BattleUnit ActiveUnit
@@ -304,11 +304,17 @@ public class BattleTurnSystem : MonoBehaviour
             explorationMoveService = new 战斗探索移动服务();
         }
 
+        if (gridTriggerNavigationService == null)
+        {
+            gridTriggerNavigationService = new 格子触发导航服务();
+        }
+
         if (damagePopupService == null)
         {
             damagePopupService = new 战斗伤害弹字服务();
         }
 
+        gridTriggerNavigationService.初始化(this, grid, TryMoveToGridTriggerCell);
         battleInfoTextService.绑定显示器(BattleInfoWindowPresenter.FindInActiveScene());
 
         skillPreviewService.重置状态();
@@ -385,7 +391,7 @@ public class BattleTurnSystem : MonoBehaviour
     private void OnDestroy()
     {
         ClearPendingDoorNavigation();
-        ClearPendingGridTriggerNavigation();
+        gridTriggerNavigationService?.清除();
         timelineService?.Dispose();
         explorationMoveService?.停止全部(this);
         skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
@@ -694,6 +700,11 @@ public class BattleTurnSystem : MonoBehaviour
             RefreshHighlights);
     }
 
+    private bool TryMoveToGridTriggerCell(BattleUnit unit, Vector2Int destination)
+    {
+        return TryMoveFreely(unit, destination, true);
+    }
+
     public void TryNavigateToDoor(MapTemplateDatabase.ConnectionDirection direction)
     {
         if (!IsExplorationMode)
@@ -725,7 +736,10 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ClearPendingDoorNavigation();
-        StartGridTriggerNavigation(activeUnit, triggerCells, () => UpdateDoorExitNavigationLock(activeUnit));
+        gridTriggerNavigationService?.尝试移动到触发格并执行(
+            activeUnit,
+            triggerCells,
+            () => UpdateDoorExitNavigationLock(activeUnit));
     }
 
     public bool TryTriggerGridInteraction(格子物件触发器 trigger)
@@ -756,7 +770,8 @@ public class BattleTurnSystem : MonoBehaviour
             }
         }
 
-        if (!StartGridTriggerNavigation(activeUnit, triggerCells, trigger.执行到达触发))
+        if (gridTriggerNavigationService == null ||
+            !gridTriggerNavigationService.尝试移动到触发格并执行(activeUnit, triggerCells, trigger.执行到达触发))
         {
             Debug.Log($"格子交互：'{trigger.名称}' 未找到可到达的触发格。", trigger);
         }
@@ -764,221 +779,10 @@ public class BattleTurnSystem : MonoBehaviour
         return true;
     }
 
-    private bool StartGridTriggerNavigation(
-        BattleUnit unit,
-        IReadOnlyList<Vector2Int> triggerCells,
-        System.Action arrivedAction)
-    {
-        if (unit == null || triggerCells == null || triggerCells.Count == 0 || grid == null)
-        {
-            return false;
-        }
-
-        Vector2Int currentCell = ResolveUnitCurrentCell(unit);
-        if (ContainsCell(triggerCells, currentCell))
-        {
-            arrivedAction?.Invoke();
-            return true;
-        }
-
-        Vector2Int targetCell;
-        if (!TryFindNearestReachableTriggerCell(unit, triggerCells, out targetCell))
-        {
-            return false;
-        }
-
-        if (!TryMoveFreely(unit, targetCell, true))
-        {
-            return false;
-        }
-
-        ClearPendingGridTriggerNavigation();
-        pendingGridTriggerRoutine = StartCoroutine(WaitForGridTriggerNavigation(unit, triggerCells, arrivedAction));
-        return true;
-    }
-
-    private IEnumerator WaitForGridTriggerNavigation(
-        BattleUnit unit,
-        IReadOnlyList<Vector2Int> triggerCells,
-        System.Action arrivedAction)
-    {
-        while (unit != null && unit.IsMoving)
-        {
-            yield return null;
-        }
-
-        pendingGridTriggerRoutine = null;
-        if (unit == null || grid == null)
-        {
-            yield break;
-        }
-
-        Vector2Int currentCell = ResolveUnitCurrentCell(unit);
-        if (ContainsCell(triggerCells, currentCell))
-        {
-            arrivedAction?.Invoke();
-        }
-    }
-
-    private bool TryFindNearestReachableTriggerCell(
-        BattleUnit unit,
-        IReadOnlyList<Vector2Int> triggerCells,
-        out Vector2Int targetCell)
-    {
-        targetCell = default;
-        if (unit == null || triggerCells == null || grid == null)
-        {
-            return false;
-        }
-
-        bool found = false;
-        int bestPathLength = int.MaxValue;
-        int bestManhattanDistance = int.MaxValue;
-        Vector2Int currentCell = ResolveUnitCurrentCell(unit);
-        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-        for (int i = 0; i < triggerCells.Count; i++)
-        {
-            Vector2Int candidate = triggerCells[i];
-            if (!visited.Add(candidate))
-            {
-                continue;
-            }
-
-            if (candidate == currentCell)
-            {
-                targetCell = candidate;
-                return true;
-            }
-
-            if (!grid.IsWalkableIgnoringAllies(unit, candidate))
-            {
-                continue;
-            }
-
-            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, candidate);
-            if (path == null || path.Count <= 1)
-            {
-                continue;
-            }
-
-            int pathLength = path.Count - 1;
-            int manhattanDistance = grid.ManhattanDistance(currentCell, candidate);
-            if (found &&
-                (pathLength > bestPathLength ||
-                 (pathLength == bestPathLength && manhattanDistance >= bestManhattanDistance)))
-            {
-                continue;
-            }
-
-            found = true;
-            bestPathLength = pathLength;
-            bestManhattanDistance = manhattanDistance;
-            targetCell = candidate;
-        }
-
-        return found;
-    }
-
-    private Vector2Int ResolveUnitCurrentCell(BattleUnit unit)
-    {
-        if (unit == null)
-        {
-            return default;
-        }
-
-        return grid != null && unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
-    }
-
-    private static bool ContainsCell(IReadOnlyList<Vector2Int> cells, Vector2Int target)
-    {
-        if (cells == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < cells.Count; i++)
-        {
-            if (cells[i] == target)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void ClearPendingGridTriggerNavigation()
-    {
-        if (pendingGridTriggerRoutine != null)
-        {
-            StopCoroutine(pendingGridTriggerRoutine);
-            pendingGridTriggerRoutine = null;
-        }
-    }
-
     private void 提示战斗中不能触发格子交互(string triggerName)
     {
         string resolvedName = string.IsNullOrWhiteSpace(triggerName) ? "交互物件" : triggerName.Trim();
         Debug.Log($"格子交互：'{resolvedName}' 已收到点击，但当前还在战斗中，暂时不能触发。", this);
-    }
-
-    private void StartDoorExitButtonNavigation(
-        BattleUnit unit,
-        MapTemplateDatabase.ConnectionDirection direction,
-        Vector2Int targetCell)
-    {
-        if (unit == null)
-        {
-            return;
-        }
-
-        if (!TryMoveFreely(unit, targetCell, false))
-        {
-            return;
-        }
-
-        if (pendingDoorNavigationRoutine != null)
-        {
-            StopCoroutine(pendingDoorNavigationRoutine);
-            pendingDoorNavigationRoutine = null;
-        }
-
-        hasPendingDoorNavigationCell = true;
-        pendingDoorNavigationCell = targetCell;
-        pendingDoorNavigationRoutine = StartCoroutine(WaitForDoorExitButtonNavigation(unit, direction, targetCell));
-    }
-
-    private IEnumerator WaitForDoorExitButtonNavigation(
-        BattleUnit unit,
-        MapTemplateDatabase.ConnectionDirection direction,
-        Vector2Int targetCell)
-    {
-        while (unit != null && unit.IsMoving)
-        {
-            yield return null;
-        }
-
-        if (unit == null || !hasPendingDoorNavigationCell || pendingDoorNavigationCell != targetCell)
-        {
-            pendingDoorNavigationRoutine = null;
-            yield break;
-        }
-
-        if (grid == null || grid.WorldToCell(unit.transform.position) != targetCell)
-        {
-            pendingDoorNavigationRoutine = null;
-            ClearPendingDoorNavigation();
-            yield break;
-        }
-
-        pendingDoorNavigationRoutine = null;
-        ClearPendingDoorNavigation();
-        Debug.Log($"[换房转场Debug] 按钮/点击门口导航到达目标格，准备播放转场后切房。direction={direction}，unit={unit.name}，targetCell={targetCell}。", this);
-        墨血换房转场控制器.尝试播放换房转场(() =>
-        {
-            Debug.Log($"[换房转场Debug] 按钮/点击门口导航：幕布盖满回调触发，开始真正切房。direction={direction}。", this);
-            BattleBootstrap.NavigateToDirection(direction);
-        });
     }
 
     private bool UpdateDoorExitNavigationLock(BattleUnit unit)
