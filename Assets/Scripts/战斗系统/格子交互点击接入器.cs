@@ -3,7 +3,7 @@ using UnityEngine;
 
 internal sealed class 格子交互点击接入器
 {
-    private 房间方向按钮 hoveredDoorButton;
+    private 可交互状态对象切换器 hoveredStateSwitcher;
 
     public bool 处理点击(
         Camera battleCamera,
@@ -24,8 +24,8 @@ internal sealed class 格子交互点击接入器
         if (hit.门按钮 != null &&
             hit.门按钮.TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection direction))
         {
-            SetHoveredDoorButton(hit.门按钮);
-            hit.门按钮.标记为选中();
+            SetHoveredStateSwitcher(hit.状态对象切换器);
+            hit.状态对象切换器?.标记为选中();
             请求门交互?.Invoke(direction);
             return true;
         }
@@ -42,12 +42,18 @@ internal sealed class 格子交互点击接入器
     {
         if (BattleInputService.IsPointerBlockedByUi() || battleCamera == null)
         {
-            SetHoveredDoorButton(null);
+            SetHoveredStateSwitcher(null);
             return;
         }
 
         交互命中 hit;
-        SetHoveredDoorButton(尝试查找指针下交互(battleCamera, out hit) ? hit.门按钮 : null);
+        if (尝试查找指针下交互(battleCamera, out hit))
+        {
+            SetHoveredStateSwitcher(hit.状态对象切换器);
+            return;
+        }
+
+        SetHoveredStateSwitcher(null);
     }
 
     private bool 尝试查找指针下交互(Camera battleCamera, out 交互命中 hit)
@@ -100,14 +106,21 @@ internal sealed class 格子交互点击接入器
         房间方向按钮 doorButton = source.collider.GetComponentInParent<房间方向按钮>();
         if (doorButton != null)
         {
-            hit = 交互命中.创建门(source.distance, doorButton);
+            hit = 交互命中.创建门(source.distance, doorButton, source.collider.GetComponentInParent<可交互状态对象切换器>());
             return true;
         }
 
         格子物件触发器 trigger = source.collider.GetComponentInParent<格子物件触发器>();
         if (trigger != null)
         {
-            hit = 交互命中.创建物件(source.distance, trigger);
+            hit = 交互命中.创建物件(source.distance, trigger, source.collider.GetComponentInParent<可交互状态对象切换器>());
+            return true;
+        }
+
+        可交互状态对象切换器 stateSwitcher = source.collider.GetComponentInParent<可交互状态对象切换器>();
+        if (stateSwitcher != null)
+        {
+            hit = 交互命中.创建状态(source.distance, stateSwitcher);
             return true;
         }
 
@@ -125,30 +138,37 @@ internal sealed class 格子交互点击接入器
         格子物件触发器 trigger = source.collider.GetComponentInParent<格子物件触发器>();
         if (trigger != null)
         {
-            hit = 交互命中.创建物件(source.distance, trigger);
+            hit = 交互命中.创建物件(source.distance, trigger, source.collider.GetComponentInParent<可交互状态对象切换器>());
+            return true;
+        }
+
+        可交互状态对象切换器 stateSwitcher = source.collider.GetComponentInParent<可交互状态对象切换器>();
+        if (stateSwitcher != null)
+        {
+            hit = 交互命中.创建状态(source.distance, stateSwitcher);
             return true;
         }
 
         return false;
     }
 
-    private void SetHoveredDoorButton(房间方向按钮 doorButton)
+    private void SetHoveredStateSwitcher(可交互状态对象切换器 stateSwitcher)
     {
-        if (hoveredDoorButton == doorButton)
+        if (hoveredStateSwitcher == stateSwitcher)
         {
             return;
         }
 
-        if (hoveredDoorButton != null)
+        if (hoveredStateSwitcher != null)
         {
-            hoveredDoorButton.设置悬浮(false);
+            hoveredStateSwitcher.设置悬浮(false);
         }
 
-        hoveredDoorButton = doorButton;
+        hoveredStateSwitcher = stateSwitcher;
 
-        if (hoveredDoorButton != null)
+        if (hoveredStateSwitcher != null)
         {
-            hoveredDoorButton.设置悬浮(true);
+            hoveredStateSwitcher.设置悬浮(true);
         }
     }
 
@@ -157,22 +177,34 @@ internal sealed class 格子交互点击接入器
         public float 距离;
         public 房间方向按钮 门按钮;
         public 格子物件触发器 物件触发器;
+        public 可交互状态对象切换器 状态对象切换器;
 
-        public static 交互命中 创建门(float 距离, 房间方向按钮 门按钮)
+        public static 交互命中 创建门(float 距离, 房间方向按钮 门按钮, 可交互状态对象切换器 状态对象切换器)
         {
             return new 交互命中
             {
                 距离 = 距离,
-                门按钮 = 门按钮
+                门按钮 = 门按钮,
+                状态对象切换器 = 状态对象切换器
             };
         }
 
-        public static 交互命中 创建物件(float 距离, 格子物件触发器 物件触发器)
+        public static 交互命中 创建物件(float 距离, 格子物件触发器 物件触发器, 可交互状态对象切换器 状态对象切换器)
         {
             return new 交互命中
             {
                 距离 = 距离,
-                物件触发器 = 物件触发器
+                物件触发器 = 物件触发器,
+                状态对象切换器 = 状态对象切换器
+            };
+        }
+
+        public static 交互命中 创建状态(float 距离, 可交互状态对象切换器 状态对象切换器)
+        {
+            return new 交互命中
+            {
+                距离 = 距离,
+                状态对象切换器 = 状态对象切换器
             };
         }
     }

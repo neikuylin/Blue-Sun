@@ -1358,6 +1358,7 @@ GameObject:
   - component: {fileID: 2209984736103909020}
   - component: {fileID: 6263078594685995924}
   - component: {fileID: 7119957647017681311}
+  - component: {fileID: 1707371103436054362}
   m_Layer: 0
   m_Name: "\u95E8\u6309\u94AE"
   m_TagString: Untagged
@@ -1474,9 +1475,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
   direction: 3
+  "\u72B6\u6001\u5BF9\u8C61\u5207\u6362\u5668": {fileID: 0}
   normalStateObject: {fileID: 0}
   highlightedStateObject: {fileID: 5108576726056533713}
   selectedStateObject: {fileID: 0}
+--- !u!114 &1707371103436054362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8823122457417748912}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df331671f75b444d8ba4961c31b7da29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u53EF\u4EA4\u4E92\u72B6\u6001\u5BF9\u8C61\u5207\u6362\u5668"
+  "\u666E\u901A\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u60AC\u6D6E\u72B6\u6001\u5BF9\u8C61": {fileID: 5108576726056533713}
+  "\u9009\u4E2D\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u542F\u7528\u4E92\u65A5\u9009\u4E2D": 1
 --- !u!1 &8900283662918969902
 GameObject:
   m_ObjectHideFlags: 0
