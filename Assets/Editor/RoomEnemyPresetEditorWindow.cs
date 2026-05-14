@@ -359,10 +359,17 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         if (database != null)
         {
             RoomTypeDatabase.RoomTypeEntry encounterBattle = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
+            RoomTypeDatabase.RoomTypeEntry chest = database.GetOrCreateEntry(RoomTypeDatabase.ChestTypeId);
             bool changed = false;
             if (encounterBattle != null && !string.Equals(encounterBattle.displayName, RoomTypeDatabase.EncounterBattleTypeName, System.StringComparison.Ordinal))
             {
                 encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+                changed = true;
+            }
+
+            if (chest != null && !string.Equals(chest.displayName, RoomTypeDatabase.ChestTypeName, System.StringComparison.Ordinal))
+            {
+                chest.displayName = RoomTypeDatabase.ChestTypeName;
                 changed = true;
             }
 
@@ -380,6 +387,12 @@ public sealed class RoomEnemyPresetEditorWindow : EditorWindow
         if (created != null)
         {
             created.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+        }
+
+        RoomTypeDatabase.RoomTypeEntry createdChest = database.GetOrCreateEntry(RoomTypeDatabase.ChestTypeId);
+        if (createdChest != null)
+        {
+            createdChest.displayName = RoomTypeDatabase.ChestTypeName;
         }
 
         AssetDatabase.CreateAsset(database, RoomTypeAssetPath);

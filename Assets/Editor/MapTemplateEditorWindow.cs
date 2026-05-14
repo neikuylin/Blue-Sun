@@ -795,9 +795,14 @@ public sealed class MapTemplateEditorWindow : EditorWindow
     private static Color ResolveNodeColor(MapTemplateDatabase.MapNodeEntry node)
     {
         string roomTypeId = node != null ? node.roomTypeId : string.Empty;
-        if (string.Equals(roomTypeId, RoomTypeDatabase.EncounterBattleTypeId, StringComparison.Ordinal))
+        if (RoomTypeDatabase.IsEncounterBattleType(roomTypeId))
         {
             return new Color(0.42f, 0.23f, 0.23f, 1f);
+        }
+
+        if (RoomTypeDatabase.IsChestType(roomTypeId))
+        {
+            return new Color(0.48f, 0.34f, 0.16f, 1f);
         }
 
         int hash = string.IsNullOrWhiteSpace(roomTypeId) ? 0 : roomTypeId.GetHashCode();
@@ -970,6 +975,8 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         {
             resolvedIds.Add(RoomTypeDatabase.EncounterBattleTypeId);
             resolvedNames.Add(RoomTypeDatabase.EncounterBattleTypeName);
+            resolvedIds.Add(RoomTypeDatabase.ChestTypeId);
+            resolvedNames.Add(RoomTypeDatabase.ChestTypeName);
         }
 
         ids = resolvedIds.ToArray();
@@ -991,7 +998,7 @@ public sealed class MapTemplateEditorWindow : EditorWindow
                     continue;
                 }
 
-                if (!string.Equals(entry.roomTypeId, RoomTypeDatabase.EncounterBattleTypeId, StringComparison.Ordinal))
+                if (!RoomTypeDatabase.IsEncounterBattleType(entry.roomTypeId))
                 {
                     continue;
                 }
@@ -1151,9 +1158,22 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         if (database != null)
         {
             RoomTypeDatabase.RoomTypeEntry encounterBattle = database.GetOrCreateEntry(RoomTypeDatabase.EncounterBattleTypeId);
+            RoomTypeDatabase.RoomTypeEntry chest = database.GetOrCreateEntry(RoomTypeDatabase.ChestTypeId);
+            bool changed = false;
             if (encounterBattle != null && !string.Equals(encounterBattle.displayName, RoomTypeDatabase.EncounterBattleTypeName, StringComparison.Ordinal))
             {
                 encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+                changed = true;
+            }
+
+            if (chest != null && !string.Equals(chest.displayName, RoomTypeDatabase.ChestTypeName, StringComparison.Ordinal))
+            {
+                chest.displayName = RoomTypeDatabase.ChestTypeName;
+                changed = true;
+            }
+
+            if (changed)
+            {
                 SaveAsset(database);
             }
 
@@ -1166,6 +1186,12 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         if (created != null)
         {
             created.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+        }
+
+        RoomTypeDatabase.RoomTypeEntry createdChest = database.GetOrCreateEntry(RoomTypeDatabase.ChestTypeId);
+        if (createdChest != null)
+        {
+            createdChest.displayName = RoomTypeDatabase.ChestTypeName;
         }
 
         AssetDatabase.CreateAsset(database, RoomTypeAssetPath);

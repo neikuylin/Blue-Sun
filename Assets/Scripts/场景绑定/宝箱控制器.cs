@@ -26,6 +26,7 @@ public sealed class 宝箱控制器 : MonoBehaviour, IPointerClickHandler
             content.打开宝箱内容(宝箱序列号);
         }
 
+        BattleBootstrap.MarkCurrentRoomChestOpened();
         播放打开表现();
     }
 

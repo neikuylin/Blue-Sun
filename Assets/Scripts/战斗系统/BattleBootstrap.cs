@@ -164,10 +164,26 @@ public class BattleBootstrap : MonoBehaviour
 
     public static void MarkCurrentRoomEncounterCleared()
     {
+        MarkCurrentRoomCleared();
+    }
+
+    public static void MarkCurrentRoomChestOpened()
+    {
+        if (!IsCurrentRoomChestRoom())
+        {
+            return;
+        }
+
+        MarkCurrentRoomCleared();
+        ConfigureCurrentRoomDoorExitCells(UnityEngine.Object.FindObjectOfType<BattleGrid>());
+    }
+
+    private static void MarkCurrentRoomCleared()
+    {
         RoomStateMemory memory = GetCurrentRoomStateMemory();
         if (memory == null)
         {
-            Debug.LogWarning("BattleBootstrap: MarkCurrentRoomEncounterCleared failed because current room memory is missing.");
+            Debug.LogWarning("BattleBootstrap: MarkCurrentRoomCleared failed because current room memory is missing.");
             return;
         }
 
@@ -205,11 +221,13 @@ public class BattleBootstrap : MonoBehaviour
     public static bool IsCurrentRoomEncounterBattleRoom()
     {
         MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
-        return node != null &&
-            string.Equals(
-                string.IsNullOrWhiteSpace(node.roomTypeId) ? string.Empty : node.roomTypeId.Trim(),
-                RoomTypeDatabase.EncounterBattleTypeId,
-                System.StringComparison.Ordinal);
+        return node != null && RoomTypeDatabase.IsEncounterBattleType(node.roomTypeId);
+    }
+
+    public static bool IsCurrentRoomChestRoom()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        return node != null && RoomTypeDatabase.IsChestType(node.roomTypeId);
     }
 
     private void Start()

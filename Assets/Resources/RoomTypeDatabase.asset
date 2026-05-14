@@ -15,6 +15,8 @@ MonoBehaviour:
   entries:
   - roomTypeId: encounter_battle
     displayName: "\u906D\u9047\u6218\u623F\u95F4"
+  - roomTypeId: chest
+    displayName: "\u5B9D\u7BB1\u623F"
   - roomTypeId: boss_battle
     displayName: "BOSS\u623F\u95F4"
   - roomTypeId: totem

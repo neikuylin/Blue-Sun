@@ -96,14 +96,16 @@ public sealed class RoomTypeEditorWindow : EditorWindow
 
         SerializedProperty idProperty = entryProperty.FindPropertyRelative("roomTypeId");
         SerializedProperty nameProperty = entryProperty.FindPropertyRelative("displayName");
-        bool isEncounterBattle = string.Equals(idProperty.stringValue, RoomTypeDatabase.EncounterBattleTypeId, System.StringComparison.Ordinal);
+        bool isDefaultRoomType =
+            RoomTypeDatabase.IsEncounterBattleType(idProperty.stringValue) ||
+            RoomTypeDatabase.IsChestType(idProperty.stringValue);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField($"房间类型 {index + 1}", EditorStyles.boldLabel);
-                using (new EditorGUI.DisabledScope(isEncounterBattle))
+                using (new EditorGUI.DisabledScope(isDefaultRoomType))
                 {
                     if (GUILayout.Button("删除", GUILayout.Width(72f)))
                     {
@@ -113,16 +115,20 @@ public sealed class RoomTypeEditorWindow : EditorWindow
                 }
             }
 
-            using (new EditorGUI.DisabledScope(isEncounterBattle))
+            using (new EditorGUI.DisabledScope(isDefaultRoomType))
             {
                 EditorGUILayout.PropertyField(idProperty, new GUIContent("类型ID"));
             }
 
             EditorGUILayout.PropertyField(nameProperty, new GUIContent("类型名字"));
 
-            if (isEncounterBattle)
+            if (RoomTypeDatabase.IsEncounterBattleType(idProperty.stringValue))
             {
-                EditorGUILayout.HelpBox("遭遇战房间是默认创建的类型，遭遇战编辑器会固定归属到它。", MessageType.Info);
+                EditorGUILayout.HelpBox("遭遇战房间是默认创建的类型，清空房间条件为无敌人。", MessageType.Info);
+            }
+            else if (RoomTypeDatabase.IsChestType(idProperty.stringValue))
+            {
+                EditorGUILayout.HelpBox("宝箱房是默认创建的类型，清空房间条件为打开宝箱。", MessageType.Info);
             }
         }
     }
@@ -156,6 +162,13 @@ public sealed class RoomTypeEditorWindow : EditorWindow
         if (encounterBattle != null && !string.Equals(encounterBattle.displayName, RoomTypeDatabase.EncounterBattleTypeName, System.StringComparison.Ordinal))
         {
             encounterBattle.displayName = RoomTypeDatabase.EncounterBattleTypeName;
+            changed = true;
+        }
+
+        RoomTypeDatabase.RoomTypeEntry chest = database.GetOrCreateEntry(RoomTypeDatabase.ChestTypeId);
+        if (chest != null && !string.Equals(chest.displayName, RoomTypeDatabase.ChestTypeName, System.StringComparison.Ordinal))
+        {
+            chest.displayName = RoomTypeDatabase.ChestTypeName;
             changed = true;
         }
 

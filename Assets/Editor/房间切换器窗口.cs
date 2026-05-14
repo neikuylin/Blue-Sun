@@ -271,15 +271,10 @@ public sealed class 房间切换器窗口 : EditorWindow
             return $"格子模板不存在：{gridTemplateId}";
         }
 
-        if (!string.Equals(roomTypeId, RoomTypeDatabase.EncounterBattleTypeId, StringComparison.Ordinal))
-        {
-            return string.Empty;
-        }
-
         string presetId = NormalizeId(node.encounterPresetId);
         if (string.IsNullOrEmpty(presetId))
         {
-            return "遭遇战房间缺少遭遇预设。";
+            return RoomTypeDatabase.RequiresEncounterPreset(roomTypeId) ? "遭遇战房间缺少遭遇预设。" : string.Empty;
         }
 
         if (presetDatabase == null)

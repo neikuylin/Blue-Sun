@@ -8,6 +8,8 @@ public sealed class RoomTypeDatabase : ScriptableObject
     public const string DefaultResourcePath = "RoomTypeDatabase";
     public const string EncounterBattleTypeId = "encounter_battle";
     public const string EncounterBattleTypeName = "遭遇战房间";
+    public const string ChestTypeId = "chest";
+    public const string ChestTypeName = "宝箱房";
     public const string BossBattleTypeId = "boss_battle";
     public const string BossBattleTypeName = "BOSS房间";
     public const string TotemTypeId = "totem";
@@ -69,6 +71,33 @@ public sealed class RoomTypeDatabase : ScriptableObject
         };
         entries.Add(entry);
         return entry;
+    }
+
+    public static bool IsEncounterBattleType(string roomTypeId)
+    {
+        return string.Equals(NormalizeRoomTypeId(roomTypeId), EncounterBattleTypeId, StringComparison.Ordinal);
+    }
+
+    public static bool IsChestType(string roomTypeId)
+    {
+        return string.Equals(NormalizeRoomTypeId(roomTypeId), ChestTypeId, StringComparison.Ordinal);
+    }
+
+    public static bool RequiresBattleGridTemplate(string roomTypeId)
+    {
+        string id = NormalizeRoomTypeId(roomTypeId);
+        return string.Equals(id, EncounterBattleTypeId, StringComparison.Ordinal) ||
+            string.Equals(id, ChestTypeId, StringComparison.Ordinal);
+    }
+
+    public static bool RequiresEncounterPreset(string roomTypeId)
+    {
+        return IsEncounterBattleType(roomTypeId);
+    }
+
+    public static string NormalizeRoomTypeId(string roomTypeId)
+    {
+        return string.IsNullOrWhiteSpace(roomTypeId) ? string.Empty : roomTypeId.Trim();
     }
 
     public static RoomTypeDatabase LoadDefault()

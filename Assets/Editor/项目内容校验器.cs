@@ -634,15 +634,13 @@ public sealed class 项目内容校验器 : EditorWindow
             string nodeId = node.nodeId.Trim();
             string context = $"地图模板 '{templateId}' 节点 '{nodeId}'";
             ValidateRoomType(context, node.roomTypeId, roomTypeDatabase);
-            bool isEncounterBattleNode = string.Equals(
-                NormalizeId(node.roomTypeId),
-                RoomTypeDatabase.EncounterBattleTypeId,
-                StringComparison.Ordinal);
+            bool requiresBattleGridTemplate = RoomTypeDatabase.RequiresBattleGridTemplate(node.roomTypeId);
+            bool requiresEncounterPreset = RoomTypeDatabase.RequiresEncounterPreset(node.roomTypeId);
 
             格子模板数据库.格子模板条目 gridTemplate = null;
             if (string.IsNullOrWhiteSpace(node.battleGridTemplateId))
             {
-                if (isEncounterBattleNode)
+                if (requiresBattleGridTemplate)
                 {
                     AddError($"{context} 缺少 battleGridTemplateId。");
                 }
@@ -659,7 +657,7 @@ public sealed class 项目内容校验器 : EditorWindow
             RoomEnemyPresetDatabase.RoomEnemyPresetEntry preset = null;
             if (string.IsNullOrWhiteSpace(node.encounterPresetId))
             {
-                if (isEncounterBattleNode)
+                if (requiresEncounterPreset)
                 {
                     AddError($"{context} 缺少 encounterPresetId。");
                 }
