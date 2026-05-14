@@ -939,11 +939,13 @@ public class BattleTurnSystem : MonoBehaviour
         upcomingRoundOrders.Clear();
         currentRoundIndex = -1;
         absoluteRoundIndex = -1;
+        activeUnit = FindExplorationPlayerUnit();
         ClearActiveSkillMode();
         ClearLockedTargetUnit();
         skillPreviewService?.清空悬停目标(grid);
-        activeUnit = modeService != null
-            ? modeService.进入探索模式(
+        if (modeService != null)
+        {
+            activeUnit = modeService.进入探索模式(
                 switchedFromCombat && playExitAnimation,
                 FindExplorationPlayerUnit,
                 PlayExitBattleAnimations,
@@ -954,8 +956,8 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshSelectionOutlines,
                 RefreshHighlights,
                 RefreshActiveUnitUi,
-                RefreshTimeline)
-            : FindExplorationPlayerUnit();
+                RefreshTimeline);
+        }
     }
 
     private void EnterCombatMode(bool playEnterAnimation)

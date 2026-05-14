@@ -29,7 +29,7 @@ MonoBehaviour:
     - nodeId: node_1
       displayName: node_1
       position: {x: 650, y: 159.19998}
-      roomTypeId: encounter_battle
+      roomTypeId: chest
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u6D4B\u8BD5\u7528"
       connections:
