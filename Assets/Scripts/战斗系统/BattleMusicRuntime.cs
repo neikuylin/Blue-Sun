@@ -9,7 +9,8 @@ public sealed class BattleMusicRuntime : MonoBehaviour
 
     private static BattleMusicRuntime instance;
 
-    private AudioSource musicSource;
+    private AudioSource currentSource;
+    private AudioSource standbySource;
     private Coroutine fadeRoutine;
 
     public static void RefreshForMode(bool isExplorationMode)
@@ -107,20 +108,29 @@ public sealed class BattleMusicRuntime : MonoBehaviour
 
     private void EnsureSource()
     {
-        if (musicSource != null)
+        if (currentSource != null && standbySource != null)
         {
             return;
         }
 
-        musicSource = GetComponent<AudioSource>();
-        if (musicSource == null)
+        AudioSource[] sources = GetComponents<AudioSource>();
+        currentSource = sources.Length > 0 ? sources[0] : gameObject.AddComponent<AudioSource>();
+        standbySource = sources.Length > 1 ? sources[1] : gameObject.AddComponent<AudioSource>();
+
+        ConfigureSource(currentSource);
+        ConfigureSource(standbySource);
+    }
+
+    private static void ConfigureSource(AudioSource source)
+    {
+        if (source == null)
         {
-            musicSource = gameObject.AddComponent<AudioSource>();
+            return;
         }
 
-        musicSource.playOnAwake = false;
-        musicSource.spatialBlend = 0f;
-        musicSource.loop = true;
+        source.playOnAwake = false;
+        source.spatialBlend = 0f;
+        source.loop = true;
     }
 
     private void Play(AudioClip nextClip, float targetVolume, float fadeInSeconds, float fadeOutSeconds)
@@ -133,14 +143,15 @@ public sealed class BattleMusicRuntime : MonoBehaviour
             fadeRoutine = null;
         }
 
-        if (musicSource.clip == nextClip && musicSource.isPlaying)
+        if (currentSource.clip == nextClip && currentSource.isPlaying)
         {
-            if (Mathf.Approximately(musicSource.volume, targetVolume))
+            StopAndClear(standbySource);
+            if (Mathf.Approximately(currentSource.volume, targetVolume))
             {
                 return;
             }
 
-            fadeRoutine = StartCoroutine(FadeVolume(musicSource.volume, targetVolume, fadeInSeconds));
+            fadeRoutine = StartCoroutine(FadeVolume(currentSource, currentSource.volume, targetVolume, fadeInSeconds));
             return;
         }
 
@@ -157,7 +168,8 @@ public sealed class BattleMusicRuntime : MonoBehaviour
             fadeRoutine = null;
         }
 
-        if (musicSource.clip == null && !musicSource.isPlaying)
+        if ((currentSource.clip == null || !currentSource.isPlaying) &&
+            (standbySource.clip == null || !standbySource.isPlaying))
         {
             return;
         }
@@ -167,64 +179,148 @@ public sealed class BattleMusicRuntime : MonoBehaviour
 
     private IEnumerator SwitchMusic(AudioClip nextClip, float targetVolume, float fadeInSeconds, float fadeOutSeconds)
     {
-        if (musicSource.clip != null && musicSource.isPlaying)
+        AudioSource fadingOutSource = currentSource;
+        AudioSource fadingInSource = standbySource;
+
+        fadingInSource.Stop();
+        fadingInSource.clip = nextClip;
+        fadingInSource.volume = 0f;
+        fadingInSource.loop = true;
+        fadingInSource.Play();
+
+        currentSource = fadingInSource;
+        standbySource = fadingOutSource;
+
+        float fadeOutStartVolume = fadingOutSource != null ? fadingOutSource.volume : 0f;
+        float fadeInElapsed = 0f;
+        float fadeOutElapsed = 0f;
+        bool fadeInFinished = fadeInSeconds <= 0f;
+        bool fadeOutFinished = fadeOutSeconds <= 0f || fadingOutSource == null || fadingOutSource.clip == null || !fadingOutSource.isPlaying;
+
+        if (fadeInFinished)
         {
-            yield return FadeSourceVolume(musicSource.volume, 0f, fadeOutSeconds);
-            musicSource.Stop();
-            musicSource.clip = null;
+            fadingInSource.volume = targetVolume;
         }
 
-        musicSource.clip = nextClip;
-        musicSource.volume = 0f;
-        musicSource.loop = true;
-        musicSource.Play();
+        if (fadeOutFinished && fadingOutSource != null)
+        {
+            fadingOutSource.volume = 0f;
+        }
 
-        yield return FadeSourceVolume(0f, targetVolume, fadeInSeconds);
+        while (!fadeInFinished || !fadeOutFinished)
+        {
+            float deltaTime = Time.unscaledDeltaTime;
+
+            if (!fadeInFinished)
+            {
+                fadeInElapsed += deltaTime;
+                float t = Mathf.Clamp01(fadeInElapsed / fadeInSeconds);
+                fadingInSource.volume = Mathf.Lerp(0f, targetVolume, t);
+                fadeInFinished = t >= 1f;
+            }
+
+            if (!fadeOutFinished)
+            {
+                fadeOutElapsed += deltaTime;
+                float t = Mathf.Clamp01(fadeOutElapsed / fadeOutSeconds);
+                fadingOutSource.volume = Mathf.Lerp(fadeOutStartVolume, 0f, t);
+                fadeOutFinished = t >= 1f;
+            }
+
+            yield return null;
+        }
+
+        fadingInSource.volume = targetVolume;
+        if (fadingOutSource != null)
+        {
+            fadingOutSource.Stop();
+            fadingOutSource.clip = null;
+            fadingOutSource.volume = 0f;
+        }
+
         fadeRoutine = null;
     }
 
-    private IEnumerator FadeVolume(float startVolume, float targetVolume, float duration)
+    private IEnumerator FadeVolume(AudioSource source, float startVolume, float targetVolume, float duration)
     {
-        yield return FadeSourceVolume(startVolume, targetVolume, duration);
+        yield return FadeSourceVolume(source, startVolume, targetVolume, duration);
         fadeRoutine = null;
     }
 
     private IEnumerator FadeOutAndClear(float duration)
     {
-        yield return FadeSourceVolume(musicSource.volume, 0f, duration);
-        if (musicSource != null)
+        AudioSource firstSource = currentSource;
+        AudioSource secondSource = standbySource;
+        float firstStartVolume = firstSource != null ? firstSource.volume : 0f;
+        float secondStartVolume = secondSource != null ? secondSource.volume : 0f;
+        float elapsed = 0f;
+
+        if (duration <= 0f)
         {
-            musicSource.Stop();
-            musicSource.clip = null;
+            StopAndClear(firstSource);
+            StopAndClear(secondSource);
+            fadeRoutine = null;
+            yield break;
         }
 
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            if (firstSource != null)
+            {
+                firstSource.volume = Mathf.Lerp(firstStartVolume, 0f, t);
+            }
+
+            if (secondSource != null)
+            {
+                secondSource.volume = Mathf.Lerp(secondStartVolume, 0f, t);
+            }
+
+            yield return null;
+        }
+
+        StopAndClear(firstSource);
+        StopAndClear(secondSource);
         fadeRoutine = null;
     }
 
-    private IEnumerator FadeSourceVolume(float startVolume, float targetVolume, float duration)
+    private IEnumerator FadeSourceVolume(AudioSource source, float startVolume, float targetVolume, float duration)
     {
         if (duration <= 0f)
         {
-            if (musicSource != null)
+            if (source != null)
             {
-                musicSource.volume = targetVolume;
+                source.volume = targetVolume;
             }
 
             yield break;
         }
 
         float elapsed = 0f;
-        while (musicSource != null && elapsed < duration)
+        while (source != null && elapsed < duration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-            musicSource.volume = Mathf.Lerp(startVolume, targetVolume, t);
+            source.volume = Mathf.Lerp(startVolume, targetVolume, t);
             yield return null;
         }
 
-        if (musicSource != null)
+        if (source != null)
         {
-            musicSource.volume = targetVolume;
+            source.volume = targetVolume;
         }
+    }
+
+    private static void StopAndClear(AudioSource source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        source.Stop();
+        source.clip = null;
+        source.volume = 0f;
     }
 }
