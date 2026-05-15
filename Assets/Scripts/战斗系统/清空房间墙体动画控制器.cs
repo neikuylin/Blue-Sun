@@ -2,16 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.Serialization;
 
 public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 {
     private const string RoomClearedEventId = "\u6E05\u7A7A\u623F\u95F4";
 
-    [SerializeField] private List<Animator> 要停在第一帧的动画 = new List<Animator>();
+    [SerializeField] private List<Behaviour> 要停在第一帧的动画 = new List<Behaviour>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
     [SerializeField] private List<Behaviour> 清空房间后开启的音频组件 = new List<Behaviour>();
-    [SerializeField] private List<Behaviour> 进房间倒放时播放的音频组件 = new List<Behaviour>();
+    [FormerlySerializedAs("进房间倒放时播放的音频组件")]
+    [SerializeField] private List<Behaviour> 进房间时播放的音频组件 = new List<Behaviour>();
 
     private bool hasAppliedState;
     private bool appliedClearedState;
@@ -65,23 +67,23 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
-            Animator animator = 要停在第一帧的动画[i];
-            if (animator == null)
+            Behaviour target = 要停在第一帧的动画[i];
+            if (target == null)
             {
                 continue;
             }
 
             if (roomCleared)
             {
-                PlayFromStart(animator);
+                PlayFromStart(target);
             }
             else if (force)
             {
-                PlayFromEnd(animator);
+                PlayFromEnd(target);
             }
             else
             {
-                ResetToStart(animator);
+                ResetToStart(target);
             }
         }
 
@@ -190,21 +192,63 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     private void PlayReverseAudioPlayback()
     {
-        for (int i = 0; i < 进房间倒放时播放的音频组件.Count; i++)
+        for (int i = 0; i < 进房间时播放的音频组件.Count; i++)
         {
-            PlayAudioBehaviour(进房间倒放时播放的音频组件[i]);
+            PlayAudioBehaviour(进房间时播放的音频组件[i]);
         }
     }
 
     private void StopReverseAudioPlayback()
     {
-        for (int i = 0; i < 进房间倒放时播放的音频组件.Count; i++)
+        for (int i = 0; i < 进房间时播放的音频组件.Count; i++)
         {
-            StopAudioBehaviour(进房间倒放时播放的音频组件[i]);
+            StopAudioBehaviour(进房间时播放的音频组件[i]);
         }
     }
 
-    private static void PlayFromStart(Animator animator)
+    private static void PlayFromStart(Behaviour target)
+    {
+        if (target is PlayableDirector playableDirector)
+        {
+            PlayTimelineFromStart(playableDirector);
+            return;
+        }
+
+        if (target is Animator animator)
+        {
+            PlayAnimatorFromStart(animator);
+        }
+    }
+
+    private static void PlayFromEnd(Behaviour target)
+    {
+        if (target is PlayableDirector playableDirector)
+        {
+            SetTimelineTime(playableDirector, ResolvePlayableDirectorLength(playableDirector));
+            return;
+        }
+
+        if (target is Animator animator)
+        {
+            PlayAnimatorFromEnd(animator);
+        }
+    }
+
+    private static void ResetToStart(Behaviour target)
+    {
+        if (target is PlayableDirector playableDirector)
+        {
+            ResetTimelineToStart(playableDirector);
+            return;
+        }
+
+        if (target is Animator animator)
+        {
+            ResetAnimatorToStart(animator);
+        }
+    }
+
+    private static void PlayAnimatorFromStart(Animator animator)
     {
         animator.enabled = true;
         animator.speed = 1f;
@@ -212,7 +256,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         animator.Update(0f);
     }
 
-    private static void PlayFromEnd(Animator animator)
+    private static void PlayAnimatorFromEnd(Animator animator)
     {
         animator.enabled = true;
         animator.speed = 0f;
@@ -220,13 +264,26 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         animator.Update(0f);
     }
 
-    private static void ResetToStart(Animator animator)
+    private static void ResetAnimatorToStart(Animator animator)
     {
         animator.enabled = true;
         animator.speed = 0f;
         animator.Play(0, 0, 0f);
         animator.Update(0f);
         animator.enabled = false;
+    }
+
+    private static void PlayTimelineFromStart(PlayableDirector playableDirector)
+    {
+        playableDirector.time = 0d;
+        playableDirector.Play();
+    }
+
+    private static void ResetTimelineToStart(PlayableDirector playableDirector)
+    {
+        playableDirector.Stop();
+        playableDirector.time = 0d;
+        playableDirector.Evaluate();
     }
 
     private IEnumerator PlayRoomEnterReverseRoutine()
@@ -240,21 +297,21 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
         while (elapsed < duration)
         {
-            float normalizedTime = 1f - Mathf.Clamp01(elapsed / duration);
-            SampleAnimations(normalizedTime);
+            float timelineTime = duration - elapsed;
+            SampleAnimations(timelineTime);
             elapsed += Time.deltaTime;
             yield return null;
         }
 
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
-            Animator animator = 要停在第一帧的动画[i];
-            if (animator == null)
+            Behaviour target = 要停在第一帧的动画[i];
+            if (target == null)
             {
                 continue;
             }
 
-            ResetToStart(animator);
+            ResetToStart(target);
         }
 
         StopReverseAudioPlayback();
@@ -266,18 +323,33 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         float duration = 0f;
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
-            Animator animator = 要停在第一帧的动画[i];
-            if (animator == null)
+            Behaviour target = 要停在第一帧的动画[i];
+            if (target == null)
             {
                 continue;
             }
 
-            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-            float resolvedLength = ResolveAnimatorLength(animator, stateInfo);
+            float resolvedLength = ResolveAnimationTargetLength(target);
             duration = Mathf.Max(duration, resolvedLength);
         }
 
         return Mathf.Max(duration, 0.01f);
+    }
+
+    private static float ResolveAnimationTargetLength(Behaviour target)
+    {
+        if (target is PlayableDirector playableDirector)
+        {
+            return ResolvePlayableDirectorLength(playableDirector);
+        }
+
+        if (target is Animator animator)
+        {
+            AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+            return ResolveAnimatorLength(animator, stateInfo);
+        }
+
+        return 0f;
     }
 
     private static float ResolveAnimatorLength(Animator animator, AnimatorStateInfo stateInfo)
@@ -309,18 +381,81 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         return length;
     }
 
-    private void SampleAnimations(float normalizedTime)
+    private static float ResolvePlayableDirectorLength(PlayableDirector playableDirector)
+    {
+        if (playableDirector == null)
+        {
+            return 0f;
+        }
+
+        double duration = playableDirector.duration;
+        if ((double.IsInfinity(duration) || double.IsNaN(duration) || duration <= 0d) && playableDirector.playableAsset != null)
+        {
+            duration = playableDirector.playableAsset.duration;
+        }
+
+        if (double.IsInfinity(duration) || double.IsNaN(duration) || duration <= 0d)
+        {
+            return 0f;
+        }
+
+        return (float)duration;
+    }
+
+    private void SampleAnimations(float timelineTime)
     {
         for (int i = 0; i < 要停在第一帧的动画.Count; i++)
         {
-            Animator animator = 要停在第一帧的动画[i];
-            if (animator == null)
+            Behaviour target = 要停在第一帧的动画[i];
+            if (target == null)
             {
                 continue;
             }
 
-            animator.Play(0, 0, normalizedTime);
+            SampleAnimationTarget(target, timelineTime);
+        }
+    }
+
+    private static void SampleAnimationTarget(Behaviour target, float timelineTime)
+    {
+        float targetLength = ResolveAnimationTargetLength(target);
+        if (targetLength <= 0f)
+        {
+            return;
+        }
+
+        float targetTime = Mathf.Clamp(timelineTime, 0f, targetLength);
+
+        if (target is PlayableDirector playableDirector)
+        {
+            SamplePlayableDirector(playableDirector, targetTime);
+            return;
+        }
+
+        if (target is Animator animator)
+        {
+            animator.enabled = true;
+            animator.speed = 0f;
+            animator.Play(0, 0, targetTime / targetLength);
             animator.Update(0f);
         }
+    }
+
+    private static void SetTimelineTime(PlayableDirector playableDirector, double time)
+    {
+        playableDirector.Stop();
+        playableDirector.time = time;
+        playableDirector.Evaluate();
+    }
+
+    private static void SamplePlayableDirector(PlayableDirector playableDirector, float timelineTime)
+    {
+        float targetLength = ResolvePlayableDirectorLength(playableDirector);
+        if (targetLength <= 0f)
+        {
+            return;
+        }
+
+        SetTimelineTime(playableDirector, Mathf.Clamp(timelineTime, 0f, targetLength));
     }
 }

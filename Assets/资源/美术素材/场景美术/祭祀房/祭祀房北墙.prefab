@@ -543,8 +543,8 @@ MonoBehaviour:
   - {fileID: 6332575369089381322}
   - {fileID: 1446692665098359307}
   - {fileID: 4088985011928500568}
-  "\u8FDB\u623F\u95F4\u5012\u653E\u65F6\u64AD\u653E\u7684\u97F3\u9891\u7EC4\u4EF6":
-  - {fileID: 4088985011928500568}
+  "\u8FDB\u623F\u95F4\u65F6\u64AD\u653E\u7684\u97F3\u9891\u7EC4\u4EF6":
+  - {fileID: 2175666072616854037}
 --- !u!1 &4337151684796814482
 GameObject:
   m_ObjectHideFlags: 0
@@ -576,6 +576,7 @@ Transform:
   m_Children:
   - {fileID: 2149828289472806213}
   - {fileID: 1847212131800145688}
+  - {fileID: 1389630399904297140}
   m_Father: {fileID: 724068630677092619}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4696664757059318516
@@ -696,6 +697,55 @@ MonoBehaviour:
   applyLineRenderers: 0
   applyTrailRenderers: 0
   applyMeshRenderers: 0
+--- !u!1 &4769769066634971705
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1389630399904297140}
+  - component: {fileID: 2175666072616854037}
+  m_Layer: 0
+  m_Name: "\u5012\u653E\u97F3\u9891"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1389630399904297140
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4769769066634971705}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1.49, y: -4.87, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3119882893524332365}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!320 &2175666072616854037
+PlayableDirector:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4769769066634971705}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_PlayableAsset: {fileID: 11400000, guid: 471d635e06ad44e69c9f6cc0026ba920, type: 2}
+  m_InitialState: 1
+  m_WrapMode: 2
+  m_DirectorUpdateMode: 1
+  m_InitialTime: 0
+  m_SceneBindings: []
+  m_ExposedReferences:
+    m_References: []
 --- !u!1 &5108576726056533713
 GameObject:
   m_ObjectHideFlags: 0
