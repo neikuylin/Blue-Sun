@@ -36,6 +36,29 @@ public sealed class 项目内容校验器 : EditorWindow
         PrintResultsToConsole();
     }
 
+    [MenuItem("Tools/校验/自动去重格子模板可行走格")]
+    private static void DeduplicateGridTemplateWalkableCellsMenu()
+    {
+        格子模板数据库 database = 格子模板数据库.LoadDefault();
+        if (database == null)
+        {
+            Debug.LogError("格子模板可行走格去重：缺少 Resources 数据库：格子模板数据库");
+            return;
+        }
+
+        int removedCount = DeduplicateGridTemplateWalkableCells(database);
+        if (removedCount <= 0)
+        {
+            EditorUtility.DisplayDialog("格子模板可行走格去重", "没有发现重复可行走格。", "确定");
+            return;
+        }
+
+        EditorUtility.SetDirty(database);
+        AssetDatabase.SaveAssets();
+        RunValidation();
+        EditorUtility.DisplayDialog("格子模板可行走格去重", $"已移除 {removedCount} 个重复可行走格。", "确定");
+    }
+
     private void OnGUI()
     {
         if (GUILayout.Button("运行校验"))
@@ -966,6 +989,40 @@ public sealed class 项目内容校验器 : EditorWindow
         {
             AddError($"缺少 Resources 数据库：{databaseName}");
         }
+    }
+
+    private static int DeduplicateGridTemplateWalkableCells(格子模板数据库 database)
+    {
+        if (database == null || database.Entries == null)
+        {
+            return 0;
+        }
+
+        int removedCount = 0;
+        for (int entryIndex = 0; entryIndex < database.Entries.Count; entryIndex++)
+        {
+            格子模板数据库.格子模板条目 entry = database.Entries[entryIndex];
+            if (entry == null || entry.walkableCells == null)
+            {
+                continue;
+            }
+
+            HashSet<Vector2Int> seenCells = new HashSet<Vector2Int>();
+            for (int i = 0; i < entry.walkableCells.Count;)
+            {
+                Vector2Int cell = entry.walkableCells[i].ToVector2Int();
+                if (seenCells.Add(cell))
+                {
+                    i++;
+                    continue;
+                }
+
+                entry.walkableCells.RemoveAt(i);
+                removedCount++;
+            }
+        }
+
+        return removedCount;
     }
 
     private static bool IsWeaponDamageDistributionValid(ItemDatabase.WeaponDamageDistribution distribution)

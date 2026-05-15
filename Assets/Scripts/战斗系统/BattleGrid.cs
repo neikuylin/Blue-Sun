@@ -9,6 +9,7 @@ public class BattleGrid : MonoBehaviour
     private const int FootprintOverlaySortingOrder = -10005;
     private const int DoorExitHalfWidth = 1;
     private const int DoorExitLength = 10;
+    private const int DoorExitTransitionDepth = DoorExitLength - 1;
 
     private static readonly Vector2Int[] CardinalDirections =
     {
@@ -252,17 +253,17 @@ public class BattleGrid : MonoBehaviour
                 for (int offset = -DoorExitHalfWidth; offset <= DoorExitHalfWidth; offset++)
                 {
                     Vector2Int cell = definition.coreCell + (forward * depth) + (side * offset);
-                    Vector2Int deepestCell = definition.coreCell + (forward * DoorExitLength) + (side * offset);
+                    Vector2Int transitionCell = definition.coreCell + (forward * DoorExitTransitionDepth) + (side * offset);
                     doorExitCells.Add(cell);
-                    doorExitNavigations[cell] = new DoorExitNavigation(definition.direction, deepestCell);
+                    doorExitNavigations[cell] = new DoorExitNavigation(definition.direction, transitionCell);
 
                     if (depth == 1)
                     {
                         doorExitEntryDirections[cell] = definition.direction;
-                        doorExitAutoDestinations[cell] = deepestCell;
+                        doorExitAutoDestinations[cell] = transitionCell;
                     }
 
-                    if (depth == DoorExitLength)
+                    if (depth == DoorExitTransitionDepth)
                     {
                         doorExitTransitionDirections[cell] = definition.direction;
                         if (offset == 0)
@@ -351,11 +352,6 @@ public class BattleGrid : MonoBehaviour
 
     private bool IsWalkableInternal(BattleUnit unit, Vector2Int centerCell, bool ignoreAlliedOccupants, bool allowDestinationOnAllies)
     {
-        if (doorExitCells.Contains(centerCell))
-        {
-            return true;
-        }
-
         int radius = unit != null ? unit.FootprintRadius : 0;
         for (int y = centerCell.y - radius; y <= centerCell.y + radius; y++)
         {
