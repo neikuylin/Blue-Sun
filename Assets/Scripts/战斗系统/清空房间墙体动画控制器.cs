@@ -11,6 +11,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
     [SerializeField] private List<Behaviour> 清空房间后开启的音频组件 = new List<Behaviour>();
+    [SerializeField] private List<Behaviour> 进房间倒放时播放的音频组件 = new List<Behaviour>();
 
     private bool hasAppliedState;
     private bool appliedClearedState;
@@ -30,6 +31,8 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             StopCoroutine(roomEnterReverseRoutine);
             roomEnterReverseRoutine = null;
         }
+
+        StopReverseAudioPlayback();
     }
 
     private void HandleEventStateChanged(string eventId, bool enabled)
@@ -55,6 +58,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         {
             StopCoroutine(roomEnterReverseRoutine);
             roomEnterReverseRoutine = null;
+            StopReverseAudioPlayback();
         }
 
         bool playRoomEnterReverse = !roomCleared && force;
@@ -139,6 +143,67 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         target.Evaluate();
     }
 
+    private static void PlayAudioBehaviour(Behaviour target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (target is PlayableDirector playableDirector)
+        {
+            playableDirector.time = 0d;
+            playableDirector.Play();
+            return;
+        }
+
+        if (target is AudioSource audioSource)
+        {
+            audioSource.enabled = true;
+            audioSource.Stop();
+            audioSource.time = 0f;
+            audioSource.Play();
+        }
+    }
+
+    private static void StopAudioBehaviour(Behaviour target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (target is PlayableDirector playableDirector)
+        {
+            playableDirector.Stop();
+            playableDirector.time = 0d;
+            playableDirector.Evaluate();
+            return;
+        }
+
+        if (target is AudioSource audioSource)
+        {
+            audioSource.Stop();
+            audioSource.time = 0f;
+        }
+    }
+
+    private void PlayReverseAudioPlayback()
+    {
+        for (int i = 0; i < 进房间倒放时播放的音频组件.Count; i++)
+        {
+            PlayAudioBehaviour(进房间倒放时播放的音频组件[i]);
+        }
+    }
+
+    private void StopReverseAudioPlayback()
+    {
+        for (int i = 0; i < 进房间倒放时播放的音频组件.Count; i++)
+        {
+            StopAudioBehaviour(进房间倒放时播放的音频组件[i]);
+        }
+    }
+
     private static void PlayFromStart(Animator animator)
     {
         animator.enabled = true;
@@ -168,6 +233,8 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     {
         yield return null;
 
+        PlayReverseAudioPlayback();
+
         float duration = ResolveLongestCurrentStateLength();
         float elapsed = 0f;
 
@@ -190,6 +257,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             ResetToStart(animator);
         }
 
+        StopReverseAudioPlayback();
         roomEnterReverseRoutine = null;
     }
 
