@@ -37,6 +37,18 @@ public class BattleBootstrap : MonoBehaviour
         public GameObject preservedRuntimeRoot;
     }
 
+    private struct PlayerVitalsSnapshot
+    {
+        public int currentHealth;
+        public int currentMana;
+
+        public PlayerVitalsSnapshot(int currentHealth, int currentMana)
+        {
+            this.currentHealth = currentHealth;
+            this.currentMana = currentMana;
+        }
+    }
+
     [Header("Binding Database")]
     public BattleCharacterBindingDatabase characterBindingDatabase;
 
@@ -86,6 +98,7 @@ public class BattleBootstrap : MonoBehaviour
     private static string currentDungeonNodeId = DefaultDungeonNodeId;
     private static MapTemplateDatabase.ConnectionDirection? pendingEntranceDirection;
     private static readonly Dictionary<string, RoomStateMemory> roomStateMemories = new Dictionary<string, RoomStateMemory>(System.StringComparer.Ordinal);
+    private static readonly Dictionary<string, PlayerVitalsSnapshot> playerVitalsSnapshots = new Dictionary<string, PlayerVitalsSnapshot>(System.StringComparer.Ordinal);
 
     public static string CurrentDungeonTemplateId => currentDungeonTemplateId;
     public static string CurrentDungeonNodeId => currentDungeonNodeId;
@@ -93,6 +106,7 @@ public class BattleBootstrap : MonoBehaviour
     public static void ResetSaveData()
     {
         ClearRoomStateMemories(destroyPreservedRuntimeRoots: true);
+        playerVitalsSnapshots.Clear();
         currentDungeonTemplateId = DefaultDungeonTemplateId;
         currentDungeonNodeId = DefaultDungeonNodeId;
         pendingEntranceDirection = null;
@@ -940,6 +954,7 @@ public class BattleBootstrap : MonoBehaviour
 
         List<Vector2Int> playerSpawnCells = ResolvePlayerSpawnCells(grid, selectedPlayers.Count, enemyEntries);
         List<BattleUnit> units = factory.CreatePlayers(selectedPlayers, playerSpawnCells);
+        RestorePlayerVitalsSnapshots(units);
         units.AddRange(factory.CreateEnemies(enemyEntries));
         return units;
     }
@@ -968,6 +983,8 @@ public class BattleBootstrap : MonoBehaviour
         {
             return;
         }
+
+        CapturePlayerVitalsSnapshots(runtimeRoot);
 
         if (memory.preservedRuntimeRoot != null && memory.preservedRuntimeRoot != runtimeRoot.gameObject)
         {
@@ -1007,6 +1024,52 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         return units;
+    }
+
+    private static void CapturePlayerVitalsSnapshots(Transform runtimeRoot)
+    {
+        List<BattleUnit> units = CollectRuntimeUnits(runtimeRoot);
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null ||
+                unit.team != BattleTeam.Player ||
+                string.IsNullOrWhiteSpace(unit.characterId))
+            {
+                continue;
+            }
+
+            playerVitalsSnapshots[unit.characterId.Trim()] = new PlayerVitalsSnapshot(
+                unit.currentHealth,
+                unit.currentMana);
+        }
+    }
+
+    private static void RestorePlayerVitalsSnapshots(List<BattleUnit> units)
+    {
+        if (units == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            BattleUnit unit = units[i];
+            if (unit == null ||
+                unit.team != BattleTeam.Player ||
+                string.IsNullOrWhiteSpace(unit.characterId))
+            {
+                continue;
+            }
+
+            PlayerVitalsSnapshot snapshot;
+            if (!playerVitalsSnapshots.TryGetValue(unit.characterId.Trim(), out snapshot))
+            {
+                continue;
+            }
+
+            unit.RestoreCurrentVitals(snapshot.currentHealth, snapshot.currentMana);
+        }
     }
 
     private static Transform FindRuntimeRootInScene(Scene scene)

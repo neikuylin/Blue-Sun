@@ -510,6 +510,20 @@ public class BattleUnit : MonoBehaviour
         }
     }
 
+    public void RestoreCurrentVitals(int health, int mana)
+    {
+        currentHealth = Mathf.Clamp(health, 0, GetEffectiveMaxHealth());
+        currentMana = Mathf.Clamp(mana, 0, maxMana);
+        if (currentHealth <= 0)
+        {
+            gameObject.SetActive(false);
+        }
+        else if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+    }
+
     public bool ShouldAdvanceEffectOnTurn(BattleUnit actingUnit, ActiveEffectState effectState)
     {
         if (actingUnit == null || effectState == null)
