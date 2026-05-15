@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Playables;
 
 public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     [SerializeField] private List<Animator> 要停在第一帧的动画 = new List<Animator>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
-    [SerializeField] private List<AudioSource> 清空房间后开启的音频组件 = new List<AudioSource>();
+    [SerializeField] private List<Behaviour> 清空房间后开启的音频组件 = new List<Behaviour>();
 
     private bool hasAppliedState;
     private bool appliedClearedState;
@@ -104,18 +105,38 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
     }
 
-    private static void ApplyAudioSourceState(List<AudioSource> targets, bool enabled)
+    private static void ApplyAudioSourceState(List<Behaviour> targets, bool enabled)
     {
         for (int i = 0; i < targets.Count; i++)
         {
-            AudioSource target = targets[i];
+            Behaviour target = targets[i];
             if (target == null)
             {
                 continue;
             }
 
+            if (target is PlayableDirector playableDirector)
+            {
+                ApplyPlayableDirectorState(playableDirector, enabled);
+                continue;
+            }
+
             target.enabled = enabled;
         }
+    }
+
+    private static void ApplyPlayableDirectorState(PlayableDirector target, bool play)
+    {
+        if (play)
+        {
+            target.time = 0d;
+            target.Play();
+            return;
+        }
+
+        target.Stop();
+        target.time = 0d;
+        target.Evaluate();
     }
 
     private static void PlayFromStart(Animator animator)
