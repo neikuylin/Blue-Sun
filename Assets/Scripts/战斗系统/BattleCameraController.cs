@@ -287,16 +287,6 @@ public class BattleCameraController : MonoBehaviour
 
     private void DebugCameraBoundaryState(string context)
     {
-        if (!hasBoundary || attachedCamera == null || !attachedCamera.orthographic)
-        {
-            return;
-        }
-
-        float cameraHeight = attachedCamera.orthographicSize * 2f;
-        float cameraWidth = cameraHeight * attachedCamera.aspect;
-        Debug.Log(
-            $"摄像机边界调试 | 阶段={context} | 边界宽={lastBoundaryWidth:F3} | 边界高={lastBoundaryHeight:F3} | 相机宽高比={attachedCamera.aspect:F3} | 边界最大OrthographicSize={boundaryMaxOrthographicSize:F3} | 当前OrthographicSize={attachedCamera.orthographicSize:F3} | 当前相机可视宽={cameraWidth:F3} | 当前相机可视高={cameraHeight:F3} | minZoom={minZoom:F3} | maxZoom={maxZoom:F3} | 实际min={ResolveEffectiveMinZoom():F3} | 实际max={ResolveEffectiveMaxZoom():F3}",
-            this);
     }
 
     private Vector3 GetCameraFocusPointOnPlane(float planeY)

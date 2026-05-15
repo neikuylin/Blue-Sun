@@ -74,7 +74,6 @@ public sealed class 宝箱控制器 : MonoBehaviour, IPointerClickHandler
             return false;
         }
 
-        Debug.Log("宝箱控制器：点击已收到，但当前还在战斗中，暂时不能打开宝箱。", this);
         return true;
     }
 

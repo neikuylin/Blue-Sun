@@ -723,14 +723,12 @@ public class BattleBootstrap : MonoBehaviour
 
     public static void NavigateToDirection(MapTemplateDatabase.ConnectionDirection direction)
     {
-        Debug.Log($"[换房转场Debug] BattleBootstrap.NavigateToDirection 收到切房请求。direction={direction}，当前房间={currentDungeonNodeId}。");
         if (!TryResolveCurrentRoomTarget(direction, out string targetNodeId))
         {
             Debug.LogWarning($"[换房转场Debug] NavigateToDirection 失败：当前房间没有目标方向。direction={direction}，当前房间={currentDungeonNodeId}。");
             return;
         }
 
-        Debug.Log($"[换房转场Debug] NavigateToDirection 解析目标房间成功。direction={direction}，targetNodeId={targetNodeId}。");
         NavigateToNode(targetNodeId);
     }
 
@@ -786,7 +784,6 @@ public class BattleBootstrap : MonoBehaviour
 
     public static void NavigateToNode(string targetNodeId)
     {
-        Debug.Log($"[换房转场Debug] BattleBootstrap.NavigateToNode 开始。targetNodeId={targetNodeId}，当前房间={currentDungeonNodeId}。");
         if (string.IsNullOrWhiteSpace(targetNodeId))
         {
             Debug.LogWarning("BattleBootstrap: NavigateToNode received empty targetNodeId.");
@@ -795,10 +792,8 @@ public class BattleBootstrap : MonoBehaviour
         }
 
         pendingEntranceDirection = ResolveEntranceDirectionForTarget(targetNodeId);
-        Debug.Log($"[换房转场Debug] NavigateToNode 准备保存快照并加载场景。targetNodeId={targetNodeId}，pendingEntranceDirection={pendingEntranceDirection}。");
         PreserveCurrentRoomSnapshot();
         SetCurrentRoom(currentDungeonTemplateId, targetNodeId);
-        Debug.Log($"[换房转场Debug] 即将 SceneManager.LoadScene。SceneName={SceneName}，新当前房间={currentDungeonNodeId}。");
         SceneManager.LoadScene(SceneName);
     }
 

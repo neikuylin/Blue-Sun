@@ -115,6 +115,5 @@ public sealed class 格子物件触发器 : MonoBehaviour, IPointerClickHandler
     public void 播放点击反馈()
     {
         // 先保留统一入口，后续战斗中弹窗或物件点击动效都接这里。
-        Debug.Log($"格子物件触发器：点击了 '{名称}'。", this);
     }
 }

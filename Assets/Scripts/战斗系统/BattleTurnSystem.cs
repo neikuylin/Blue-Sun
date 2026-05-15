@@ -778,10 +778,9 @@ public class BattleTurnSystem : MonoBehaviour
             }
         }
 
-        if (gridTriggerNavigationService == null ||
-            !gridTriggerNavigationService.尝试移动到触发格并执行(activeUnit, triggerCells, trigger.执行到达触发))
+        if (gridTriggerNavigationService != null)
         {
-            Debug.Log($"格子交互：'{trigger.名称}' 未找到可到达的触发格。", trigger);
+            gridTriggerNavigationService.尝试移动到触发格并执行(activeUnit, triggerCells, trigger.执行到达触发);
         }
 
         return true;
@@ -789,8 +788,6 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void 提示战斗中不能触发格子交互(string triggerName)
     {
-        string resolvedName = string.IsNullOrWhiteSpace(triggerName) ? "交互物件" : triggerName.Trim();
-        Debug.Log($"格子交互：'{resolvedName}' 已收到点击，但当前还在战斗中，暂时不能触发。", this);
     }
 
     private bool UpdateDoorExitNavigationLock(BattleUnit unit)
@@ -877,10 +874,8 @@ public class BattleTurnSystem : MonoBehaviour
 
         pendingDoorNavigationRoutine = null;
         ClearPendingDoorNavigation();
-        Debug.Log($"[换房转场Debug] 自动门口导航到达目标格，准备播放转场后切房。direction={direction}，unit={unit.name}，autoDestination={autoDestination}。", this);
         墨血换房转场控制器.尝试播放换房转场(() =>
         {
-            Debug.Log($"[换房转场Debug] 自动门口导航：幕布盖满回调触发，开始真正切房。direction={direction}。", this);
             BattleBootstrap.NavigateToDirection(direction);
         });
     }
