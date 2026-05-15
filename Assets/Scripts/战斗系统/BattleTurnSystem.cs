@@ -103,7 +103,6 @@ public class BattleTurnSystem : MonoBehaviour
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
-    private AudioSource modeMusicSource;
     private bool pendingExplorationModeEnter;
     private BattleInputService inputService;
     private 格子交互点击接入器 gridInteractionClickAdapter;
@@ -403,7 +402,6 @@ public class BattleTurnSystem : MonoBehaviour
         skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
         UnbindEndTurnButton();
         UnbindSkillButton();
-        StopModeMusic();
     }
 
     public void NotifyUnitInitiativeChanged(BattleUnit changedUnit)
@@ -3405,59 +3403,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void RefreshModeMusic()
     {
-        BattleMusicSettings settings = BattleMusicSettings.LoadDefault();
-        if (settings == null)
-        {
-            StopModeMusic();
-            return;
-        }
-
-        AudioClip nextClip = IsExplorationMode ? settings.explorationMusic : settings.combatMusic;
-        if (nextClip == null)
-        {
-            StopModeMusic();
-            return;
-        }
-
-        EnsureModeMusicSource();
-        modeMusicSource.volume = Mathf.Clamp01(settings.volume);
-        modeMusicSource.loop = true;
-        if (modeMusicSource.clip == nextClip && modeMusicSource.isPlaying)
-        {
-            return;
-        }
-
-        modeMusicSource.clip = nextClip;
-        modeMusicSource.Play();
-    }
-
-    private void EnsureModeMusicSource()
-    {
-        if (modeMusicSource != null)
-        {
-            return;
-        }
-
-        modeMusicSource = GetComponent<AudioSource>();
-        if (modeMusicSource == null)
-        {
-            modeMusicSource = gameObject.AddComponent<AudioSource>();
-        }
-
-        modeMusicSource.playOnAwake = false;
-        modeMusicSource.spatialBlend = 0f;
-        modeMusicSource.loop = true;
-    }
-
-    private void StopModeMusic()
-    {
-        if (modeMusicSource == null)
-        {
-            return;
-        }
-
-        modeMusicSource.Stop();
-        modeMusicSource.clip = null;
+        BattleMusicRuntime.RefreshForMode(IsExplorationMode);
     }
 
     private static bool ShouldCompensateGlobalMotionForState(BattleUnit unit, string stateName)

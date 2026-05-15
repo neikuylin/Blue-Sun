@@ -39,6 +39,8 @@ public sealed class BattleMusicEditorWindow : EditorWindow
         EditorGUILayout.PropertyField(settingsObject.FindProperty("combatMusic"), new GUIContent("战斗音乐"));
         EditorGUILayout.PropertyField(settingsObject.FindProperty("explorationMusic"), new GUIContent("探索音乐"));
         EditorGUILayout.Slider(settingsObject.FindProperty("volume"), 0f, 1f, new GUIContent("音乐音量"));
+        EditorGUILayout.Slider(settingsObject.FindProperty("fadeInSeconds"), 0f, 10f, new GUIContent("淡入秒数"));
+        EditorGUILayout.Slider(settingsObject.FindProperty("fadeOutSeconds"), 0f, 10f, new GUIContent("淡出秒数"));
 
         if (settingsObject.ApplyModifiedProperties())
         {

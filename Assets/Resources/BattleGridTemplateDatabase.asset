@@ -696,8 +696,6 @@ MonoBehaviour:
       y: 9
     - x: 13
       y: 9
-    - x: 14
-      y: 9
     - x: 15
       y: 9
     - x: 16
@@ -818,6 +816,8 @@ MonoBehaviour:
       y: 19
     - x: 19
       y: 19
+    - x: 14
+      y: 9
     enemySpawnSlots: []
     defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     alignFloorToBattleCamera: 1
@@ -865,35 +865,133 @@ MonoBehaviour:
     - propName: "\u5B9D\u7BB1"
       prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
       anchorCell:
-        x: 0
-        y: 0
+        x: 14
+        y: 9
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
       blocksMovement: 1
-      isTriggerable: 0
-      triggerCells: []
-      blockedCells: []
+      isTriggerable: 1
+      triggerCells:
+      - x: 12
+        y: 11
+      - x: 12
+        y: 10
+      - x: 12
+        y: 9
+      - x: 12
+        y: 8
+      - x: 12
+        y: 7
+      - x: 13
+        y: 7
+      - x: 14
+        y: 7
+      - x: 15
+        y: 7
+      - x: 16
+        y: 7
+      - x: 16
+        y: 8
+      - x: 16
+        y: 9
+      - x: 16
+        y: 10
+      - x: 16
+        y: 11
+      - x: 15
+        y: 11
+      - x: 14
+        y: 11
+      - x: 13
+        y: 11
+      - x: 11
+        y: 11
+      - x: 11
+        y: 12
+      - x: 12
+        y: 12
+      - x: 13
+        y: 12
+      - x: 14
+        y: 12
+      - x: 15
+        y: 12
+      - x: 16
+        y: 12
+      - x: 17
+        y: 12
+      - x: 17
+        y: 11
+      - x: 17
+        y: 10
+      - x: 17
+        y: 9
+      - x: 17
+        y: 8
+      - x: 17
+        y: 7
+      - x: 17
+        y: 6
+      - x: 16
+        y: 6
+      - x: 15
+        y: 6
+      - x: 14
+        y: 6
+      - x: 13
+        y: 6
+      - x: 12
+        y: 6
+      - x: 11
+        y: 6
+      - x: 11
+        y: 7
+      - x: 11
+        y: 8
+      - x: 11
+        y: 9
+      - x: 11
+        y: 10
+      blockedCells:
+      - x: 14
+        y: 9
+      - x: 14
+        y: 10
+      - x: 13
+        y: 10
+      - x: 13
+        y: 9
+      - x: 13
+        y: 8
+      - x: 14
+        y: 8
+      - x: 15
+        y: 8
+      - x: 15
+        y: 9
+      - x: 15
+        y: 10
     wallVisuals: []
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
       x: 10
       y: 9
-    hasEastDoorPlayerSpawn: 0
+    hasEastDoorPlayerSpawn: 1
     eastDoorPlayerSpawnCell:
-      x: 0
-      y: 0
-    hasSouthDoorPlayerSpawn: 0
+      x: 19
+      y: 10
+    hasSouthDoorPlayerSpawn: 1
     southDoorPlayerSpawnCell:
-      x: 0
+      x: 10
       y: 0
-    hasWestDoorPlayerSpawn: 0
+    hasWestDoorPlayerSpawn: 1
     westDoorPlayerSpawnCell:
       x: 0
-      y: 0
-    hasNorthDoorPlayerSpawn: 0
+      y: 9
+    hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
-      x: 0
-      y: 0
+      x: 10
+      y: 19
     hasEastDoorEntrance: 0
     eastDoorEntranceCell:
       x: 0
