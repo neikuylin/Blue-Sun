@@ -35,7 +35,7 @@ MonoBehaviour:
     displayName: "\u745F\u838E"
     modelPrefab: {fileID: 2989264307952094044, guid: 4544a577f5c8fd744be413d89b242dea, type: 3}
     animatorController: {fileID: 0}
-    modelScale: {x: 1, y: 1, z: 1}
+    modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u7D22\u62C9\u5A1C"
     displayName: "\u7D22\u62C9\u5A1C"
