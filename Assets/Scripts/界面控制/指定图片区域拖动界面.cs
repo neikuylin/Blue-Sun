@@ -1,8 +1,9 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-public sealed class 指定图片区域拖动界面 : MonoBehaviour
+public sealed class 指定图片区域拖动界面 : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [SerializeField] private GameObject 拖动输入口;
 
@@ -23,28 +24,33 @@ public sealed class 指定图片区域拖动界面 : MonoBehaviour
         正在拖动 = false;
     }
 
-    private void Update()
+    public void OnBeginDrag(PointerEventData eventData)
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            尝试开始拖动(Input.mousePosition);
-        }
-
-        if (!正在拖动)
+        正在拖动 = false;
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left)
         {
             return;
         }
 
-        if (!Input.GetMouseButton(0))
-        {
-            正在拖动 = false;
-            return;
-        }
-
-        更新拖动位置(Input.mousePosition);
+        尝试开始拖动(eventData);
     }
 
-    private void 尝试开始拖动(Vector2 屏幕坐标)
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (!正在拖动 || eventData == null)
+        {
+            return;
+        }
+
+        更新拖动位置(eventData.position);
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        正在拖动 = false;
+    }
+
+    private void 尝试开始拖动(PointerEventData eventData)
     {
         if (!获取拖动输入口矩形(out RectTransform 输入口矩形))
         {
@@ -63,13 +69,14 @@ public sealed class 指定图片区域拖动界面 : MonoBehaviour
         }
 
         Camera 输入口相机 = 获取界面相机(输入口矩形);
-        if (!RectTransformUtility.RectangleContainsScreenPoint(输入口矩形, 屏幕坐标, 输入口相机))
+        if (!RectTransformUtility.RectangleContainsScreenPoint(输入口矩形, eventData.position, 输入口相机) ||
+            !事件命中属于拖动输入口(eventData, 输入口矩形))
         {
             return;
         }
 
         拖动相机 = 获取界面相机(移动目标);
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(目标父级, 屏幕坐标, 拖动相机, out 指针起始父级坐标))
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(目标父级, eventData.position, 拖动相机, out 指针起始父级坐标))
         {
             return;
         }
@@ -92,6 +99,15 @@ public sealed class 指定图片区域拖动界面 : MonoBehaviour
         }
 
         移动目标.anchoredPosition = 起始锚点位置 + 当前父级坐标 - 指针起始父级坐标;
+    }
+
+    private static bool 事件命中属于拖动输入口(PointerEventData eventData, RectTransform 输入口矩形)
+    {
+        GameObject 命中对象 = eventData.pointerPressRaycast.gameObject != null
+            ? eventData.pointerPressRaycast.gameObject
+            : eventData.pointerCurrentRaycast.gameObject;
+        Transform 命中变换 = 命中对象 != null ? 命中对象.transform : null;
+        return 命中变换 != null && (命中变换 == 输入口矩形 || 命中变换.IsChildOf(输入口矩形));
     }
 
     private bool 获取拖动输入口矩形(out RectTransform 输入口矩形)
