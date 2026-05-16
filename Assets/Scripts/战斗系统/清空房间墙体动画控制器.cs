@@ -9,9 +9,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     [SerializeField] private List<Behaviour> 进房间时倒放后要停在第一帧的动画 = new List<Behaviour>();
     [SerializeField] private List<Behaviour> 进房间时播放的音频组件 = new List<Behaviour>();
+    [SerializeField] private List<Behaviour> 进房间时播放的正向音频组件 = new List<Behaviour>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
-    [SerializeField] private List<Behaviour> 清空房间后开启的音频组件 = new List<Behaviour>();
 
     private bool hasAppliedState;
     private bool appliedClearedState;
@@ -63,8 +63,17 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
 
         float duration = ResolveLongestCurrentStateLength();
+        播放进房间时的正向音频();
         roomEnterForwardRoutine = StartCoroutine(PlayRoomEnterForwardRoutine(duration));
         return duration;
+    }
+
+    public void 播放进房间时的正向音频()
+    {
+        for (int i = 0; i < 进房间时播放的正向音频组件.Count; i++)
+        {
+            PlayAudioBehaviour(进房间时播放的正向音频组件[i]);
+        }
     }
 
     private void PlayRoomEnterReverse()
@@ -113,7 +122,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         appliedClearedState = roomCleared;
         ApplyGameObjectState(清空房间后开启的物体, roomCleared);
         ApplyGameObjectState(清空房间后关闭的物体, !roomCleared);
-        ApplyAudioSourceState(清空房间后开启的音频组件, roomCleared);
     }
 
     private static void ApplyGameObjectState(List<GameObject> targets, bool active)
@@ -128,40 +136,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
             target.SetActive(active);
         }
-    }
-
-    private static void ApplyAudioSourceState(List<Behaviour> targets, bool enabled)
-    {
-        for (int i = 0; i < targets.Count; i++)
-        {
-            Behaviour target = targets[i];
-            if (target == null)
-            {
-                continue;
-            }
-
-            if (target is PlayableDirector playableDirector)
-            {
-                ApplyPlayableDirectorState(playableDirector, enabled);
-                continue;
-            }
-
-            target.enabled = enabled;
-        }
-    }
-
-    private static void ApplyPlayableDirectorState(PlayableDirector target, bool play)
-    {
-        if (play)
-        {
-            target.time = 0d;
-            target.Play();
-            return;
-        }
-
-        target.Stop();
-        target.time = 0d;
-        target.Evaluate();
     }
 
     private static void PlayAudioBehaviour(Behaviour target)
