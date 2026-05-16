@@ -64,7 +64,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             StopReverseAudioPlayback();
         }
 
-        bool playRoomEnterReverse = !roomCleared && force;
+        bool playRoomEnterReverse = force;
 
         for (int i = 0; i < 倒放后要停在第一帧的动画.Count; i++)
         {
@@ -74,7 +74,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
                 continue;
             }
 
-            if (!roomCleared && force)
+            if (force)
             {
                 PlayFromEnd(target);
             }
