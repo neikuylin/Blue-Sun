@@ -9,7 +9,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     [SerializeField] private List<Behaviour> 进房间时倒放后要停在第一帧的动画 = new List<Behaviour>();
     [SerializeField] private List<Behaviour> 进房间时播放的音频组件 = new List<Behaviour>();
-    [SerializeField] private List<Behaviour> 进房间时播放的正向音频组件 = new List<Behaviour>();
+    [SerializeField] private List<Behaviour> 切房间时播放的正向音频组件 = new List<Behaviour>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
 
@@ -53,7 +53,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         ApplyRoomClearedState(enabled, false);
     }
 
-    public float 播放进房间时正向动画()
+    public float 播放切房间时正向动画()
     {
         StopRoomEnterReverse();
         if (roomEnterForwardRoutine != null)
@@ -63,16 +63,16 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
 
         float duration = ResolveLongestCurrentStateLength();
-        播放进房间时的正向音频();
+        播放切房间时正向音频();
         roomEnterForwardRoutine = StartCoroutine(PlayRoomEnterForwardRoutine(duration));
         return duration;
     }
 
-    public void 播放进房间时的正向音频()
+    public void 播放切房间时正向音频()
     {
-        for (int i = 0; i < 进房间时播放的正向音频组件.Count; i++)
+        for (int i = 0; i < 切房间时播放的正向音频组件.Count; i++)
         {
-            PlayAudioBehaviour(进房间时播放的正向音频组件[i]);
+            PlayAudioBehaviour(切房间时播放的正向音频组件[i]);
         }
     }
 

@@ -888,7 +888,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            duration = Mathf.Max(duration, controller.播放进房间时正向动画());
+            duration = Mathf.Max(duration, controller.播放切房间时正向动画());
         }
 
         if (duration > 0f)

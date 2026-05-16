@@ -6,7 +6,7 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
 {
     private SerializedProperty 进房间时倒放后要停在第一帧的动画;
     private SerializedProperty 进房间时播放的音频组件;
-    private SerializedProperty 进房间时播放的正向音频组件;
+    private SerializedProperty 切房间时播放的正向音频组件;
     private SerializedProperty 清空房间后开启的物体;
     private SerializedProperty 清空房间后关闭的物体;
 
@@ -14,7 +14,7 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
     {
         进房间时倒放后要停在第一帧的动画 = serializedObject.FindProperty("进房间时倒放后要停在第一帧的动画");
         进房间时播放的音频组件 = serializedObject.FindProperty("进房间时播放的音频组件");
-        进房间时播放的正向音频组件 = serializedObject.FindProperty("进房间时播放的正向音频组件");
+        切房间时播放的正向音频组件 = serializedObject.FindProperty("切房间时播放的正向音频组件");
         清空房间后开启的物体 = serializedObject.FindProperty("清空房间后开启的物体");
         清空房间后关闭的物体 = serializedObject.FindProperty("清空房间后关闭的物体");
     }
@@ -26,7 +26,6 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
         EditorGUILayout.LabelField("进房间时", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(进房间时倒放后要停在第一帧的动画, new GUIContent("进房间时倒放后要停在第一帧的动画"), true);
         EditorGUILayout.PropertyField(进房间时播放的音频组件, new GUIContent("进房间时播放的音频组件"), true);
-        EditorGUILayout.PropertyField(进房间时播放的正向音频组件, new GUIContent("进房间时播放的正向音频组件"), true);
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("清空房间后", EditorStyles.boldLabel);
@@ -35,13 +34,14 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("公开动作", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(切房间时播放的正向音频组件, new GUIContent("切房间时播放的正向音频组件"), true);
         using (new EditorGUI.DisabledScope(true))
         {
-            GUILayout.Button("播放进房间时正向动画");
-            GUILayout.Button("播放进房间时的正向音频");
+            GUILayout.Button("播放切房间时正向动画");
+            GUILayout.Button("播放切房间时正向音频");
         }
 
-        EditorGUILayout.HelpBox("这些动作只由门按钮流程调用：角色到达门口触发格后播放正向动画和正向音频，播完再走向最终切换格。", MessageType.Info);
+        EditorGUILayout.HelpBox("这些动作只由门按钮流程调用：角色到达门口触发格后播放切房间正向动画和正向音频，播完再走向最终切换格。", MessageType.Info);
 
         serializedObject.ApplyModifiedProperties();
     }
