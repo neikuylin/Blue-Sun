@@ -100,6 +100,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool hasPendingDoorNavigationCell;
     private Vector2Int pendingDoorNavigationCell;
     private bool doorExitNavigationLocked;
+    private 可交互状态对象切换器 pendingDoorNavigationStateSwitcher;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
     private BattleUnit pendingEnterBattleLeadUnit;
@@ -683,6 +684,13 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (clearDoorNavigationOnDifferentDestination &&
             !doorExitNavigationLocked &&
+            pendingDoorNavigationStateSwitcher != null)
+        {
+            ClearPendingDoorNavigation();
+        }
+
+        if (clearDoorNavigationOnDifferentDestination &&
+            !doorExitNavigationLocked &&
             hasPendingDoorNavigationCell &&
             destination != pendingDoorNavigationCell)
         {
@@ -711,47 +719,56 @@ public class BattleTurnSystem : MonoBehaviour
         return TryMoveFreely(unit, destination, true);
     }
 
-    public void TryNavigateToDoor(MapTemplateDatabase.ConnectionDirection direction)
+    public bool TryNavigateToDoor(
+        MapTemplateDatabase.ConnectionDirection direction,
+        可交互状态对象切换器 doorStateSwitcher)
     {
         if (!IsExplorationMode)
         {
             提示战斗中不能触发格子交互("门");
-            return;
+            return false;
         }
 
-        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled || activeUnit.IsMoving || grid == null)
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled || grid == null)
         {
-            return;
+            return false;
         }
 
         if (!BattleBootstrap.IsCurrentRoomEncounterCleared())
         {
-            return;
+            return false;
         }
 
         if (!BattleBootstrap.TryResolveCurrentRoomTarget(direction, out _))
         {
-            return;
+            return false;
         }
 
         List<Vector2Int> triggerCells = new List<Vector2Int>();
         grid.CollectDoorExitTriggerCells(direction, triggerCells);
         if (triggerCells.Count == 0)
         {
-            return;
+            return false;
         }
 
         Vector2Int autoDestination;
         if (!grid.TryGetDoorExitDefaultTargetCell(direction, out autoDestination))
         {
-            return;
+            return false;
         }
 
         ClearPendingDoorNavigation();
-        gridTriggerNavigationService?.尝试移动到触发格并执行(
+        if (gridTriggerNavigationService == null ||
+            !gridTriggerNavigationService.尝试移动到触发格并执行(
             activeUnit,
             triggerCells,
-            () => LockDoorExitNavigation(activeUnit, direction, autoDestination));
+            () => LockDoorExitNavigation(activeUnit, direction, autoDestination)))
+        {
+            return false;
+        }
+
+        pendingDoorNavigationStateSwitcher = doorStateSwitcher;
+        return true;
     }
 
     public bool TryTriggerGridInteraction(格子物件触发器 trigger)
@@ -908,6 +925,13 @@ public class BattleTurnSystem : MonoBehaviour
         hasPendingDoorNavigationCell = false;
         pendingDoorNavigationCell = default;
         doorExitNavigationLocked = false;
+        if (pendingDoorNavigationStateSwitcher != null)
+        {
+            pendingDoorNavigationStateSwitcher.取消选中();
+            pendingDoorNavigationStateSwitcher = null;
+        }
+
+        gridTriggerNavigationService?.清除();
     }
 
     private void EndTurn()
