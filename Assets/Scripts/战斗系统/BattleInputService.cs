@@ -92,6 +92,11 @@ internal sealed class BattleInputService
 
         Vector3 hitPoint = ray.GetPoint(enter);
         Vector2Int clickedCell = grid.WorldToCell(hitPoint);
+        if (grid.IsDoorExitCell(clickedCell))
+        {
+            return;
+        }
+
         BattleUnit target = grid.GetUnitAt(clickedCell);
         if (target != null && target != activeUnit && target.team != activeUnit.team)
         {

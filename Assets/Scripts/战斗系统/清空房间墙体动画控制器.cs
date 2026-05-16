@@ -2,16 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Playables;
-using UnityEngine.Serialization;
 
 public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 {
     private const string RoomClearedEventId = "\u6E05\u7A7A\u623F\u95F4";
 
-    [FormerlySerializedAs("要停在第一帧的动画")]
-    [FormerlySerializedAs("倒放后要停在第一帧的动画")]
     [SerializeField] private List<Behaviour> 进房间时倒放后要停在第一帧的动画 = new List<Behaviour>();
-    [FormerlySerializedAs("进房间倒放时播放的音频组件")]
     [SerializeField] private List<Behaviour> 进房间时播放的音频组件 = new List<Behaviour>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
@@ -20,6 +16,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     private bool hasAppliedState;
     private bool appliedClearedState;
     private Coroutine roomEnterReverseRoutine;
+    private Coroutine roomEnterForwardRoutine;
 
     private void OnEnable()
     {
@@ -37,6 +34,12 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             roomEnterReverseRoutine = null;
         }
 
+        if (roomEnterForwardRoutine != null)
+        {
+            StopCoroutine(roomEnterForwardRoutine);
+            roomEnterForwardRoutine = null;
+        }
+
         StopReverseAudioPlayback();
     }
 
@@ -50,13 +53,28 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         ApplyRoomClearedState(enabled, false);
     }
 
+    public float 播放进房间时正向动画()
+    {
+        StopRoomEnterReverse();
+        if (roomEnterForwardRoutine != null)
+        {
+            StopCoroutine(roomEnterForwardRoutine);
+            roomEnterForwardRoutine = null;
+        }
+
+        float duration = ResolveLongestCurrentStateLength();
+        roomEnterForwardRoutine = StartCoroutine(PlayRoomEnterForwardRoutine(duration));
+        return duration;
+    }
+
     private void PlayRoomEnterReverse()
     {
-        if (roomEnterReverseRoutine != null)
+        StopRoomEnterReverse();
+
+        if (roomEnterForwardRoutine != null)
         {
-            StopCoroutine(roomEnterReverseRoutine);
-            roomEnterReverseRoutine = null;
-            StopReverseAudioPlayback();
+            StopCoroutine(roomEnterForwardRoutine);
+            roomEnterForwardRoutine = null;
         }
 
         for (int i = 0; i < 进房间时倒放后要停在第一帧的动画.Count; i++)
@@ -71,6 +89,17 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
 
         roomEnterReverseRoutine = StartCoroutine(PlayRoomEnterReverseRoutine());
+    }
+
+    private void StopRoomEnterReverse()
+    {
+        if (roomEnterReverseRoutine != null)
+        {
+            StopCoroutine(roomEnterReverseRoutine);
+            roomEnterReverseRoutine = null;
+        }
+
+        StopReverseAudioPlayback();
     }
 
     private void ApplyRoomClearedState(bool roomCleared, bool force)
@@ -280,6 +309,22 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         roomEnterReverseRoutine = null;
     }
 
+    private IEnumerator PlayRoomEnterForwardRoutine(float duration)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            SampleAnimations(elapsed);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        SampleAnimations(duration);
+        StopAtEnd();
+        roomEnterForwardRoutine = null;
+    }
+
     private float ResolveLongestCurrentStateLength()
     {
         float duration = 0f;
@@ -378,6 +423,20 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
     }
 
+    private void StopAtEnd()
+    {
+        for (int i = 0; i < 进房间时倒放后要停在第一帧的动画.Count; i++)
+        {
+            Behaviour target = 进房间时倒放后要停在第一帧的动画[i];
+            if (target == null)
+            {
+                continue;
+            }
+
+            StopAnimationTargetAtEnd(target);
+        }
+    }
+
     private static void SampleAnimationTarget(Behaviour target, float timelineTime)
     {
         float targetLength = ResolveAnimationTargetLength(target);
@@ -400,6 +459,30 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             animator.speed = 0f;
             animator.Play(0, 0, targetTime / targetLength);
             animator.Update(0f);
+        }
+    }
+
+    private static void StopAnimationTargetAtEnd(Behaviour target)
+    {
+        float targetLength = ResolveAnimationTargetLength(target);
+        if (targetLength <= 0f)
+        {
+            return;
+        }
+
+        if (target is PlayableDirector playableDirector)
+        {
+            SamplePlayableDirector(playableDirector, targetLength);
+            return;
+        }
+
+        if (target is Animator animator)
+        {
+            animator.enabled = true;
+            animator.speed = 0f;
+            animator.Play(0, 0, 1f);
+            animator.Update(0f);
+            animator.enabled = false;
         }
     }
 

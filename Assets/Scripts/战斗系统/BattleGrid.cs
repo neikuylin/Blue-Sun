@@ -35,12 +35,7 @@ public class BattleGrid : MonoBehaviour
     private readonly Dictionary<Vector2Int, BattleUnit> occupants = new Dictionary<Vector2Int, BattleUnit>();
     private HashSet<Vector2Int> validCells;
     private readonly HashSet<Vector2Int> doorExitCells = new HashSet<Vector2Int>();
-    private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitEntryDirections =
-        new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
-    private readonly Dictionary<Vector2Int, Vector2Int> doorExitAutoDestinations = new Dictionary<Vector2Int, Vector2Int>();
-    private readonly Dictionary<Vector2Int, DoorExitNavigation> doorExitNavigations =
-        new Dictionary<Vector2Int, DoorExitNavigation>();
-    private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitTransitionDirections =
+    private readonly Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection> doorExitTriggerDirections =
         new Dictionary<Vector2Int, MapTemplateDatabase.ConnectionDirection>();
     private readonly Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int> doorExitDefaultTargetCells =
         new Dictionary<MapTemplateDatabase.ConnectionDirection, Vector2Int>();
@@ -124,18 +119,6 @@ public class BattleGrid : MonoBehaviour
         {
             this.direction = direction;
             this.coreCell = coreCell;
-        }
-    }
-
-    private struct DoorExitNavigation
-    {
-        public readonly MapTemplateDatabase.ConnectionDirection direction;
-        public readonly Vector2Int destination;
-
-        public DoorExitNavigation(MapTemplateDatabase.ConnectionDirection direction, Vector2Int destination)
-        {
-            this.direction = direction;
-            this.destination = destination;
         }
     }
 
@@ -223,10 +206,7 @@ public class BattleGrid : MonoBehaviour
     public void ClearDoorExitCells()
     {
         doorExitCells.Clear();
-        doorExitEntryDirections.Clear();
-        doorExitAutoDestinations.Clear();
-        doorExitNavigations.Clear();
-        doorExitTransitionDirections.Clear();
+        doorExitTriggerDirections.Clear();
         doorExitDefaultTargetCells.Clear();
     }
 
@@ -253,19 +233,11 @@ public class BattleGrid : MonoBehaviour
                 for (int offset = -DoorExitHalfWidth; offset <= DoorExitHalfWidth; offset++)
                 {
                     Vector2Int cell = definition.coreCell + (forward * depth) + (side * offset);
-                    Vector2Int transitionCell = definition.coreCell + (forward * DoorExitTransitionDepth) + (side * offset);
                     doorExitCells.Add(cell);
-                    doorExitNavigations[cell] = new DoorExitNavigation(definition.direction, transitionCell);
-
-                    if (depth == 1)
-                    {
-                        doorExitEntryDirections[cell] = definition.direction;
-                        doorExitAutoDestinations[cell] = transitionCell;
-                    }
+                    doorExitTriggerDirections[cell] = definition.direction;
 
                     if (depth == DoorExitTransitionDepth)
                     {
-                        doorExitTransitionDirections[cell] = definition.direction;
                         if (offset == 0)
                         {
                             doorExitDefaultTargetCells[definition.direction] = cell;
@@ -283,6 +255,11 @@ public class BattleGrid : MonoBehaviour
         return doorExitDefaultTargetCells.TryGetValue(direction, out cell);
     }
 
+    public bool IsDoorExitCell(Vector2Int cell)
+    {
+        return doorExitCells.Contains(cell);
+    }
+
     public void CollectDoorExitTriggerCells(
         MapTemplateDatabase.ConnectionDirection direction,
         List<Vector2Int> result)
@@ -292,52 +269,13 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        foreach (KeyValuePair<Vector2Int, DoorExitNavigation> item in doorExitNavigations)
+        foreach (KeyValuePair<Vector2Int, MapTemplateDatabase.ConnectionDirection> item in doorExitTriggerDirections)
         {
-            if (item.Value.direction == direction)
+            if (item.Value == direction)
             {
                 result.Add(item.Key);
             }
         }
-    }
-
-    public bool TryGetDoorExitEntry(
-        Vector2Int cell,
-        out MapTemplateDatabase.ConnectionDirection direction,
-        out Vector2Int autoDestination)
-    {
-        autoDestination = default;
-        if (!doorExitEntryDirections.TryGetValue(cell, out direction))
-        {
-            return false;
-        }
-
-        return doorExitAutoDestinations.TryGetValue(cell, out autoDestination);
-    }
-
-    public bool TryGetDoorExitNavigation(
-        Vector2Int cell,
-        out MapTemplateDatabase.ConnectionDirection direction,
-        out Vector2Int destination)
-    {
-        DoorExitNavigation navigation;
-        if (doorExitNavigations.TryGetValue(cell, out navigation))
-        {
-            direction = navigation.direction;
-            destination = navigation.destination;
-            return true;
-        }
-
-        direction = default;
-        destination = default;
-        return false;
-    }
-
-    public bool TryGetDoorExitTransition(
-        Vector2Int cell,
-        out MapTemplateDatabase.ConnectionDirection direction)
-    {
-        return doorExitTransitionDirections.TryGetValue(cell, out direction);
     }
 
     public bool IsWalkable(BattleUnit unit, Vector2Int centerCell)

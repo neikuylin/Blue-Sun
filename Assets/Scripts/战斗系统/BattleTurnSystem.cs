@@ -507,7 +507,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (UpdateDoorExitNavigationLock(activeUnit))
+        if (doorExitNavigationLocked)
         {
             return;
         }
@@ -719,7 +719,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled || grid == null)
+        if (activeUnit == null || !activeUnit.IsAlive || !activeUnit.isPlayerControlled || activeUnit.IsMoving || grid == null)
         {
             return;
         }
@@ -741,11 +741,17 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
+        Vector2Int autoDestination;
+        if (!grid.TryGetDoorExitDefaultTargetCell(direction, out autoDestination))
+        {
+            return;
+        }
+
         ClearPendingDoorNavigation();
         gridTriggerNavigationService?.尝试移动到触发格并执行(
             activeUnit,
             triggerCells,
-            () => UpdateDoorExitNavigationLock(activeUnit));
+            () => LockDoorExitNavigation(activeUnit, direction, autoDestination));
     }
 
     public bool TryTriggerGridInteraction(格子物件触发器 trigger)
@@ -788,32 +794,6 @@ public class BattleTurnSystem : MonoBehaviour
     {
     }
 
-    private bool UpdateDoorExitNavigationLock(BattleUnit unit)
-    {
-        if (unit == null || grid == null)
-        {
-            return false;
-        }
-
-        Vector2Int currentCell = unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell;
-        MapTemplateDatabase.ConnectionDirection direction;
-        Vector2Int autoDestination;
-        if (!grid.TryGetDoorExitNavigation(currentCell, out direction, out autoDestination))
-        {
-            return doorExitNavigationLocked;
-        }
-
-        if (doorExitNavigationLocked &&
-            hasPendingDoorNavigationCell &&
-            pendingDoorNavigationCell == autoDestination)
-        {
-            return true;
-        }
-
-        LockDoorExitNavigation(unit, direction, autoDestination);
-        return true;
-    }
-
     private void LockDoorExitNavigation(
         BattleUnit unit,
         MapTemplateDatabase.ConnectionDirection direction,
@@ -835,16 +815,34 @@ public class BattleTurnSystem : MonoBehaviour
         hasPendingDoorNavigationCell = true;
         换房移动开始?.Invoke(direction);
 
+        pendingDoorNavigationRoutine = StartCoroutine(RunLockedDoorExitNavigation(unit, direction, autoDestination));
+    }
+
+    private IEnumerator RunLockedDoorExitNavigation(
+        BattleUnit unit,
+        MapTemplateDatabase.ConnectionDirection direction,
+        Vector2Int autoDestination)
+    {
+        yield return PlayRoomEnterForwardAnimations();
+
+        if (unit == null)
+        {
+            pendingDoorNavigationRoutine = null;
+            ClearPendingDoorNavigation();
+            yield break;
+        }
+
         Vector2Int currentCell = grid != null
             ? (unit.IsMoving ? grid.WorldToCell(unit.transform.position) : unit.currentCell)
             : unit.currentCell;
         if (currentCell != autoDestination && !TryMoveFreely(unit, autoDestination, false))
         {
+            pendingDoorNavigationRoutine = null;
             ClearPendingDoorNavigation();
-            return;
+            yield break;
         }
 
-        pendingDoorNavigationRoutine = StartCoroutine(WaitForLockedDoorExitNavigation(unit, direction, autoDestination));
+        yield return WaitForLockedDoorExitNavigation(unit, direction, autoDestination);
     }
 
     private IEnumerator WaitForLockedDoorExitNavigation(
@@ -876,6 +874,27 @@ public class BattleTurnSystem : MonoBehaviour
         {
             BattleBootstrap.NavigateToDirection(direction);
         });
+    }
+
+    private IEnumerator PlayRoomEnterForwardAnimations()
+    {
+        清空房间墙体动画控制器[] controllers = FindObjectsOfType<清空房间墙体动画控制器>(false);
+        float duration = 0f;
+        for (int i = 0; i < controllers.Length; i++)
+        {
+            清空房间墙体动画控制器 controller = controllers[i];
+            if (controller == null)
+            {
+                continue;
+            }
+
+            duration = Mathf.Max(duration, controller.播放进房间时正向动画());
+        }
+
+        if (duration > 0f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
     }
 
     private void ClearPendingDoorNavigation()
