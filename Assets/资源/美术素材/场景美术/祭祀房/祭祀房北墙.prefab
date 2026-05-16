@@ -590,9 +590,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df331671f75b444d8ba4961c31b7da29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u53EF\u4EA4\u4E92\u72B6\u6001\u5BF9\u8C61\u5207\u6362\u5668"
+  "\u8868\u73B0\u65B9\u5F0F": 1
   "\u666E\u901A\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
   "\u60AC\u6D6E\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
   "\u9009\u4E2D\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u5305\u542B\u672A\u6FC0\u6D3BSprite": 1
+  "\u666E\u901A\u989C\u8272": {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+  "\u60AC\u6D6E\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
+  "\u9009\u4E2D\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
   "\u542F\u7528\u4E92\u65A5\u9009\u4E2D": 1
 --- !u!1 &4696664757059318516
 GameObject:

@@ -8,7 +8,8 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 {
     private const string RoomClearedEventId = "\u6E05\u7A7A\u623F\u95F4";
 
-    [SerializeField] private List<Behaviour> 要停在第一帧的动画 = new List<Behaviour>();
+    [FormerlySerializedAs("要停在第一帧的动画")]
+    [SerializeField] private List<Behaviour> 倒放后要停在第一帧的动画 = new List<Behaviour>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
     [SerializeField] private List<Behaviour> 清空房间后开启的音频组件 = new List<Behaviour>();
@@ -65,23 +66,19 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
         bool playRoomEnterReverse = !roomCleared && force;
 
-        for (int i = 0; i < 要停在第一帧的动画.Count; i++)
+        for (int i = 0; i < 倒放后要停在第一帧的动画.Count; i++)
         {
-            Behaviour target = 要停在第一帧的动画[i];
+            Behaviour target = 倒放后要停在第一帧的动画[i];
             if (target == null)
             {
                 continue;
             }
 
-            if (roomCleared)
-            {
-                PlayFromStart(target);
-            }
-            else if (force)
+            if (!roomCleared && force)
             {
                 PlayFromEnd(target);
             }
-            else
+            else if (!roomCleared)
             {
                 ResetToStart(target);
             }
@@ -206,20 +203,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
     }
 
-    private static void PlayFromStart(Behaviour target)
-    {
-        if (target is PlayableDirector playableDirector)
-        {
-            PlayTimelineFromStart(playableDirector);
-            return;
-        }
-
-        if (target is Animator animator)
-        {
-            PlayAnimatorFromStart(animator);
-        }
-    }
-
     private static void PlayFromEnd(Behaviour target)
     {
         if (target is PlayableDirector playableDirector)
@@ -248,14 +231,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         }
     }
 
-    private static void PlayAnimatorFromStart(Animator animator)
-    {
-        animator.enabled = true;
-        animator.speed = 1f;
-        animator.Play(0, 0, 0f);
-        animator.Update(0f);
-    }
-
     private static void PlayAnimatorFromEnd(Animator animator)
     {
         animator.enabled = true;
@@ -271,12 +246,6 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         animator.Play(0, 0, 0f);
         animator.Update(0f);
         animator.enabled = false;
-    }
-
-    private static void PlayTimelineFromStart(PlayableDirector playableDirector)
-    {
-        playableDirector.time = 0d;
-        playableDirector.Play();
     }
 
     private static void ResetTimelineToStart(PlayableDirector playableDirector)
@@ -303,9 +272,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             yield return null;
         }
 
-        for (int i = 0; i < 要停在第一帧的动画.Count; i++)
+        for (int i = 0; i < 倒放后要停在第一帧的动画.Count; i++)
         {
-            Behaviour target = 要停在第一帧的动画[i];
+            Behaviour target = 倒放后要停在第一帧的动画[i];
             if (target == null)
             {
                 continue;
@@ -321,9 +290,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     private float ResolveLongestCurrentStateLength()
     {
         float duration = 0f;
-        for (int i = 0; i < 要停在第一帧的动画.Count; i++)
+        for (int i = 0; i < 倒放后要停在第一帧的动画.Count; i++)
         {
-            Behaviour target = 要停在第一帧的动画[i];
+            Behaviour target = 倒放后要停在第一帧的动画[i];
             if (target == null)
             {
                 continue;
@@ -404,9 +373,9 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
 
     private void SampleAnimations(float timelineTime)
     {
-        for (int i = 0; i < 要停在第一帧的动画.Count; i++)
+        for (int i = 0; i < 倒放后要停在第一帧的动画.Count; i++)
         {
-            Behaviour target = 要停在第一帧的动画[i];
+            Behaviour target = 倒放后要停在第一帧的动画[i];
             if (target == null)
             {
                 continue;
