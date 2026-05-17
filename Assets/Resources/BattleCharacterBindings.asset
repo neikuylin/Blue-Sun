@@ -15,9 +15,9 @@ MonoBehaviour:
   entries:
   - characterId: "\u73A9\u5BB6"
     displayName: "\u65E0\u540D"
-    modelPrefab: {fileID: 0}
-    animatorController: {fileID: 9100000, guid: c309a5bf0fab12248965ac32a969e9b3, type: 2}
-    modelScale: {x: 1, y: 1, z: 1}
+    modelPrefab: {fileID: 5603842887817211312, guid: 2975a219c39ecd14484efc3db1b9b152, type: 3}
+    animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
+    modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u5E93\u9C81\u65AF"
     displayName: "\u5E93\u9C81\u65AF"
