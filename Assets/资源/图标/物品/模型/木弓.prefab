@@ -730,6 +730,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4620178347958848}
   - component: {fileID: 95329518231908724}
+  - component: {fileID: 497419926518362096}
   m_Layer: 0
   m_Name: "\u6728\u5F13"
   m_TagString: Untagged
@@ -776,6 +777,25 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &497419926518362096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1717406733745140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c72c4a01b5c74f4cb73bf295faf31fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u5F13\u5F26\u76EE\u6807\u62C9\u4F38\u5668"
+  "\u5F26\u9AA8\u9ABC\u540D\u79F0": WB.string
+  "\u4E0A\u5F13\u81C2IK\u540D\u79F0": WB.top.ik
+  "\u4E0B\u5F13\u81C2IK\u540D\u79F0": WB.down.ik
+  "\u76EE\u6807\u70B9\u540D\u79F0": "\u6B66\u5668\u6302\u8F7D\u70B9\uFF08\u53F3\uFF09"
+  "\u62C9\u5F26\u76EE\u6807\u70B9": {fileID: 0}
+  "\u62C9\u5F26\u8FDB\u5EA6": 0
+  "\u5F13\u81C2\u8DDF\u968F\u6BD4\u4F8B": 0.15
 --- !u!1 &1793173729035202
 GameObject:
   m_ObjectHideFlags: 0
