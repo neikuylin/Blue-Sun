@@ -1969,7 +1969,7 @@ MonoBehaviour:
       y: 18
     hasEastDoorEntrance: 1
     eastDoorEntranceCell:
-      x: 18
+      x: 19
       y: 10
     hasSouthDoorEntrance: 0
     southDoorEntranceCell:
@@ -3420,4 +3420,4 @@ MonoBehaviour:
     hasNorthDoorEntrance: 1
     northDoorEntranceCell:
       x: 13
-      y: 23
+      y: 24
