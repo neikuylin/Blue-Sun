@@ -9,12 +9,19 @@ public sealed class 装备武器测试 : MonoBehaviour
     private const float 默认描边宽度 = 0.025f;
 
     [SerializeField] private ItemDatabase 物品数据库;
+    [SerializeField] private BattleCharacterBindingDatabase 战斗角色绑定库;
+    [SerializeField] private string 角色ID = string.Empty;
     [SerializeField] private string 武器物品ID = string.Empty;
     [SerializeField] private GameObject 直接武器模型预制体;
     [SerializeField] private ItemDatabase.WeaponCategory 直接武器类型 = ItemDatabase.WeaponCategory.OneHanded;
+    [SerializeField] private bool 生成前应用战斗模型倍率 = true;
     [SerializeField] private bool 应用战斗黑色描边 = true;
+    [SerializeField] private bool 已记录原始缩放;
+    [SerializeField] private Vector3 原始本地缩放 = Vector3.one;
 
     public ItemDatabase 数据库 => 物品数据库;
+    public BattleCharacterBindingDatabase 角色绑定库 => 战斗角色绑定库;
+    public string 当前角色ID => 角色ID;
     public string 当前武器物品ID => 武器物品ID;
 
     public void 设置物品数据库(ItemDatabase database)
@@ -22,11 +29,21 @@ public sealed class 装备武器测试 : MonoBehaviour
         物品数据库 = database;
     }
 
+    public void 设置战斗角色绑定库(BattleCharacterBindingDatabase database)
+    {
+        战斗角色绑定库 = database;
+    }
+
     public bool 生成测试装备(out string result)
     {
         Transform leftMountPoint = FindWeaponMountPoint(transform, 左手武器挂载点名称);
         Transform rightMountPoint = FindWeaponMountPoint(transform, 右手武器挂载点名称);
         清理测试装备();
+
+        if (生成前应用战斗模型倍率 && !应用战斗模型倍率(out result))
+        {
+            return false;
+        }
 
         if (!ResolveWeaponPrefab(out GameObject weaponPrefab, out ItemDatabase.WeaponCategory weaponCategory, out result))
         {
@@ -60,10 +77,84 @@ public sealed class 装备武器测试 : MonoBehaviour
         return true;
     }
 
+    public bool 应用战斗模型倍率(out string result)
+    {
+        BattleCharacterBindingDatabase.BindingEntry binding = ResolveCharacterBinding();
+        if (binding == null)
+        {
+            result = "没有选择有效的战斗角色绑定。";
+            return false;
+        }
+
+        if (!已记录原始缩放)
+        {
+            原始本地缩放 = transform.localScale;
+            已记录原始缩放 = true;
+        }
+
+        Vector3 configuredScale = binding.modelScale;
+        if (configuredScale == Vector3.zero)
+        {
+            configuredScale = Vector3.one;
+        }
+
+        transform.localScale = new Vector3(
+            原始本地缩放.x * configuredScale.x,
+            原始本地缩放.y * configuredScale.y,
+            原始本地缩放.z * configuredScale.z);
+
+        result = $"已应用“{ResolveCharacterLabel(binding)}”的战斗模型倍率：{configuredScale}。";
+        return true;
+    }
+
+    public void 恢复原始缩放()
+    {
+        if (!已记录原始缩放)
+        {
+            return;
+        }
+
+        transform.localScale = 原始本地缩放;
+        已记录原始缩放 = false;
+    }
+
+    public void 清理测试装备并恢复缩放()
+    {
+        清理测试装备();
+        恢复原始缩放();
+    }
+
     public void 清理测试装备()
     {
         ClearRuntimeWeaponModel(FindWeaponMountPoint(transform, 左手武器挂载点名称));
         ClearRuntimeWeaponModel(FindWeaponMountPoint(transform, 右手武器挂载点名称));
+    }
+
+    private BattleCharacterBindingDatabase.BindingEntry ResolveCharacterBinding()
+    {
+        BattleCharacterBindingDatabase database =
+            战斗角色绑定库 != null ? 战斗角色绑定库 : BattleCharacterBindingDatabase.LoadDefault();
+        if (database == null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(角色ID))
+        {
+            return database.FindBinding(角色ID);
+        }
+
+        return null;
+    }
+
+    private static string ResolveCharacterLabel(BattleCharacterBindingDatabase.BindingEntry binding)
+    {
+        if (binding == null)
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(binding.displayName) ? binding.characterId : binding.displayName;
     }
 
     private bool ResolveWeaponPrefab(
