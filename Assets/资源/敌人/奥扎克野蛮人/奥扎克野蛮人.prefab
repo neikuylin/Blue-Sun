@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 3756603359951743013}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6474295, y: 0.070590615, z: -0.007133022, w: 0.75881565}
-  m_LocalPosition: {x: -0.06873833, y: -0.005495171, z: 0.0047287312}
+  m_LocalPosition: {x: -0.263, y: 0.032, z: -0.086}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -55,8 +55,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8512480748123767672}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.05, y: 0, z: 0}
+  m_LocalRotation: {x: 0.7588157, y: -0.007132994, z: -0.07059064, w: 0.6474294}
+  m_LocalPosition: {x: 0.2629998, y: -0.032000232, z: 0.08599988}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -149,13 +149,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 275880a6a660cd642aa4931e87d8cfeb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u6302\u8F7D\u70B9\u751F\u6210\u5668"
-  "\u5F53\u524D\u6A21\u677F\u7D22\u5F15": 0
-  "\u6A21\u677F\u5217\u8868":
-  - "\u6A21\u578B\u540D\u79F0": "\u7D22\u62C9\u5A1C"
-    "\u5DE6\u624B\u672C\u5730\u4F4D\u7F6E": {x: 0.05, y: 0, z: 0}
-    "\u5DE6\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: 90, y: 0, z: 0}
-    "\u53F3\u624B\u672C\u5730\u4F4D\u7F6E": {x: -0.06873833, y: -0.005495171, z: 0.0047287312}
-    "\u53F3\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: -78.97751, y: 37.49056, z: -32.32306}
+  "\u6A21\u677F\u6570\u636E\u5E93": {fileID: 11400000, guid: 4ef17b4de3b7d484bbad7f9d90df7af2, type: 2}
+  "\u5F53\u524D\u6A21\u677F\u7D22\u5F15": 3
 --- !u!4 &7034127435816485189 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -6873745267572125276, guid: 2a124e16e52de6e40b591213fcbbb351, type: 3}

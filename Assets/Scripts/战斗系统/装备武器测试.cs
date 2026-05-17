@@ -310,8 +310,13 @@ public sealed class 装备武器测试 : MonoBehaviour
             return;
         }
 
+        Vector3 prefabLocalPosition = instance.localPosition;
         Vector3 prefabLocalScale = instance.localScale;
         Vector3 parentLossyScale = mountPoint.lossyScale;
+        instance.localPosition = new Vector3(
+            DivideScaleAxis(prefabLocalPosition.x, parentLossyScale.x),
+            DivideScaleAxis(prefabLocalPosition.y, parentLossyScale.y),
+            DivideScaleAxis(prefabLocalPosition.z, parentLossyScale.z));
         instance.localScale = new Vector3(
             DivideScaleAxis(prefabLocalScale.x, parentLossyScale.x),
             DivideScaleAxis(prefabLocalScale.y, parentLossyScale.y),
