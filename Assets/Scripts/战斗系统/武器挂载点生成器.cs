@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class 武器挂载点生成器 : MonoBehaviour
@@ -8,25 +7,46 @@ public sealed class 武器挂载点生成器 : MonoBehaviour
     public const string 右手腕名称 = "Wrist_R";
     public const string 左手挂载点名称 = "武器挂载点（左）";
     public const string 右手挂载点名称 = "武器挂载点（右）";
+    private const string 默认数据库资源路径 = "武器挂载点模板数据库";
+
+    [SerializeField]
+    private 武器挂载点模板数据库 模板数据库;
 
     [SerializeField]
     private int 当前模板索引;
 
-    [SerializeField]
-    private List<武器挂载点模板> 模板列表 = new List<武器挂载点模板>
-    {
-        new 武器挂载点模板
-        {
-            模型名称 = "索拉娜",
-            左手本地位置 = new Vector3(0.05f, 0f, 0f),
-            左手本地欧拉角 = new Vector3(90f, 0f, 0f),
-            右手本地位置 = new Vector3(-0.06873833f, -0.005495171f, 0.0047287312f),
-            右手本地欧拉角 = new Vector3(-78.97751f, 37.49056f, -32.32306f),
-        }
-    };
-
+    public 武器挂载点模板数据库 数据库 => 模板数据库;
     public int 当前模板 => 当前模板索引;
-    public IReadOnlyList<武器挂载点模板> 已保存模板 => 模板列表;
+
+    public void 设置模板数据库(武器挂载点模板数据库 database)
+    {
+        模板数据库 = database;
+    }
+
+    private void Reset()
+    {
+        自动绑定模板数据库();
+    }
+
+    private void OnValidate()
+    {
+        自动绑定模板数据库();
+    }
+
+    private void Awake()
+    {
+        自动绑定模板数据库();
+    }
+
+    private void 自动绑定模板数据库()
+    {
+        if (模板数据库 != null)
+        {
+            return;
+        }
+
+        模板数据库 = Resources.Load<武器挂载点模板数据库>(默认数据库资源路径);
+    }
 
     public bool 生成或更新武器挂载点(out string result)
     {
@@ -67,15 +87,14 @@ public sealed class 武器挂载点生成器 : MonoBehaviour
             右手挂载点.SetParent(右手腕, true);
         }
 
-        string modelName = string.IsNullOrWhiteSpace(gameObject.name) ? "未命名模型" : gameObject.name;
-        int index = 查找模板索引(modelName);
-        if (index < 0)
+        if (模板数据库 == null)
         {
-            模板列表.Add(new 武器挂载点模板());
-            index = 模板列表.Count - 1;
+            result = "没有指定武器挂载点模板数据库。";
+            return false;
         }
 
-        武器挂载点模板 template = 模板列表[index];
+        string modelName = string.IsNullOrWhiteSpace(gameObject.name) ? "未命名模型" : gameObject.name;
+        武器挂载点模板 template = 模板数据库.取得或新增模板(modelName, out int index);
         template.模型名称 = modelName;
         template.左手本地位置 = 左手挂载点.localPosition;
         template.左手本地欧拉角 = 规整角度(左手挂载点.localEulerAngles);
@@ -252,14 +271,20 @@ public sealed class 武器挂载点生成器 : MonoBehaviour
     {
         template = null;
 
-        if (模板列表 == null || 模板列表.Count == 0)
+        if (模板数据库 == null)
+        {
+            result = "没有指定武器挂载点模板数据库。";
+            return false;
+        }
+
+        if (模板数据库.模板 == null || 模板数据库.模板.Count == 0)
         {
             result = "没有可用的武器挂载点模板。";
             return false;
         }
 
-        当前模板索引 = Mathf.Clamp(当前模板索引, 0, 模板列表.Count - 1);
-        template = 模板列表[当前模板索引];
+        当前模板索引 = Mathf.Clamp(当前模板索引, 0, 模板数据库.模板.Count - 1);
+        template = 模板数据库.模板[当前模板索引];
 
         if (template == null)
         {
@@ -274,20 +299,6 @@ public sealed class 武器挂载点生成器 : MonoBehaviour
 
         result = string.Empty;
         return true;
-    }
-
-    private int 查找模板索引(string modelName)
-    {
-        for (int i = 0; i < 模板列表.Count; i++)
-        {
-            武器挂载点模板 template = 模板列表[i];
-            if (template != null && template.模型名称 == modelName)
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     private Transform 取得或创建挂载点(string mountName)
