@@ -55,8 +55,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8204469773993097860}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6067806, y: 0.031032622, z: -0.0013845601, w: 0.79426223}
-  m_LocalPosition: {x: -0.06888009, y: -0.011304567, z: -0.0005578177}
+  m_LocalRotation: {x: -0.6474295, y: 0.070590615, z: -0.007133022, w: 0.75881565}
+  m_LocalPosition: {x: -0.06873833, y: -0.005495171, z: 0.0047287312}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -130,13 +130,45 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -4199264994037035382, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2377165241485595755}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8839616962046698716}
   m_SourcePrefab: {fileID: 100100000, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
 --- !u!4 &1606168482973195495 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
   m_PrefabInstance: {fileID: 1279295818288265996}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2090111222257796701 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
+  m_PrefabInstance: {fileID: 1279295818288265996}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8839616962046698716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090111222257796701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 275880a6a660cd642aa4931e87d8cfeb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u6302\u8F7D\u70B9\u751F\u6210\u5668"
+  "\u5F53\u524D\u6A21\u677F\u7D22\u5F15": 1
+  "\u6A21\u677F\u5217\u8868":
+  - "\u6A21\u578B\u540D\u79F0": "\u7D22\u62C9\u5A1C"
+    "\u5DE6\u624B\u672C\u5730\u4F4D\u7F6E": {x: 0.05, y: 0, z: 0}
+    "\u5DE6\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: 90, y: 0, z: 0}
+    "\u53F3\u624B\u672C\u5730\u4F4D\u7F6E": {x: -0.06873833, y: -0.005495171, z: 0.0047287312}
+    "\u53F3\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: -78.97751, y: 37.49056, z: -32.32306}
+  - "\u6A21\u578B\u540D\u79F0": "\u7231\u4E3D\u4E1D"
+    "\u5DE6\u624B\u672C\u5730\u4F4D\u7F6E": {x: 0.05, y: 0, z: 0}
+    "\u5DE6\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: 90, y: 0, z: 0}
+    "\u53F3\u624B\u672C\u5730\u4F4D\u7F6E": {x: -0.06873833, y: -0.005495171, z: 0.0047287312}
+    "\u53F3\u624B\u672C\u5730\u6B27\u62C9\u89D2": {x: -78.97754, y: 37.490532, z: -32.32303}
 --- !u!4 &5637003061890436687 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2307443142658214589, guid: eee4222844a3d9842be204c7a3fb26da, type: 3}
