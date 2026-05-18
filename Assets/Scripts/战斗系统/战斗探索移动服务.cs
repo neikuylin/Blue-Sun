@@ -5,6 +5,13 @@ using UnityEngine;
 
 internal sealed class 战斗探索移动服务
 {
+    private const int NormalFollowerStartDistance = 7;
+    private const int NormalFollowerTargetDistance = 5;
+    private const int ForcedFollowerTargetDistance = 1;
+    private const int ForcedFollowerFallbackTargetDistance = 5;
+    private const float NormalFollowerPollSeconds = 2f;
+    private const float ForcedFollowerPollSeconds = 0.05f;
+
     private Coroutine explorationFollowerRoutine;
     private Coroutine explorationMoveAudioStopRoutine;
     private BattleAudioUtility.PlaybackHandle currentExplorationMoveAudioHandle;
@@ -53,7 +60,8 @@ internal sealed class 战斗探索移动服务
         Func<AudioClip> resolveExplorationMoveSound,
         Func<GameObject> resolveExplorationMoveSoundPrefab,
         Camera battleCamera,
-        Action refreshHighlights)
+        Action refreshHighlights,
+        bool forceFollowerFollow)
     {
         if (unit == null || grid == null)
         {
@@ -110,9 +118,37 @@ internal sealed class 战斗探索移动服务
             resolveExplorationIdleStateName,
             resolveExplorationMoveStateName,
             resolveExplorationMoveCompensateMotion,
-            refreshHighlights);
+            refreshHighlights,
+            forceFollowerFollow);
         refreshHighlights?.Invoke();
         return true;
+    }
+
+    public void 开始跟随移动(
+        MonoBehaviour host,
+        BattleUnit leaderUnit,
+        bool isExplorationMode,
+        BattleGrid grid,
+        IList<BattleUnit> units,
+        Func<string, BattleUnit> findUnitByCharacterId,
+        Func<string> resolveExplorationIdleStateName,
+        Func<string> resolveExplorationMoveStateName,
+        Func<bool> resolveExplorationMoveCompensateMotion,
+        Action refreshHighlights,
+        bool forceFollowerFollow)
+    {
+        排队跟随移动(
+            host,
+            leaderUnit,
+            isExplorationMode,
+            grid,
+            units,
+            findUnitByCharacterId,
+            resolveExplorationIdleStateName,
+            resolveExplorationMoveStateName,
+            resolveExplorationMoveCompensateMotion,
+            refreshHighlights,
+            forceFollowerFollow);
     }
 
     private static bool 尝试解析探索移动核心格(
@@ -221,7 +257,8 @@ internal sealed class 战斗探索移动服务
         Func<string> resolveExplorationIdleStateName,
         Func<string> resolveExplorationMoveStateName,
         Func<bool> resolveExplorationMoveCompensateMotion,
-        Action refreshHighlights)
+        Action refreshHighlights,
+        bool forceFollowerFollow)
     {
         if (host == null || !isExplorationMode || leaderUnit == null || !leaderUnit.IsAlive || !leaderUnit.isPlayerControlled)
         {
@@ -248,7 +285,8 @@ internal sealed class 战斗探索移动服务
             resolveExplorationIdleStateName,
             resolveExplorationMoveStateName,
             resolveExplorationMoveCompensateMotion,
-            refreshHighlights));
+            refreshHighlights,
+            forceFollowerFollow));
     }
 
     private IEnumerator 执行跟随移动流程(
@@ -260,9 +298,12 @@ internal sealed class 战斗探索移动服务
         Func<string> resolveExplorationIdleStateName,
         Func<string> resolveExplorationMoveStateName,
         Func<bool> resolveExplorationMoveCompensateMotion,
-        Action refreshHighlights)
+        Action refreshHighlights,
+        bool forceFollowerFollow)
     {
-        WaitForSeconds idleDelay = new WaitForSeconds(2f);
+        WaitForSeconds idleDelay = new WaitForSeconds(forceFollowerFollow ? ForcedFollowerPollSeconds : NormalFollowerPollSeconds);
+        int followerTargetDistance = forceFollowerFollow ? ForcedFollowerTargetDistance : NormalFollowerTargetDistance;
+        int followerMaxTargetDistance = forceFollowerFollow ? ForcedFollowerFallbackTargetDistance : NormalFollowerTargetDistance;
 
         while (isExplorationMode && leaderUnit != null && leaderUnit.IsAlive)
         {
@@ -286,7 +327,13 @@ internal sealed class 战斗探索移动服务
                     continue;
                 }
 
-                if (grid.ManhattanDistance(follower.currentCell, leaderCell) <= 10)
+                int followerDistance = grid.ManhattanDistance(follower.currentCell, leaderCell);
+                if (!forceFollowerFollow && followerDistance <= NormalFollowerStartDistance)
+                {
+                    continue;
+                }
+
+                if (forceFollowerFollow && followerDistance <= followerTargetDistance)
                 {
                     continue;
                 }
@@ -294,7 +341,7 @@ internal sealed class 战斗探索移动服务
                 hasPendingFollowerGap = true;
 
                 Vector2Int destination;
-                if (!尝试查找跟随者目标格(follower, leaderCell, reservedDestinations, grid, out destination))
+                if (!尝试查找跟随者目标格(follower, leaderCell, followerTargetDistance, followerMaxTargetDistance, reservedDestinations, grid, out destination))
                 {
                     continue;
                 }
@@ -317,7 +364,7 @@ internal sealed class 战斗探索移动服务
             if (issuedFollowerMove)
             {
                 refreshHighlights?.Invoke();
-                yield return new WaitForSeconds(maxMoveDuration);
+                yield return forceFollowerFollow ? idleDelay : new WaitForSeconds(maxMoveDuration);
                 continue;
             }
 
@@ -386,6 +433,8 @@ internal sealed class 战斗探索移动服务
     private static bool 尝试查找跟随者目标格(
         BattleUnit follower,
         Vector2Int leaderCell,
+        int targetDistance,
+        int maxTargetDistance,
         HashSet<Vector2Int> reservedDestinations,
         BattleGrid grid,
         out Vector2Int destination)
@@ -406,7 +455,7 @@ internal sealed class 战斗探索移动服务
             {
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);
-                if (leaderDistance > 5)
+                if (leaderDistance > maxTargetDistance)
                 {
                     continue;
                 }
@@ -427,7 +476,7 @@ internal sealed class 战斗探索移动服务
                     continue;
                 }
 
-                int distanceDelta = Mathf.Abs(5 - leaderDistance);
+                int distanceDelta = Mathf.Abs(targetDistance - leaderDistance);
                 int pathLength = path.Count - 1;
                 if (distanceDelta > bestDistanceDelta)
                 {

@@ -100,6 +100,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool hasPendingDoorNavigationCell;
     private Vector2Int pendingDoorNavigationCell;
     private bool doorExitNavigationLocked;
+    private bool forceDoorFollowerFollow;
     private 可交互状态对象切换器 pendingDoorNavigationStateSwitcher;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
@@ -711,7 +712,8 @@ public class BattleTurnSystem : MonoBehaviour
             ResolveExplorationMoveSound,
             ResolveExplorationMoveSoundPrefab,
             battleCamera,
-            RefreshHighlights);
+            RefreshHighlights,
+            forceDoorFollowerFollow);
     }
 
     private bool TryMoveToGridTriggerCell(BattleUnit unit, Vector2Int destination)
@@ -758,17 +760,36 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ClearPendingDoorNavigation();
+        forceDoorFollowerFollow = true;
         if (gridTriggerNavigationService == null ||
             !gridTriggerNavigationService.尝试移动到触发格并执行(
             activeUnit,
             triggerCells,
             () => LockDoorExitNavigation(activeUnit, direction, autoDestination)))
         {
+            ClearPendingDoorNavigation();
             return false;
         }
 
         pendingDoorNavigationStateSwitcher = doorStateSwitcher;
+        StartDoorFollowerFollow();
         return true;
+    }
+
+    private void StartDoorFollowerFollow()
+    {
+        explorationMoveService?.开始跟随移动(
+            this,
+            activeUnit,
+            IsExplorationMode,
+            grid,
+            units,
+            FindUnitByCharacterId,
+            ResolveExplorationIdleStateName,
+            ResolveExplorationMoveStateName,
+            ResolveExplorationMoveCompensateMotion,
+            RefreshHighlights,
+            forceDoorFollowerFollow);
     }
 
     public bool TryTriggerGridInteraction(格子物件触发器 trigger)
@@ -925,6 +946,13 @@ public class BattleTurnSystem : MonoBehaviour
         hasPendingDoorNavigationCell = false;
         pendingDoorNavigationCell = default;
         doorExitNavigationLocked = false;
+        bool wasForceDoorFollowerFollow = forceDoorFollowerFollow;
+        forceDoorFollowerFollow = false;
+        if (wasForceDoorFollowerFollow)
+        {
+            explorationMoveService?.停止跟随(this);
+        }
+
         if (pendingDoorNavigationStateSwitcher != null)
         {
             pendingDoorNavigationStateSwitcher.取消选中();
