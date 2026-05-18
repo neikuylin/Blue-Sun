@@ -5,22 +5,16 @@ using UnityEngine;
 public sealed class 弓弦目标拉伸器编辑器 : Editor
 {
     private SerializedProperty 弦骨骼名称;
-    private SerializedProperty 上弓臂IK名称;
-    private SerializedProperty 下弓臂IK名称;
     private SerializedProperty 目标点名称;
     private SerializedProperty 拉弦目标点;
     private SerializedProperty 拉弦进度;
-    private SerializedProperty 弓臂跟随比例;
 
     private void OnEnable()
     {
         弦骨骼名称 = serializedObject.FindProperty("弦骨骼名称");
-        上弓臂IK名称 = serializedObject.FindProperty("上弓臂IK名称");
-        下弓臂IK名称 = serializedObject.FindProperty("下弓臂IK名称");
         目标点名称 = serializedObject.FindProperty("目标点名称");
         拉弦目标点 = serializedObject.FindProperty("拉弦目标点");
         拉弦进度 = serializedObject.FindProperty("拉弦进度");
-        弓臂跟随比例 = serializedObject.FindProperty("弓臂跟随比例");
     }
 
     public override void OnInspectorGUI()
@@ -29,16 +23,12 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
 
         EditorGUILayout.LabelField("弓弦目标拉伸", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(弦骨骼名称, new GUIContent("弦骨骼名称"));
-        EditorGUILayout.PropertyField(上弓臂IK名称, new GUIContent("上弓臂IK名称"));
-        EditorGUILayout.PropertyField(下弓臂IK名称, new GUIContent("下弓臂IK名称"));
         EditorGUILayout.PropertyField(目标点名称, new GUIContent("目标点名称"));
         EditorGUILayout.PropertyField(拉弦目标点, new GUIContent("拉弦目标点"));
 
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(拉弦进度, new GUIContent("拉弦进度"));
         bool 拉弦进度已变化 = EditorGUI.EndChangeCheck();
-
-        EditorGUILayout.PropertyField(弓臂跟随比例, new GUIContent("弓臂跟随比例"));
 
         bool 属性已变化 = serializedObject.ApplyModifiedProperties();
         if (拉弦进度已变化 && 属性已变化)

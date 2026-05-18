@@ -4,19 +4,12 @@ using UnityEngine;
 public sealed class 弓弦目标拉伸器 : MonoBehaviour
 {
     [SerializeField] private string 弦骨骼名称 = "WB.string";
-    [SerializeField] private string 上弓臂IK名称 = "WB.top.ik";
-    [SerializeField] private string 下弓臂IK名称 = "WB.down.ik";
     [SerializeField] private string 目标点名称 = "武器挂载点（右）";
     [SerializeField] private Transform 拉弦目标点;
     [SerializeField, Range(0f, 1f)] private float 拉弦进度;
-    [SerializeField, Range(0f, 1f)] private float 弓臂跟随比例 = 0.15f;
 
     private Transform 弦骨骼;
-    private Transform 上弓臂IK;
-    private Transform 下弓臂IK;
     [SerializeField, HideInInspector] private Vector3 弦初始本地位置;
-    [SerializeField, HideInInspector] private Vector3 上弓臂IK初始本地位置;
-    [SerializeField, HideInInspector] private Vector3 下弓臂IK初始本地位置;
     [SerializeField, HideInInspector] private bool 已记录初始姿态;
 
     public float 当前拉弦进度 => 拉弦进度;
@@ -43,7 +36,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
     private void OnValidate()
     {
         拉弦进度 = Mathf.Clamp01(拉弦进度);
-        弓臂跟随比例 = Mathf.Clamp01(弓臂跟随比例);
     }
 
     public void 设置拉弦进度(float progress)
@@ -54,8 +46,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
     public bool 重新查找引用(out string result)
     {
         弦骨骼 = FindDescendantByName(transform, 弦骨骼名称);
-        上弓臂IK = FindDescendantByName(transform, 上弓臂IK名称);
-        下弓臂IK = FindDescendantByName(transform, 下弓臂IK名称);
 
         if (拉弦目标点 == null)
         {
@@ -123,8 +113,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
         }
 
         ApplyBoneTowardTarget(弦骨骼, 弦初始本地位置, 拉弦进度);
-        ApplyBoneTowardTarget(上弓臂IK, 上弓臂IK初始本地位置, 拉弦进度 * 弓臂跟随比例);
-        ApplyBoneTowardTarget(下弓臂IK, 下弓臂IK初始本地位置, 拉弦进度 * 弓臂跟随比例);
     }
 
     public void 复位拉弦()
@@ -146,8 +134,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
         }
 
         弦初始本地位置 = 弦骨骼.localPosition;
-        上弓臂IK初始本地位置 = 上弓臂IK != null ? 上弓臂IK.localPosition : Vector3.zero;
-        下弓臂IK初始本地位置 = 下弓臂IK != null ? 下弓臂IK.localPosition : Vector3.zero;
         已记录初始姿态 = true;
     }
 
@@ -156,16 +142,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
         if (弦骨骼 != null)
         {
             弦骨骼.localPosition = 弦初始本地位置;
-        }
-
-        if (上弓臂IK != null)
-        {
-            上弓臂IK.localPosition = 上弓臂IK初始本地位置;
-        }
-
-        if (下弓臂IK != null)
-        {
-            下弓臂IK.localPosition = 下弓臂IK初始本地位置;
         }
     }
 
