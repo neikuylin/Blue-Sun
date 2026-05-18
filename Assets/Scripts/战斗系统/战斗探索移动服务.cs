@@ -449,9 +449,9 @@ internal sealed class 战斗探索移动服务
         int bestPathLength = int.MaxValue;
         bool found = false;
 
-        for (int y = 0; y < grid.height; y++)
+        for (int y = leaderCell.y - maxTargetDistance; y <= leaderCell.y + maxTargetDistance; y++)
         {
-            for (int x = 0; x < grid.width; x++)
+            for (int x = leaderCell.x - maxTargetDistance; x <= leaderCell.x + maxTargetDistance; x++)
             {
                 Vector2Int candidate = new Vector2Int(x, y);
                 int leaderDistance = grid.ManhattanDistance(candidate, leaderCell);

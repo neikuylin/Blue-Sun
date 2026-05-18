@@ -100,7 +100,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool hasPendingDoorNavigationCell;
     private Vector2Int pendingDoorNavigationCell;
     private bool doorExitNavigationLocked;
-    private bool forceDoorFollowerFollow;
+    private bool forceNavigationFollowerFollow;
     private 可交互状态对象切换器 pendingDoorNavigationStateSwitcher;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
@@ -698,6 +698,15 @@ public class BattleTurnSystem : MonoBehaviour
             ClearPendingDoorNavigation();
         }
 
+        if (clearDoorNavigationOnDifferentDestination &&
+            !doorExitNavigationLocked &&
+            forceNavigationFollowerFollow &&
+            pendingDoorNavigationStateSwitcher == null &&
+            !hasPendingDoorNavigationCell)
+        {
+            ClearPendingDoorNavigation();
+        }
+
         return explorationMoveService != null && explorationMoveService.尝试自由移动(
             this,
             unit,
@@ -713,7 +722,7 @@ public class BattleTurnSystem : MonoBehaviour
             ResolveExplorationMoveSoundPrefab,
             battleCamera,
             RefreshHighlights,
-            forceDoorFollowerFollow);
+            forceNavigationFollowerFollow);
     }
 
     private bool TryMoveToGridTriggerCell(BattleUnit unit, Vector2Int destination)
@@ -760,7 +769,6 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         ClearPendingDoorNavigation();
-        forceDoorFollowerFollow = true;
         if (gridTriggerNavigationService == null ||
             !gridTriggerNavigationService.尝试移动到触发格并执行(
             activeUnit,
@@ -771,12 +779,13 @@ public class BattleTurnSystem : MonoBehaviour
             return false;
         }
 
+        forceNavigationFollowerFollow = true;
         pendingDoorNavigationStateSwitcher = doorStateSwitcher;
-        StartDoorFollowerFollow();
+        StartNavigationFollowerFollow();
         return true;
     }
 
-    private void StartDoorFollowerFollow()
+    private void StartNavigationFollowerFollow()
     {
         explorationMoveService?.开始跟随移动(
             this,
@@ -789,7 +798,7 @@ public class BattleTurnSystem : MonoBehaviour
             ResolveExplorationMoveStateName,
             ResolveExplorationMoveCompensateMotion,
             RefreshHighlights,
-            forceDoorFollowerFollow);
+            forceNavigationFollowerFollow);
     }
 
     public bool TryTriggerGridInteraction(格子物件触发器 trigger)
@@ -820,12 +829,43 @@ public class BattleTurnSystem : MonoBehaviour
             }
         }
 
-        if (gridTriggerNavigationService != null)
+        ClearPendingDoorNavigation();
+        bool alreadyAtTriggerCell = ContainsCell(triggerCells, activeUnit.IsMoving ? grid.WorldToCell(activeUnit.transform.position) : activeUnit.currentCell);
+        if (gridTriggerNavigationService != null &&
+            gridTriggerNavigationService.尝试移动到触发格并执行(
+                activeUnit,
+                triggerCells,
+                () =>
+                {
+                    trigger.执行到达触发();
+                }))
         {
-            gridTriggerNavigationService.尝试移动到触发格并执行(activeUnit, triggerCells, trigger.执行到达触发);
+            if (!alreadyAtTriggerCell)
+            {
+                forceNavigationFollowerFollow = true;
+                StartNavigationFollowerFollow();
+            }
         }
 
         return true;
+    }
+
+    private static bool ContainsCell(IReadOnlyList<Vector2Int> cells, Vector2Int target)
+    {
+        if (cells == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            if (cells[i] == target)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void 提示战斗中不能触发格子交互(string triggerName)
@@ -946,12 +986,7 @@ public class BattleTurnSystem : MonoBehaviour
         hasPendingDoorNavigationCell = false;
         pendingDoorNavigationCell = default;
         doorExitNavigationLocked = false;
-        bool wasForceDoorFollowerFollow = forceDoorFollowerFollow;
-        forceDoorFollowerFollow = false;
-        if (wasForceDoorFollowerFollow)
-        {
-            explorationMoveService?.停止跟随(this);
-        }
+        ClearForcedNavigationFollowerFollow();
 
         if (pendingDoorNavigationStateSwitcher != null)
         {
@@ -960,6 +995,16 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         gridTriggerNavigationService?.清除();
+    }
+
+    private void ClearForcedNavigationFollowerFollow()
+    {
+        bool wasForceNavigationFollowerFollow = forceNavigationFollowerFollow;
+        forceNavigationFollowerFollow = false;
+        if (wasForceNavigationFollowerFollow)
+        {
+            explorationMoveService?.停止跟随(this);
+        }
     }
 
     private void EndTurn()
