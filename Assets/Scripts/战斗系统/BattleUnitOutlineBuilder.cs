@@ -7,8 +7,10 @@ public static class BattleUnitOutlineBuilder
     private const string OutlineShaderName = "Battle/UnitOutline";
     private const string OutlineMaskObjectPrefix = "__OutlineMask_";
     private const string OutlineObjectPrefix = "__Outline_";
+    private const int MinStencilRef = 1;
+    private const int MaxStencilRef = 255;
     private static readonly string[] ExcludedNameKeywords = { "quad", "shadow", "阴影", "投影", "影子" };
-    private static Material sharedOutlineMaskMaterial;
+    private static int nextStencilRef = MinStencilRef;
 
     public static void Apply(GameObject root, Color outlineColor, float outlineWidth)
     {
@@ -17,8 +19,9 @@ public static class BattleUnitOutlineBuilder
             return;
         }
 
-        Material outlineMaterial = CreateMaterial(outlineColor, outlineWidth, "BattleUnitOutlineMaterial");
-        Material outlineMaskMaterial = GetOrCreateMaskMaterial();
+        int stencilRef = AllocateStencilRef();
+        Material outlineMaterial = CreateMaterial(outlineColor, outlineWidth, stencilRef, "BattleUnitOutlineMaterial");
+        Material outlineMaskMaterial = CreateMaskMaterial(stencilRef);
         if (outlineMaterial == null || outlineMaskMaterial == null)
         {
             return;
@@ -55,7 +58,7 @@ public static class BattleUnitOutlineBuilder
         }
     }
 
-    private static Material GetOrCreateMaskMaterial()
+    private static Material CreateMaskMaterial(int stencilRef)
     {
         Shader shader = Shader.Find(OutlineMaskShaderName);
         if (shader == null)
@@ -64,18 +67,16 @@ public static class BattleUnitOutlineBuilder
             return null;
         }
 
-        if (sharedOutlineMaskMaterial == null || sharedOutlineMaskMaterial.shader != shader)
+        Material material = new Material(shader)
         {
-            sharedOutlineMaskMaterial = new Material(shader)
-            {
-                name = "BattleUnitOutlineMaskMaterial"
-            };
-        }
+            name = "BattleUnitOutlineMaskMaterial"
+        };
+        material.SetInt("_StencilRef", stencilRef);
 
-        return sharedOutlineMaskMaterial;
+        return material;
     }
 
-    private static Material CreateMaterial(Color outlineColor, float outlineWidth, string materialName)
+    private static Material CreateMaterial(Color outlineColor, float outlineWidth, int stencilRef, string materialName)
     {
         Shader shader = Shader.Find(OutlineShaderName);
         if (shader == null)
@@ -90,7 +91,20 @@ public static class BattleUnitOutlineBuilder
         };
         material.SetColor("_OutlineColor", outlineColor);
         material.SetFloat("_OutlineWidth", Mathf.Max(0f, outlineWidth));
+        material.SetInt("_StencilRef", stencilRef);
         return material;
+    }
+
+    private static int AllocateStencilRef()
+    {
+        int stencilRef = nextStencilRef;
+        nextStencilRef++;
+        if (nextStencilRef > MaxStencilRef)
+        {
+            nextStencilRef = MinStencilRef;
+        }
+
+        return stencilRef;
     }
 
     private static void CreateMeshOutline(Transform sourceTransform, Mesh sourceMesh, Material outlineMaskMaterial, Material outlineMaterial)

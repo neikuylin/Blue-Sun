@@ -1,5 +1,10 @@
 Shader "Battle/UnitOutlineMask"
 {
+    Properties
+    {
+        _StencilRef ("Stencil Ref", Float) = 1
+    }
+
     SubShader
     {
         Tags { "Queue" = "Geometry+5" "RenderType" = "Opaque" "IgnoreProjector" = "True" }
@@ -12,7 +17,7 @@ Shader "Battle/UnitOutlineMask"
         {
             Stencil
             {
-                Ref 1
+                Ref [_StencilRef]
                 Comp Always
                 Pass Replace
             }

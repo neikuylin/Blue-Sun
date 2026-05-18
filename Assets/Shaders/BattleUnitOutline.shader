@@ -4,6 +4,7 @@ Shader "Battle/UnitOutline"
     {
         _OutlineColor ("Outline Color", Color) = (0, 0, 0, 1)
         _OutlineWidth ("Outline Width", Float) = 0.03
+        _StencilRef ("Stencil Ref", Float) = 1
     }
 
     SubShader
@@ -19,7 +20,7 @@ Shader "Battle/UnitOutline"
         {
             Stencil
             {
-                Ref 1
+                Ref [_StencilRef]
                 Comp NotEqual
                 Pass Keep
             }
