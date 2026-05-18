@@ -8,6 +8,9 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
     private SerializedProperty 目标点名称;
     private SerializedProperty 拉弦目标点;
     private SerializedProperty 拉弦进度;
+    private SerializedProperty 动画状态驱动启用;
+    private SerializedProperty 角色动画器;
+    private SerializedProperty 动画规则配置;
 
     private void OnEnable()
     {
@@ -15,6 +18,9 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         目标点名称 = serializedObject.FindProperty("目标点名称");
         拉弦目标点 = serializedObject.FindProperty("拉弦目标点");
         拉弦进度 = serializedObject.FindProperty("拉弦进度");
+        动画状态驱动启用 = serializedObject.FindProperty("动画状态驱动启用");
+        角色动画器 = serializedObject.FindProperty("角色动画器");
+        动画规则配置 = serializedObject.FindProperty("动画规则配置");
     }
 
     public override void OnInspectorGUI()
@@ -26,6 +32,14 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         EditorGUILayout.PropertyField(目标点名称, new GUIContent("目标点名称"));
         EditorGUILayout.PropertyField(拉弦目标点, new GUIContent("拉弦目标点"));
 
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("动画状态驱动", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(动画状态驱动启用, new GUIContent("启用动画状态驱动"));
+        EditorGUILayout.PropertyField(角色动画器, new GUIContent("角色动画器"));
+        EditorGUILayout.PropertyField(动画规则配置, new GUIContent("动画规则配置"));
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("手动调试", EditorStyles.boldLabel);
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(拉弦进度, new GUIContent("拉弦进度"));
         bool 拉弦进度已变化 = EditorGUI.EndChangeCheck();
