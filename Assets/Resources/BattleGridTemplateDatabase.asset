@@ -3243,12 +3243,12 @@ MonoBehaviour:
       cell:
         x: 11
         y: 21
-      encounterEnemyIndex: 0
+      encounterEnemyIndex: -1
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
         x: 14
         y: 21
-      encounterEnemyIndex: 1
+      encounterEnemyIndex: -1
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 8362068888821564721, guid: 17a07624249b6ab45afbfa2f06e9a025, type: 3}
