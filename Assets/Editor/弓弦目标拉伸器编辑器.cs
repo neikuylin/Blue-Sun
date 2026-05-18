@@ -33,10 +33,18 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         EditorGUILayout.PropertyField(下弓臂IK名称, new GUIContent("下弓臂IK名称"));
         EditorGUILayout.PropertyField(目标点名称, new GUIContent("目标点名称"));
         EditorGUILayout.PropertyField(拉弦目标点, new GUIContent("拉弦目标点"));
+
+        EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(拉弦进度, new GUIContent("拉弦进度"));
+        bool 拉弦进度已变化 = EditorGUI.EndChangeCheck();
+
         EditorGUILayout.PropertyField(弓臂跟随比例, new GUIContent("弓臂跟随比例"));
 
-        serializedObject.ApplyModifiedProperties();
+        bool 属性已变化 = serializedObject.ApplyModifiedProperties();
+        if (拉弦进度已变化 && 属性已变化)
+        {
+            自动应用当前拉弦();
+        }
 
         EditorGUILayout.Space(8f);
         using (new EditorGUILayout.HorizontalScope())
@@ -104,6 +112,14 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         弓弦目标拉伸器 drawer = (弓弦目标拉伸器)target;
         Undo.RegisterFullObjectHierarchyUndo(drawer.gameObject, "复位拉弦");
         drawer.复位拉弦();
+        标记已修改(drawer);
+    }
+
+    private void 自动应用当前拉弦()
+    {
+        弓弦目标拉伸器 drawer = (弓弦目标拉伸器)target;
+        Undo.RegisterFullObjectHierarchyUndo(drawer.gameObject, "调整弓弦拉弦进度");
+        drawer.应用当前拉弦();
         标记已修改(drawer);
     }
 

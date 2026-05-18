@@ -466,7 +466,7 @@ Transform:
   m_GameObject: {fileID: 213398619}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 1, w: -6.123234e-17}
-  m_LocalPosition: {x: -0.046301045, y: -0.08115852, z: 0.00085850473}
+  m_LocalPosition: {x: 9.3132255e-12, y: -0.01075402, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 0.99999994}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1191,7 +1191,7 @@ Transform:
   m_GameObject: {fileID: 620920935}
   serializedVersion: 2
   m_LocalRotation: {x: -0.6105353, y: 0.00000026061673, z: 0.000000118875604, w: 0.791989}
-  m_LocalPosition: {x: 0.0069451635, y: 0.050867226, z: -0.012626999}
+  m_LocalPosition: {x: -4.0727118e-16, y: 0.058060687, z: -3.8902216e-15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1713,7 +1713,7 @@ Transform:
   m_GameObject: {fileID: 1149529282}
   serializedVersion: 2
   m_LocalRotation: {x: 0.6148434, y: 0.000000353532, z: -0.00000019300958, w: 0.7886492}
-  m_LocalPosition: {x: 0.006945153, y: 0.050855316, z: 0.012610652}
+  m_LocalPosition: {x: -4.0727057e-16, y: 0.05843577, z: -0.0000000017881443}
   m_LocalScale: {x: 1, y: 0.99999994, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1973,8 +1973,12 @@ MonoBehaviour:
   "\u4E0B\u5F13\u81C2IK\u540D\u79F0": WB.down.ik
   "\u76EE\u6807\u70B9\u540D\u79F0": "\u6B66\u5668\u6302\u8F7D\u70B9\uFF08\u53F3\uFF09"
   "\u62C9\u5F26\u76EE\u6807\u70B9": {fileID: 366441501}
-  "\u62C9\u5F26\u8FDB\u5EA6": 1
-  "\u5F13\u81C2\u8DDF\u968F\u6BD4\u4F8B": 0.15
+  "\u62C9\u5F26\u8FDB\u5EA6": 0
+  "\u5F13\u81C2\u8DDF\u968F\u6BD4\u4F8B": 1
+  "\u5F26\u521D\u59CB\u672C\u5730\u4F4D\u7F6E": {x: 9.3132255e-12, y: -0.01075402, z: 0}
+  "\u4E0A\u5F13\u81C2IK\u521D\u59CB\u672C\u5730\u4F4D\u7F6E": {x: -4.0727118e-16, y: 0.058060687, z: -3.8902216e-15}
+  "\u4E0B\u5F13\u81C2IK\u521D\u59CB\u672C\u5730\u4F4D\u7F6E": {x: -4.0727057e-16, y: 0.05843577, z: -0.0000000017881443}
+  "\u5DF2\u8BB0\u5F55\u521D\u59CB\u59FF\u6001": 1
 --- !u!95 &1229437790
 Animator:
   serializedVersion: 7

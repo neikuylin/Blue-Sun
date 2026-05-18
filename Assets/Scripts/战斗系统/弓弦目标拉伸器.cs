@@ -14,17 +14,20 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
     private Transform 弦骨骼;
     private Transform 上弓臂IK;
     private Transform 下弓臂IK;
-    private Vector3 弦初始本地位置;
-    private Vector3 上弓臂IK初始本地位置;
-    private Vector3 下弓臂IK初始本地位置;
-    private bool 已记录初始姿态;
+    [SerializeField, HideInInspector] private Vector3 弦初始本地位置;
+    [SerializeField, HideInInspector] private Vector3 上弓臂IK初始本地位置;
+    [SerializeField, HideInInspector] private Vector3 下弓臂IK初始本地位置;
+    [SerializeField, HideInInspector] private bool 已记录初始姿态;
 
     public float 当前拉弦进度 => 拉弦进度;
 
     private void OnEnable()
     {
         重新查找引用(out _);
-        记录初始姿态();
+        if (!已记录初始姿态)
+        {
+            记录初始姿态();
+        }
     }
 
     private void LateUpdate()
@@ -83,12 +86,12 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
 
     public void 应用当前拉弦()
     {
-        if (弦骨骼 == null || 拉弦目标点 == null)
+        if (弦骨骼 == null)
         {
             重新查找引用(out _);
         }
 
-        if (弦骨骼 == null || 拉弦目标点 == null)
+        if (弦骨骼 == null)
         {
             return;
         }
@@ -96,6 +99,27 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
         if (!已记录初始姿态)
         {
             记录初始姿态();
+        }
+
+        if (!已记录初始姿态)
+        {
+            return;
+        }
+
+        if (拉弦进度 <= Mathf.Epsilon)
+        {
+            应用初始姿态();
+            return;
+        }
+
+        if (拉弦目标点 == null)
+        {
+            重新查找引用(out _);
+        }
+
+        if (拉弦目标点 == null)
+        {
+            return;
         }
 
         ApplyBoneTowardTarget(弦骨骼, 弦初始本地位置, 拉弦进度);
@@ -111,6 +135,24 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
             return;
         }
 
+        应用初始姿态();
+    }
+
+    private void 记录初始姿态()
+    {
+        if (弦骨骼 == null)
+        {
+            return;
+        }
+
+        弦初始本地位置 = 弦骨骼.localPosition;
+        上弓臂IK初始本地位置 = 上弓臂IK != null ? 上弓臂IK.localPosition : Vector3.zero;
+        下弓臂IK初始本地位置 = 下弓臂IK != null ? 下弓臂IK.localPosition : Vector3.zero;
+        已记录初始姿态 = true;
+    }
+
+    private void 应用初始姿态()
+    {
         if (弦骨骼 != null)
         {
             弦骨骼.localPosition = 弦初始本地位置;
@@ -125,19 +167,6 @@ public sealed class 弓弦目标拉伸器 : MonoBehaviour
         {
             下弓臂IK.localPosition = 下弓臂IK初始本地位置;
         }
-    }
-
-    private void 记录初始姿态()
-    {
-        if (弦骨骼 == null)
-        {
-            return;
-        }
-
-        弦初始本地位置 = 弦骨骼.localPosition;
-        上弓臂IK初始本地位置 = 上弓臂IK != null ? 上弓臂IK.localPosition : Vector3.zero;
-        下弓臂IK初始本地位置 = 下弓臂IK != null ? 下弓臂IK.localPosition : Vector3.zero;
-        已记录初始姿态 = true;
     }
 
     private void ApplyBoneTowardTarget(Transform bone, Vector3 restLocalPosition, float progress)
