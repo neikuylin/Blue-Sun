@@ -37,6 +37,7 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         EditorGUILayout.PropertyField(动画状态驱动启用, new GUIContent("启用动画状态驱动"));
         EditorGUILayout.PropertyField(角色动画器, new GUIContent("角色动画器"));
         EditorGUILayout.PropertyField(动画规则配置, new GUIContent("动画规则配置"));
+        绘制共享动画规则配置();
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("手动调试", EditorStyles.boldLabel);
@@ -125,6 +126,45 @@ public sealed class 弓弦目标拉伸器编辑器 : Editor
         Undo.RegisterFullObjectHierarchyUndo(drawer.gameObject, "调整弓弦拉弦进度");
         drawer.应用当前拉弦();
         标记已修改(drawer);
+    }
+
+    private void 绘制共享动画规则配置()
+    {
+        弓弦拉伸动画规则配置 config = 动画规则配置.objectReferenceValue as 弓弦拉伸动画规则配置;
+        if (config == null)
+        {
+            config = 弓弦拉伸动画规则配置.加载默认配置();
+        }
+
+        if (config == null)
+        {
+            EditorGUILayout.HelpBox("没有找到默认共享配置：Assets/Resources/弓弦拉伸动画规则配置.asset。", MessageType.Warning);
+            return;
+        }
+
+        EditorGUILayout.Space(4f);
+        EditorGUILayout.LabelField("共享规则内容", EditorStyles.boldLabel);
+        using (new EditorGUI.IndentLevelScope())
+        {
+            SerializedObject configObject = new SerializedObject(config);
+            configObject.Update();
+            SerializedProperty rules = configObject.FindProperty("拉弦动画状态规则列表");
+            if (rules != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                Undo.RecordObject(config, "修改弓弦拉伸动画规则配置");
+                EditorGUILayout.PropertyField(rules, new GUIContent("拉弦动画状态规则"), true);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    configObject.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(config);
+                }
+                else
+                {
+                    configObject.ApplyModifiedProperties();
+                }
+            }
+        }
     }
 
     private static void 标记已修改(弓弦目标拉伸器 drawer)
