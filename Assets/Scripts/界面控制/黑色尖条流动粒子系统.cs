@@ -46,19 +46,14 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     [SerializeField] private string 排序图层 = "Default";
     [SerializeField] private int 排序层级 = 0;
 
-    [Header("范围")]
-    [SerializeField] private float 起点X = -1f;
-    [SerializeField] private float 终点X = 1f;
-    [SerializeField] private Vector2 出生Y范围 = new Vector2(-1f, 1f);
-
     [Header("流向")]
     [SerializeField] private 流动方向 方向 = 流动方向.东;
 
-    [Header("范围预览")]
-    [SerializeField] private bool 显示范围平面 = true;
-    [SerializeField] private bool 仅选中时显示范围 = false;
-    [SerializeField] private Color 范围平面颜色 = new Color(0f, 0f, 0f, 0.12f);
-    [SerializeField] private Color 范围边框颜色 = new Color(0f, 0f, 0f, 0.65f);
+    [Header("辅助显示")]
+    [SerializeField] private bool 显示Transform平面 = true;
+    [SerializeField] private bool 仅选中时显示平面 = false;
+    [SerializeField] private Color 平面颜色 = new Color(0f, 0f, 0f, 0.12f);
+    [SerializeField] private Color 边框颜色 = new Color(0f, 0f, 0f, 0.65f);
 
     [Header("粒子")]
     [SerializeField, Min(0f)] private float 每秒数量 = 10f;
@@ -78,24 +73,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     private Mesh 尖条网格;
     private float 发射累计;
     private double 上次编辑器时间;
-
-    public float 范围起点X => 起点X;
-    public float 范围终点X => 终点X;
-    public Vector2 范围Y => 出生Y范围;
-    public bool Scene显示范围平面 => 显示范围平面;
-    public Color Scene范围平面颜色 => 范围平面颜色;
-    public Color Scene范围边框颜色 => 范围边框颜色;
-
-#if UNITY_EDITOR
-    public void Editor设置范围(float newStartX, float newEndX, Vector2 newYRange)
-    {
-        起点X = newStartX;
-        终点X = newEndX;
-        出生Y范围 = newYRange;
-        应用设置();
-        EditorUtility.SetDirty(this);
-    }
-#endif
 
     private void Reset()
     {
@@ -163,7 +140,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (!仅选中时显示范围)
+        if (!仅选中时显示平面)
         {
             绘制范围();
         }
@@ -266,35 +243,22 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
 
         Vector2 direction = 取流动方向();
-        float minX = Mathf.Min(起点X, 终点X);
-        float maxX = Mathf.Max(起点X, 终点X);
-        float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
-        float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+        Vector2 perpendicular = new Vector2(-direction.y, direction.x);
         float speed = Random.Range(速度范围.x, 速度范围.y);
-        float length = Random.Range(长度范围.x, 长度范围.y);
-        float width = Random.Range(宽度范围.x, 宽度范围.y);
+        float length = Random.Range(长度范围.x, 长度范围.y) / 取缩放长度(direction);
+        float width = Random.Range(宽度范围.x, 宽度范围.y) / 取缩放长度(perpendicular);
+        float localSpeed = speed / 取缩放长度(direction);
 
-        Vector2 start;
-        float distance;
-        if (Mathf.Abs(direction.x) > 0.5f)
-        {
-            float x = direction.x > 0f ? minX - length * 0.5f : maxX + length * 0.5f;
-            start = new Vector2(x, Random.Range(minY, maxY));
-            distance = (maxX - minX) + length;
-        }
-        else
-        {
-            float y = direction.y > 0f ? minY - length * 0.5f : maxY + length * 0.5f;
-            start = new Vector2(Random.Range(minX, maxX), y);
-            distance = (maxY - minY) + length;
-        }
+        取流动轴范围(direction, perpendicular, out float startMain, out float endMain, out float crossMin, out float crossMax);
+        Vector2 start = direction * (startMain - length * 0.5f) + perpendicular * Random.Range(crossMin, crossMax);
+        float distance = endMain - startMain + length;
 
         状态数组[index] = new 粒子状态
         {
             有效 = true,
             时间 = 0f,
-            生命周期 = distance / speed,
-            速度 = speed,
+            生命周期 = distance / localSpeed,
+            速度 = localSpeed,
             长度 = length,
             宽度 = width,
             起点 = start,
@@ -368,6 +332,44 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
     }
 
+    private static void 取流动轴范围(
+        Vector2 direction,
+        Vector2 perpendicular,
+        out float startMain,
+        out float endMain,
+        out float crossMin,
+        out float crossMax)
+    {
+        Vector2[] corners =
+        {
+            new Vector2(-0.5f, -0.5f),
+            new Vector2(-0.5f, 0.5f),
+            new Vector2(0.5f, -0.5f),
+            new Vector2(0.5f, 0.5f)
+        };
+
+        startMain = Vector2.Dot(corners[0], direction);
+        endMain = startMain;
+        crossMin = Vector2.Dot(corners[0], perpendicular);
+        crossMax = crossMin;
+
+        for (int i = 1; i < corners.Length; i++)
+        {
+            float main = Vector2.Dot(corners[i], direction);
+            float cross = Vector2.Dot(corners[i], perpendicular);
+            startMain = Mathf.Min(startMain, main);
+            endMain = Mathf.Max(endMain, main);
+            crossMin = Mathf.Min(crossMin, cross);
+            crossMax = Mathf.Max(crossMax, cross);
+        }
+    }
+
+    private float 取缩放长度(Vector2 direction)
+    {
+        Vector3 scale = transform.lossyScale;
+        return new Vector2(direction.x * scale.x, direction.y * scale.y).magnitude;
+    }
+
     private static Quaternion 取摄像机旋转()
     {
 #if UNITY_EDITOR
@@ -377,7 +379,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
 #endif
 
-        BattleCameraController battleCamera = FindFirstObjectByType<BattleCameraController>();
+        BattleCameraController battleCamera = FindAnyObjectByType<BattleCameraController>();
         return battleCamera.transform.rotation;
     }
 
@@ -446,10 +448,10 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
 
         Vector4 clipRect = new Vector4(
-            Mathf.Min(起点X, 终点X),
-            Mathf.Min(出生Y范围.x, 出生Y范围.y),
-            Mathf.Max(起点X, 终点X),
-            Mathf.Max(出生Y范围.x, 出生Y范围.y));
+            -0.5f,
+            -0.5f,
+            0.5f,
+            0.5f);
 
         粒子渲染器.GetPropertyBlock(材质属性);
         材质属性.SetColor(颜色属性, Color.white);
@@ -486,26 +488,21 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private void 绘制范围()
     {
-        if (!显示范围平面)
+        if (!显示Transform平面)
         {
             return;
         }
 
-        float minX = Mathf.Min(起点X, 终点X);
-        float maxX = Mathf.Max(起点X, 终点X);
-        float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
-        float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
-
-        Vector3 bottomLeft = transform.TransformPoint(new Vector3(minX, minY, 0f));
-        Vector3 topLeft = transform.TransformPoint(new Vector3(minX, maxY, 0f));
-        Vector3 topRight = transform.TransformPoint(new Vector3(maxX, maxY, 0f));
-        Vector3 bottomRight = transform.TransformPoint(new Vector3(maxX, minY, 0f));
+        Vector3 bottomLeft = transform.TransformPoint(new Vector3(-0.5f, -0.5f, 0f));
+        Vector3 topLeft = transform.TransformPoint(new Vector3(-0.5f, 0.5f, 0f));
+        Vector3 topRight = transform.TransformPoint(new Vector3(0.5f, 0.5f, 0f));
+        Vector3 bottomRight = transform.TransformPoint(new Vector3(0.5f, -0.5f, 0f));
 
 #if UNITY_EDITOR
         Handles.DrawSolidRectangleWithOutline(
             new[] { bottomLeft, topLeft, topRight, bottomRight },
-            范围平面颜色,
-            范围边框颜色);
+            平面颜色,
+            边框颜色);
 #endif
     }
 
