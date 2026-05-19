@@ -182,6 +182,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
         ResolveComponents();
         EnsureCapacity();
+        RefreshRendererMaterialAndClipRect();
 
         if (cachedParticleSystem == null)
         {
@@ -339,6 +340,21 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         cachedRenderer.maxParticleSize = 20f;
         cachedRenderer.sortingOrder = 排序层级;
         cachedRenderer.sharedMaterial = ResolveParticleMaterial();
+        ApplyRendererProperties();
+    }
+
+    private void RefreshRendererMaterialAndClipRect()
+    {
+        if (cachedRenderer == null)
+        {
+            return;
+        }
+
+        if (cachedRenderer.sharedMaterial == null || cachedRenderer.sharedMaterial != runtimeMaterial)
+        {
+            cachedRenderer.sharedMaterial = ResolveParticleMaterial();
+        }
+
         ApplyRendererProperties();
     }
 
@@ -707,25 +723,13 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private Material ResolveParticleMaterial()
     {
-        if (runtimeMaterial != null && runtimeMaterialTemplateSource == 粒子材质模板)
+        Material materialTemplate = 粒子材质模板 != null
+            ? 粒子材质模板
+            : Resources.Load<Material>(DefaultClipMaterialResourcePath);
+
+        if (runtimeMaterial != null && runtimeMaterialTemplateSource == materialTemplate)
         {
             return runtimeMaterial;
-        }
-
-        if (粒子材质模板 == null)
-        {
-            Material defaultMaterial = Resources.Load<Material>(DefaultClipMaterialResourcePath);
-            if (defaultMaterial != null)
-            {
-                runtimeMaterialTemplateSource = null;
-                if (runtimeMaterial != null)
-                {
-                    DestroyRuntimeObject(runtimeMaterial);
-                    runtimeMaterial = null;
-                }
-
-                return defaultMaterial;
-            }
         }
 
         if (runtimeMaterial != null)
@@ -733,9 +737,9 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             DestroyRuntimeObject(runtimeMaterial);
         }
 
-        runtimeMaterialTemplateSource = 粒子材质模板;
-        runtimeMaterial = 粒子材质模板 != null
-            ? new Material(粒子材质模板)
+        runtimeMaterialTemplateSource = materialTemplate;
+        runtimeMaterial = materialTemplate != null
+            ? new Material(materialTemplate)
             : new Material(ResolveDefaultShader());
         runtimeMaterial.name = "运行时_黑色尖条粒子材质";
         runtimeMaterial.hideFlags = HideFlags.DontSave;
@@ -758,10 +762,18 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         float maxX = Mathf.Max(起点X, 终点X);
         float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
         float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+        Vector4 clipRect = new Vector4(minX, minY, maxX, maxY);
+
+        Material currentMaterial = cachedRenderer.sharedMaterial;
+        if (currentMaterial != null)
+        {
+            currentMaterial.SetColor(ColorPropertyId, Color.white);
+            currentMaterial.SetVector(ClipRectPropertyId, clipRect);
+        }
 
         cachedRenderer.GetPropertyBlock(materialPropertyBlock);
         materialPropertyBlock.SetColor(ColorPropertyId, Color.white);
-        materialPropertyBlock.SetVector(ClipRectPropertyId, new Vector4(minX, minY, maxX, maxY));
+        materialPropertyBlock.SetVector(ClipRectPropertyId, clipRect);
         cachedRenderer.SetPropertyBlock(materialPropertyBlock);
     }
 
