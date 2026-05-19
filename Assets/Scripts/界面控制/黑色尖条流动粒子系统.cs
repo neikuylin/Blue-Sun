@@ -24,6 +24,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     {
         public bool 有效;
         public float 时间;
+        public float 出生时间;
         public float 生命周期;
         public float 速度;
         public float 长度;
@@ -257,6 +258,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         {
             有效 = true,
             时间 = 0f,
+            出生时间 = 取浮动时间(),
             生命周期 = distance / localSpeed,
             速度 = localSpeed,
             长度 = length,
@@ -303,7 +305,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         float distanceBehindHead = segmentLength * (segmentIndex + 0.5f);
         float main = state.起始主轴 + state.速度 * state.时间 - distanceBehindHead;
         Vector2 perpendicular = new Vector2(-state.方向.y, state.方向.x);
-        float sampleTime = 取浮动时间() - distanceBehindHead / state.速度;
+        float sampleTime = state.出生时间 - distanceBehindHead / state.速度;
         float cross = state.垂直位置 + 取出生点左右浮动(perpendicular, sampleTime);
         Vector2 center = state.方向 * main + perpendicular * cross;
         return new ParticleSystem.Particle

@@ -241,7 +241,7 @@ Transform:
   m_GameObject: {fileID: 5667589170590829329}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.12, y: -6.79, z: -1.5}
+  m_LocalPosition: {x: -9.5, y: -11.9, z: -1.5}
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -818,7 +818,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 60
+    maxNumParticles: 80
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 1
     rotation3D: 1
@@ -5078,10 +5078,10 @@ MonoBehaviour:
   "\u901F\u5EA6\u8303\u56F4": {x: 12, y: 24}
   "\u957F\u5EA6\u8303\u56F4": {x: 17, y: 28}
   "\u5BBD\u5EA6\u8303\u56F4": {x: 0.12, y: 0.24}
-  "\u6BCF\u6761\u77ED\u6BB5\u6570\u91CF": 3
+  "\u6BCF\u6761\u77ED\u6BB5\u6570\u91CF": 4
   "\u77ED\u7EBF\u957F\u5EA6": 12
   "\u51FA\u751F\u70B9\u5DE6\u53F3\u6D6E\u52A8\u5E45\u5EA6": 1
-  "\u51FA\u751F\u70B9\u5DE6\u53F3\u6D6E\u52A8\u901F\u5EA6": 0.2
+  "\u51FA\u751F\u70B9\u5DE6\u53F3\u6D6E\u52A8\u901F\u5EA6": 0.8
   "\u5C16\u7AEF\u957F\u5EA6\u6BD4\u4F8B": 0.22
 --- !u!1 &8564811846414956512
 GameObject:
