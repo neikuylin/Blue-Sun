@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -7,6 +9,7 @@ using UnityEditor;
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(ParticleSystem), typeof(ParticleSystemRenderer))]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 [AddComponentMenu("特效/黑色尖条流动粒子系统")]
 public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 {
@@ -20,7 +23,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         北 = 3
     }
 
-    private struct 粒子状态
+    private struct 墨线状态
     {
         public bool 有效;
         public float 时间;
@@ -55,14 +58,14 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     [SerializeField] private Color 平面颜色 = new Color(0f, 0f, 0f, 0.12f);
     [SerializeField] private Color 边框颜色 = new Color(0f, 0f, 0f, 0.65f);
 
-    [Header("粒子")]
+    [Header("墨线")]
     [SerializeField, Min(0f)] private float 每秒数量 = 10f;
     [SerializeField, Min(1)] private int 最大数量 = 80;
     [SerializeField] private Vector2 速度范围 = new Vector2(1.6f, 2.6f);
     [SerializeField] private Vector2 长度范围 = new Vector2(0.65f, 1.15f);
     [SerializeField] private Vector2 宽度范围 = new Vector2(0.06f, 0.13f);
-    [SerializeField, Min(1)] private int 每条短段数量 = 6;
-    [SerializeField, Min(0f)] private float 短线长度 = 4f;
+    [FormerlySerializedAs("每条短段数量")]
+    [SerializeField, Min(2)] private int 轨迹点数量 = 24;
     [SerializeField, Min(0f)] private float 出生点左右浮动幅度 = 0.7f;
     [SerializeField, Min(0f)] private float 出生点左右浮动速度 = 0.8f;
 
@@ -71,9 +74,13 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private ParticleSystem 粒子系统;
     private ParticleSystemRenderer 粒子渲染器;
-    private ParticleSystem.Particle[] 粒子数组;
-    private 粒子状态[] 状态数组;
-    private Mesh 尖条网格;
+    private MeshFilter 墨线网格过滤器;
+    private MeshRenderer 墨线渲染器;
+    private 墨线状态[] 状态数组;
+    private Mesh 墨线网格;
+    private readonly List<Vector3> 网格顶点 = new List<Vector3>();
+    private readonly List<int> 网格三角形 = new List<int>();
+    private readonly List<Color> 网格颜色 = new List<Color>();
     private float 发射累计;
     private double 上次编辑器时间;
 
@@ -89,15 +96,15 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private void OnDisable()
     {
-        清空粒子();
+        清空墨线();
     }
 
     private void OnDestroy()
     {
-        if (尖条网格 != null)
+        if (墨线网格 != null)
         {
-            销毁对象(尖条网格);
-            尖条网格 = null;
+            销毁对象(墨线网格);
+            墨线网格 = null;
         }
     }
 
@@ -123,13 +130,9 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
 
         float deltaTime = 取时间间隔();
-        if (!粒子系统.isPlaying)
-        {
-            粒子系统.Play(false);
-        }
-
-        发射粒子(deltaTime);
-        更新粒子(deltaTime);
+        发射墨线(deltaTime);
+        更新墨线(deltaTime);
+        重建墨线网格();
 
 #if UNITY_EDITOR
         if (!Application.isPlaying)
@@ -156,74 +159,44 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     [ContextMenu("重新预览黑色尖条流动")]
     public void 重新预览()
     {
-        清空粒子();
+        清空墨线();
         发射累计 = 0f;
     }
 
     [ContextMenu("应用黑色尖条流动设置")]
     public void 应用设置()
     {
-        粒子系统 = GetComponent<ParticleSystem>();
-        粒子渲染器 = GetComponent<ParticleSystemRenderer>();
+        粒子系统 = 取组件<ParticleSystem>();
+        粒子渲染器 = 取组件<ParticleSystemRenderer>();
+        墨线网格过滤器 = 取组件<MeshFilter>();
+        墨线渲染器 = 取组件<MeshRenderer>();
 
         配置容量();
-        配置粒子系统();
-        配置渲染器();
+        配置旧粒子系统();
+        配置墨线渲染器();
     }
 
     private void 配置容量()
     {
-        int capacity = 最大数量;
-        粒子数组 = new ParticleSystem.Particle[capacity * 每条短段数量];
-        状态数组 = new 粒子状态[capacity];
+        状态数组 = new 墨线状态[最大数量];
     }
 
-    private void 配置粒子系统()
+    private void 配置旧粒子系统()
     {
-        ParticleSystem.MainModule main = 粒子系统.main;
-        main.loop = false;
-        main.playOnAwake = false;
-        main.simulationSpace = ParticleSystemSimulationSpace.Custom;
-        main.customSimulationSpace = transform;
-        main.scalingMode = ParticleSystemScalingMode.Local;
-        main.maxParticles = 最大数量 * 每条短段数量;
-        main.startLifetime = 1f;
-        main.startSpeed = 0f;
-        main.startSize = 1f;
-        main.startSize3D = true;
-        main.startColor = 粒子颜色;
-        main.startRotation3D = true;
-
-        ParticleSystem.EmissionModule emission = 粒子系统.emission;
-        emission.enabled = false;
-        ParticleSystem.ShapeModule shape = 粒子系统.shape;
-        shape.enabled = false;
-        ParticleSystem.VelocityOverLifetimeModule velocity = 粒子系统.velocityOverLifetime;
-        velocity.enabled = false;
-        ParticleSystem.NoiseModule noise = 粒子系统.noise;
-        noise.enabled = false;
-        ParticleSystem.SizeOverLifetimeModule size = 粒子系统.sizeOverLifetime;
-        size.enabled = false;
-        ParticleSystem.ColorOverLifetimeModule color = 粒子系统.colorOverLifetime;
-        color.enabled = false;
-        ParticleSystem.TextureSheetAnimationModule textureSheet = 粒子系统.textureSheetAnimation;
-        textureSheet.enabled = false;
+        粒子系统.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        粒子系统.Clear(true);
+        粒子渲染器.enabled = false;
     }
 
-    private void 配置渲染器()
+    private void 配置墨线渲染器()
     {
-        粒子渲染器.renderMode = ParticleSystemRenderMode.Mesh;
-        粒子渲染器.mesh = 取尖条网格();
-        粒子渲染器.sortMode = ParticleSystemSortMode.Distance;
-        粒子渲染器.alignment = ParticleSystemRenderSpace.Local;
-        粒子渲染器.minParticleSize = 0.001f;
-        粒子渲染器.maxParticleSize = 100f;
-        粒子渲染器.sortingLayerName = 排序图层;
-        粒子渲染器.sortingOrder = 排序层级;
-        粒子渲染器.sharedMaterial = 粒子材质模板;
+        墨线网格过滤器.sharedMesh = 取墨线网格();
+        墨线渲染器.sharedMaterial = 粒子材质模板;
+        墨线渲染器.sortingLayerName = 排序图层;
+        墨线渲染器.sortingOrder = 排序层级;
     }
 
-    private void 发射粒子(float deltaTime)
+    private void 发射墨线(float deltaTime)
     {
         发射累计 += 每秒数量 * deltaTime;
         int count = Mathf.FloorToInt(发射累计);
@@ -231,11 +204,11 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            生成一个粒子();
+            生成一条墨线();
         }
     }
 
-    private void 生成一个粒子()
+    private void 生成一条墨线()
     {
         int index = 取空槽位();
         if (index < 0)
@@ -254,7 +227,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         float cross = Random.Range(crossMin, crossMax);
         float distance = endMain - startMain + length;
 
-        状态数组[index] = new 粒子状态
+        状态数组[index] = new 墨线状态
         {
             有效 = true,
             时间 = 0f,
@@ -269,12 +242,11 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         };
     }
 
-    private void 更新粒子(float deltaTime)
+    private void 更新墨线(float deltaTime)
     {
-        int particleCount = 0;
         for (int i = 0; i < 状态数组.Length; i++)
         {
-            粒子状态 state = 状态数组[i];
+            墨线状态 state = 状态数组[i];
             if (!state.有效)
             {
                 continue;
@@ -284,39 +256,79 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             if (state.时间 >= state.生命周期)
             {
                 state.有效 = false;
-                状态数组[i] = state;
-                continue;
             }
 
             状态数组[i] = state;
-            for (int segmentIndex = 0; segmentIndex < 每条短段数量; segmentIndex++)
+        }
+    }
+
+    private void 重建墨线网格()
+    {
+        网格顶点.Clear();
+        网格三角形.Clear();
+        网格颜色.Clear();
+
+        for (int i = 0; i < 状态数组.Length; i++)
+        {
+            墨线状态 state = 状态数组[i];
+            if (state.有效)
             {
-                粒子数组[particleCount] = 创建粒子(state, segmentIndex);
-                particleCount++;
+                添加墨线网格(state);
             }
         }
 
-        粒子系统.SetParticles(粒子数组, particleCount);
+        墨线网格.Clear();
+        墨线网格.SetVertices(网格顶点);
+        墨线网格.SetTriangles(网格三角形, 0);
+        墨线网格.SetColors(网格颜色);
+        墨线网格.RecalculateBounds();
     }
 
-    private ParticleSystem.Particle 创建粒子(粒子状态 state, int segmentIndex)
+    private void 添加墨线网格(墨线状态 state)
     {
-        float segmentLength = state.长度 / 每条短段数量;
-        float distanceBehindHead = segmentLength * (segmentIndex + 0.5f);
-        float main = state.起始主轴 + state.速度 * state.时间 - distanceBehindHead;
-        Vector2 perpendicular = new Vector2(-state.方向.y, state.方向.x);
-        float sampleTime = state.出生时间 - distanceBehindHead / state.速度;
-        float cross = state.垂直位置 + 取出生点左右浮动(perpendicular, sampleTime);
-        Vector2 center = state.方向 * main + perpendicular * cross;
-        return new ParticleSystem.Particle
+        int pointCount = Mathf.Max(2, 轨迹点数量);
+        int vertexStart = 网格顶点.Count;
+        Vector2[] points = new Vector2[pointCount];
+
+        for (int i = 0; i < pointCount; i++)
         {
-            position = new Vector3(center.x, center.y, 0f),
-            startLifetime = state.生命周期,
-            remainingLifetime = state.生命周期 - state.时间,
-            startColor = 粒子颜色,
-            startSize3D = new Vector3(短线长度 / 取缩放长度(state.方向), state.宽度, 1f),
-            rotation3D = new Vector3(0f, 0f, Mathf.Atan2(state.方向.y, state.方向.x) * Mathf.Rad2Deg)
-        };
+            float t = (float)i / (pointCount - 1);
+            float distanceBehindHead = state.长度 * (1f - t);
+            float main = state.起始主轴 + state.速度 * state.时间 - distanceBehindHead;
+            float distanceFromSource = state.长度 - distanceBehindHead;
+            float sampleTime = state.出生时间 + state.时间 - distanceFromSource / state.速度;
+            float cross = state.垂直位置 + 取出生点左右浮动(new Vector2(-state.方向.y, state.方向.x), sampleTime);
+            points[i] = state.方向 * main + new Vector2(-state.方向.y, state.方向.x) * cross;
+        }
+
+        for (int i = 0; i < pointCount; i++)
+        {
+            Vector2 tangent = 取轨迹切线(points, i, state.方向);
+            Vector2 side = new Vector2(-tangent.y, tangent.x);
+            float t = (float)i / (pointCount - 1);
+            float widthScale = 取宽度比例(t);
+            Vector2 halfWidth = side * (state.宽度 * 0.5f * widthScale);
+
+            网格顶点.Add(new Vector3(points[i].x - halfWidth.x, points[i].y - halfWidth.y, 0f));
+            网格顶点.Add(new Vector3(points[i].x + halfWidth.x, points[i].y + halfWidth.y, 0f));
+            网格颜色.Add(粒子颜色);
+            网格颜色.Add(粒子颜色);
+        }
+
+        for (int i = 0; i < pointCount - 1; i++)
+        {
+            int a = vertexStart + i * 2;
+            int b = a + 1;
+            int c = a + 2;
+            int d = a + 3;
+
+            网格三角形.Add(a);
+            网格三角形.Add(c);
+            网格三角形.Add(b);
+            网格三角形.Add(c);
+            网格三角形.Add(d);
+            网格三角形.Add(b);
+        }
     }
 
     private Vector2 取流动方向()
@@ -434,41 +446,18 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         return -1;
     }
 
-    private Mesh 取尖条网格()
+    private Mesh 取墨线网格()
     {
-        if (尖条网格 == null)
+        if (墨线网格 == null)
         {
-            尖条网格 = new Mesh
+            墨线网格 = new Mesh
             {
-                name = "运行时_黑色尖条粒子Mesh",
+                name = "运行时_连续墨线Mesh",
                 hideFlags = HideFlags.DontSave
             };
         }
 
-        float shoulderX = 0.5f - 尖端长度比例;
-        Vector3[] vertices =
-        {
-            new Vector3(-0.5f, 0f, 0f),
-            new Vector3(-shoulderX, 0.5f, 0f),
-            new Vector3(shoulderX, 0.5f, 0f),
-            new Vector3(0.5f, 0f, 0f),
-            new Vector3(shoulderX, -0.5f, 0f),
-            new Vector3(-shoulderX, -0.5f, 0f)
-        };
-
-        int[] triangles =
-        {
-            0, 1, 5,
-            1, 2, 5,
-            2, 4, 5,
-            2, 3, 4
-        };
-
-        尖条网格.Clear();
-        尖条网格.vertices = vertices;
-        尖条网格.triangles = triangles;
-        尖条网格.RecalculateBounds();
-        return 尖条网格;
+        return 墨线网格;
     }
 
     private float 取时间间隔()
@@ -488,14 +477,58 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 #endif
     }
 
-    private void 清空粒子()
+    private void 清空墨线()
     {
+        if (状态数组 == null)
+        {
+            return;
+        }
+
         for (int i = 0; i < 状态数组.Length; i++)
         {
             状态数组[i].有效 = false;
         }
 
-        粒子系统.Clear(true);
+        if (墨线网格 != null)
+        {
+            墨线网格.Clear();
+        }
+
+        if (粒子系统 != null)
+        {
+            粒子系统.Clear(true);
+        }
+    }
+
+    private static Vector2 取轨迹切线(Vector2[] points, int index, Vector2 defaultDirection)
+    {
+        Vector2 tangent;
+        if (index == 0)
+        {
+            tangent = points[1] - points[0];
+        }
+        else if (index == points.Length - 1)
+        {
+            tangent = points[index] - points[index - 1];
+        }
+        else
+        {
+            tangent = points[index + 1] - points[index - 1];
+        }
+
+        if (tangent.sqrMagnitude <= 0.000001f)
+        {
+            return defaultDirection;
+        }
+
+        return tangent.normalized;
+    }
+
+    private float 取宽度比例(float t)
+    {
+        float tail = t / 尖端长度比例;
+        float head = (1f - t) / 尖端长度比例;
+        return Mathf.Clamp01(Mathf.Min(tail, head));
     }
 
     private void 绘制范围()
@@ -516,6 +549,17 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             平面颜色,
             边框颜色);
 #endif
+    }
+
+    private T 取组件<T>() where T : Component
+    {
+        T component = GetComponent<T>();
+        if (component == null)
+        {
+            component = gameObject.AddComponent<T>();
+        }
+
+        return component;
     }
 
     private static void 销毁对象(Object target)
