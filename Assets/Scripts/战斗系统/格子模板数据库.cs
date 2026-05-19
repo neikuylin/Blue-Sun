@@ -56,6 +56,7 @@ public sealed class 格子模板数据库 : ScriptableObject
         public bool alignToBattleCamera = true;
         public bool blocksMovement = true;
         public bool isTriggerable;
+        public string chestContentGroupId = string.Empty;
         public List<CellPosition> triggerCells = new List<CellPosition>();
         public List<CellPosition> blockedCells = new List<CellPosition>();
     }

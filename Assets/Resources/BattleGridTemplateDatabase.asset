@@ -838,6 +838,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 0
+      chestContentGroupId: 
       triggerCells: []
       blockedCells:
       - x: 3
@@ -857,6 +858,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 0
+      chestContentGroupId: 
       triggerCells: []
       blockedCells:
       - x: 4
@@ -876,6 +878,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 1
+      chestContentGroupId: 
       triggerCells:
       - x: 12
         y: 11
@@ -1843,6 +1846,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 1
+      chestContentGroupId: "\u53D7\u5BB3\u8005\u88C5\u5907\u7BB1"
       triggerCells:
       - x: 8
         y: 12
@@ -3273,6 +3277,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 0
+      chestContentGroupId: 
       triggerCells: []
       blockedCells:
       - x: 20
@@ -3292,6 +3297,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 0
+      chestContentGroupId: 
       triggerCells: []
       blockedCells:
       - x: 5
@@ -3311,6 +3317,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 0
+      chestContentGroupId: 
       triggerCells: []
       blockedCells:
       - x: 10

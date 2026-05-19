@@ -61,6 +61,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         public int index;
     }
 
+    private struct 宝箱候选格
+    {
+        public int index;
+        public bool isRotated;
+    }
+
     internal sealed class CategoryFilterBinding
     {
         public Transform panelRoot;
@@ -408,12 +414,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static void OpenChest(int chestSerial)
     {
+        OpenChest(chestSerial, string.Empty);
+    }
+
+    public static void OpenChest(int chestSerial, string chestContentGroupId)
+    {
         if (instance == null)
         {
             Bootstrap();
         }
 
-        instance?.ActivateChest(chestSerial);
+        instance?.ActivateChest(chestSerial, chestContentGroupId);
     }
 
     public static List<ItemSlotSnapshot> GetWarehouseSnapshots()
@@ -1026,7 +1037,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         RefreshAll();
     }
 
-    private void ActivateChest(int chestSerial)
+    private void ActivateChest(int chestSerial, string chestContentGroupId)
     {
         if (chestSerial <= 0)
         {
@@ -1037,11 +1048,282 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         if (chestSlots.Count == 0)
         {
             BindScene();
+            TryGenerateCurrentChestContent(chestContentGroupId);
+            RefreshAll();
             return;
         }
 
         仓储状态.确保当前宝箱数据容量(chestSlots.Count);
+        TryGenerateCurrentChestContent(chestContentGroupId);
         RefreshAll();
+    }
+
+    private void TryGenerateCurrentChestContent(string chestContentGroupId)
+    {
+        int chestSerial = 仓储状态.当前宝箱序列号;
+        if (chestSerial <= 0 ||
+            string.IsNullOrWhiteSpace(chestContentGroupId) ||
+            仓储状态.宝箱内容已生成(chestSerial))
+        {
+            return;
+        }
+
+        宝箱内容数据库 chestContentDatabase = 宝箱内容数据库.LoadDefault();
+        if (chestContentDatabase == null)
+        {
+            return;
+        }
+
+        宝箱内容数据库.宝箱内容组 group = chestContentDatabase.FindGroup(chestContentGroupId);
+        if (group == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成失败：找不到内容组ID：{chestContentGroupId}");
+            return;
+        }
+
+        if (group.物品列表 == null || group.物品列表.Count == 0)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成失败：内容组没有物品：{chestContentGroupId}");
+            return;
+        }
+
+        ItemDatabase itemDatabase = ItemDatabase.LoadDefault();
+        if (itemDatabase == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成失败：物品数据库未加载。");
+            return;
+        }
+
+        List<ItemSlotData> chestData = GetCurrentChestData(true);
+        if (chestData == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成失败：宝箱数据不存在。");
+            return;
+        }
+
+        仓储状态.标记宝箱内容已生成(chestSerial);
+
+        if (group.生成类型 == 宝箱内容数据库.宝箱物品生成类型.随机物品)
+        {
+            if (!TryResolveRandomChestGroupItem(chestSerial, itemDatabase, group, out 宝箱内容数据库.宝箱物品条目 itemRule, out ItemDatabase.ItemEntry itemEntry))
+            {
+                return;
+            }
+
+            TryPlaceChestRuleItem(chestSerial, itemEntry, itemRule.数量, chestData);
+            return;
+        }
+
+        for (int i = 0; i < group.物品列表.Count; i++)
+        {
+            宝箱内容数据库.宝箱物品条目 itemRule = group.物品列表[i];
+            if (!TryResolveChestGroupItem(chestSerial, itemDatabase, itemRule, i, out ItemDatabase.ItemEntry itemEntry))
+            {
+                return;
+            }
+
+            if (!TryPlaceChestRuleItem(chestSerial, itemEntry, itemRule.数量, chestData))
+            {
+                return;
+            }
+        }
+    }
+
+    private bool TryResolveRandomChestGroupItem(
+        int chestSerial,
+        ItemDatabase itemDatabase,
+        宝箱内容数据库.宝箱内容组 group,
+        out 宝箱内容数据库.宝箱物品条目 itemRule,
+        out ItemDatabase.ItemEntry itemEntry)
+    {
+        itemRule = null;
+        itemEntry = null;
+        List<宝箱内容数据库.宝箱物品条目> validRules = new List<宝箱内容数据库.宝箱物品条目>();
+        List<ItemDatabase.ItemEntry> validItems = new List<ItemDatabase.ItemEntry>();
+        for (int i = 0; i < group.物品列表.Count; i++)
+        {
+            宝箱内容数据库.宝箱物品条目 currentRule = group.物品列表[i];
+            if (currentRule == null)
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry currentItem = itemDatabase.FindEntry(currentRule.物品ID);
+            if (currentItem == null)
+            {
+                continue;
+            }
+
+            validRules.Add(currentRule);
+            validItems.Add(currentItem);
+        }
+
+        if (validItems.Count == 0)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：随机内容组没有可用物品：{group.内容组ID}");
+            return false;
+        }
+
+        int index = UnityEngine.Random.Range(0, validItems.Count);
+        itemRule = validRules[index];
+        itemEntry = validItems[index];
+        return true;
+    }
+
+    private bool TryResolveChestGroupItem(
+        int chestSerial,
+        ItemDatabase itemDatabase,
+        宝箱内容数据库.宝箱物品条目 itemRule,
+        int ruleIndex,
+        out ItemDatabase.ItemEntry itemEntry)
+    {
+        itemEntry = null;
+        if (itemRule == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：第 {ruleIndex + 1} 个物品为空。");
+            return false;
+        }
+
+        itemEntry = itemDatabase.FindEntry(itemRule.物品ID);
+        if (itemEntry == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：物品不存在：{itemRule.物品ID}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryPlaceChestRuleItem(
+        int chestSerial,
+        ItemDatabase.ItemEntry itemEntry,
+        int count,
+        List<ItemSlotData> chestData)
+    {
+        if (itemEntry == null)
+        {
+            return false;
+        }
+
+        Sprite icon = ResolveDisplaySpriteFromPrefab(itemEntry.prefab);
+        if (icon == null)
+        {
+            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：物品缺少可显示图标：{itemEntry.itemId}");
+            return false;
+        }
+
+        int maxStack = ResolveMaxStack(itemEntry, 1);
+        int remain = Mathf.Max(1, count);
+        bool useOneByTwo = 摆放规则服务.是一乘二物品(itemEntry);
+
+        while (remain > 0)
+        {
+            int addCount = Mathf.Min(remain, maxStack);
+            if (!useOneByTwo && TryAddToExistingChestStackRandom(itemEntry.itemId, icon, maxStack, ref addCount, chestData))
+            {
+                remain -= addCount;
+                continue;
+            }
+
+            ItemSlotData data = new ItemSlotData
+            {
+                itemId = itemEntry.itemId,
+                icon = icon,
+                count = addCount,
+                maxStack = maxStack
+            };
+
+            if (!TryFindRandomChestPlacement(data, useOneByTwo, chestData, out 宝箱候选格 placement))
+            {
+                Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：没有位置放入物品 {itemEntry.itemId}。");
+                return false;
+            }
+
+            data.isRotated = placement.isRotated;
+            SetFootprintDataAt(SlotKind.Chest, placement.index, data);
+            RefreshFootprintSlots(SlotKind.Chest, placement.index, data);
+            remain -= addCount;
+        }
+
+        return true;
+    }
+
+    private bool TryAddToExistingChestStackRandom(
+        string itemId,
+        Sprite icon,
+        int maxStack,
+        ref int addCount,
+        List<ItemSlotData> chestData)
+    {
+        List<int> candidates = new List<int>();
+        for (int i = 0; i < chestData.Count; i++)
+        {
+            ItemSlotData slot = chestData[i];
+            if (slot.isFootprintExtension || slot.IsEmpty || slot.itemId != itemId)
+            {
+                continue;
+            }
+
+            int cap = Mathf.Max(1, slot.maxStack > 0 ? slot.maxStack : maxStack);
+            if (slot.count < cap)
+            {
+                candidates.Add(i);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return false;
+        }
+
+        int index = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        ItemSlotData target = chestData[index];
+        int targetCap = Mathf.Max(1, target.maxStack > 0 ? target.maxStack : maxStack);
+        int actualAdd = Mathf.Min(addCount, targetCap - target.count);
+        target.count += actualAdd;
+        target.icon = icon;
+        target.maxStack = targetCap;
+        chestData[index] = PrepareItemSlotDataForStorage(target, $"宝箱{仓储状态.当前宝箱序列号}格 {index}");
+        RefreshChestSlot(index);
+        addCount = actualAdd;
+        return actualAdd > 0;
+    }
+
+    private bool TryFindRandomChestPlacement(
+        ItemSlotData data,
+        bool useOneByTwo,
+        List<ItemSlotData> chestData,
+        out 宝箱候选格 placement)
+    {
+        List<宝箱候选格> candidates = new List<宝箱候选格>();
+        for (int i = 0; i < chestData.Count; i++)
+        {
+            data.isRotated = false;
+            if (CanPlaceDataAt(SlotKind.Chest, i, data, chestData))
+            {
+                candidates.Add(new 宝箱候选格 { index = i, isRotated = false });
+            }
+
+            if (!useOneByTwo)
+            {
+                continue;
+            }
+
+            data.isRotated = true;
+            if (CanPlaceDataAt(SlotKind.Chest, i, data, chestData))
+            {
+                candidates.Add(new 宝箱候选格 { index = i, isRotated = true });
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            placement = default;
+            return false;
+        }
+
+        placement = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        return true;
     }
 
     private void OnGlobalRefreshRequested()

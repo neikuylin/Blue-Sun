@@ -7,6 +7,7 @@ public sealed class 宝箱控制器 : MonoBehaviour, IPointerClickHandler
 {
     [Header("宝箱")]
     public int 宝箱序列号;
+    public string 宝箱内容组ID = string.Empty;
 
     [Header("界面")]
     public string 宝箱内容路径 = "Canvas/宝箱内容";
@@ -23,7 +24,7 @@ public sealed class 宝箱控制器 : MonoBehaviour, IPointerClickHandler
         宝箱内容绑定 content = 获取宝箱内容();
         if (content != null)
         {
-            content.打开宝箱内容(宝箱序列号);
+            content.打开宝箱内容(宝箱序列号, 宝箱内容组ID);
         }
 
         BattleBootstrap.MarkCurrentRoomChestOpened();

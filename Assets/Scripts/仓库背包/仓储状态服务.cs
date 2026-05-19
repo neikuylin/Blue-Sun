@@ -8,6 +8,7 @@ internal sealed class 仓储状态服务
     private readonly List<InventoryShortcutRuntimeBinder.ItemSlotData> backpackData = new List<InventoryShortcutRuntimeBinder.ItemSlotData>();
     private readonly Dictionary<int, List<InventoryShortcutRuntimeBinder.ItemSlotData>> chestDataBySerial =
         new Dictionary<int, List<InventoryShortcutRuntimeBinder.ItemSlotData>>();
+    private readonly HashSet<int> generatedChestContentSerials = new HashSet<int>();
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> equipmentDataByCharacter =
         new Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>>(StringComparer.Ordinal);
     private readonly Dictionary<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> boundEnemyEquipmentDataCache =
@@ -35,6 +36,7 @@ internal sealed class 仓储状态服务
         warehouseData.Clear();
         backpackData.Clear();
         chestDataBySerial.Clear();
+        generatedChestContentSerials.Clear();
         equipmentDataByCharacter.Clear();
         boundEnemyEquipmentDataCache.Clear();
         equipmentUsableSlotCounts.Clear();
@@ -131,6 +133,19 @@ internal sealed class 仓储状态服务
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 获取当前宝箱数据(bool createIfMissing)
     {
         return 获取宝箱数据(currentChestSerial, createIfMissing);
+    }
+
+    public bool 宝箱内容已生成(int serial)
+    {
+        return serial > 0 && generatedChestContentSerials.Contains(serial);
+    }
+
+    public void 标记宝箱内容已生成(int serial)
+    {
+        if (serial > 0)
+        {
+            generatedChestContentSerials.Add(serial);
+        }
     }
 
     public void 确保宝箱数据容量(int serial, int size)

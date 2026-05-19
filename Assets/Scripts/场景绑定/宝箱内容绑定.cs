@@ -6,7 +6,7 @@ public sealed class 宝箱内容绑定 : MonoBehaviour
     [Header("宝箱内容")]
     public 物品格子区域绑定 宝箱格子区域;
 
-    public void 打开宝箱内容(int 宝箱序列号)
+    public void 打开宝箱内容(int 宝箱序列号, string 宝箱内容组ID)
     {
         if (宝箱序列号 <= 0)
         {
@@ -22,7 +22,7 @@ public sealed class 宝箱内容绑定 : MonoBehaviour
             binding.宝箱序列号 = 宝箱序列号;
         }
 
-        InventoryShortcutRuntimeBinder.OpenChest(宝箱序列号);
+        InventoryShortcutRuntimeBinder.OpenChest(宝箱序列号, 宝箱内容组ID);
     }
 
     public void 关闭宝箱内容()

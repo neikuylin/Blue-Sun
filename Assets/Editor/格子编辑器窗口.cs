@@ -7,6 +7,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 {
     private const string ResourceFolder = "Assets/Resources";
     private const string AssetPath = ResourceFolder + "/BattleGridTemplateDatabase.asset";
+    private const string ChestContentDatabaseAssetPath = ResourceFolder + "/ChestContentDatabase.asset";
     private const float LeftPanelWidth = 240f;
     private const float RightPanelWidth = 320f;
     private const float ToolbarHeight = 36f;
@@ -1283,6 +1284,7 @@ public sealed class 格子编辑器窗口 : EditorWindow
 
                     prop.propName = EditorGUILayout.TextField("名称", prop.propName);
                     prop.prefab = (GameObject)EditorGUILayout.ObjectField("Prefab", prop.prefab, typeof(GameObject), false);
+                    DrawChestContentGroupField(prop);
                     prop.anchorCell = DrawCellPositionField("锚点格", prop.anchorCell);
                     prop.localOffset = EditorGUILayout.Vector3Field("美术偏移", prop.localOffset);
                     prop.alignToBattleCamera = EditorGUILayout.Toggle("平行战斗相机", prop.alignToBattleCamera);
@@ -1367,6 +1369,98 @@ public sealed class 格子编辑器窗口 : EditorWindow
         }
 
         return $"物件{index + 1}";
+    }
+
+    private static void DrawChestContentGroupField(格子模板数据库.PropVisualEntry prop)
+    {
+        if (prop == null)
+        {
+            return;
+        }
+
+        bool isChestProp = IsChestPropPrefab(prop.prefab);
+        if (!isChestProp && string.IsNullOrWhiteSpace(prop.chestContentGroupId))
+        {
+            return;
+        }
+
+        宝箱内容数据库 database = AssetDatabase.LoadAssetAtPath<宝箱内容数据库>(ChestContentDatabaseAssetPath);
+        if (database == null || database.Groups == null || database.Groups.Count == 0)
+        {
+            prop.chestContentGroupId = EditorGUILayout.TextField("宝箱内容组ID", prop.chestContentGroupId);
+            EditorGUILayout.HelpBox("还没有宝箱内容组。先打开 Tools/地图/宝箱内容 新建内容组。", MessageType.Warning);
+            return;
+        }
+
+        List<string> groupIds = BuildChestContentGroupIds(database);
+        List<string> labels = BuildChestContentGroupLabels(database, groupIds);
+        int selectedIndex = FindChestContentGroupIndex(prop.chestContentGroupId, groupIds);
+        selectedIndex = EditorGUILayout.Popup("宝箱内容组ID", selectedIndex, labels.ToArray());
+        prop.chestContentGroupId = selectedIndex <= 0 ? string.Empty : groupIds[selectedIndex];
+    }
+
+    private static bool IsChestPropPrefab(GameObject prefab)
+    {
+        return prefab != null && prefab.GetComponentInChildren<宝箱控制器>(true) != null;
+    }
+
+    private static List<string> BuildChestContentGroupIds(宝箱内容数据库 database)
+    {
+        List<string> groupIds = new List<string> { string.Empty };
+        for (int i = 0; i < database.Groups.Count; i++)
+        {
+            宝箱内容数据库.宝箱内容组 group = database.Groups[i];
+            if (group == null || string.IsNullOrWhiteSpace(group.内容组ID))
+            {
+                continue;
+            }
+
+            groupIds.Add(group.内容组ID.Trim());
+        }
+
+        return groupIds;
+    }
+
+    private static List<string> BuildChestContentGroupLabels(宝箱内容数据库 database, List<string> groupIds)
+    {
+        List<string> labels = new List<string>();
+        for (int i = 0; i < groupIds.Count; i++)
+        {
+            string groupId = groupIds[i];
+            if (string.IsNullOrWhiteSpace(groupId))
+            {
+                labels.Add("未选择");
+                continue;
+            }
+
+            宝箱内容数据库.宝箱内容组 group = database.FindGroup(groupId);
+            string typeName = group != null && group.生成类型 == 宝箱内容数据库.宝箱物品生成类型.随机物品
+                ? "随机物品"
+                : "指定物品";
+            int itemCount = group != null && group.物品列表 != null ? group.物品列表.Count : 0;
+            labels.Add($"{groupId}（{typeName}，{itemCount}个物品）");
+        }
+
+        return labels;
+    }
+
+    private static int FindChestContentGroupIndex(string groupId, List<string> groupIds)
+    {
+        if (string.IsNullOrWhiteSpace(groupId))
+        {
+            return 0;
+        }
+
+        string resolvedId = groupId.Trim();
+        for (int i = 0; i < groupIds.Count; i++)
+        {
+            if (string.Equals(groupIds[i], resolvedId, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     private static string ResolvePetalExposureAreaDisplayName(格子模板数据库.花瓣曝光区域Entry area, int index)

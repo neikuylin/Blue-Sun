@@ -469,6 +469,7 @@ public class BattleBootstrap : MonoBehaviour
         宝箱控制器 chest = instance.GetComponentInChildren<宝箱控制器>(true);
         if (chest != null)
         {
+            chest.宝箱内容组ID = prop.chestContentGroupId;
             trigger.设置运行时触发动作(chest.打开宝箱);
         }
     }
