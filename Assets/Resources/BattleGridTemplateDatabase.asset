@@ -818,7 +818,12 @@ MonoBehaviour:
       y: 19
     - x: 14
       y: 9
-    enemySpawnSlots: []
+    enemySpawnSlots:
+    - slotName: "\u654C\u4EBA\u4F4D1"
+      cell:
+        x: 14
+        y: 16
+      encounterEnemyIndex: 0
     defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 0}

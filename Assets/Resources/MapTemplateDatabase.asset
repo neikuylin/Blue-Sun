@@ -20,7 +20,7 @@ MonoBehaviour:
       displayName: node_3
       position: {x: 771, y: 86.20001}
       roomTypeId: encounter_battle
-      encounterPresetId: "\u7A7A\u623F\u95F4"
+      encounterPresetId: "\u521D\u59CB\u5730boss"
       battleGridTemplateId: "\u51FA\u751F\u5730"
       connections:
       - targetNodeId: node_1

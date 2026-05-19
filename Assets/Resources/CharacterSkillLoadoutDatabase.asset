@@ -36,13 +36,25 @@ MonoBehaviour:
     - 
     warehouseSkillWeights: 00000000
   - characterId: "\u5047\u4EBA"
-    memorizedSkillIds: []
-    memorizedSkillWeights: 
+    memorizedSkillIds:
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+    memorizedSkillWeights: 000000000000000000000000000000000000000000000000
     warehouseSkillIds: []
     warehouseSkillWeights: 
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
-    memorizedSkillIds: []
-    memorizedSkillWeights: 
+    memorizedSkillIds:
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+    memorizedSkillWeights: 000000000000000000000000000000000000000000000000
     warehouseSkillIds: []
     warehouseSkillWeights: 
   - characterId: "\u7231\u4E3D\u4E1D"
@@ -56,5 +68,16 @@ MonoBehaviour:
   - characterId: "\u745F\u838E"
     memorizedSkillIds: []
     memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
+  - characterId: "\u5965\u624E\u514B\u91CE\u86EE\u4EBA"
+    memorizedSkillIds:
+    - "\u56DE\u65CB\u65A9"
+    - 
+    - 
+    - 
+    - 
+    - 
+    memorizedSkillWeights: 000000000000000000000000000000000000000000000000
     warehouseSkillIds: []
     warehouseSkillWeights: 

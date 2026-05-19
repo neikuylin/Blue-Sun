@@ -25,3 +25,9 @@ MonoBehaviour:
   - presetId: "\u7A7A\u623F\u95F4"
     roomTypeId: encounter_battle
     enemies: []
+  - presetId: "\u521D\u59CB\u5730boss"
+    roomTypeId: encounter_battle
+    enemies:
+    - enemyId: "\u5965\u624E\u514B\u91CE\u86EE\u4EBA"
+      team: 1
+      isPlayerControlled: 0

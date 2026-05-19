@@ -27,4 +27,6 @@ MonoBehaviour:
     buttonPrefab: {fileID: 0}
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
     buttonPrefab: {fileID: 0}
+  - characterId: "\u5965\u624E\u514B\u91CE\u86EE\u4EBA"
+    buttonPrefab: {fileID: 0}
   defaultButtonPrefab: {fileID: 289699223266401256, guid: 11ee881b0db0f8a448d560a3337931a9, type: 3}

@@ -110,9 +110,105 @@ MonoBehaviour:
     criticalChance: 20
     criticalDamage: 150
   - characterId: "\u5965\u624E\u514B\u58EB\u5175"
-    strength: 2
-    agility: 2
+    strength: 1
+    agility: 3
     intelligence: 2
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965\u624E\u514B\u91CE\u86EE\u4EBA"
+    strength: 4
+    agility: 2
+    intelligence: 1
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965"
+    strength: 0
+    agility: 0
+    intelligence: 0
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965\u624E"
+    strength: 0
+    agility: 0
+    intelligence: 0
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965\u624E\u514B"
+    strength: 0
+    agility: 0
+    intelligence: 0
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965\u624E\u514B\u91CE"
+    strength: 0
+    agility: 0
+    intelligence: 0
+    actionPoints: 4
+    hitRate: 100
+    physicalResistance: 0
+    fireResistance: 0
+    corruptionResistance: 0
+    coldResistance: 0
+    physicalResistancePenetration: 0
+    fireResistancePenetration: 0
+    corruptionResistancePenetration: 0
+    coldResistancePenetration: 0
+    criticalChance: 20
+    criticalDamage: 150
+  - characterId: "\u5965\u624E\u514B\u91CE\u86EE"
+    strength: 0
+    agility: 0
+    intelligence: 0
     actionPoints: 4
     hitRate: 100
     physicalResistance: 0
