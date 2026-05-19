@@ -240,13 +240,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5667589170590829329}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -11.54, y: 0, z: 0}
+  m_LocalRotation: {x: 0.32586023, y: 0.019721992, z: 0.3815804, w: 0.8647673}
+  m_LocalPosition: {x: -9.5, y: -7.53, z: -3.88}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7876850443102925298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 33.267, y: 19.768, z: 53.579}
 --- !u!198 &7167452217759107821
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -320,8 +320,8 @@ ParticleSystem:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  moveWithTransform: 0
-  moveWithCustomTransform: {fileID: 0}
+  moveWithTransform: 2
+  moveWithCustomTransform: {fileID: 1945450079011082935}
   scalingMode: 1
   randomSeed: 0
   InitialModule:
@@ -818,7 +818,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 80
+    maxNumParticles: 20
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 1
     rotation3D: 1
@@ -5066,17 +5066,21 @@ MonoBehaviour:
   "\u7C92\u5B50\u6750\u8D28\u6A21\u677F": {fileID: 0}
   "\u7C92\u5B50\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.85}
   "\u6392\u5E8F\u5C42\u7EA7": 0
-  "\u8D77\u70B9X": -2.5
-  "\u7EC8\u70B9X": 2.5
-  "\u51FA\u751FY\u8303\u56F4": {x: -0.35, y: 0.35}
+  "\u8D77\u70B9X": -15.781937
+  "\u7EC8\u70B9X": 5.1480923
+  "\u51FA\u751FY\u8303\u56F4": {x: -13.451677, y: 5}
   "\u8D8A\u754C\u4F59\u91CF": 0.35
-  "\u6BCF\u79D2\u6570\u91CF": 10
-  "\u6700\u5927\u6570\u91CF": 80
-  "\u901F\u5EA6\u8303\u56F4": {x: 1.6, y: 2.6}
-  "\u957F\u5EA6\u8303\u56F4": {x: 0.65, y: 1.15}
+  "\u663E\u793A\u8303\u56F4\u5E73\u9762": 1
+  "\u4EC5\u9009\u4E2D\u65F6\u663E\u793A\u8303\u56F4": 1
+  "\u8303\u56F4\u5E73\u9762\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.12}
+  "\u8303\u56F4\u8FB9\u6846\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.65}
+  "\u6BCF\u79D2\u6570\u91CF": 3
+  "\u6700\u5927\u6570\u91CF": 20
+  "\u901F\u5EA6\u8303\u56F4": {x: 2.6, y: 6}
+  "\u957F\u5EA6\u8303\u56F4": {x: 2, y: 28}
   "\u5BBD\u5EA6\u8303\u56F4": {x: 0.06, y: 0.13}
-  "\u6DE1\u5165\u6DE1\u51FA\u6BD4\u4F8B": 0.12
-  "\u968F\u673A\u65CB\u8F6C\u89D2\u5EA6": 3
+  "\u6DE1\u5165\u6DE1\u51FA\u6BD4\u4F8B": 0
+  "\u968F\u673A\u65CB\u8F6C\u89D2\u5EA6": 0
   "\u5C16\u7AEF\u957F\u5EA6\u6BD4\u4F8B": 0.22
 --- !u!1 &8564811846414956512
 GameObject:

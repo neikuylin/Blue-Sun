@@ -34,10 +34,16 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     [SerializeField] private int 排序层级 = 0;
 
     [Header("范围")]
-    [SerializeField] private float 起点X = -2.5f;
-    [SerializeField] private float 终点X = 2.5f;
-    [SerializeField] private Vector2 出生Y范围 = new Vector2(-0.35f, 0.35f);
+    [SerializeField] private float 起点X = -1f;
+    [SerializeField] private float 终点X = 1f;
+    [SerializeField] private Vector2 出生Y范围 = new Vector2(-1f, 1f);
     [SerializeField, Min(0f)] private float 越界余量 = 0.35f;
+
+    [Header("范围预览")]
+    [SerializeField] private bool 显示范围平面 = true;
+    [SerializeField] private bool 仅选中时显示范围 = false;
+    [SerializeField] private Color 范围平面颜色 = new Color(0f, 0f, 0f, 0.12f);
+    [SerializeField] private Color 范围边框颜色 = new Color(0f, 0f, 0f, 0.65f);
 
     [Header("粒子")]
     [SerializeField, Min(0f)] private float 每秒数量 = 10f;
@@ -60,6 +66,24 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     private Mesh runtimeMesh;
     private float emissionAccumulator;
     private double lastEditorUpdateTime;
+
+    public float 范围起点X => 起点X;
+    public float 范围终点X => 终点X;
+    public Vector2 范围Y => 出生Y范围;
+    public bool Scene显示范围平面 => 显示范围平面;
+    public Color Scene范围平面颜色 => 范围平面颜色;
+    public Color Scene范围边框颜色 => 范围边框颜色;
+
+#if UNITY_EDITOR
+    public void Editor设置范围(float newStartX, float newEndX, Vector2 newYRange)
+    {
+        起点X = newStartX;
+        终点X = newEndX;
+        出生Y范围 = NormalizeRange(newYRange, -10000f);
+        应用设置();
+        EditorUtility.SetDirty(this);
+    }
+#endif
 
     private void Reset()
     {
@@ -89,6 +113,19 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             DestroyRuntimeObject(runtimeMaterial);
             runtimeMaterial = null;
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!仅选中时显示范围)
+        {
+            DrawRangePreview();
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        DrawRangePreview();
     }
 
     private void OnValidate()
@@ -164,6 +201,20 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         ConfigureRenderer();
     }
 
+    [ContextMenu("设为正方形范围")]
+    public void 设为正方形范围()
+    {
+        起点X = -1f;
+        终点X = 1f;
+        出生Y范围 = new Vector2(-1f, 1f);
+        应用设置();
+
+#if UNITY_EDITOR
+        EditorUtility.SetDirty(this);
+        SceneView.RepaintAll();
+#endif
+    }
+
     private void ResolveComponents()
     {
         if (cachedParticleSystem == null)
@@ -201,7 +252,8 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         ParticleSystem.MainModule main = cachedParticleSystem.main;
         main.loop = false;
         main.playOnAwake = false;
-        main.simulationSpace = ParticleSystemSimulationSpace.Local;
+        main.simulationSpace = ParticleSystemSimulationSpace.Custom;
+        main.customSimulationSpace = transform;
         main.scalingMode = ParticleSystemScalingMode.Local;
         main.maxParticles = Mathf.Max(1, 最大数量);
         main.startLifetime = 1f;
@@ -514,6 +566,37 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         {
             cachedParticleSystem.Clear(true);
         }
+    }
+
+    private void DrawRangePreview()
+    {
+        if (!显示范围平面)
+        {
+            return;
+        }
+
+        float minX = Mathf.Min(起点X, 终点X);
+        float maxX = Mathf.Max(起点X, 终点X);
+        float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
+        float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+
+        Vector3 bottomLeft = transform.TransformPoint(new Vector3(minX, minY, 0f));
+        Vector3 topLeft = transform.TransformPoint(new Vector3(minX, maxY, 0f));
+        Vector3 topRight = transform.TransformPoint(new Vector3(maxX, maxY, 0f));
+        Vector3 bottomRight = transform.TransformPoint(new Vector3(maxX, minY, 0f));
+
+#if UNITY_EDITOR
+        Handles.DrawSolidRectangleWithOutline(
+            new[] { bottomLeft, topLeft, topRight, bottomRight },
+            范围平面颜色,
+            范围边框颜色);
+#else
+        Gizmos.color = 范围边框颜色;
+        Gizmos.DrawLine(bottomLeft, topLeft);
+        Gizmos.DrawLine(topLeft, topRight);
+        Gizmos.DrawLine(topRight, bottomRight);
+        Gizmos.DrawLine(bottomRight, bottomLeft);
+#endif
     }
 
     private static Vector2 NormalizeRange(Vector2 range, float minimum)
