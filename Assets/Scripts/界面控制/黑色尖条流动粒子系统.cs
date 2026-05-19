@@ -28,7 +28,8 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         public float 速度;
         public float 长度;
         public float 宽度;
-        public Vector2 起点;
+        public float 起始主轴;
+        public float 垂直位置;
         public Vector2 方向;
     }
 
@@ -59,6 +60,10 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     [SerializeField] private Vector2 速度范围 = new Vector2(1.6f, 2.6f);
     [SerializeField] private Vector2 长度范围 = new Vector2(0.65f, 1.15f);
     [SerializeField] private Vector2 宽度范围 = new Vector2(0.06f, 0.13f);
+    [SerializeField, Min(1)] private int 每条短段数量 = 6;
+    [SerializeField, Min(0f)] private float 短线长度 = 4f;
+    [SerializeField, Min(0f)] private float 出生点左右浮动幅度 = 0.7f;
+    [SerializeField, Min(0f)] private float 出生点左右浮动速度 = 0.8f;
 
     [Header("形状")]
     [SerializeField, Range(0.05f, 0.45f)] private float 尖端长度比例 = 0.22f;
@@ -168,7 +173,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     private void 配置容量()
     {
         int capacity = 最大数量;
-        粒子数组 = new ParticleSystem.Particle[capacity];
+        粒子数组 = new ParticleSystem.Particle[capacity * 每条短段数量];
         状态数组 = new 粒子状态[capacity];
     }
 
@@ -180,7 +185,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.Custom;
         main.customSimulationSpace = transform;
         main.scalingMode = ParticleSystemScalingMode.Local;
-        main.maxParticles = 最大数量;
+        main.maxParticles = 最大数量 * 每条短段数量;
         main.startLifetime = 1f;
         main.startSpeed = 0f;
         main.startSize = 1f;
@@ -245,7 +250,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         float localSpeed = speed / 取缩放长度(direction);
 
         取流动轴范围(direction, perpendicular, out float startMain, out float endMain, out float crossMin, out float crossMax);
-        Vector2 start = direction * (startMain - length * 0.5f) + perpendicular * Random.Range(crossMin, crossMax);
+        float cross = Random.Range(crossMin, crossMax);
         float distance = endMain - startMain + length;
 
         状态数组[index] = new 粒子状态
@@ -256,7 +261,8 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             速度 = localSpeed,
             长度 = length,
             宽度 = width,
-            起点 = start,
+            起始主轴 = startMain,
+            垂直位置 = cross,
             方向 = direction
         };
     }
@@ -281,23 +287,32 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             }
 
             状态数组[i] = state;
-            粒子数组[particleCount] = 创建粒子(state);
-            particleCount++;
+            for (int segmentIndex = 0; segmentIndex < 每条短段数量; segmentIndex++)
+            {
+                粒子数组[particleCount] = 创建粒子(state, segmentIndex);
+                particleCount++;
+            }
         }
 
         粒子系统.SetParticles(粒子数组, particleCount);
     }
 
-    private ParticleSystem.Particle 创建粒子(粒子状态 state)
+    private ParticleSystem.Particle 创建粒子(粒子状态 state, int segmentIndex)
     {
-        Vector2 center = state.起点 + state.方向 * (state.速度 * state.时间);
+        float segmentLength = state.长度 / 每条短段数量;
+        float distanceBehindHead = segmentLength * (segmentIndex + 0.5f);
+        float main = state.起始主轴 + state.速度 * state.时间 - distanceBehindHead;
+        Vector2 perpendicular = new Vector2(-state.方向.y, state.方向.x);
+        float sampleTime = 取浮动时间() - distanceBehindHead / state.速度;
+        float cross = state.垂直位置 + 取出生点左右浮动(perpendicular, sampleTime);
+        Vector2 center = state.方向 * main + perpendicular * cross;
         return new ParticleSystem.Particle
         {
             position = new Vector3(center.x, center.y, 0f),
             startLifetime = state.生命周期,
             remainingLifetime = state.生命周期 - state.时间,
             startColor = 粒子颜色,
-            startSize3D = new Vector3(state.长度, state.宽度, 1f),
+            startSize3D = new Vector3(短线长度 / 取缩放长度(state.方向), state.宽度, 1f),
             rotation3D = new Vector3(0f, 0f, Mathf.Atan2(state.方向.y, state.方向.x) * Mathf.Rad2Deg)
         };
     }
@@ -363,6 +378,26 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     {
         Vector3 scale = transform.lossyScale;
         return new Vector2(direction.x * scale.x, direction.y * scale.y).magnitude;
+    }
+
+    private float 取出生点左右浮动(Vector2 perpendicular, float time)
+    {
+        float wave = Mathf.Sin(time * 出生点左右浮动速度 * Mathf.PI * 2f);
+        return wave * 出生点左右浮动幅度 / 取缩放长度(perpendicular);
+    }
+
+    private static float 取浮动时间()
+    {
+        if (Application.isPlaying)
+        {
+            return Time.time;
+        }
+
+#if UNITY_EDITOR
+        return (float)EditorApplication.timeSinceStartup;
+#else
+        return 0f;
+#endif
     }
 
     private static Quaternion 取摄像机旋转()
