@@ -240,13 +240,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5667589170590829329}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.32586023, y: 0.019721992, z: 0.3815804, w: 0.8647673}
-  m_LocalPosition: {x: -12.81, y: -10.68, z: -4.88}
+  m_LocalRotation: {x: 0.3801897, y: 0.34877893, z: -0.1574797, w: 0.8420268}
+  m_LocalPosition: {x: -5.7, y: -10.2, z: -1.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7876850443102925298}
-  m_LocalEulerAnglesHint: {x: 33.267, y: 19.768, z: 53.579}
+  m_LocalEulerAnglesHint: {x: 48.6, y: 45, z: 0}
 --- !u!198 &7167452217759107821
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -5017,7 +5017,7 @@ ParticleSystemRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -11999
   m_MaskInteraction: 0
   m_RenderMode: 4
   m_MeshDistribution: 0
@@ -5063,23 +5063,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u9ED1\u8272\u5C16\u6761\u6D41\u52A8\u7C92\u5B50\u7CFB\u7EDF"
   "\u7F16\u8F91\u6A21\u5F0F\u9884\u89C8": 1
+  "\u5E73\u884C\u4E8E\u6444\u50CF\u5934\u7684\u65CB\u8F6C\u89D2\u5EA6": 1
   "\u7C92\u5B50\u6750\u8D28\u6A21\u677F": {fileID: 0}
   "\u7C92\u5B50\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.85}
-  "\u6392\u5E8F\u5C42\u7EA7": 0
+  "\u6392\u5E8F\u5C42\u7EA7": -11999
   "\u8D77\u70B9X": -15.781937
   "\u7EC8\u70B9X": 5.1480923
   "\u51FA\u751FY\u8303\u56F4": {x: -13.451677, y: 5}
-  "\u8D8A\u754C\u4F59\u91CF": 0.35
+  "\u8D8A\u754C\u4F59\u91CF": 0
+  "\u8D77\u59CB\u70B9": 2
   "\u663E\u793A\u8303\u56F4\u5E73\u9762": 0
   "\u4EC5\u9009\u4E2D\u65F6\u663E\u793A\u8303\u56F4": 1
   "\u8303\u56F4\u5E73\u9762\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.12}
   "\u8303\u56F4\u8FB9\u6846\u989C\u8272": {r: 0, g: 0, b: 0, a: 0.65}
-  "\u6BCF\u79D2\u6570\u91CF": 3
+  "\u6BCF\u79D2\u6570\u91CF": 7
   "\u6700\u5927\u6570\u91CF": 20
-  "\u901F\u5EA6\u8303\u56F4": {x: 2.6, y: 6}
-  "\u957F\u5EA6\u8303\u56F4": {x: 2, y: 28}
-  "\u5BBD\u5EA6\u8303\u56F4": {x: 0.06, y: 0.13}
-  "\u6DE1\u5165\u6DE1\u51FA\u6BD4\u4F8B": 0
+  "\u901F\u5EA6\u8303\u56F4": {x: 12, y: 28}
+  "\u957F\u5EA6\u8303\u56F4": {x: 17, y: 28}
+  "\u5BBD\u5EA6\u8303\u56F4": {x: 0.12, y: 0.24}
+  "\u6DE1\u5165\u6DE1\u51FA\u6BD4\u4F8B": 0.387
   "\u968F\u673A\u65CB\u8F6C\u89D2\u5EA6": 0
   "\u5C16\u7AEF\u957F\u5EA6\u6BD4\u4F8B": 0.22
 --- !u!1 &8564811846414956512

@@ -18,6 +18,7 @@ Shader "项目/特效/黑色尖条流动裁切"
         Cull Off
         Lighting Off
         ZWrite Off
+        ZTest Always
         Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
