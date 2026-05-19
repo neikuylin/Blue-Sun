@@ -175,8 +175,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     private void Update()
     {
-        ApplyCameraParallelRotation();
-
         if (!Application.isPlaying && !编辑模式预览)
         {
             return;
@@ -300,20 +298,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         color.enabled = false;
         ParticleSystem.TextureSheetAnimationModule textureSheet = cachedParticleSystem.textureSheetAnimation;
         textureSheet.enabled = false;
-    }
-
-    private void ApplyCameraParallelRotation()
-    {
-        if (!平行于摄像头的旋转角度)
-        {
-            return;
-        }
-
-        Quaternion targetRotation = ResolveBattleCameraRotation();
-        if (Quaternion.Angle(transform.rotation, targetRotation) > 0.01f)
-        {
-            transform.rotation = targetRotation;
-        }
     }
 
     private static Quaternion ResolveBattleCameraRotation()
