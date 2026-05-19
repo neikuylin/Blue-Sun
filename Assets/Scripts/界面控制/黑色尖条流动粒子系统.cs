@@ -71,6 +71,11 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
     [Header("形状")]
     [SerializeField, Range(0.05f, 0.45f)] private float 尖端长度比例 = 0.22f;
+    [SerializeField, Min(0f)] private float 蠕动强度 = 0.12f;
+    [SerializeField, Min(0f)] private float 蠕动速度 = 1.2f;
+    [SerializeField, Min(0.01f)] private float 蠕动密度 = 3.5f;
+    [SerializeField, Range(0f, 1f)] private float 宽度鼓动强度 = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float 边缘不对称强度 = 0.45f;
 
     private ParticleSystem 粒子系统;
     private ParticleSystemRenderer 粒子渲染器;
@@ -307,10 +312,21 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             Vector2 side = new Vector2(-tangent.y, tangent.x);
             float t = (float)i / (pointCount - 1);
             float widthScale = 取宽度比例(t);
-            Vector2 halfWidth = side * (state.宽度 * 0.5f * widthScale);
+            float waveTime = 取浮动时间() * 蠕动速度;
+            float wavePosition = t * 蠕动密度 + state.出生时间;
+            float widthWave = Mathf.PerlinNoise(wavePosition, waveTime) * 2f - 1f;
+            float leftEdgeWave = Mathf.PerlinNoise(wavePosition + 17.13f, waveTime + 3.71f) * 2f - 1f;
+            float rightEdgeWave = Mathf.PerlinNoise(wavePosition + 41.29f, waveTime + 9.43f) * 2f - 1f;
+            float baseHalfWidth = state.宽度 * 0.5f * widthScale;
+            float pulsedHalfWidth = baseHalfWidth * (1f + widthWave * 宽度鼓动强度);
+            float leftHalfWidth = pulsedHalfWidth * (1f + leftEdgeWave * 边缘不对称强度);
+            float rightHalfWidth = pulsedHalfWidth * (1f + rightEdgeWave * 边缘不对称强度);
+            Vector2 edgeMove = tangent * (Mathf.PerlinNoise(wavePosition + 83.7f, waveTime + 21.9f) * 2f - 1f) * 蠕动强度 * widthScale;
 
-            网格顶点.Add(new Vector3(points[i].x - halfWidth.x, points[i].y - halfWidth.y, 0f));
-            网格顶点.Add(new Vector3(points[i].x + halfWidth.x, points[i].y + halfWidth.y, 0f));
+            Vector2 leftPoint = points[i] - side * leftHalfWidth - edgeMove;
+            Vector2 rightPoint = points[i] + side * rightHalfWidth + edgeMove;
+            网格顶点.Add(new Vector3(leftPoint.x, leftPoint.y, 0f));
+            网格顶点.Add(new Vector3(rightPoint.x, rightPoint.y, 0f));
             网格颜色.Add(粒子颜色);
             网格颜色.Add(粒子颜色);
         }
