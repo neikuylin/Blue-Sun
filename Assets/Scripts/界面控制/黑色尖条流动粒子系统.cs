@@ -10,6 +10,7 @@ using UnityEditor;
 [AddComponentMenu("特效/黑色尖条流动粒子系统")]
 public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 {
+    private const string DefaultClipMaterialResourcePath = "黑色尖条流动裁切材质";
     private const string DefaultClipShaderName = "项目/特效/黑色尖条流动裁切";
     private static readonly int ColorPropertyId = Shader.PropertyToID("_Color");
     private static readonly int ClipRectPropertyId = Shader.PropertyToID("_ClipRect");
@@ -67,6 +68,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     private 尖条粒子状态[] particleStates;
     private Material runtimeMaterial;
     private Material runtimeMaterialTemplateSource;
+    private MaterialPropertyBlock materialPropertyBlock;
     private Mesh runtimeMesh;
     private float emissionAccumulator;
     private double lastEditorUpdateTime;
@@ -298,7 +300,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         cachedRenderer.maxParticleSize = 20f;
         cachedRenderer.sortingOrder = 排序层级;
         cachedRenderer.sharedMaterial = ResolveParticleMaterial();
-        ApplyMaterialProperties(cachedRenderer.sharedMaterial);
+        ApplyRendererProperties();
     }
 
     private void SpawnByDeltaTime(float deltaTime)
@@ -382,29 +384,57 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             }
 
             particleStates[i] = state;
-            particles[particleCount] = BuildParticle(state, x);
-            particleCount++;
+            if (TryBuildParticle(state, x, out ParticleSystem.Particle particle))
+            {
+                particles[particleCount] = particle;
+                particleCount++;
+            }
         }
 
         cachedParticleSystem.SetParticles(particles, particleCount);
     }
 
-    private ParticleSystem.Particle BuildParticle(尖条粒子状态 state, float x)
+    private bool TryBuildParticle(尖条粒子状态 state, float x, out ParticleSystem.Particle particle)
     {
+        float halfLength = state.长度 * 0.5f;
+        float stripMinX = x - halfLength;
+        float stripMaxX = x + halfLength;
+        float clipMinX = Mathf.Min(起点X, 终点X);
+        float clipMaxX = Mathf.Max(起点X, 终点X);
+        float visibleMinX = Mathf.Max(stripMinX, clipMinX);
+        float visibleMaxX = Mathf.Min(stripMaxX, clipMaxX);
+        float visibleLength = visibleMaxX - visibleMinX;
+
+        float halfWidth = state.宽度 * 0.5f;
+        float stripMinY = state.Y - halfWidth;
+        float stripMaxY = state.Y + halfWidth;
+        float clipMinY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
+        float clipMaxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+        float visibleMinY = Mathf.Max(stripMinY, clipMinY);
+        float visibleMaxY = Mathf.Min(stripMaxY, clipMaxY);
+        float visibleWidth = visibleMaxY - visibleMinY;
+
+        if (visibleLength <= 0.001f || visibleWidth <= 0.001f)
+        {
+            particle = default;
+            return false;
+        }
+
         float progress = Mathf.Clamp01(state.存活时间 / Mathf.Max(0.001f, state.生命周期));
         float fade = ResolveFade(progress);
         Color color = 粒子颜色;
         color.a = state.透明度 * fade;
 
-        return new ParticleSystem.Particle
+        particle = new ParticleSystem.Particle
         {
-            position = new Vector3(x, state.Y, 0f),
+            position = new Vector3((visibleMinX + visibleMaxX) * 0.5f, (visibleMinY + visibleMaxY) * 0.5f, 0f),
             startLifetime = state.生命周期,
             remainingLifetime = Mathf.Max(0.001f, state.生命周期 - state.存活时间),
             startColor = color,
-            startSize3D = new Vector3(state.长度, state.宽度, 1f),
+            startSize3D = new Vector3(visibleLength, visibleWidth, 1f),
             rotation3D = new Vector3(0f, 0f, state.旋转偏移 * Mathf.Deg2Rad)
         };
+        return true;
     }
 
     private float ResolveFade(float progress)
@@ -485,8 +515,23 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     {
         if (runtimeMaterial != null && runtimeMaterialTemplateSource == 粒子材质模板)
         {
-            ApplyMaterialProperties(runtimeMaterial);
             return runtimeMaterial;
+        }
+
+        if (粒子材质模板 == null)
+        {
+            Material defaultMaterial = Resources.Load<Material>(DefaultClipMaterialResourcePath);
+            if (defaultMaterial != null)
+            {
+                runtimeMaterialTemplateSource = null;
+                if (runtimeMaterial != null)
+                {
+                    DestroyRuntimeObject(runtimeMaterial);
+                    runtimeMaterial = null;
+                }
+
+                return defaultMaterial;
+            }
         }
 
         if (runtimeMaterial != null)
@@ -500,30 +545,30 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             : new Material(ResolveDefaultShader());
         runtimeMaterial.name = "运行时_黑色尖条粒子材质";
         runtimeMaterial.hideFlags = HideFlags.DontSave;
-        ApplyMaterialProperties(runtimeMaterial);
         return runtimeMaterial;
     }
 
-    private void ApplyMaterialProperties(Material material)
+    private void ApplyRendererProperties()
     {
-        if (material == null)
+        if (cachedRenderer == null)
         {
             return;
         }
 
-        if (material.HasProperty(ColorPropertyId))
+        if (materialPropertyBlock == null)
         {
-            material.color = Color.white;
+            materialPropertyBlock = new MaterialPropertyBlock();
         }
 
-        if (material.HasProperty(ClipRectPropertyId))
-        {
-            float minX = Mathf.Min(起点X, 终点X);
-            float maxX = Mathf.Max(起点X, 终点X);
-            float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
-            float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
-            material.SetVector(ClipRectPropertyId, new Vector4(minX, minY, maxX, maxY));
-        }
+        float minX = Mathf.Min(起点X, 终点X);
+        float maxX = Mathf.Max(起点X, 终点X);
+        float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
+        float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+
+        cachedRenderer.GetPropertyBlock(materialPropertyBlock);
+        materialPropertyBlock.SetColor(ColorPropertyId, Color.white);
+        materialPropertyBlock.SetVector(ClipRectPropertyId, new Vector4(minX, minY, maxX, maxY));
+        cachedRenderer.SetPropertyBlock(materialPropertyBlock);
     }
 
     private static Shader ResolveDefaultShader()
