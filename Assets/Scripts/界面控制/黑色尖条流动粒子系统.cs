@@ -10,6 +10,10 @@ using UnityEditor;
 [AddComponentMenu("特效/黑色尖条流动粒子系统")]
 public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 {
+    private const string DefaultClipShaderName = "项目/特效/黑色尖条流动裁切";
+    private static readonly int ColorPropertyId = Shader.PropertyToID("_Color");
+    private static readonly int ClipRectPropertyId = Shader.PropertyToID("_ClipRect");
+
     private struct 尖条粒子状态
     {
         public bool 激活;
@@ -294,6 +298,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         cachedRenderer.maxParticleSize = 20f;
         cachedRenderer.sortingOrder = 排序层级;
         cachedRenderer.sharedMaterial = ResolveParticleMaterial();
+        ApplyMaterialProperties(cachedRenderer.sharedMaterial);
     }
 
     private void SpawnByDeltaTime(float deltaTime)
@@ -480,7 +485,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     {
         if (runtimeMaterial != null && runtimeMaterialTemplateSource == 粒子材质模板)
         {
-            ApplyMaterialColor(runtimeMaterial);
+            ApplyMaterialProperties(runtimeMaterial);
             return runtimeMaterial;
         }
 
@@ -495,26 +500,41 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
             : new Material(ResolveDefaultShader());
         runtimeMaterial.name = "运行时_黑色尖条粒子材质";
         runtimeMaterial.hideFlags = HideFlags.DontSave;
-        ApplyMaterialColor(runtimeMaterial);
+        ApplyMaterialProperties(runtimeMaterial);
         return runtimeMaterial;
     }
 
-    private void ApplyMaterialColor(Material material)
+    private void ApplyMaterialProperties(Material material)
     {
         if (material == null)
         {
             return;
         }
 
-        if (material.HasProperty("_Color"))
+        if (material.HasProperty(ColorPropertyId))
         {
             material.color = Color.white;
+        }
+
+        if (material.HasProperty(ClipRectPropertyId))
+        {
+            float minX = Mathf.Min(起点X, 终点X);
+            float maxX = Mathf.Max(起点X, 终点X);
+            float minY = Mathf.Min(出生Y范围.x, 出生Y范围.y);
+            float maxY = Mathf.Max(出生Y范围.x, 出生Y范围.y);
+            material.SetVector(ClipRectPropertyId, new Vector4(minX, minY, maxX, maxY));
         }
     }
 
     private static Shader ResolveDefaultShader()
     {
-        Shader shader = Shader.Find("Sprites/Default");
+        Shader shader = Shader.Find(DefaultClipShaderName);
+        if (shader != null)
+        {
+            return shader;
+        }
+
+        shader = Shader.Find("Sprites/Default");
         if (shader != null)
         {
             return shader;
