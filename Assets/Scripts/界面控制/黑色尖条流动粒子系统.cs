@@ -11,8 +11,6 @@ using UnityEditor;
 public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 {
     private static readonly Vector3 编辑模式战斗摄像机角度 = new Vector3(48.6f, 45f, 0f);
-    private static readonly int 颜色属性 = Shader.PropertyToID("_Color");
-    private static readonly int 裁切范围属性 = Shader.PropertyToID("_ClipRect");
 
     public enum 流动方向
     {
@@ -69,7 +67,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
     private ParticleSystemRenderer 粒子渲染器;
     private ParticleSystem.Particle[] 粒子数组;
     private 粒子状态[] 状态数组;
-    private MaterialPropertyBlock 材质属性;
     private Mesh 尖条网格;
     private float 发射累计;
     private double 上次编辑器时间;
@@ -127,7 +124,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
 
         发射粒子(deltaTime);
         更新粒子(deltaTime);
-        应用材质裁切范围();
 
 #if UNITY_EDITOR
         if (!Application.isPlaying)
@@ -167,7 +163,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         配置容量();
         配置粒子系统();
         配置渲染器();
-        应用材质裁切范围();
     }
 
     private void 配置容量()
@@ -379,8 +374,7 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         }
 #endif
 
-        BattleCameraController battleCamera = FindAnyObjectByType<BattleCameraController>();
-        return battleCamera.transform.rotation;
+        return Camera.main.transform.rotation;
     }
 
     private static Vector2 投影到摄像机平面(Vector3 worldDirection, Quaternion cameraRotation)
@@ -438,25 +432,6 @@ public sealed class 黑色尖条流动粒子系统 : MonoBehaviour
         尖条网格.triangles = triangles;
         尖条网格.RecalculateBounds();
         return 尖条网格;
-    }
-
-    private void 应用材质裁切范围()
-    {
-        if (材质属性 == null)
-        {
-            材质属性 = new MaterialPropertyBlock();
-        }
-
-        Vector4 clipRect = new Vector4(
-            -0.5f,
-            -0.5f,
-            0.5f,
-            0.5f);
-
-        粒子渲染器.GetPropertyBlock(材质属性);
-        材质属性.SetColor(颜色属性, Color.white);
-        材质属性.SetVector(裁切范围属性, clipRect);
-        粒子渲染器.SetPropertyBlock(材质属性);
     }
 
     private float 取时间间隔()
