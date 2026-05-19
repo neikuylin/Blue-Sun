@@ -9,7 +9,7 @@ Shader "项目/特效/黑色尖条流动裁切"
     {
         Tags
         {
-            "Queue" = "Transparent"
+            "Queue" = "Geometry-100"
             "IgnoreProjector" = "True"
             "RenderType" = "Transparent"
         }
