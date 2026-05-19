@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!1 &422269983997354465
 GameObject:
@@ -704,12 +704,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 1
   sortingOrder: -9999
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1262,12 +1266,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -3
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1377,12 +1385,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -1
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1495,12 +1507,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: 0
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1554,12 +1570,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -2
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1669,12 +1689,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -1860,12 +1884,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -2069,12 +2097,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -2200,12 +2232,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1
@@ -2320,12 +2356,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
+  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
   includeInactive: 1
   applyOnValidate: 1
   applySpriteRenderers: 1

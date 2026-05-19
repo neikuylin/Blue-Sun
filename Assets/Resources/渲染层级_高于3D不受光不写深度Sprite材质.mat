@@ -7,14 +7,14 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: "\u4E0D\u53D7\u5149\u6316\u7A7ASprite\u6750\u8D28"
+  m_Name: "\u6E32\u67D3\u5C42\u7EA7_\u9AD8\u4E8E3D\u4E0D\u53D7\u5149\u4E0D\u5199\u6DF1\u5EA6Sprite\u6750\u8D28"
   m_Shader: {fileID: 4800000, guid: 6d9af9462ab248e69d419ce3f617c585, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3100
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:

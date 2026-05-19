@@ -7,6 +7,9 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     private const string Below3DMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
     private const string Above3DMaterialResourcePath = "渲染层级_高于3D不写深度Sprite材质";
     private const string UndecidedMaterialResourcePath = "渲染层级_不决定不写深度Sprite材质";
+    private const string UnlitBelow3DMaterialResourcePath = "渲染层级_低于3D不受光不写深度Sprite材质";
+    private const string UnlitAbove3DMaterialResourcePath = "渲染层级_高于3D不受光不写深度Sprite材质";
+    private const string UnlitUndecidedMaterialResourcePath = "渲染层级_不决定不受光不写深度Sprite材质";
 
     public enum 渲染层级模式
     {
@@ -15,9 +18,17 @@ public sealed class 渲染层级应用器 : MonoBehaviour
         不决定 = 2
     }
 
+    public enum 光照模式
+    {
+        受光 = 0,
+        不受光 = 1
+    }
+
     [Header("层级")]
-    [Tooltip("低于3D：适合地板/背景。高于3D：适合高亮/提示/部分特效。不决定：受光，但按正常深度关系处理遮挡。")]
+    [Tooltip("低于3D：适合地板/背景。高于3D：适合高亮/提示/部分特效。不决定：按正常深度关系处理遮挡。")]
     [SerializeField] private 渲染层级模式 mode = 渲染层级模式.低于3D;
+    [Tooltip("受光会响应主光和局部光。不受光保持贴图原本亮度，但仍保留当前层级和挖空规则。")]
+    [SerializeField] private 光照模式 lightingMode = 光照模式.受光;
     [Tooltip("开启时会把目标渲染器的排序值改成下面的值。关闭时保留 SpriteRenderer 自身排序。")]
     [SerializeField] private bool overwriteSortingOrder;
     [Tooltip("同类2D渲染之间的前后顺序。数值越大越靠前。")]
@@ -32,6 +43,12 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     [SerializeField] private Material above3DMaterial;
     [Tooltip("不决定时使用的材质。为空会自动从 Resources 加载。")]
     [SerializeField] private Material undecidedMaterial;
+    [Tooltip("低于3D且不受光时使用的材质。为空会自动从 Resources 加载。")]
+    [SerializeField] private Material unlitBelow3DMaterial;
+    [Tooltip("高于3D且不受光时使用的材质。为空会自动从 Resources 加载。")]
+    [SerializeField] private Material unlitAbove3DMaterial;
+    [Tooltip("不决定且不受光时使用的材质。为空会自动从 Resources 加载。")]
+    [SerializeField] private Material unlitUndecidedMaterial;
 
     [Header("目标")]
     [Tooltip("是否包含未激活的子物体。")]
@@ -80,6 +97,16 @@ public sealed class 渲染层级应用器 : MonoBehaviour
 
     private Material ResolveMaterial()
     {
+        if (lightingMode == 光照模式.不受光)
+        {
+            return ResolveUnlitMaterial();
+        }
+
+        return ResolveLitMaterial();
+    }
+
+    private Material ResolveLitMaterial()
+    {
         if (mode == 渲染层级模式.不决定)
         {
             if (undecidedMaterial == null)
@@ -106,6 +133,36 @@ public sealed class 渲染层级应用器 : MonoBehaviour
         }
 
         return below3DMaterial;
+    }
+
+    private Material ResolveUnlitMaterial()
+    {
+        if (mode == 渲染层级模式.不决定)
+        {
+            if (unlitUndecidedMaterial == null)
+            {
+                unlitUndecidedMaterial = Resources.Load<Material>(UnlitUndecidedMaterialResourcePath);
+            }
+
+            return unlitUndecidedMaterial;
+        }
+
+        if (mode == 渲染层级模式.高于3D)
+        {
+            if (unlitAbove3DMaterial == null)
+            {
+                unlitAbove3DMaterial = Resources.Load<Material>(UnlitAbove3DMaterialResourcePath);
+            }
+
+            return unlitAbove3DMaterial;
+        }
+
+        if (unlitBelow3DMaterial == null)
+        {
+            unlitBelow3DMaterial = Resources.Load<Material>(UnlitBelow3DMaterialResourcePath);
+        }
+
+        return unlitBelow3DMaterial;
     }
 
     private void ApplyToSpriteRenderers(Material targetMaterial)
