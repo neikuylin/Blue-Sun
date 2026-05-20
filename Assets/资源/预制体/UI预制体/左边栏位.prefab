@@ -68,7 +68,7 @@ GameObject:
   - component: {fileID: 7534934500422075013}
   - component: {fileID: 6482554311669536943}
   m_Layer: 5
-  m_Name: "\u6280\u80FD\u56FE\u6807"
+  m_Name: "\u6280\u80FD\u4ED3\u5E93\u56FE\u6807"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1708,6 +1708,18 @@ PrefabInstance:
       propertyPath: "\u5165\u53E3\u7236\u7269\u4F53"
       value: 
       objectReference: {fileID: 53691487106354123}
+    - target: {fileID: 5562002131121897972, guid: db626b73ac5729042b1d63a2cc404802, type: 3}
+      propertyPath: "\u5C5E\u6027\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 7429928582385074921}
+    - target: {fileID: 5562002131121897972, guid: db626b73ac5729042b1d63a2cc404802, type: 3}
+      propertyPath: "\u7269\u54C1\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 4723412504327664530}
+    - target: {fileID: 5562002131121897972, guid: db626b73ac5729042b1d63a2cc404802, type: 3}
+      propertyPath: "\u6280\u80FD\u4ED3\u5E93\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 2066909757477329018}
     - target: {fileID: 5702281920916799194, guid: db626b73ac5729042b1d63a2cc404802, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
@@ -2301,6 +2313,18 @@ PrefabInstance:
       propertyPath: "\u5165\u53E3\u7236\u7269\u4F53"
       value: 
       objectReference: {fileID: 53691487106354123}
+    - target: {fileID: 4799957730886058679, guid: 2d70f3f1b8cc62747b46e1b899c207ce, type: 3}
+      propertyPath: "\u5C5E\u6027\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 7429928582385074921}
+    - target: {fileID: 4799957730886058679, guid: 2d70f3f1b8cc62747b46e1b899c207ce, type: 3}
+      propertyPath: "\u7269\u54C1\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 4723412504327664530}
+    - target: {fileID: 4799957730886058679, guid: 2d70f3f1b8cc62747b46e1b899c207ce, type: 3}
+      propertyPath: "\u6280\u80FD\u4ED3\u5E93\u5165\u53E3\u5BF9\u8C61"
+      value: 
+      objectReference: {fileID: 2066909757477329018}
     - target: {fileID: 8668151135220617724, guid: 2d70f3f1b8cc62747b46e1b899c207ce, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
