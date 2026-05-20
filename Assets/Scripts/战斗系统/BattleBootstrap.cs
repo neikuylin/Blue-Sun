@@ -1258,7 +1258,7 @@ public class BattleBootstrap : MonoBehaviour
             格子模板数据库.EnemySpawnSlot slot;
             if (!slotsByEncounterIndex.TryGetValue(i, out slot) || slot == null)
             {
-                Debug.LogError($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' enemy #{i + 1} is not bound to any enemy spawn slot in grid template '{gridTemplate.templateId}'.");
+                Debug.LogWarning($"BattleBootstrap: encounter preset '{roomEnemyPresetId}' enemy #{i + 1} ('{entries[i].enemyId}') is not bound to any enemy spawn slot in grid template '{gridTemplate.templateId}'.");
                 return new List<EnemySpawnEntry>();
             }
 
