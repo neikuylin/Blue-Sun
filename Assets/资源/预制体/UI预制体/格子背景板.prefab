@@ -166,7 +166,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u683C\u5B50\u80CC\u666F\u677F\u7C7B\u578B\u663E\u793A"
   "\u7C7B\u578B\u6587\u5B57\u5BF9\u8C61": {fileID: 9117906505483721353}
-  "\u683C\u5B50\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
   "\u6280\u80FD\u4ED3\u5E93\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
   "\u5C5E\u6027\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
   "\u4ED3\u5E93\u56FE\u7247\u5BF9\u8C61": {fileID: 6954061581417906070}

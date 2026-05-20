@@ -8,10 +8,9 @@ using UnityEngine.UI;
 public sealed class 物品背景板类型显示编辑器 : Editor
 {
     private SerializedProperty 类型文字对象;
-    private SerializedProperty 入口父物体;
-    private SerializedProperty 物品入口对象;
     private SerializedProperty 技能仓库入口对象;
     private SerializedProperty 属性入口对象;
+    private SerializedProperty 物品区域绑定对象;
     private SerializedProperty 仓库图片对象;
     private SerializedProperty 技能仓库图片对象;
     private SerializedProperty 属性图片对象;
@@ -21,10 +20,9 @@ public sealed class 物品背景板类型显示编辑器 : Editor
     private void OnEnable()
     {
         类型文字对象 = serializedObject.FindProperty("类型文字对象");
-        入口父物体 = serializedObject.FindProperty("入口父物体");
-        物品入口对象 = serializedObject.FindProperty("物品入口对象");
         技能仓库入口对象 = serializedObject.FindProperty("技能仓库入口对象");
         属性入口对象 = serializedObject.FindProperty("属性入口对象");
+        物品区域绑定对象 = serializedObject.FindProperty("物品区域绑定对象");
         仓库图片对象 = serializedObject.FindProperty("仓库图片对象");
         技能仓库图片对象 = serializedObject.FindProperty("技能仓库图片对象");
         属性图片对象 = serializedObject.FindProperty("属性图片对象");
@@ -42,10 +40,13 @@ public sealed class 物品背景板类型显示编辑器 : Editor
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("大类入口", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(入口父物体, new GUIContent("入口父物体", "可选。拖入三个按钮的父物体后，可自动从第一层子物体名称中的“物品 / 技能仓库 / 属性”绑定入口。"));
-        EditorGUILayout.PropertyField(物品入口对象, new GUIContent("物品入口", "拖入物品内容的根物体。脚本会从其中的物品格子区域绑定读取仓库、背包、宝箱。"));
-        EditorGUILayout.PropertyField(技能仓库入口对象, new GUIContent("技能仓库入口", "拖入技能仓库内容的根物体。"));
-        EditorGUILayout.PropertyField(属性入口对象, new GUIContent("属性入口", "拖入属性内容的根物体。"));
+        DrawToggleProperty(技能仓库入口对象, "技能仓库入口", "拖入对应技能仓库的 Toggle 物体，也可以拖入带 Toggle 子物体的按钮。");
+        DrawToggleProperty(属性入口对象, "属性入口", "拖入对应属性的 Toggle 物体，也可以拖入带 Toggle 子物体的按钮。");
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("物品细分", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(物品区域绑定对象, new GUIContent("物品区域绑定", "拖入带物品格子区域绑定的物体，用它的数据来源决定仓库、背包、宝箱。"));
+        DrawComponentStatus(物品区域绑定对象, typeof(物品格子区域绑定), "物品区域绑定需要物品格子区域绑定组件。");
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("图片", EditorStyles.boldLabel);
@@ -63,11 +64,6 @@ public sealed class 物品背景板类型显示编辑器 : Editor
         EditorGUILayout.Space(6f);
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("按入口父物体绑定入口"))
-            {
-                AutoBindEntrances();
-            }
-
             if (GUILayout.Button("按子物体名称自动绑定"))
             {
                 AutoBindChildren();
@@ -84,6 +80,12 @@ public sealed class 物品背景板类型显示编辑器 : Editor
     {
         EditorGUILayout.PropertyField(property, new GUIContent(label, "拖入带 Image 组件的图片物体。"));
         DrawComponentStatus(property, typeof(Image), label + " 需要 Image 组件。");
+    }
+
+    private static void DrawToggleProperty(SerializedProperty property, string label, string tooltip)
+    {
+        EditorGUILayout.PropertyField(property, new GUIContent(label, tooltip));
+        DrawToggleStatus(property, label + " 需要 Toggle 组件，或子物体里有 Toggle 组件。");
     }
 
     private static void DrawComponentStatus(SerializedProperty property, System.Type componentType, string error)
@@ -106,6 +108,26 @@ public sealed class 物品背景板类型显示编辑器 : Editor
         }
     }
 
+    private static void DrawToggleStatus(SerializedProperty property, string error)
+    {
+        if (property == null || property.hasMultipleDifferentValues)
+        {
+            return;
+        }
+
+        GameObject gameObject = property.objectReferenceValue as GameObject;
+        if (gameObject == null)
+        {
+            EditorGUILayout.HelpBox("未绑定。", MessageType.Warning);
+            return;
+        }
+
+        if (gameObject.GetComponent<Toggle>() == null && gameObject.GetComponentInChildren<Toggle>(true) == null)
+        {
+            EditorGUILayout.HelpBox(error, MessageType.Error);
+        }
+    }
+
     private void DrawRuntimeStatus()
     {
         if (targets.Length != 1)
@@ -123,29 +145,11 @@ public sealed class 物品背景板类型显示编辑器 : Editor
         string label = 物品背景板类型显示.获取显示名称(type);
         if (string.IsNullOrEmpty(label))
         {
-            EditorGUILayout.HelpBox("当前无法识别类型。请检查三类入口是否绑定，或物品入口下是否有物品格子区域绑定。", MessageType.Warning);
+            EditorGUILayout.HelpBox("当前无法识别类型。请检查技能仓库/属性入口是否绑定 Toggle；物品类显示需要绑定物品区域绑定。", MessageType.Warning);
             return;
         }
 
         EditorGUILayout.HelpBox("当前识别类型：" + label, MessageType.Info);
-    }
-
-    private void AutoBindEntrances()
-    {
-        for (int i = 0; i < targets.Length; i++)
-        {
-            物品背景板类型显示 display = targets[i] as 物品背景板类型显示;
-            if (display == null)
-            {
-                continue;
-            }
-
-            Undo.RecordObject(display, "自动绑定物品背景板入口");
-            display.按入口父物体自动绑定();
-            EditorUtility.SetDirty(display);
-        }
-
-        serializedObject.Update();
     }
 
     private void AutoBindChildren()
