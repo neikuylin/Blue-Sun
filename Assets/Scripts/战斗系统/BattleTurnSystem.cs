@@ -652,6 +652,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
+        宝箱内容绑定.关闭已打开宝箱内容();
         if (moveSkill != null)
         {
             StartCoroutine(PlayTrackedSkillAudioRoutine(unit, moveSkill, moveDuration));
@@ -707,7 +708,7 @@ public class BattleTurnSystem : MonoBehaviour
             ClearPendingDoorNavigation();
         }
 
-        return explorationMoveService != null && explorationMoveService.尝试自由移动(
+        bool moved = explorationMoveService != null && explorationMoveService.尝试自由移动(
             this,
             unit,
             destination,
@@ -723,6 +724,12 @@ public class BattleTurnSystem : MonoBehaviour
             battleCamera,
             RefreshHighlights,
             forceNavigationFollowerFollow);
+        if (moved)
+        {
+            宝箱内容绑定.关闭已打开宝箱内容();
+        }
+
+        return moved;
     }
 
     private bool TryMoveToGridTriggerCell(BattleUnit unit, Vector2Int destination)

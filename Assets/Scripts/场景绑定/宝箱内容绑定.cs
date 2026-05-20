@@ -6,6 +6,19 @@ public sealed class 宝箱内容绑定 : MonoBehaviour
     [Header("宝箱内容")]
     public 物品格子区域绑定 宝箱格子区域;
 
+    public static void 关闭已打开宝箱内容()
+    {
+        宝箱内容绑定[] bindings = FindObjectsOfType<宝箱内容绑定>(true);
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            宝箱内容绑定 binding = bindings[i];
+            if (binding != null && binding.gameObject.activeSelf)
+            {
+                binding.关闭宝箱内容();
+            }
+        }
+    }
+
     public void 打开宝箱内容(int 宝箱序列号, string 宝箱内容组ID)
     {
         if (宝箱序列号 <= 0)
