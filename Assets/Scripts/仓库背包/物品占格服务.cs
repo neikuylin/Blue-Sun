@@ -56,7 +56,13 @@ internal sealed class 物品占格服务
             return false;
         }
 
+        bool requiresExtension = IsFootprintItem(context, data);
         int extensionIndex = GetExtensionIndexForData(context, kind, index, data);
+        if (requiresExtension && extensionIndex < 0)
+        {
+            return false;
+        }
+
         if (extensionIndex < 0)
         {
             return true;

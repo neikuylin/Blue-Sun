@@ -1191,6 +1191,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         while (remain > 0)
         {
             int addCount = Mathf.Min(remain, maxStack);
+            bool isRotated = useOneByTwo && UnityEngine.Random.value < 0.3f;
             if (!useOneByTwo && TryAddToExistingChestStackRandom(itemEntry.itemId, icon, maxStack, ref addCount, chestData))
             {
                 remain -= addCount;
@@ -1205,7 +1206,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 maxStack = maxStack
             };
 
-            if (!TryFindRandomChestPlacement(data, useOneByTwo, chestData, out 宝箱候选格 placement))
+            data.isRotated = isRotated;
+            if (!TryFindRandomChestPlacement(data, chestData, out 宝箱候选格 placement))
             {
                 Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：没有位置放入物品 {itemEntry.itemId}。");
                 return false;
@@ -1263,28 +1265,15 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     private bool TryFindRandomChestPlacement(
         ItemSlotData data,
-        bool useOneByTwo,
         List<ItemSlotData> chestData,
         out 宝箱候选格 placement)
     {
         List<宝箱候选格> candidates = new List<宝箱候选格>();
         for (int i = 0; i < chestData.Count; i++)
         {
-            data.isRotated = false;
             if (CanPlaceDataAt(SlotKind.Chest, i, data, chestData))
             {
-                candidates.Add(new 宝箱候选格 { index = i, isRotated = false });
-            }
-
-            if (!useOneByTwo)
-            {
-                continue;
-            }
-
-            data.isRotated = true;
-            if (CanPlaceDataAt(SlotKind.Chest, i, data, chestData))
-            {
-                candidates.Add(new 宝箱候选格 { index = i, isRotated = true });
+                candidates.Add(new 宝箱候选格 { index = i, isRotated = data.isRotated });
             }
         }
 
