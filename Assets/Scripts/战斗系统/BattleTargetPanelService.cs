@@ -278,17 +278,12 @@ internal sealed class BattleTargetPanelService
 
     private Color ResolveTargetNameColor(BattleUnit targetUnit, BattleUnit activeUnit)
     {
-        if (targetUnit == null || activeUnit == null)
+        if (targetUnit == null)
         {
             return targetNameSelfColor;
         }
 
-        if (targetUnit == activeUnit)
-        {
-            return targetNameSelfColor;
-        }
-
-        return targetUnit.team == activeUnit.team ? targetNameAllyColor : targetNameEnemyColor;
+        return targetUnit.team == BattleTeam.Enemy ? targetNameEnemyColor : targetNameAllyColor;
     }
 
     private void ApplyTargetHealthBar(int current, int max, bool visible)
