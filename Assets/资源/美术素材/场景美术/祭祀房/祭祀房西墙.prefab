@@ -104,12 +104,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d6c7466b74f4b7a946e25e05a193d24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6C34\u4E0B\u9ED1\u8272\u5012\u5F71\u8815\u52A8\u63A7\u5236\u5668"
-  "\u65B9\u5411": 4
+  "\u65B9\u5411": 2
   "\u4E1C\u897F\u5357\u5317\u57FA\u51C6": 0
-  "\u65B9\u5411\u6FC0\u70C8\u7A0B\u5EA6": 2.21
-  "\u65B9\u5411\u8815\u52A8\u5BC6\u5EA6": 7.7
-  "\u65B9\u5411\u63A8\u8FDB\u901F\u5EA6": 2.64
-  "\u6A2A\u5207\u6495\u626F": 2.35
+  "\u65B9\u5411\u6FC0\u70C8\u7A0B\u5EA6": 0.62
+  "\u65B9\u5411\u8815\u52A8\u5BC6\u5EA6": 11.9
+  "\u65B9\u5411\u63A8\u8FDB\u901F\u5EA6": 3.06
+  "\u6A2A\u5207\u6495\u626F": 1.99
 --- !u!1 &3909939328576077009
 GameObject:
   m_ObjectHideFlags: 0

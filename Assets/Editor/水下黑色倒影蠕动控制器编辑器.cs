@@ -31,7 +31,7 @@ public sealed class 水下黑色倒影蠕动控制器编辑器 : Editor
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.LabelField("流向", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(方向, new GUIContent("蠕动方向", "无方向就是原本适合平静水下的蠕动。东、南、西、北会叠加更激烈的方向流动。"));
-        EditorGUILayout.PropertyField(东西南北基准, new GUIContent("东西南北基准", "战斗摄像机投影会使用48.6、45度视角下的横纵方向，和黑色尖条流动粒子系统一致。"));
+        EditorGUILayout.PropertyField(东西南北基准, new GUIContent("东西南北基准", "战斗摄像机投影会使用48.6、45度视角下的横纵方向，对齐地图格子的东南西北。"));
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("激流参数", EditorStyles.boldLabel);
