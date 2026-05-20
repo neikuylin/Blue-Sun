@@ -82,7 +82,7 @@ internal sealed class 战斗探索移动服务
 
         if (!unit.IsMoving)
         {
-            List<Vector2Int> path = grid.FindPathIgnoringAllies(unit, resolvedDestination);
+            List<Vector2Int> path = grid.FindExplorationPath(unit, resolvedDestination);
             if (path == null || path.Count <= 1)
             {
                 return false;
@@ -93,8 +93,8 @@ internal sealed class 战斗探索移动服务
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
         bool redirected = unit.IsMoving;
         float moveDuration = redirected
-            ? grid.RedirectMovingUnitIgnoringAllies(unit, resolvedDestination)
-            : grid.MoveUnitIgnoringAllies(unit, resolvedDestination);
+            ? grid.RedirectMovingUnitForExploration(unit, resolvedDestination)
+            : grid.MoveUnitForExploration(unit, resolvedDestination);
         unit.moveSpeed = originalMoveSpeed;
         if (moveDuration <= 0f)
         {
@@ -238,12 +238,12 @@ internal sealed class 战斗探索移动服务
             return false;
         }
 
-        if (!grid.IsWalkableIgnoringAllies(unit, coreCell))
+        if (!grid.IsExplorationFootprintInside(unit, coreCell))
         {
             return false;
         }
 
-        path = grid.FindPathIgnoringAllies(unit, coreCell);
+        path = grid.FindExplorationPath(unit, coreCell);
         return path != null && path.Count > 1;
     }
 
@@ -465,12 +465,12 @@ internal sealed class 战斗探索移动服务
                     continue;
                 }
 
-                if (!grid.IsWalkableIgnoringAllies(follower, candidate))
+                if (!grid.IsExplorationFootprintInside(follower, candidate))
                 {
                     continue;
                 }
 
-                List<Vector2Int> path = grid.FindPathIgnoringAllies(follower, candidate);
+                List<Vector2Int> path = grid.FindExplorationPath(follower, candidate);
                 if (path == null || path.Count <= 1)
                 {
                     continue;
@@ -513,7 +513,7 @@ internal sealed class 战斗探索移动服务
 
         float originalMoveSpeed = unit.moveSpeed;
         unit.moveSpeed = Mathf.Max(0.01f, originalMoveSpeed * 0.5f);
-        float moveDuration = grid.MoveUnitIgnoringAllies(unit, destination);
+        float moveDuration = grid.MoveUnitForExploration(unit, destination);
         unit.moveSpeed = originalMoveSpeed;
         if (moveDuration <= 0f)
         {

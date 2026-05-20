@@ -358,6 +358,33 @@ public class BattleGrid : MonoBehaviour
         return MoveUnitAlongResolvedPath(unit, destination, path);
     }
 
+    public float MoveUnitForExploration(BattleUnit unit, Vector2Int destination)
+    {
+        List<Vector2Int> path = FindExplorationPath(unit, destination);
+        return MoveUnitAlongExplorationPath(unit, destination, path);
+    }
+
+    public float RedirectMovingUnitForExploration(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null)
+        {
+            return 0f;
+        }
+
+        Vector2Int currentWorldCell = WorldToCell(unit.transform.position);
+        if (!IsInside(currentWorldCell))
+        {
+            currentWorldCell = unit.currentCell;
+        }
+
+        unit.CancelMovement();
+        SetOccupancy(unit, unit.currentCell, false);
+        unit.currentCell = currentWorldCell;
+
+        List<Vector2Int> path = FindExplorationPath(unit, destination);
+        return MoveUnitAlongExplorationPath(unit, destination, path);
+    }
+
     public float RedirectMovingUnitIgnoringAllies(BattleUnit unit, Vector2Int destination)
     {
         if (unit == null)
@@ -399,6 +426,24 @@ public class BattleGrid : MonoBehaviour
         return unit.MoveAlongPath(worldPositions, destination);
     }
 
+    private float MoveUnitAlongExplorationPath(BattleUnit unit, Vector2Int destination, List<Vector2Int> path)
+    {
+        if (path == null || path.Count == 0)
+        {
+            return 0f;
+        }
+
+        SetOccupancy(unit, unit.currentCell, false);
+
+        List<Vector3> worldPositions = new List<Vector3>();
+        for (int i = 1; i < path.Count; i++)
+        {
+            worldPositions.Add(GetWorldPosition(path[i]));
+        }
+
+        return unit.MoveAlongPath(worldPositions, destination);
+    }
+
     public void RemoveUnit(BattleUnit unit)
     {
         SetOccupancy(unit, unit.currentCell, false);
@@ -424,6 +469,53 @@ public class BattleGrid : MonoBehaviour
     public List<Vector2Int> FindPathIgnoringAllies(BattleUnit unit, Vector2Int destination)
     {
         return FindPathInternal(unit, destination, true);
+    }
+
+    public List<Vector2Int> FindExplorationPath(BattleUnit unit, Vector2Int destination)
+    {
+        if (unit == null || !IsExplorationFootprintInside(unit, destination))
+        {
+            return null;
+        }
+
+        Vector2Int origin = unit.currentCell;
+        if (origin == destination)
+        {
+            return new List<Vector2Int> { origin };
+        }
+
+        Queue<Vector2Int> frontier = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, Vector2Int> cameFrom = new Dictionary<Vector2Int, Vector2Int>();
+        frontier.Enqueue(origin);
+        cameFrom[origin] = origin;
+
+        while (frontier.Count > 0)
+        {
+            Vector2Int current = frontier.Dequeue();
+            for (int i = 0; i < CardinalDirections.Length; i++)
+            {
+                Vector2Int next = current + CardinalDirections[i];
+                if (cameFrom.ContainsKey(next) || !IsExplorationFootprintInside(unit, next))
+                {
+                    continue;
+                }
+
+                cameFrom[next] = current;
+                if (next == destination)
+                {
+                    return BuildPath(cameFrom, origin, destination);
+                }
+
+                frontier.Enqueue(next);
+            }
+        }
+
+        return null;
+    }
+
+    public bool IsExplorationFootprintInside(BattleUnit unit, Vector2Int centerCell)
+    {
+        return IsFootprintInside(unit, centerCell);
     }
 
     private List<Vector2Int> FindPathInternal(BattleUnit unit, Vector2Int destination, bool ignoreAlliedOccupants)
