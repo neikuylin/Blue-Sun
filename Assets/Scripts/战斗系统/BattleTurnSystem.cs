@@ -1209,11 +1209,13 @@ public class BattleTurnSystem : MonoBehaviour
         CleanupDeadUnits();
         while (currentRoundIndex >= 0 && currentRoundIndex < currentRoundOrder.Count)
         {
+            int turnIndexBeforeEffects = currentRoundIndex;
             BattleUnit candidate = currentRoundOrder[currentRoundIndex];
             if (candidate != null && candidate.IsAlive)
             {
                 activeUnit = candidate;
                 FocusCameraOnActiveUnit();
+                List<BattleUnit> roundOrderBeforeEffects = new List<BattleUnit>(currentRoundOrder);
                 effectTurnResolutionService?.处理回合持有效果(
                     activeUnit,
                     units,
@@ -1223,9 +1225,20 @@ public class BattleTurnSystem : MonoBehaviour
                 CleanupDeadUnits();
                 if (activeUnit == null || !activeUnit.IsAlive)
                 {
-                    currentRoundIndex++;
+                    currentRoundIndex = ResolveNextRoundIndexAfterTurnOwnerRemoved(roundOrderBeforeEffects, turnIndexBeforeEffects);
+                    activeUnit = null;
                     continue;
                 }
+
+                int refreshedActiveIndex = currentRoundOrder.IndexOf(activeUnit);
+                if (refreshedActiveIndex < 0)
+                {
+                    currentRoundIndex = ResolveNextRoundIndexAfterTurnOwnerRemoved(roundOrderBeforeEffects, turnIndexBeforeEffects);
+                    activeUnit = null;
+                    continue;
+                }
+
+                currentRoundIndex = refreshedActiveIndex;
                 activeUnit.BeginTurn();
                 ClearActiveSkillMode();
                 RefreshSelectionOutlines();
@@ -1253,6 +1266,31 @@ public class BattleTurnSystem : MonoBehaviour
         StopCameraFollow();
         RefreshActiveUnitUi();
         RefreshTimeline();
+    }
+
+    private int ResolveNextRoundIndexAfterTurnOwnerRemoved(List<BattleUnit> roundOrderBeforeCleanup, int removedTurnIndex)
+    {
+        if (roundOrderBeforeCleanup == null)
+        {
+            return currentRoundOrder.Count;
+        }
+
+        for (int i = removedTurnIndex + 1; i < roundOrderBeforeCleanup.Count; i++)
+        {
+            BattleUnit nextUnit = roundOrderBeforeCleanup[i];
+            if (nextUnit == null || !nextUnit.IsAlive)
+            {
+                continue;
+            }
+
+            int currentIndex = currentRoundOrder.IndexOf(nextUnit);
+            if (currentIndex >= 0)
+            {
+                return currentIndex;
+            }
+        }
+
+        return currentRoundOrder.Count;
     }
 
     private void ReorderRemainingRound()
