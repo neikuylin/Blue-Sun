@@ -10,6 +10,12 @@ Shader "项目/特效/水下黑色倒影蠕动Sprite"
         _HorizontalPull ("横向拉扯", Range(0, 3)) = 1.4
         _VerticalPull ("纵向拉扯", Range(0, 3)) = 0.55
         _EdgeWobble ("边缘扰动", Range(0, 1)) = 0.35
+        [HideInInspector] _DirectionalFlow ("方向蠕动开关", Float) = 0
+        [HideInInspector] _FlowDirection ("方向蠕动向量", Vector) = (0, 0, 0, 0)
+        _DirectionalIntensity ("方向激烈程度", Range(0, 4)) = 1.8
+        _DirectionalWaveScale ("方向蠕动密度", Range(0.1, 20)) = 8
+        _DirectionalSpeed ("方向推进速度", Range(0, 8)) = 2.4
+        _DirectionalSidePull ("横切撕扯", Range(0, 3)) = 1.1
         [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("深度测试", Float) = 8
         [MaterialToggle] PixelSnap ("像素对齐", Float) = 0
     }
@@ -61,6 +67,12 @@ Shader "项目/特效/水下黑色倒影蠕动Sprite"
             float _HorizontalPull;
             float _VerticalPull;
             float _EdgeWobble;
+            float _DirectionalFlow;
+            float4 _FlowDirection;
+            float _DirectionalIntensity;
+            float _DirectionalWaveScale;
+            float _DirectionalSpeed;
+            float _DirectionalSidePull;
 
             v2f vert(appdata_t input)
             {
@@ -110,6 +122,28 @@ Shader "项目/特效/水下黑色倒影蠕动Sprite"
                 float2 offset = float2(
                     horizontal * _HorizontalPull,
                     vertical * _VerticalPull) * _DistortStrength * edgeWeight;
+
+                if (_DirectionalFlow > 0.5)
+                {
+                    float2 flowDirection = _FlowDirection.xy / max(length(_FlowDirection.xy), 0.0001);
+                    float2 sideDirection = float2(-flowDirection.y, flowDirection.x);
+                    float2 centeredUv = uv - 0.5;
+                    float mainAxis = dot(centeredUv, flowDirection);
+                    float sideAxis = dot(centeredUv, sideDirection);
+                    float directionalTime = _Time.y * _DirectionalSpeed;
+                    float waveScale = max(0.001, _DirectionalWaveScale);
+
+                    float sweep = sin((mainAxis * waveScale - directionalTime) * 6.2831853);
+                    float sideWave = ValueNoise(float2(sideAxis * waveScale * 1.7, directionalTime * 0.85)) * 2 - 1;
+                    float brokenWave = ValueNoise(float2(mainAxis * waveScale + directionalTime * 0.42, sideAxis * waveScale)) * 2 - 1;
+                    float directionalWeight = 0.65 + 0.35 * abs(sweep);
+
+                    float2 directionalOffset =
+                        flowDirection * (sweep * 0.7 + brokenWave * 0.45) +
+                        sideDirection * sideWave * _DirectionalSidePull;
+
+                    offset += directionalOffset * _DistortStrength * _DirectionalIntensity * edgeWeight * directionalWeight;
+                }
 
                 fixed4 texColor = tex2D(_MainTex, uv + offset);
                 texColor *= input.color;
