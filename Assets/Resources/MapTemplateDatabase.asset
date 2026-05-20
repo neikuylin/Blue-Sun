@@ -21,17 +21,17 @@ MonoBehaviour:
       position: {x: 771, y: 86.20001}
       roomTypeId: encounter_battle
       encounterPresetId: "\u521D\u59CB\u5730boss"
-      battleGridTemplateId: "\u51FA\u751F\u5730"
+      battleGridTemplateId: "\u51FA\u751F\u5730BOSS\u623F"
       connections:
       - targetNodeId: node_1
         direction: 2
       nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
-      position: {x: 650, y: 159.19998}
+      position: {x: 654.8, y: 158.4}
       roomTypeId: chest
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
-      battleGridTemplateId: "\u6D4B\u8BD5\u7528"
+      battleGridTemplateId: "\u5730\u7262\u5BC6\u5BA4"
       connections:
       - targetNodeId: node_3
         direction: 0
@@ -42,7 +42,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: node_2
       displayName: node_2
-      position: {x: 531.4, y: 241.80002}
+      position: {x: 532.2, y: 241.80002}
       roomTypeId: encounter_battle
       encounterPresetId: 
       battleGridTemplateId: 
@@ -52,7 +52,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 769.6, y: 246}
+      position: {x: 771.19995, y: 242}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u796D\u7940\u623F"

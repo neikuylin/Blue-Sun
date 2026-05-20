@@ -1105,12 +1105,25 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         if (group.生成类型 == 宝箱内容数据库.宝箱物品生成类型.随机物品)
         {
-            if (!TryResolveRandomChestGroupItem(chestSerial, itemDatabase, group, out 宝箱内容数据库.宝箱物品条目 itemRule, out ItemDatabase.ItemEntry itemEntry))
+            for (int i = 0; i < group.物品列表.Count; i++)
             {
-                return;
+                宝箱内容数据库.宝箱物品条目 itemRule = group.物品列表[i];
+                if (itemRule == null || UnityEngine.Random.value > Mathf.Clamp01(itemRule.出现概率))
+                {
+                    continue;
+                }
+
+                if (!TryResolveChestGroupItem(chestSerial, itemDatabase, itemRule, i, out ItemDatabase.ItemEntry itemEntry))
+                {
+                    return;
+                }
+
+                if (!TryPlaceChestRuleItem(chestSerial, itemEntry, itemRule.数量, chestData))
+                {
+                    return;
+                }
             }
 
-            TryPlaceChestRuleItem(chestSerial, itemEntry, itemRule.数量, chestData);
             return;
         }
 
@@ -1127,47 +1140,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 return;
             }
         }
-    }
-
-    private bool TryResolveRandomChestGroupItem(
-        int chestSerial,
-        ItemDatabase itemDatabase,
-        宝箱内容数据库.宝箱内容组 group,
-        out 宝箱内容数据库.宝箱物品条目 itemRule,
-        out ItemDatabase.ItemEntry itemEntry)
-    {
-        itemRule = null;
-        itemEntry = null;
-        List<宝箱内容数据库.宝箱物品条目> validRules = new List<宝箱内容数据库.宝箱物品条目>();
-        List<ItemDatabase.ItemEntry> validItems = new List<ItemDatabase.ItemEntry>();
-        for (int i = 0; i < group.物品列表.Count; i++)
-        {
-            宝箱内容数据库.宝箱物品条目 currentRule = group.物品列表[i];
-            if (currentRule == null)
-            {
-                continue;
-            }
-
-            ItemDatabase.ItemEntry currentItem = itemDatabase.FindEntry(currentRule.物品ID);
-            if (currentItem == null)
-            {
-                continue;
-            }
-
-            validRules.Add(currentRule);
-            validItems.Add(currentItem);
-        }
-
-        if (validItems.Count == 0)
-        {
-            Debug.LogWarning($"[宝箱内容] 宝箱 {chestSerial} 生成中断：随机内容组没有可用物品：{group.内容组ID}");
-            return false;
-        }
-
-        int index = UnityEngine.Random.Range(0, validItems.Count);
-        itemRule = validRules[index];
-        itemEntry = validItems[index];
-        return true;
     }
 
     private bool TryResolveChestGroupItem(

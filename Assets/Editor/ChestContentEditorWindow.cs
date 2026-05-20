@@ -189,7 +189,7 @@ public sealed class ChestContentEditorWindow : EditorWindow
             }
             else
             {
-                EditorGUILayout.HelpBox("随机物品：从下方有效物品里随机抽一个生成。", MessageType.Info);
+                EditorGUILayout.HelpBox("随机物品：按下方列表逐个判定出现概率，0 不出现，1 必定出现。", MessageType.Info);
             }
 
             DrawItemList(group);
@@ -251,10 +251,14 @@ public sealed class ChestContentEditorWindow : EditorWindow
                     }
                 }
 
-                item.分类筛选 = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
-                    "分类",
-                    (int)item.分类筛选,
-                    ItemEditorLabels.CategoryLabels);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    item.分类筛选 = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
+                        "分类",
+                        (int)item.分类筛选,
+                        ItemEditorLabels.CategoryLabels);
+                    item.出现概率 = Mathf.Clamp01(EditorGUILayout.FloatField("出现概率", item.出现概率, GUILayout.Width(220f)));
+                }
 
                 List<ItemDatabase.ItemEntry> options = GetFilteredItems(item.分类筛选);
                 int selectedIndex = FindOptionIndex(item.物品ID, options);

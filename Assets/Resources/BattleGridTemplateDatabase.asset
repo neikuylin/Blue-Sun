@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: BattleGridTemplateDatabase
   m_EditorClassIdentifier: 
   entries:
-  - templateId: "\u51FA\u751F\u5730"
-    displayName: "\u51FA\u751F\u5730"
+  - templateId: "\u51FA\u751F\u5730BOSS\u623F"
+    displayName: "\u51FA\u751F\u5730BOSS\u623F"
     width: 20
     height: 20
     walkableCells:
@@ -878,7 +878,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 1
-      chestContentGroupId: 
+      chestContentGroupId: "\u53D7\u5BB3\u8005\u88C5\u5907\u7BB1"
       triggerCells:
       - x: 12
         y: 11
@@ -1016,8 +1016,8 @@ MonoBehaviour:
     northDoorEntranceCell:
       x: 0
       y: 0
-  - templateId: "\u6D4B\u8BD5\u7528"
-    displayName: "\u6D4B\u8BD5\u7528"
+  - templateId: "\u5730\u7262\u5BC6\u5BA4"
+    displayName: "\u5730\u7262\u5BC6\u5BA4"
     width: 20
     height: 20
     walkableCells:
@@ -1846,7 +1846,7 @@ MonoBehaviour:
       alignToBattleCamera: 1
       blocksMovement: 1
       isTriggerable: 1
-      chestContentGroupId: "\u53D7\u5BB3\u8005\u88C5\u5907\u7BB1"
+      chestContentGroupId: "\u6728\u7BB1\u6218\u5229\u54C1"
       triggerCells:
       - x: 8
         y: 12

@@ -284,6 +284,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u5B9D\u7BB1\u63A7\u5236\u5668"
   "\u5B9D\u7BB1\u5E8F\u5217\u53F7": 0
+  "\u5B9D\u7BB1\u5185\u5BB9\u7EC4ID": 
   "\u5B9D\u7BB1\u5185\u5BB9\u8DEF\u5F84": "Canvas/\u5B9D\u7BB1\u5185\u5BB9"
   "\u52A8\u753B\u5668": {fileID: 8418767190596628019}
   "\u6253\u5F00\u52A8\u753B\u89E6\u53D1\u5668": "\u6253\u5F00"

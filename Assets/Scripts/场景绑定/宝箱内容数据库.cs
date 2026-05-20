@@ -18,6 +18,7 @@ public sealed class 宝箱内容数据库 : ScriptableObject
     {
         public ItemDatabase.ItemCategory 分类筛选 = ItemDatabase.ItemCategory.Equipment;
         public string 物品ID = string.Empty;
+        public float 出现概率 = 1f;
         public int 数量 = 1;
     }
 
