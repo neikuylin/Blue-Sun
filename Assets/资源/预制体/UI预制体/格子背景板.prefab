@@ -86,6 +86,7 @@ GameObject:
   - component: {fileID: 8668151135220617724}
   - component: {fileID: 8216852701056302644}
   - component: {fileID: 1256410615300865964}
+  - component: {fileID: 4799957730886058679}
   m_Layer: 5
   m_Name: "\u683C\u5B50\u80CC\u666F\u677F"
   m_TagString: Untagged
@@ -152,6 +153,27 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &4799957730886058679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1188691713884105750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a6e96b3a6c4e34994d4efc978c2f51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u683C\u5B50\u80CC\u666F\u677F\u7C7B\u578B\u663E\u793A"
+  "\u7C7B\u578B\u6587\u5B57\u5BF9\u8C61": {fileID: 9117906505483721353}
+  "\u683C\u5B50\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
+  "\u6280\u80FD\u4ED3\u5E93\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
+  "\u5C5E\u6027\u5165\u53E3\u5BF9\u8C61": {fileID: 0}
+  "\u4ED3\u5E93\u56FE\u7247\u5BF9\u8C61": {fileID: 6954061581417906070}
+  "\u6280\u80FD\u4ED3\u5E93\u56FE\u7247\u5BF9\u8C61": {fileID: 2759454500333664161}
+  "\u5C5E\u6027\u56FE\u7247\u5BF9\u8C61": {fileID: 9035106185947981197}
+  "\u80CC\u5305\u56FE\u7247\u5BF9\u8C61": {fileID: 6612003927846077053}
+  "\u5B9D\u7BB1\u56FE\u7247\u5BF9\u8C61": {fileID: 1030698044539045832}
 --- !u!1 &2759454500333664161
 GameObject:
   m_ObjectHideFlags: 0

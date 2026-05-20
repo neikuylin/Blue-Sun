@@ -19,6 +19,24 @@ public sealed class Toggle目标显隐 : MonoBehaviour
     private bool 已有上次应用状态;
     private bool 上次应用状态;
 
+    public GameObject 获取首个正向目标()
+    {
+        if (目标物体 != null)
+        {
+            return 目标物体;
+        }
+
+        for (int i = 0; i < 额外目标物体.Count; i++)
+        {
+            if (额外目标物体[i] != null)
+            {
+                return 额外目标物体[i];
+            }
+        }
+
+        return null;
+    }
+
     private void Awake()
     {
         if (控制Toggle == null)
