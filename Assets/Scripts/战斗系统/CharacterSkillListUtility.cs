@@ -85,18 +85,17 @@ public static class CharacterSkillListUtility
         }
 
         List<DisplaySkillEntry> result = new List<DisplaySkillEntry>();
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
 
         List<string> grantedSkills = BuildGrantedSkillIds(characterId);
         for (int i = 0; i < grantedSkills.Count; i++)
         {
-            TryAddDisplaySkill(result, seen, grantedSkills[i], true);
+            TryAddDisplaySkill(result, grantedSkills[i], true);
         }
 
         List<string> memorizedSkills = BuildMemorizedSkillIds(characterId);
         for (int i = 0; i < memorizedSkills.Count; i++)
         {
-            TryAddDisplaySkill(result, seen, memorizedSkills[i], false);
+            TryAddDisplaySkill(result, memorizedSkills[i], false);
         }
 
         return result;
@@ -120,6 +119,16 @@ public static class CharacterSkillListUtility
     private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, HashSet<string> seen, string skillId, bool isGranted)
     {
         if (target == null || string.IsNullOrWhiteSpace(skillId) || seen == null || !seen.Add(skillId))
+        {
+            return;
+        }
+
+        target.Add(new DisplaySkillEntry(skillId, isGranted));
+    }
+
+    private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, string skillId, bool isGranted)
+    {
+        if (target == null || string.IsNullOrWhiteSpace(skillId))
         {
             return;
         }
