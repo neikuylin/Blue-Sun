@@ -152,6 +152,11 @@ internal sealed class 战斗技能表现服务
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
         Quaternion previousRotation = caster.transform.rotation;
         float actionYawOffset = resolveActionYawOffset != null ? resolveActionYawOffset(skill, caster) : 0f;
+        if (当前动作来源武器在副手 && string.Equals(actionStateName, "单手武器普通攻击", StringComparison.Ordinal))
+        {
+            actionYawOffset = -actionYawOffset;
+        }
+
         if (Mathf.Abs(actionYawOffset) > 0.01f)
         {
             caster.transform.rotation = previousRotation * Quaternion.Euler(0f, actionYawOffset, 0f);
