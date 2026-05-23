@@ -2332,7 +2332,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
                     (source, destination, skillEntry) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry)
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, activeSkillSource)
                         : null,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,
@@ -2373,7 +2373,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
                     (source, destination, skillEntry) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry)
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, activeSkillSource)
                         : null,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,

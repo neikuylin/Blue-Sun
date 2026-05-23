@@ -12,7 +12,7 @@ internal sealed class 战斗技能基础结算服务
         this.maxHitChancePercent = maxHitChancePercent;
     }
 
-    public CombatDamageResult 计算技能伤害(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    public CombatDamageResult 计算技能伤害(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill, string skillSource = null)
     {
         if (skill == null)
         {
@@ -22,7 +22,7 @@ internal sealed class 战斗技能基础结算服务
         switch (skill.group)
         {
             case BattleSkillDatabase.SkillGroup.CombatArt:
-                return 计算战技伤害(caster, target, skill);
+                return 计算战技伤害(caster, target, skill, skillSource);
             case BattleSkillDatabase.SkillGroup.Spell:
                 return 计算法术伤害(caster, target, skill);
             default:
@@ -30,14 +30,14 @@ internal sealed class 战斗技能基础结算服务
         }
     }
 
-    public CombatDamageResult 计算战技伤害(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    public CombatDamageResult 计算战技伤害(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill, string skillSource)
     {
         if (caster == null || target == null || skill == null)
         {
             return null;
         }
 
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId);
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId, skillSource);
         if (attackPower <= 0f)
         {
             return null;
@@ -50,15 +50,15 @@ internal sealed class 战斗技能基础结算服务
         }
 
         CombatDamageResult result = new CombatDamageResult();
-        int totalCriticalChance = caster.CriticalChance + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(caster.characterId);
-        int totalCriticalDamage = caster.CriticalDamage + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(caster.characterId);
+        int totalCriticalChance = caster.CriticalChance + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalChanceBonus(caster.characterId, skillSource);
+        int totalCriticalDamage = caster.CriticalDamage + InventoryShortcutRuntimeBinder.GetCharacterWeaponCriticalDamageBonus(caster.characterId, skillSource);
         result.isCritical = 判定暴击(totalCriticalChance);
         if (result.isCritical)
         {
             damage *= Mathf.Max(0f, totalCriticalDamage) / 100f;
         }
 
-        构建伤害分量(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId), caster, target);
+        构建伤害分量(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId, skillSource), caster, target, skillSource);
         for (int i = 0; i < result.components.Count; i++)
         {
             result.totalDamage += result.components[i].amount;
@@ -255,7 +255,7 @@ internal sealed class 战斗技能基础结算服务
             : effectEntry.effectId;
     }
 
-    public static float 应用抗性(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType)
+    public static float 应用抗性(float damage, BattleUnit caster, BattleUnit target, DamageAttributeType attributeType, string skillSource = null)
     {
         if (damage <= 0f)
         {
@@ -263,7 +263,7 @@ internal sealed class 战斗技能基础结算服务
         }
 
         int resistance = 解析抗性(target, attributeType);
-        int penetration = 解析抗性穿透(caster, attributeType);
+        int penetration = 解析抗性穿透(caster, attributeType, skillSource);
         int finalResistance = Mathf.Max(0, resistance - penetration);
         float multiplier = 1f - (Mathf.Clamp(finalResistance, 0, 100) / 100f);
         return Mathf.Max(0f, damage * multiplier);
@@ -290,7 +290,8 @@ internal sealed class 战斗技能基础结算服务
         float totalDamage,
         ItemDatabase.WeaponDamageDistribution distribution,
         BattleUnit caster,
-        BattleUnit target)
+        BattleUnit target,
+        string skillSource = null)
     {
         components.Clear();
         if (totalDamage <= 0f || distribution == null)
@@ -304,10 +305,10 @@ internal sealed class 战斗技能基础结算服务
             return;
         }
 
-        添加伤害分量(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target);
-        添加伤害分量(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target);
-        添加伤害分量(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target);
-        添加伤害分量(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target);
+        添加伤害分量(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target, skillSource);
     }
 
     private void 添加伤害分量(
@@ -317,7 +318,8 @@ internal sealed class 战斗技能基础结算服务
         int distributionValue,
         int distributionTotal,
         BattleUnit caster,
-        BattleUnit target)
+        BattleUnit target,
+        string skillSource = null)
     {
         if (components == null || totalDamage <= 0f || distributionValue <= 0 || distributionTotal <= 0)
         {
@@ -325,7 +327,7 @@ internal sealed class 战斗技能基础结算服务
         }
 
         float baseAmount = totalDamage * distributionValue / distributionTotal;
-        float mitigatedAmount = 应用抗性(baseAmount, caster, target, attributeType);
+        float mitigatedAmount = 应用抗性(baseAmount, caster, target, attributeType, skillSource);
         if (mitigatedAmount <= 0f)
         {
             return;
@@ -376,7 +378,7 @@ internal sealed class 战斗技能基础结算服务
         }
     }
 
-    private static int 解析抗性穿透(BattleUnit caster, DamageAttributeType attributeType)
+    private static int 解析抗性穿透(BattleUnit caster, DamageAttributeType attributeType, string skillSource)
     {
         if (caster == null)
         {
@@ -405,7 +407,10 @@ internal sealed class 战斗技能基础结算服务
                 break;
         }
 
-        return basePenetration + InventoryShortcutRuntimeBinder.GetCharacterWeaponResistancePenetration(caster.characterId, resistanceType);
+        int weaponPenetration = skillSource == null
+            ? InventoryShortcutRuntimeBinder.GetCharacterWeaponResistancePenetration(caster.characterId, resistanceType)
+            : InventoryShortcutRuntimeBinder.GetCharacterWeaponResistancePenetration(caster.characterId, skillSource, resistanceType);
+        return basePenetration + weaponPenetration;
     }
 
     private static int 解析抗性(BattleUnit target, DamageAttributeType attributeType)

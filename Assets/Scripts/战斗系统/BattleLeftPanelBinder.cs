@@ -23,6 +23,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         public RectTransform root;
         public Image skillIcon;
         public string skillId;
+        public string skillSource;
         public SkillHoverRelay hoverRelay;
     }
 
@@ -224,13 +225,17 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return;
         }
 
-        List<string> skillIds = CharacterSkillListUtility.BuildSkillIds(currentCharacterId);
+        List<CharacterSkillListUtility.DisplaySkillEntry> skillEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
         for (int i = 0; i < skillSlots.Count; i++)
         {
-            string skillId = i < skillIds.Count ? skillIds[i] : string.Empty;
+            CharacterSkillListUtility.DisplaySkillEntry skillEntry = i < skillEntries.Count
+                ? skillEntries[i]
+                : default;
+            string skillId = skillEntry.SkillId;
             Sprite icon = ResolveSkillIcon(skillId);
             SkillSlotWidget widget = skillSlots[i];
             widget.skillId = skillId;
+            widget.skillSource = skillEntry.SkillSource;
             EnsureHoverRelay(widget, i);
             Image target = widget.skillIcon;
             if (target == null)
@@ -270,7 +275,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             return;
         }
 
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId, widget.skillSource);
         float multiplier = Mathf.Max(0f, entry.damageMultiplier);
         SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
         {

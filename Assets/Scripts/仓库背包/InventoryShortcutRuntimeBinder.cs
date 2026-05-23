@@ -2193,6 +2193,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return attackPower > 0f ? attackPower : CharacterSelectionState.GetCapturedWeaponAttackPower(characterId);
     }
 
+    public static float GetCharacterWeaponAttackPower(string characterId, string sourceItemId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return 0f;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取来源武器攻击力(characterId, equipment, ResolveItemEntry, sourceItemId);
+    }
+
     public static ItemDatabase.WeaponDamageDistribution GetCharacterWeaponDamageDistribution(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
@@ -2202,6 +2213,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
         return 装备数值服务.获取角色武器伤害分布(equipment, ResolveItemEntry);
+    }
+
+    public static ItemDatabase.WeaponDamageDistribution GetCharacterWeaponDamageDistribution(string characterId, string sourceItemId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return null;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取来源武器伤害分布(equipment, ResolveItemEntry, sourceItemId);
     }
 
     public static int GetCharacterWeaponCriticalChanceBonus(string characterId)
@@ -2215,6 +2237,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.获取角色武器暴击率加成(equipment, ResolveItemEntry);
     }
 
+    public static int GetCharacterWeaponCriticalChanceBonus(string characterId, string sourceItemId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return 0;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取来源武器暴击率加成(equipment, ResolveItemEntry, sourceItemId);
+    }
+
     public static int GetCharacterWeaponCriticalDamageBonus(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
@@ -2226,6 +2259,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.获取角色武器暴击伤害加成(equipment, ResolveItemEntry);
     }
 
+    public static int GetCharacterWeaponCriticalDamageBonus(string characterId, string sourceItemId)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return 0;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取来源武器暴击伤害加成(equipment, ResolveItemEntry, sourceItemId);
+    }
+
     public static int GetCharacterWeaponResistancePenetration(string characterId, ItemDatabase.ResistanceModifierType resistanceType)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
@@ -2235,6 +2279,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
         return 装备数值服务.获取角色武器抗性穿透(equipment, ResolveItemEntry, resistanceType);
+    }
+
+    public static int GetCharacterWeaponResistancePenetration(string characterId, string sourceItemId, ItemDatabase.ResistanceModifierType resistanceType)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return 0;
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.获取来源武器抗性穿透(equipment, ResolveItemEntry, sourceItemId, resistanceType);
     }
 
     public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)

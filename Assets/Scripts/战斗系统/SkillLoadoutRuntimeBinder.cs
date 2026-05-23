@@ -32,6 +32,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         public Image skillIcon;
         public Image grantedCornerMarker;
         public string skillId;
+        public string skillSource;
         public bool isGranted;
         public int slotIndex = -1;
         public SlotSurface surface;
@@ -283,8 +284,8 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
     private void RefreshJourneySkillSlots()
     {
         CharacterSkillLoadoutDatabase.CharacterSkillEntry entry = ResolveLoadoutEntry(currentCharacterId);
-        List<string> grantedSkillIds = CharacterSkillListUtility.BuildGrantedSkillIds(currentCharacterId);
-        int grantedSkillCount = grantedSkillIds.Count;
+        List<CharacterSkillListUtility.DisplaySkillEntry> grantedSkillEntries = CharacterSkillListUtility.BuildDisplaySkillEntries(currentCharacterId);
+        int grantedSkillCount = CountGrantedSkills(grantedSkillEntries);
         int memorizedSlotCapacity = ResolveVisibleSkillMemorySlotCount(currentCharacterId);
         int visibleSlotCount = grantedSkillCount + memorizedSlotCapacity;
         EnsureJourneySkillSlotCapacity(grantedSkillCount, memorizedSlotCapacity);
@@ -306,9 +307,14 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             bool isGrantedSlot = shouldDisplay && i < grantedSkillCount;
             int memorizedIndex = i - grantedSkillCount;
             string skillId = string.Empty;
+            string skillSource = string.Empty;
             if (isGrantedSlot)
             {
-                skillId = i < grantedSkillIds.Count ? grantedSkillIds[i] : string.Empty;
+                CharacterSkillListUtility.DisplaySkillEntry grantedSkill = i < grantedSkillEntries.Count
+                    ? grantedSkillEntries[i]
+                    : default;
+                skillId = grantedSkill.SkillId;
+                skillSource = grantedSkill.SkillSource;
             }
             else if (shouldDisplay && memorizedIndex >= 0 && entry != null && entry.memorizedSkillIds != null && memorizedIndex < entry.memorizedSkillIds.Count)
             {
@@ -316,6 +322,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             }
 
             widget.skillId = skillId;
+            widget.skillSource = skillSource;
             widget.isGranted = isGrantedSlot;
             widget.slotIndex = isGrantedSlot ? -1 : memorizedIndex;
 
@@ -349,6 +356,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
                 ? entry.warehouseSkillIds[i]
                 : string.Empty;
             widget.skillId = skillId;
+            widget.skillSource = string.Empty;
             widget.isGranted = false;
             widget.slotIndex = i;
 
@@ -391,7 +399,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             return;
         }
 
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId);
+        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(currentCharacterId, widget.skillSource);
         float multiplier = Mathf.Max(0f, entry.damageMultiplier);
         SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
         {

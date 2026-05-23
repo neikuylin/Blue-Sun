@@ -37,11 +37,53 @@ internal static class 装备数值服务
         return weaponEntry != null ? 计算武器攻击力(weaponEntry, statEntry) : 0f;
     }
 
+    public static float 获取来源武器攻击力(
+        string characterId,
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || equipment == null || equipment.Count == 0 || resolveItemEntry == null || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return 0f;
+        }
+
+        CharacterStatDatabase statDatabase = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry statEntry = statDatabase != null ? statDatabase.FindEntry(characterId) : null;
+        if (statEntry == null)
+        {
+            return 0f;
+        }
+
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
+        return weaponEntry != null ? 计算武器攻击力(weaponEntry, statEntry) : 0f;
+    }
+
     public static ItemDatabase.WeaponDamageDistribution 获取角色武器伤害分布(
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
         Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
     {
         ItemDatabase.ItemEntry weaponEntry = 获取最佳武器条目(equipment, resolveItemEntry);
+        if (weaponEntry == null)
+        {
+            return null;
+        }
+
+        if (!武器伤害分布有效(weaponEntry))
+        {
+            Debug.LogWarning($"[物品数据警告] 武器伤害分布未配置或总和不合法：{weaponEntry.itemId}");
+            return null;
+        }
+
+        return 克隆武器伤害分布(weaponEntry.weaponDamageDistribution);
+    }
+
+    public static ItemDatabase.WeaponDamageDistribution 获取来源武器伤害分布(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
         if (weaponEntry == null)
         {
             return null;
@@ -64,11 +106,29 @@ internal static class 装备数值服务
         return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalChanceBonus) : 0;
     }
 
+    public static int 获取来源武器暴击率加成(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
+        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalChanceBonus) : 0;
+    }
+
     public static int 获取角色武器暴击伤害加成(
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
         Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
     {
         ItemDatabase.ItemEntry weaponEntry = 获取最佳武器条目(equipment, resolveItemEntry);
+        return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalDamageBonus) : 0;
+    }
+
+    public static int 获取来源武器暴击伤害加成(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
         return weaponEntry != null ? Mathf.Max(0, weaponEntry.criticalDamageBonus) : 0;
     }
 
@@ -78,6 +138,33 @@ internal static class 装备数值服务
         ItemDatabase.ResistanceModifierType resistanceType)
     {
         ItemDatabase.ItemEntry weaponEntry = 获取最佳武器条目(equipment, resolveItemEntry);
+        if (weaponEntry == null || weaponEntry.weaponResistancePenetrations == null)
+        {
+            return 0;
+        }
+
+        int total = 0;
+        for (int i = 0; i < weaponEntry.weaponResistancePenetrations.Count; i++)
+        {
+            ItemDatabase.WeaponResistancePenetrationEntry entry = weaponEntry.weaponResistancePenetrations[i];
+            if (entry == null || entry.resistanceType != resistanceType)
+            {
+                continue;
+            }
+
+            total += Mathf.Max(0, entry.value);
+        }
+
+        return total;
+    }
+
+    public static int 获取来源武器抗性穿透(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId,
+        ItemDatabase.ResistanceModifierType resistanceType)
+    {
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
         if (weaponEntry == null || weaponEntry.weaponResistancePenetrations == null)
         {
             return 0;
@@ -243,6 +330,31 @@ internal static class 装备数值服务
         }
 
         return weaponEntry;
+    }
+
+    public static ItemDatabase.ItemEntry 获取来源武器条目(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        if (equipment == null || resolveItemEntry == null || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return null;
+        }
+
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            InventoryShortcutRuntimeBinder.ItemSlotData slot = equipment[i];
+            if (slot.isFootprintExtension || !string.Equals(slot.itemId, sourceItemId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry entry = resolveItemEntry(slot.itemId);
+            return 是攻击力武器条目(entry) ? entry : null;
+        }
+
+        return null;
     }
 
     public static ItemDatabase.WeaponDamageDistribution 克隆武器伤害分布(ItemDatabase.WeaponDamageDistribution distribution)
