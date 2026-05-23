@@ -1,5 +1,4 @@
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,12 +21,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
     private static SkillTooltipRuntime instance;
 
     private RectTransform tooltipRoot;
-    private Image iconImage;
-    private TMP_Text nameText;
-    private TMP_Text hitRateText;
-    private TMP_Text damageText;
-    private TMP_Text descriptionText;
-    private TMP_Text ownerText;
+    private 战技内容视图 tooltipView;
     private GameObject runtimeTooltipInstance;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -77,6 +71,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
     private void BindScene()
     {
         tooltipRoot = null;
+        tooltipView = null;
         EnsureTooltipInstance();
         CacheTooltipBindings();
         HideInternal();
@@ -107,6 +102,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         DisableRaycasts(runtimeTooltipInstance);
         runtimeTooltipInstance.SetActive(false);
         tooltipRoot = runtimeTooltipInstance.transform as RectTransform;
+        tooltipView = runtimeTooltipInstance.GetComponent<战技内容视图>();
     }
 
     private void CacheTooltipBindings()
@@ -116,18 +112,11 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
             return;
         }
 
-        iconImage = FindImageInRoot(tooltipRoot, "战技图标", "技能图标", "物品图标");
-        Transform textRoot = FindChildByName(tooltipRoot, "文本区域") ?? FindDescendantByName(tooltipRoot, "文本区域");
-        if (textRoot == null)
+        tooltipView = tooltipRoot.GetComponent<战技内容视图>();
+        if (tooltipView == null)
         {
-            textRoot = tooltipRoot;
+            Debug.LogWarning("战技内容预制体缺少组件：战技内容视图。");
         }
-
-        nameText = FindTextInRoot(textRoot, "战技名字", "技能名字");
-        hitRateText = FindTextInRoot(textRoot, "命中率");
-        damageText = FindTextInRoot(textRoot, "战技伤害", "技能伤害");
-        descriptionText = FindTextInRoot(textRoot, "战技描述", "技能描述");
-        ownerText = FindTextInRoot(textRoot, "使用者", "战技使用者", "技能使用者");
     }
 
     private void ShowInternal(Snapshot snapshot)
@@ -139,36 +128,13 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
             return;
         }
 
-        if (iconImage != null)
+        if (tooltipView == null)
         {
-            iconImage.sprite = snapshot.icon;
-            iconImage.enabled = snapshot.icon != null;
+            Debug.LogWarning("战技内容无法显示：缺少战技内容视图。");
+            return;
         }
 
-        if (nameText != null)
-        {
-            nameText.text = snapshot.displayName ?? string.Empty;
-        }
-
-        if (hitRateText != null)
-        {
-            hitRateText.text = $"命中率：{Mathf.Max(0, snapshot.hitRate)}%";
-        }
-
-        if (damageText != null)
-        {
-            damageText.text = $"战技伤害：{snapshot.damage}";
-        }
-
-        if (descriptionText != null)
-        {
-            descriptionText.text = snapshot.description ?? string.Empty;
-        }
-
-        if (ownerText != null)
-        {
-            ownerText.text = $"使用者：{snapshot.ownerCharacterId}";
-        }
+        tooltipView.刷新(snapshot);
 
         PositionTooltip();
         tooltipRoot.gameObject.SetActive(true);
@@ -219,100 +185,6 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
 
         Canvas canvas = FindObjectOfType<Canvas>(true);
         return canvas != null ? canvas.transform : null;
-    }
-
-    private static Image FindImageInRoot(Transform root, params string[] names)
-    {
-        if (root == null || names == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < names.Length; i++)
-        {
-            Transform target = FindChildByName(root, names[i]) ?? FindDescendantByName(root, names[i]);
-            if (target == null)
-            {
-                continue;
-            }
-
-            Image image = target.GetComponent<Image>();
-            if (image != null)
-            {
-                return image;
-            }
-        }
-
-        return null;
-    }
-
-    private static TMP_Text FindTextInRoot(Transform root, params string[] names)
-    {
-        if (root == null || names == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < names.Length; i++)
-        {
-            Transform target = FindChildByName(root, names[i]) ?? FindDescendantByName(root, names[i]);
-            if (target == null)
-            {
-                continue;
-            }
-
-            TMP_Text text = target.GetComponent<TMP_Text>();
-            if (text != null)
-            {
-                return text;
-            }
-        }
-
-        return null;
-    }
-
-    private static Transform FindChildByName(Transform parent, string targetName)
-    {
-        return SceneHierarchyPathUtility.FindDirectChildByName(parent, targetName);
-    }
-
-    private static Transform FindDescendantByName(Transform parent, string targetName)
-    {
-        if (parent == null || string.IsNullOrWhiteSpace(targetName))
-        {
-            return null;
-        }
-
-        for (int i = 0; i < parent.childCount; i++)
-        {
-            Transform child = parent.GetChild(i);
-            if (child == null)
-            {
-                continue;
-            }
-
-            if (string.Equals(child.name, targetName, StringComparison.Ordinal))
-            {
-                return child;
-            }
-        }
-
-        for (int i = 0; i < parent.childCount; i++)
-        {
-            Transform child = parent.GetChild(i);
-            if (child == null)
-            {
-                continue;
-            }
-
-            Transform nested = FindDescendantByName(child, targetName);
-            if (nested != null)
-            {
-                return nested;
-            }
-        }
-
-        return null;
     }
 
     private static void DisableRaycasts(GameObject root)

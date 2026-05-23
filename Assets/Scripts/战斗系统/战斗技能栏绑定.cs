@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class 战斗技能栏绑定 : MonoBehaviour
 {
+    private const float 技能提示延迟秒 = 0.5f;
+
     [SerializeField] private RectTransform 技能格子prefab;
     [SerializeField] private RectTransform 战斗技能栏位;
     [SerializeField] private RectTransform 战斗技能格子区域;
@@ -25,6 +28,29 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         public Image 空图标;
         public string 技能ID = string.Empty;
         public string 技能来源 = string.Empty;
+        public 技能悬停转发 悬停转发;
+    }
+
+    private sealed class 技能悬停转发 : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        private 战斗技能栏绑定 owner;
+        private int index;
+
+        public void 配置(战斗技能栏绑定 绑定, int 格子索引)
+        {
+            owner = 绑定;
+            index = 格子索引;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            owner?.处理技能悬停进入(index);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            owner?.处理技能悬停离开(index, eventData);
+        }
     }
 
     public void 初始化(BattleTurnSystem turnSystem)
@@ -183,6 +209,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             };
 
             刷新技能格显示(格子);
+            确保悬停转发(格子, i);
             int 捕获索引 = i;
             格子.按钮.onClick.RemoveAllListeners();
             格子.按钮.onClick.AddListener(() => 点击技能(捕获索引));
@@ -209,6 +236,64 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         战斗回合系统.ToggleSkillMode(格子.技能ID, 格子.技能来源);
+    }
+
+    private void 处理技能悬停进入(int 索引)
+    {
+        if (索引 < 0 || 索引 >= 已生成格子.Count)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        技能格组件 格子 = 已生成格子[索引];
+        if (格子 == null || 格子.根节点 == null || string.IsNullOrWhiteSpace(格子.技能ID))
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        BattleSkillDatabase.SkillEntry 条目 = 技能数据库 != null ? 技能数据库.FindEntry(格子.技能ID) : null;
+        if (条目 == null ||
+            (条目.group != BattleSkillDatabase.SkillGroup.CombatArt &&
+             条目.group != BattleSkillDatabase.SkillGroup.Spell))
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        float 攻击力 = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(当前角色ID, 格子.技能来源);
+        float 倍率 = Mathf.Max(0f, 条目.damageMultiplier);
+        SkillTooltipRuntime.Snapshot snapshot = new SkillTooltipRuntime.Snapshot
+        {
+            skillId = 格子.技能ID,
+            displayName = 格子.技能ID,
+            description = 条目.description ?? string.Empty,
+            ownerCharacterId = 当前角色ID ?? string.Empty,
+            hitRate = 解析显示命中率(当前角色ID, 条目),
+            damage = Mathf.Max(0, Mathf.RoundToInt(攻击力 * 倍率)),
+            icon = 条目.icon,
+            isEmpty = false
+        };
+
+        HoverTooltipController.BeginHover(
+            HoverTooltipController.HoverCategory.Skill,
+            格子.根节点,
+            技能提示延迟秒,
+            () => SkillTooltipRuntime.Show(snapshot),
+            SkillTooltipRuntime.Hide);
+    }
+
+    private void 处理技能悬停离开(int 索引, PointerEventData eventData)
+    {
+        技能格组件 格子 = 索引 >= 0 && 索引 < 已生成格子.Count ? 已生成格子[索引] : null;
+        if (格子 == null || 格子.根节点 == null)
+        {
+            HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+            return;
+        }
+
+        HoverTooltipController.EndHover(HoverTooltipController.HoverCategory.Skill, 格子.根节点, eventData);
     }
 
     private void 刷新技能格显示(技能格组件 格子)
@@ -258,6 +343,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
 
     private void 清空已生成格子()
     {
+        HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Skill, SkillTooltipRuntime.Hide);
+
         for (int i = 0; i < 已生成格子.Count; i++)
         {
             技能格组件 格子 = 已生成格子[i];
@@ -268,6 +355,34 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         已生成格子.Clear();
+    }
+
+    private void 确保悬停转发(技能格组件 格子, int 索引)
+    {
+        if (格子 == null || 格子.根节点 == null)
+        {
+            return;
+        }
+
+        if (格子.悬停转发 == null)
+        {
+            格子.悬停转发 = 格子.根节点.GetComponent<技能悬停转发>();
+            if (格子.悬停转发 == null)
+            {
+                格子.悬停转发 = 格子.根节点.gameObject.AddComponent<技能悬停转发>();
+            }
+        }
+
+        格子.悬停转发.配置(this, 索引);
+    }
+
+    private static int 解析显示命中率(string 角色ID, BattleSkillDatabase.SkillEntry 技能)
+    {
+        CharacterStatDatabase 属性数据库 = CharacterStatDatabase.LoadDefault();
+        CharacterStatDatabase.StatEntry 属性条目 =
+            属性数据库 != null ? 属性数据库.FindEntry(string.IsNullOrWhiteSpace(角色ID) ? "玩家" : 角色ID) : null;
+        int 基础命中率 = 属性条目 != null ? 属性条目.ResolveHitRate() : 100;
+        return Mathf.Max(0, 基础命中率 + (技能 != null ? 技能.ResolveHitRateModifier() : 0));
     }
 
     private static Image 查找直接子图标(RectTransform 根节点, string 名称)
