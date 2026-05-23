@@ -2307,18 +2307,16 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                (caster, skill, skillSource, resolveAction) => skillPresentationService != null
+                (caster, skill, resolveAction) => skillPresentationService != null
                     ? skillPresentationService.播放技能动画并在结算点执行(
                         this,
                         caster,
                         skill,
-                        skillSource,
                         resolveAction,
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                         (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                        InventoryShortcutRuntimeBinder.IsCharacterWeaponSourceOffHand,
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                         PlayTrackedSkillAudioRoutine,
                         ResolveAnimationStateTotalFrames,
@@ -2586,18 +2584,16 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, skillSource, resolveAction) => skillPresentationService != null
+            (caster, skill, resolveAction) => skillPresentationService != null
                 ? skillPresentationService.播放技能动画并在结算点执行(
                     this,
                     caster,
                     skill,
-                    skillSource,
                     resolveAction,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                     (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                    InventoryShortcutRuntimeBinder.IsCharacterWeaponSourceOffHand,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
                     ResolveAnimationStateTotalFrames,
@@ -2725,18 +2721,16 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, skillSource, resolveAction) => skillPresentationService != null
+            (caster, skill, resolveAction) => skillPresentationService != null
                 ? skillPresentationService.播放技能动画并在结算点执行(
                     this,
                     caster,
                     skill,
-                    skillSource,
                     resolveAction,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                     (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                    InventoryShortcutRuntimeBinder.IsCharacterWeaponSourceOffHand,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
                     ResolveAnimationStateTotalFrames,
