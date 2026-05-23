@@ -1882,8 +1882,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             FindTooltipParent = FindTooltipParent,
             FindChildByName = FindChildByName,
             FindDescendantByName = FindDescendantByName,
-            FindTooltipTextByName = null,
-            FindTransformByPath = FindTransformByPath,
             FindSkillEntry = skillId =>
             {
                 BattleSkillDatabase skillDatabase = BattleSkillDatabase.LoadDefault();
@@ -1893,10 +1891,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             GetItemQualityDisplayName = GetItemQualityDisplayName,
             GetWeaponCategoryDisplayName = GetWeaponCategoryDisplayName,
             GetTooltipOwnerDisplayText = GetTooltipOwnerDisplayText,
-            SetTooltipAttackPowerText = (entry, slot, text) =>
+            GetTooltipAttackPowerText = (entry, slot, text) =>
             {
                 itemTooltipAttackPowerText = text;
-                SetTooltipAttackPowerText(entry, slot);
+                return GetTooltipAttackPowerText(entry, slot);
             },
             GetFixedDamageDisplayText = GetFixedDamageDisplayText,
             GetAttributeMultiplierDisplayText = GetAttributeMultiplierDisplayText,
@@ -1906,7 +1904,6 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             EnsureItemTooltipIconFadeMaterial = EnsureItemTooltipIconFadeMaterial,
             CancelHover = () => HoverTooltipController.Cancel(HoverTooltipController.HoverCategory.Item),
             ShouldShowLowerBackground = () => Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl),
-            FindAnyCanvas = () => FindObjectOfType<Canvas>(true),
             ItemTooltipScale = ItemTooltipScale,
             ItemTooltipIconScale = ItemTooltipIconScale
         };
@@ -2075,9 +2072,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 物品显示辅助服务.解析提示框物品图标(entry, FindChildByName, FindDescendantByName, ItemIconName);
     }
 
-    private Vector2 ResolveTooltipItemIconSize(ItemDatabase.ItemEntry entry)
+    private Vector2 ResolveTooltipItemIconSize(ItemDatabase.ItemEntry entry, Image tooltipItemIconImage)
     {
-        return 物品显示辅助服务.解析提示框物品图标尺寸(entry, itemTooltipItemIconImage, FindChildByName, FindDescendantByName, ItemIconName);
+        return 物品显示辅助服务.解析提示框物品图标尺寸(entry, tooltipItemIconImage, FindChildByName, FindDescendantByName, ItemIconName);
     }
 
     private bool TryTransferItem(SlotRef source, SlotRef target, ItemSlotData sourceData)
@@ -2530,26 +2527,10 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         同步物品提示框状态();
     }
 
-    private void SetTooltipAttackPowerText(ItemDatabase.ItemEntry entry, SlotRef slot)
+    private string GetTooltipAttackPowerText(ItemDatabase.ItemEntry entry, SlotRef slot)
     {
-        TMP_Text attackPowerText = EnsureTooltipAttackPowerText();
-        if (attackPowerText == null)
-        {
-            return;
-        }
-
-        物品显示辅助服务.设置提示框攻击力文本(entry, slot, attackPowerText, ResolveTooltipEquipmentOwnerCharacterId);
-    }
-
-    private TMP_Text EnsureTooltipAttackPowerText()
-    {
-        itemTooltipAttackPowerText = 物品显示辅助服务.确保提示框攻击力文本(
-            itemTooltipAttackPowerText,
-            itemTooltipTextContentRoot,
-            itemTooltipFixedDamageText,
-            itemTooltipAttributeMultiplierText,
-            itemTooltipDescriptionText);
-        return itemTooltipAttackPowerText;
+        string ownerCharacterId = ResolveTooltipEquipmentOwnerCharacterId();
+        return 物品显示辅助服务.获取攻击力显示文本(entry, slot, ownerCharacterId, itemTooltipAttackPowerText, out _);
     }
 
     private static string BuildTooltipLowerContentText(ItemDatabase.ItemEntry entry)

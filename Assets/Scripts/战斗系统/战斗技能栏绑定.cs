@@ -270,6 +270,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             displayName = 格子.技能ID,
             description = 条目.description ?? string.Empty,
             ownerCharacterId = 当前角色ID ?? string.Empty,
+            skillSource = 格子.技能来源,
             hitRate = 解析显示命中率(当前角色ID, 条目),
             damage = Mathf.Max(0, Mathf.RoundToInt(攻击力 * 倍率)),
             icon = 条目.icon,

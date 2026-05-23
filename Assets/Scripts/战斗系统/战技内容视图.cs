@@ -28,7 +28,7 @@ public sealed class 战技内容视图 : MonoBehaviour
         设置文本(命中率文本, $"命中率：{Mathf.Max(0, snapshot.hitRate)}%", "命中率文本");
         设置文本(战技伤害文本, $"战技伤害：{snapshot.damage}", "战技伤害文本");
         设置文本(战技描述文本, snapshot.description ?? string.Empty, "战技描述文本");
-        设置文本(使用者文本, $"使用者：{snapshot.ownerCharacterId}", "使用者文本");
+        设置文本(使用者文本, 构建使用者文本(snapshot), "使用者文本");
     }
 
     private static void 设置文本(TMP_Text 文本, string 内容, string 字段名)
@@ -40,5 +40,12 @@ public sealed class 战技内容视图 : MonoBehaviour
         }
 
         文本.text = 内容;
+    }
+
+    private static string 构建使用者文本(SkillTooltipRuntime.Snapshot snapshot)
+    {
+        string 使用者 = string.IsNullOrWhiteSpace(snapshot.ownerCharacterId) ? "无" : snapshot.ownerCharacterId;
+        string 来源 = string.IsNullOrWhiteSpace(snapshot.skillSource) ? BattleSkillDatabase.NoSkillSourceText : snapshot.skillSource;
+        return $"使用者：\n{使用者}\n{来源}";
     }
 }

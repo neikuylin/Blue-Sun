@@ -283,6 +283,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             displayName = widget.skillId,
             description = entry.description ?? string.Empty,
             ownerCharacterId = currentCharacterId ?? string.Empty,
+            skillSource = widget.skillSource,
             hitRate = ResolveDisplayedSkillHitRate(currentCharacterId, entry),
             damage = Mathf.Max(0, Mathf.RoundToInt(attackPower * multiplier)),
             icon = entry.icon,

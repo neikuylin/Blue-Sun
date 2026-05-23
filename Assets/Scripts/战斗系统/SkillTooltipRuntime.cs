@@ -12,6 +12,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
         public string displayName;
         public string description;
         public string ownerCharacterId;
+        public string skillSource;
         public int hitRate;
         public int damage;
         public Sprite icon;

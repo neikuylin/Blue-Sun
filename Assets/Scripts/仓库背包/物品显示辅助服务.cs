@@ -81,65 +81,6 @@ internal static class 物品显示辅助服务
         return statEntry != null ? $"装备者：\n{ownerCharacterId}" : "装备者：\n无";
     }
 
-    public static void 设置提示框攻击力文本(
-        ItemDatabase.ItemEntry entry,
-        InventoryShortcutRuntimeBinder.SlotRef slot,
-        TMP_Text attackPowerText,
-        Func<string> resolveTooltipEquipmentOwnerCharacterId)
-    {
-        if (attackPowerText == null)
-        {
-            return;
-        }
-
-        string ownerCharacterId = resolveTooltipEquipmentOwnerCharacterId != null ? resolveTooltipEquipmentOwnerCharacterId() : string.Empty;
-        string value = 获取攻击力显示文本(entry, slot, ownerCharacterId, attackPowerText, out List<AttackPowerSegment> _);
-        bool hasValue = !string.IsNullOrEmpty(value);
-        attackPowerText.gameObject.SetActive(hasValue);
-        attackPowerText.text = value ?? string.Empty;
-    }
-
-    public static TMP_Text 确保提示框攻击力文本(TMP_Text current, RectTransform textContentRoot, TMP_Text fixedDamageText, TMP_Text attributeMultiplierText, TMP_Text descriptionText)
-    {
-        if (current != null)
-        {
-            return current;
-        }
-
-        if (textContentRoot == null)
-        {
-            return null;
-        }
-
-        TMP_Text template = fixedDamageText ?? attributeMultiplierText ?? descriptionText;
-        if (template == null)
-        {
-            return null;
-        }
-
-        GameObject attackPowerObject = UnityEngine.Object.Instantiate(template.gameObject, textContentRoot, false);
-        attackPowerObject.name = "攻击力";
-
-        TMP_Text attackPowerText = attackPowerObject.GetComponent<TMP_Text>();
-        RectTransform attackPowerRect = attackPowerObject.transform as RectTransform;
-        RectTransform templateRect = template.rectTransform;
-        if (attackPowerText == null || attackPowerRect == null || templateRect == null)
-        {
-            return attackPowerText;
-        }
-
-        attackPowerRect.anchorMin = templateRect.anchorMin;
-        attackPowerRect.anchorMax = templateRect.anchorMax;
-        attackPowerRect.pivot = templateRect.pivot;
-        attackPowerRect.sizeDelta = templateRect.sizeDelta;
-        attackPowerRect.localScale = templateRect.localScale;
-        attackPowerRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -36f);
-        attackPowerText.fontStyle |= FontStyles.Bold;
-        attackPowerText.text = string.Empty;
-        attackPowerText.gameObject.SetActive(false);
-        return attackPowerText;
-    }
-
     public static string 获取攻击力显示文本(
         ItemDatabase.ItemEntry entry,
         InventoryShortcutRuntimeBinder.SlotRef slot,
