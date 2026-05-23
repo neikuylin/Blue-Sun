@@ -79,6 +79,16 @@ public static class CharacterSkillListUtility
         return InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(characterId);
     }
 
+    private static List<装备数值服务.授予技能条目> BuildGrantedSkillEntries(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return new List<装备数值服务.授予技能条目>();
+        }
+
+        return InventoryShortcutRuntimeBinder.GetGrantedSkillEntriesForCharacter(characterId);
+    }
+
     public static List<DisplaySkillEntry> BuildDisplaySkillEntries(string characterId)
     {
         if (string.IsNullOrWhiteSpace(characterId))
@@ -88,10 +98,11 @@ public static class CharacterSkillListUtility
 
         List<DisplaySkillEntry> result = new List<DisplaySkillEntry>();
 
-        List<string> grantedSkills = BuildGrantedSkillIds(characterId);
+        List<装备数值服务.授予技能条目> grantedSkills = BuildGrantedSkillEntries(characterId);
         for (int i = 0; i < grantedSkills.Count; i++)
         {
-            TryAddDisplaySkill(result, grantedSkills[i], true);
+            装备数值服务.授予技能条目 grantedSkill = grantedSkills[i];
+            TryAddDisplaySkill(result, grantedSkill.技能ID, true, grantedSkill.来源物品ID);
         }
 
         List<string> memorizedSkills = BuildMemorizedSkillIds(characterId);
@@ -118,13 +129,13 @@ public static class CharacterSkillListUtility
         target.Add(skillId);
     }
 
-    private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, string skillId, bool isGranted)
+    private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, string skillId, bool isGranted, string skillSource = "")
     {
         if (target == null || string.IsNullOrWhiteSpace(skillId))
         {
             return;
         }
 
-        target.Add(new DisplaySkillEntry(skillId, isGranted));
+        target.Add(new DisplaySkillEntry(skillId, isGranted, skillSource));
     }
 }

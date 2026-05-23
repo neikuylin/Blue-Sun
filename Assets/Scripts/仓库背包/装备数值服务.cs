@@ -4,6 +4,18 @@ using UnityEngine;
 
 internal static class 装备数值服务
 {
+    public readonly struct 授予技能条目
+    {
+        public 授予技能条目(string skillId, string sourceItemId)
+        {
+            技能ID = skillId ?? string.Empty;
+            来源物品ID = sourceItemId ?? string.Empty;
+        }
+
+        public string 技能ID { get; }
+        public string 来源物品ID { get; }
+    }
+
     public static float 获取角色武器攻击力(
         string characterId,
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
@@ -111,7 +123,21 @@ internal static class 装备数值服务
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
         Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
     {
-        List<string> result = new List<string>();
+        List<授予技能条目> entries = 构建授予技能条目列表(equipment, resolveItemEntry);
+        List<string> result = new List<string>(entries.Count);
+        for (int i = 0; i < entries.Count; i++)
+        {
+            result.Add(entries[i].技能ID);
+        }
+
+        return result;
+    }
+
+    public static List<授予技能条目> 构建授予技能条目列表(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
+    {
+        List<授予技能条目> result = new List<授予技能条目>();
         if (equipment == null || resolveItemEntry == null)
         {
             return result;
@@ -139,7 +165,7 @@ internal static class 装备数值服务
                     continue;
                 }
 
-                result.Add(skillId);
+                result.Add(new 授予技能条目(skillId, slot.itemId));
             }
         }
 

@@ -616,6 +616,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.构建授予技能列表(equipment, ResolveItemEntry);
     }
 
+    internal static List<装备数值服务.授予技能条目> GetGrantedSkillEntriesForCharacter(string characterId)
+    {
+        if (instance == null)
+        {
+            return new List<装备数值服务.授予技能条目>();
+        }
+
+        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        return 装备数值服务.构建授予技能条目列表(equipment, ResolveItemEntry);
+    }
+
     public static string GetGrantedSkillSourceItemIdForCharacter(string characterId, string skillId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(skillId))
