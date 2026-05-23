@@ -24,6 +24,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         public Image 技能图标;
         public Image 空图标;
         public string 技能ID = string.Empty;
+        public string 技能来源 = string.Empty;
     }
 
     public void 初始化(BattleTurnSystem turnSystem)
@@ -81,7 +82,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private void 立即刷新(bool force)
     {
         string 角色ID = 解析当前角色ID();
-        List<string> 最终技能列表 = CharacterSkillListUtility.BuildSkillIds(角色ID);
+        List<CharacterSkillListUtility.DisplaySkillEntry> 最终技能列表 = CharacterSkillListUtility.BuildDisplaySkillEntries(角色ID);
         string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
 
         刷新技能栏可见性(角色ID);
@@ -134,17 +135,24 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         return 当前单位.characterId ?? string.Empty;
     }
 
-    private static string 构建技能签名(string 角色ID, List<string> 技能列表)
+    private static string 构建技能签名(string 角色ID, List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
     {
         if (技能列表 == null || 技能列表.Count == 0)
         {
             return 角色ID ?? string.Empty;
         }
 
-        return (角色ID ?? string.Empty) + "|" + string.Join("|", 技能列表);
+        List<string> 签名片段 = new List<string>(技能列表.Count);
+        for (int i = 0; i < 技能列表.Count; i++)
+        {
+            CharacterSkillListUtility.DisplaySkillEntry 条目 = 技能列表[i];
+            签名片段.Add($"{条目.SkillId}:{条目.SkillSource}");
+        }
+
+        return (角色ID ?? string.Empty) + "|" + string.Join("|", 签名片段);
     }
 
-    private void 重建技能格子(List<string> 技能列表)
+    private void 重建技能格子(List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
     {
         清空已生成格子();
         if (战斗技能格子区域 == null || 技能格子prefab == null || 技能列表 == null)
@@ -154,7 +162,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
 
         for (int i = 0; i < 技能列表.Count; i++)
         {
-            string 技能ID = 技能列表[i];
+            CharacterSkillListUtility.DisplaySkillEntry 技能条目 = 技能列表[i];
+            string 技能ID = 技能条目.SkillId;
             if (string.IsNullOrWhiteSpace(技能ID))
             {
                 continue;
@@ -169,7 +178,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
                 按钮 = 实例.GetComponent<Button>() ?? 实例.gameObject.AddComponent<Button>(),
                 技能图标 = 查找直接子图标(实例, "技能图案"),
                 空图标 = 查找直接子图标(实例, "空技能图案"),
-                技能ID = 技能ID
+                技能ID = 技能ID,
+                技能来源 = 技能条目.SkillSource
             };
 
             刷新技能格显示(格子);
@@ -198,7 +208,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             return;
         }
 
-        战斗回合系统.ToggleSkillMode(格子.技能ID);
+        战斗回合系统.ToggleSkillMode(格子.技能ID, 格子.技能来源);
     }
 
     private void 刷新技能格显示(技能格组件 格子)

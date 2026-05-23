@@ -117,7 +117,6 @@ internal static class 装备数值服务
             return result;
         }
 
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < equipment.Count; i++)
         {
             InventoryShortcutRuntimeBinder.ItemSlotData slot = equipment[i];
@@ -135,7 +134,7 @@ internal static class 装备数值服务
             for (int s = 0; s < itemEntry.grantedSkillIds.Count; s++)
             {
                 string skillId = itemEntry.grantedSkillIds[s];
-                if (string.IsNullOrWhiteSpace(skillId) || !seen.Add(skillId))
+                if (string.IsNullOrWhiteSpace(skillId))
                 {
                     continue;
                 }

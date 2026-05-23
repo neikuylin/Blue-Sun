@@ -14,6 +14,7 @@ internal sealed class 战斗技能执行服务
         bool 正在结算技能,
         bool 技能目标选择已就绪,
         string 当前技能ID,
+        string 当前技能来源,
         BattleSkillDatabase.SkillEntry 当前技能,
         Func<BattleUnit, Vector2Int, BattleUnit, BattleSkillDatabase.SkillEntry, bool> 可以在目标释放技能,
         Action<BattleUnit, Vector2Int> 尝试移动,
@@ -61,6 +62,7 @@ internal sealed class 战斗技能执行服务
             return 宿主.StartCoroutine(执行单体技能协程(
                 单位,
                 目标,
+                当前技能来源,
                 当前技能,
                 获取技能行动点消耗,
                 获取技能法力消耗,
@@ -79,6 +81,7 @@ internal sealed class 战斗技能执行服务
             return 宿主.StartCoroutine(执行范围技能协程(
                 单位,
                 点击格子,
+                当前技能来源,
                 当前技能,
                 获取技能行动点消耗,
                 获取技能法力消耗,
@@ -98,6 +101,7 @@ internal sealed class 战斗技能执行服务
     private IEnumerator 执行单体技能协程(
         BattleUnit 施法者,
         BattleUnit 目标,
+        string 技能来源,
         BattleSkillDatabase.SkillEntry 技能,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
@@ -115,6 +119,7 @@ internal sealed class 战斗技能执行服务
             yield break;
         }
 
+        技能来源 = string.IsNullOrWhiteSpace(技能来源) ? "无" : 技能来源;
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
         if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
@@ -141,6 +146,7 @@ internal sealed class 战斗技能执行服务
     private IEnumerator 执行范围技能协程(
         BattleUnit 施法者,
         Vector2Int 目标格子,
+        string 技能来源,
         BattleSkillDatabase.SkillEntry 技能,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
@@ -158,6 +164,7 @@ internal sealed class 战斗技能执行服务
             yield break;
         }
 
+        技能来源 = string.IsNullOrWhiteSpace(技能来源) ? "无" : 技能来源;
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
         if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))

@@ -22,6 +22,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
     private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
+    private const string NoSkillSourceText = "无";
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -87,6 +88,7 @@ public class BattleTurnSystem : MonoBehaviour
     private int absoluteRoundIndex = -1;
     private int currentRoundIndex = -1;
     private string activeSkillId = string.Empty;
+    private string activeSkillSource = string.Empty;
     private BattleSkillDatabase.SkillEntry activeSkill;
     private bool hasSkillHoverPreview;
     private Vector2Int skillHoverCell;
@@ -1939,6 +1941,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     public void ToggleSkillMode(string skillId)
     {
+        ToggleSkillMode(skillId, string.Empty);
+    }
+
+    public void ToggleSkillMode(string skillId, string skillSource)
+    {
         if (IsExplorationMode)
         {
             ToggleExplorationAction(skillId);
@@ -1982,6 +1989,7 @@ public class BattleTurnSystem : MonoBehaviour
         {
             skillTargetingPresentationService?.缓存技能模式旋转锚点(activeUnit, wasSkillModeActive);
             activeSkillId = skillId;
+            activeSkillSource = 解析播放技能来源(skillSource);
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
@@ -2051,6 +2059,11 @@ public class BattleTurnSystem : MonoBehaviour
         return IsExplorationMode &&
             !string.IsNullOrWhiteSpace(actionId) &&
             string.Equals(activeExplorationActionId, actionId, System.StringComparison.Ordinal);
+    }
+
+    private static string 解析播放技能来源(string skillSource)
+    {
+        return string.IsNullOrWhiteSpace(skillSource) ? NoSkillSourceText : skillSource;
     }
 
     private void UpdateSkillHoverPreview()
@@ -2245,6 +2258,7 @@ public class BattleTurnSystem : MonoBehaviour
         bool shouldRestoreRotation = !IsExplorationMode && !isResolvingSkillExecution;
 
         activeSkillId = string.Empty;
+        activeSkillSource = string.Empty;
         activeSkill = null;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
@@ -2279,6 +2293,7 @@ public class BattleTurnSystem : MonoBehaviour
                 isResolvingSkillExecution,
                 skillTargetingPresentationService != null && skillTargetingPresentationService.技能目标选择已就绪,
                 activeSkillId,
+                activeSkillSource,
                 activeSkill,
                 (caster, cell, clickedTarget, skill) => CanCastSkillAt(caster, cell, clickedTarget, skill, null),
                 TryMove,
@@ -2549,6 +2564,7 @@ public class BattleTurnSystem : MonoBehaviour
             isResolvingSkillExecution,
             true,
             skill != null ? skill.skillId : string.Empty,
+            NoSkillSourceText,
             skill,
             (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
             TryMove,
@@ -2679,6 +2695,7 @@ public class BattleTurnSystem : MonoBehaviour
             isResolvingSkillExecution,
             true,
             skill != null ? skill.skillId : string.Empty,
+            NoSkillSourceText,
             skill,
             (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
             TryMove,

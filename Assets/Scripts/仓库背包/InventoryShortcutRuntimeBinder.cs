@@ -1856,10 +1856,22 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         {
             FindBattleUnits = () => FindObjectsOfType<BattleUnit>(true),
             GetEquipmentDataForCharacter = characterId => GetEquipmentDataForCharacter(characterId, createIfMissing: false),
+            GetEquipmentSlotTypeAt = GetEquipmentSlotTypeAt,
             ResolveItemEntry = ResolveItemEntry,
             FindChildByName = FindChildByName,
             FindDescendantByName = FindDescendantByName
         };
+    }
+
+    private ItemDatabase.EquipmentSlotType GetEquipmentSlotTypeAt(int index)
+    {
+        if (index < 0 || index >= equipmentSlots.Count || equipmentSlots[index] == null)
+        {
+            Debug.LogWarning($"武器模型挂载无法读取装备槽类型：索引 {index} 未绑定装备槽。");
+            return ItemDatabase.EquipmentSlotType.None;
+        }
+
+        return equipmentSlots[index].equipmentSlotType;
     }
 
     private 仓储界面刷新服务.Context 创建仓储界面刷新上下文()

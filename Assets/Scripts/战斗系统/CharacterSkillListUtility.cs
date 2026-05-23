@@ -5,14 +5,16 @@ public static class CharacterSkillListUtility
 {
     public readonly struct DisplaySkillEntry
     {
-        public DisplaySkillEntry(string skillId, bool isGranted)
+        public DisplaySkillEntry(string skillId, bool isGranted, string skillSource = "")
         {
             SkillId = skillId ?? string.Empty;
             IsGranted = isGranted;
+            SkillSource = skillSource ?? string.Empty;
         }
 
         public string SkillId { get; }
         public bool IsGranted { get; }
+        public string SkillSource { get; }
     }
 
     public static List<string> BuildSkillIds(string characterId)
@@ -114,16 +116,6 @@ public static class CharacterSkillListUtility
         }
 
         target.Add(skillId);
-    }
-
-    private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, HashSet<string> seen, string skillId, bool isGranted)
-    {
-        if (target == null || string.IsNullOrWhiteSpace(skillId) || seen == null || !seen.Add(skillId))
-        {
-            return;
-        }
-
-        target.Add(new DisplaySkillEntry(skillId, isGranted));
     }
 
     private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, string skillId, bool isGranted)

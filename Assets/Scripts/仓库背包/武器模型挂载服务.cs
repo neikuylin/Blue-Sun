@@ -13,9 +13,16 @@ internal sealed class 武器模型挂载服务
     {
         public Func<BattleUnit[]> FindBattleUnits;
         public Func<string, List<InventoryShortcutRuntimeBinder.ItemSlotData>> GetEquipmentDataForCharacter;
+        public Func<int, ItemDatabase.EquipmentSlotType> GetEquipmentSlotTypeAt;
         public Func<string, ItemDatabase.ItemEntry> ResolveItemEntry;
         public Func<Transform, string, Transform> FindChildByName;
         public Func<Transform, string, Transform> FindDescendantByName;
+    }
+
+    private sealed class EquippedWeaponModel
+    {
+        public ItemDatabase.ItemEntry entry;
+        public ItemDatabase.EquipmentSlotType actualSlotType;
     }
 
     public void RefreshAllRuntimeWeaponModels(Context context)
@@ -59,23 +66,54 @@ internal sealed class 武器模型挂载服务
         ClearRuntimeWeaponModel(leftMountPoint);
         ClearRuntimeWeaponModel(rightMountPoint);
 
-        ItemDatabase.ItemEntry weaponEntry = ResolveEquippedWeaponModelEntry(context, unit.characterId);
-        if (weaponEntry == null || weaponEntry.weaponModelPrefab == null)
+        List<EquippedWeaponModel> weaponModels = ResolveEquippedWeaponModelEntries(context, unit.characterId);
+        if (weaponModels.Count == 0)
         {
             return;
         }
 
-        Transform mountPoint = ResolveWeaponMountPoint(weaponEntry, leftMountPoint, rightMountPoint);
-        if (mountPoint == null)
+        bool hasMountedLeft = false;
+        bool hasMountedRight = false;
+        bool mountedAny = false;
+        for (int i = 0; i < weaponModels.Count; i++)
         {
-            return;
+            EquippedWeaponModel weaponModel = weaponModels[i];
+            Transform mountPoint = ResolveWeaponMountPoint(weaponModel.entry, weaponModel.actualSlotType, leftMountPoint, rightMountPoint);
+            if (mountPoint == null)
+            {
+                continue;
+            }
+
+            if (mountPoint == leftMountPoint)
+            {
+                if (hasMountedLeft)
+                {
+                    continue;
+                }
+
+                hasMountedLeft = true;
+            }
+            else if (mountPoint == rightMountPoint)
+            {
+                if (hasMountedRight)
+                {
+                    continue;
+                }
+
+                hasMountedRight = true;
+            }
+
+            GameObject instance = UnityEngine.Object.Instantiate(weaponModel.entry.weaponModelPrefab, mountPoint, false);
+            instance.name = RuntimeWeaponModelName;
+            ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
+            BattleUnitOutlineBuilder.Apply(instance, Color.black, DefaultOutlineWidth);
+            mountedAny = true;
         }
 
-        GameObject instance = UnityEngine.Object.Instantiate(weaponEntry.weaponModelPrefab, mountPoint, false);
-        instance.name = RuntimeWeaponModelName;
-        ApplyMountedModelScaleCompensation(instance.transform, mountPoint);
-        BattleUnitOutlineBuilder.Apply(instance, Color.black, DefaultOutlineWidth);
-        unit.RefreshOutlineBindings();
+        if (mountedAny)
+        {
+            unit.RefreshOutlineBindings();
+        }
     }
 
     private static void ClearRuntimeWeaponModel(Transform mountPoint)
@@ -130,12 +168,19 @@ internal sealed class 武器模型挂载服务
 
     private static Transform ResolveWeaponMountPoint(
         ItemDatabase.ItemEntry weaponEntry,
+        ItemDatabase.EquipmentSlotType actualSlotType,
         Transform leftMountPoint,
         Transform rightMountPoint)
     {
         if (weaponEntry == null)
         {
             return null;
+        }
+
+        if (weaponEntry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand &&
+            actualSlotType == ItemDatabase.EquipmentSlotType.OffHand)
+        {
+            return leftMountPoint;
         }
 
         switch (weaponEntry.weaponCategory)
@@ -150,21 +195,20 @@ internal sealed class 武器模型挂载服务
         }
     }
 
-    private static ItemDatabase.ItemEntry ResolveEquippedWeaponModelEntry(Context context, string characterId)
+    private static List<EquippedWeaponModel> ResolveEquippedWeaponModelEntries(Context context, string characterId)
     {
+        List<EquippedWeaponModel> result = new List<EquippedWeaponModel>();
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment =
             context.GetEquipmentDataForCharacter != null ? context.GetEquipmentDataForCharacter(characterId) : null;
         if (equipment == null || equipment.Count == 0)
         {
-            return null;
+            return result;
         }
 
-        ItemDatabase.ItemEntry bestEntry = null;
-        int bestPriority = int.MaxValue;
         for (int i = 0; i < equipment.Count; i++)
         {
             InventoryShortcutRuntimeBinder.ItemSlotData slot = equipment[i];
-            if (string.IsNullOrWhiteSpace(slot.itemId))
+            if (slot.isFootprintExtension || string.IsNullOrWhiteSpace(slot.itemId))
             {
                 continue;
             }
@@ -178,15 +222,22 @@ internal sealed class 武器模型挂载服务
                 continue;
             }
 
-            int priority = entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainHand ? 0 :
-                entry.equipmentSlot == ItemDatabase.EquipmentSlotType.MainOrOffHand ? 1 : int.MaxValue;
-            if (bestEntry == null || priority < bestPriority)
+            ItemDatabase.EquipmentSlotType actualSlotType = context.GetEquipmentSlotTypeAt != null
+                ? context.GetEquipmentSlotTypeAt(i)
+                : ItemDatabase.EquipmentSlotType.None;
+            if (actualSlotType == ItemDatabase.EquipmentSlotType.None)
             {
-                bestEntry = entry;
-                bestPriority = priority;
+                Debug.LogWarning($"武器模型挂载无法确定实际装备槽：角色 {characterId} 装备索引 {i} 物品 {slot.itemId}。");
+                continue;
             }
+
+            result.Add(new EquippedWeaponModel
+            {
+                entry = entry,
+                actualSlotType = actualSlotType
+            });
         }
 
-        return bestEntry;
+        return result;
     }
 }
