@@ -135,7 +135,7 @@ public sealed class SkillTooltipRuntime : MonoBehaviour
             return;
         }
 
-        tooltipView.刷新(snapshot);
+        tooltipView.刷新(战技内容视图.构建显示数据(snapshot));
 
         PositionTooltip();
         tooltipRoot.gameObject.SetActive(true);
