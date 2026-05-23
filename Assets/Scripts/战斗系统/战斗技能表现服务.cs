@@ -9,6 +9,8 @@ internal sealed class 战斗技能表现服务
     private float hitFeelRestoreFixedDeltaTime = 0.02f;
     private bool hitFeelActive;
 
+    public bool 当前动作来源武器在副手 { get; private set; }
+
     public void 恢复全局时间缩放(MonoBehaviour host, float hitFeelTimeScale)
     {
         if (host != null && hitFeelRoutine != null)
@@ -79,11 +81,13 @@ internal sealed class 战斗技能表现服务
         MonoBehaviour host,
         BattleUnit caster,
         BattleSkillDatabase.SkillEntry skill,
+        string skillSource,
         Action resolveAction,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, string> resolveActionStateName,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, bool> resolveCompensateActionMotion,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, float> resolveActionYawOffset,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, float> resolvePostUseYawOffset,
+        Func<string, string, bool> isWeaponSourceOffHand,
         Func<BattleUnit, string> resolveIdleStateName,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, float, IEnumerator> createTrackedSkillAudioRoutine,
         Func<Animator, string, float, int> resolveAnimationStateTotalFrames,
@@ -128,6 +132,21 @@ internal sealed class 战斗技能表现服务
         }
 
         caster.SetAnimationPositionCompensation(resolveCompensateActionMotion != null && resolveCompensateActionMotion(skill, caster));
+        当前动作来源武器在副手 = isWeaponSourceOffHand != null &&
+            caster != null &&
+            isWeaponSourceOffHand(caster.characterId, skillSource);
+        Transform 镜像目标 = null;
+        Vector3 镜像前缩放 = Vector3.one;
+        if (当前动作来源武器在副手)
+        {
+            Debug.Log($"动画读取到副手来源武器特征：角色 {caster.characterId}，技能 {skill.skillId}，来源物品 {skillSource}。");
+            镜像目标 = animator.transform;
+            if (镜像目标 != null)
+            {
+                镜像前缩放 = 镜像目标.localScale;
+                镜像目标.localScale = new Vector3(-镜像前缩放.x, 镜像前缩放.y, 镜像前缩放.z);
+            }
+        }
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
@@ -183,6 +202,11 @@ internal sealed class 战斗技能表现服务
         {
             animator.Play(previousStateHash, 0, 0f);
             caster.transform.rotation = postSkillIdleRotation;
+        }
+
+        if (镜像目标 != null)
+        {
+            镜像目标.localScale = 镜像前缩放;
         }
 
         caster.SetAnimationPositionCompensation(false);

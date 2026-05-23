@@ -629,7 +629,7 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return string.Empty;
         }
 
-        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId) ?? 获取敌人装备库装备数据(characterId);
         return 装备数值服务.查找授予技能来源物品(equipment, ResolveItemEntry, skillId);
     }
 
@@ -2340,6 +2340,44 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.获取来源武器抗性穿透(equipment, ResolveItemEntry, sourceItemId, resistanceType);
     }
 
+    public static bool IsCharacterWeaponSourceOffHand(string characterId, string sourceItemId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) ||
+            string.IsNullOrWhiteSpace(sourceItemId) ||
+            string.Equals(sourceItemId, BattleSkillDatabase.NoSkillSourceText, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId) ?? 获取敌人装备库装备数据(characterId);
+        if (equipment == null || equipment.Count == 0)
+        {
+            Debug.LogWarning($"动画无法读取来源武器槽位：角色 {characterId} 没有装备数据。");
+            return false;
+        }
+
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            ItemSlotData slot = equipment[i];
+            if (slot.isFootprintExtension || !string.Equals(slot.itemId, sourceItemId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            ItemDatabase.EquipmentSlotType actualSlotType = GetBattleEquipmentSlotTypeAt(characterId, i);
+            if (actualSlotType == ItemDatabase.EquipmentSlotType.None)
+            {
+                Debug.LogWarning($"动画无法读取来源武器槽位：角色 {characterId} 装备索引 {i} 物品 {sourceItemId} 没有实际装备槽类型。");
+                return false;
+            }
+
+            return actualSlotType == ItemDatabase.EquipmentSlotType.OffHand;
+        }
+
+        Debug.LogWarning($"动画无法读取来源武器槽位：角色 {characterId} 未找到来源物品 {sourceItemId}。");
+        return false;
+    }
+
     public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))
@@ -2349,6 +2387,35 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
         return 装备数值服务.获取角色已装备武器类型(equipment, ResolveItemEntry);
+    }
+
+    private static ItemDatabase.EquipmentSlotType GetBattleEquipmentSlotTypeAt(string characterId, int index)
+    {
+        if (index < 0)
+        {
+            return ItemDatabase.EquipmentSlotType.None;
+        }
+
+        if (instance != null)
+        {
+            List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+            if (equipment != null &&
+                index < equipment.Count &&
+                index < instance.equipmentSlots.Count &&
+                instance.equipmentSlots[index] != null)
+            {
+                return instance.equipmentSlots[index].equipmentSlotType;
+            }
+        }
+
+        EnemyEquipmentDatabase equipmentDatabase = EnemyEquipmentDatabase.LoadDefault();
+        EnemyEquipmentDatabase.EnemyEquipmentEntry enemyEntry = equipmentDatabase != null ? equipmentDatabase.FindEntry(characterId) : null;
+        if (enemyEntry != null && index < EnemyEquipmentDatabase.SlotTypes.Length)
+        {
+            return EnemyEquipmentDatabase.SlotTypes[index];
+        }
+
+        return ItemDatabase.EquipmentSlotType.None;
     }
 
     public static float GetCharacterStaffDamageMultiplier(string characterId)
