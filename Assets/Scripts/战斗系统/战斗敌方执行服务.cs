@@ -137,8 +137,8 @@ internal sealed class 战斗敌方执行服务
     public IEnumerator 执行动作(
         BattleUnit caster,
         战斗敌方回合服务.技能动作 action,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, IEnumerator> executeTargetSkillRoutine,
-        Func<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, IEnumerator> executeAreaSkillRoutine)
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, string, IEnumerator> executeTargetSkillRoutine,
+        Func<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, string, IEnumerator> executeAreaSkillRoutine)
     {
         if (caster == null || action.choice == null || action.choice.skill == null)
         {
@@ -149,7 +149,7 @@ internal sealed class 战斗敌方执行服务
         {
             if (action.targetUnit != null && executeTargetSkillRoutine != null)
             {
-                yield return executeTargetSkillRoutine(caster, action.targetUnit, action.choice.skill);
+                yield return executeTargetSkillRoutine(caster, action.targetUnit, action.choice.skill, action.choice.skillSource);
             }
 
             yield break;
@@ -157,7 +157,7 @@ internal sealed class 战斗敌方执行服务
 
         if (executeAreaSkillRoutine != null)
         {
-            yield return executeAreaSkillRoutine(caster, action.targetCell, action.choice.skill);
+            yield return executeAreaSkillRoutine(caster, action.targetCell, action.choice.skill, action.choice.skillSource);
         }
     }
 

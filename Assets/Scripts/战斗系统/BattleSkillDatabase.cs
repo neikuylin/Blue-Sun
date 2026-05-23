@@ -7,6 +7,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "BattleSkillDatabase";
     public const string MoveSkillId = "移动";
+    public const string NoSkillSourceText = "无";
 
     public enum SkillGroup
     {
@@ -79,6 +80,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         }
 
         public string skillId = string.Empty;
+        public string skillSource = string.Empty;
         public string description = string.Empty;
         public string actionStateName = string.Empty;
         public float actionYawOffset;
@@ -236,6 +238,21 @@ public sealed class BattleSkillDatabase : ScriptableObject
     [SerializeField] private List<SkillEntry> entries = new List<SkillEntry>();
 
     public List<SkillEntry> Entries => entries;
+
+    public static string ResolveSkillSource(string runtimeSkillSource, SkillEntry skill)
+    {
+        if (!string.IsNullOrWhiteSpace(runtimeSkillSource) && !string.Equals(runtimeSkillSource, NoSkillSourceText, StringComparison.Ordinal))
+        {
+            return runtimeSkillSource;
+        }
+
+        if (skill != null && !string.IsNullOrWhiteSpace(skill.skillSource))
+        {
+            return skill.skillSource;
+        }
+
+        return NoSkillSourceText;
+    }
 
     public SkillEntry FindEntry(string skillId)
     {

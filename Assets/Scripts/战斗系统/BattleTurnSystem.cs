@@ -22,7 +22,7 @@ public class BattleTurnSystem : MonoBehaviour
     private const string EndTurnButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u7ED3\u675F\u56DE\u5408\u6309\u94AE";
     private const string MoveSkillButtonPath = "Canvas/\u4E0B\u65B9\u680F\u4F4D/\u79FB\u52A8\u6309\u94AE";
     private const string NormalAttackSkillId = "\u666E\u901A\u653B\u51FB";
-    private const string NoSkillSourceText = "无";
+    private const string NoSkillSourceText = BattleSkillDatabase.NoSkillSourceText;
     private readonly List<BattleUnit> units = new List<BattleUnit>();
     private readonly List<BattleUnit> currentRoundOrder = new List<BattleUnit>();
     private readonly List<List<BattleUnit>> upcomingRoundOrders = new List<List<BattleUnit>>();
@@ -1989,7 +1989,7 @@ public class BattleTurnSystem : MonoBehaviour
         {
             skillTargetingPresentationService?.缓存技能模式旋转锚点(activeUnit, wasSkillModeActive);
             activeSkillId = skillId;
-            activeSkillSource = 解析播放技能来源(skillSource);
+            activeSkillSource = 解析播放技能来源(skillSource, nextSkill);
             activeSkill = nextSkill;
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
@@ -2063,7 +2063,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static string 解析播放技能来源(string skillSource)
     {
-        return string.IsNullOrWhiteSpace(skillSource) ? NoSkillSourceText : skillSource;
+        return 解析播放技能来源(skillSource, null);
+    }
+
+    private static string 解析播放技能来源(string skillSource, BattleSkillDatabase.SkillEntry skill)
+    {
+        return BattleSkillDatabase.ResolveSkillSource(skillSource, skill);
     }
 
     private void UpdateSkillHoverPreview()
@@ -2549,11 +2554,17 @@ public class BattleTurnSystem : MonoBehaviour
 
     private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
+        yield return ExecuteTargetSkillRoutine(caster, target, skill, string.Empty);
+    }
+
+    private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill, string skillSource)
+    {
         if (skillExecutionService == null)
         {
             yield break;
         }
 
+        string resolvedSkillSource = 解析播放技能来源(skillSource, skill);
         yield return skillExecutionService.尝试使用当前技能(
             this,
             null,
@@ -2564,7 +2575,7 @@ public class BattleTurnSystem : MonoBehaviour
             isResolvingSkillExecution,
             true,
             skill != null ? skill.skillId : string.Empty,
-            NoSkillSourceText,
+            resolvedSkillSource,
             skill,
             (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
             TryMove,
@@ -2603,7 +2614,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -2644,7 +2655,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -2680,11 +2691,17 @@ public class BattleTurnSystem : MonoBehaviour
 
     private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill)
     {
+        yield return ExecuteAreaSkillRoutine(caster, targetCell, skill, string.Empty);
+    }
+
+    private IEnumerator ExecuteAreaSkillRoutine(BattleUnit caster, Vector2Int targetCell, BattleSkillDatabase.SkillEntry skill, string skillSource)
+    {
         if (skillExecutionService == null)
         {
             yield break;
         }
 
+        string resolvedSkillSource = 解析播放技能来源(skillSource, skill);
         yield return skillExecutionService.尝试使用当前技能(
             this,
             null,
@@ -2695,7 +2712,7 @@ public class BattleTurnSystem : MonoBehaviour
             isResolvingSkillExecution,
             true,
             skill != null ? skill.skillId : string.Empty,
-            NoSkillSourceText,
+            resolvedSkillSource,
             skill,
             (unit, cell, clickedTarget, activeSkill) => CanCastSkillAt(unit, cell, clickedTarget, activeSkill, null),
             TryMove,
@@ -2734,7 +2751,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -2775,7 +2792,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill)
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,

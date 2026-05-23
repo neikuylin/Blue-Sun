@@ -119,7 +119,6 @@ internal sealed class 战斗技能执行服务
             yield break;
         }
 
-        技能来源 = string.IsNullOrWhiteSpace(技能来源) ? "无" : 技能来源;
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
         if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
@@ -164,7 +163,6 @@ internal sealed class 战斗技能执行服务
             yield break;
         }
 
-        技能来源 = string.IsNullOrWhiteSpace(技能来源) ? "无" : 技能来源;
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
         if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))

@@ -618,24 +618,75 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     internal static List<装备数值服务.授予技能条目> GetGrantedSkillEntriesForCharacter(string characterId)
     {
-        if (instance == null)
-        {
-            return new List<装备数值服务.授予技能条目>();
-        }
-
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.构建授予技能条目列表(equipment, ResolveItemEntry);
     }
 
     public static string GetGrantedSkillSourceItemIdForCharacter(string characterId, string skillId)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(skillId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(skillId))
         {
             return string.Empty;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.查找授予技能来源物品(equipment, ResolveItemEntry, skillId);
+    }
+
+    private static List<ItemSlotData> 获取战斗装备数据(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            return null;
+        }
+
+        if (instance != null)
+        {
+            return instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        }
+
+        return 获取敌人装备库装备数据(characterId);
+    }
+
+    private static List<ItemSlotData> 获取敌人装备库装备数据(string characterId)
+    {
+        EnemyEquipmentDatabase equipmentDatabase = EnemyEquipmentDatabase.LoadDefault();
+        EnemyEquipmentDatabase.EnemyEquipmentEntry entry = equipmentDatabase != null ? equipmentDatabase.FindEntry(characterId) : null;
+        if (entry == null || entry.itemIds == null)
+        {
+            return null;
+        }
+
+        int slotCount = Mathf.Max(entry.itemIds.Count, EnemyEquipmentDatabase.SlotCount);
+        List<ItemSlotData> result = new List<ItemSlotData>(slotCount);
+        for (int i = 0; i < slotCount; i++)
+        {
+            result.Add(default);
+        }
+
+        for (int i = 0; i < entry.itemIds.Count && i < result.Count; i++)
+        {
+            string itemId = entry.itemIds[i];
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry itemEntry = ResolveItemEntry(itemId);
+            if (itemEntry == null || itemEntry.category != ItemDatabase.ItemCategory.Equipment)
+            {
+                continue;
+            }
+
+            result[i] = new ItemSlotData
+            {
+                itemId = itemId,
+                count = 1,
+                maxStack = 1
+            };
+        }
+
+        return result;
     }
 
     public static int AddItem(string itemId, Sprite icon, int count, int maxStack = 99)
@@ -2195,12 +2246,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static float GetCharacterWeaponAttackPower(string characterId, string sourceItemId)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
         {
             return 0f;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.获取来源武器攻击力(characterId, equipment, ResolveItemEntry, sourceItemId);
     }
 
@@ -2217,12 +2268,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static ItemDatabase.WeaponDamageDistribution GetCharacterWeaponDamageDistribution(string characterId, string sourceItemId)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
         {
             return null;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.获取来源武器伤害分布(equipment, ResolveItemEntry, sourceItemId);
     }
 
@@ -2239,12 +2290,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static int GetCharacterWeaponCriticalChanceBonus(string characterId, string sourceItemId)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
         {
             return 0;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.获取来源武器暴击率加成(equipment, ResolveItemEntry, sourceItemId);
     }
 
@@ -2261,12 +2312,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static int GetCharacterWeaponCriticalDamageBonus(string characterId, string sourceItemId)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
         {
             return 0;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.获取来源武器暴击伤害加成(equipment, ResolveItemEntry, sourceItemId);
     }
 
@@ -2283,12 +2334,12 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
 
     public static int GetCharacterWeaponResistancePenetration(string characterId, string sourceItemId, ItemDatabase.ResistanceModifierType resistanceType)
     {
-        if (instance == null || string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
         {
             return 0;
         }
 
-        List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
         return 装备数值服务.获取来源武器抗性穿透(equipment, ResolveItemEntry, sourceItemId, resistanceType);
     }
 

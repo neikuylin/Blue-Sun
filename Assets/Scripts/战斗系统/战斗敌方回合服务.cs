@@ -7,6 +7,7 @@ internal sealed class 战斗敌方回合服务
     internal sealed class 技能选项
     {
         public string skillId = string.Empty;
+        public string skillSource = string.Empty;
         public int weight;
         public int order;
         public BattleSkillDatabase.SkillEntry skill;

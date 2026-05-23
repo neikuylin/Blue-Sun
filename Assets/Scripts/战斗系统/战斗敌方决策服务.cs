@@ -27,19 +27,21 @@ internal sealed class 战斗敌方决策服务
                     result,
                     seenSkillIds,
                     skillEntry.memorizedSkillIds[i],
+                    string.Empty,
                     CharacterSkillLoadoutDatabase.GetMemorizedSkillWeightAt(skillEntry, i),
                     i,
                     resolveSkill);
             }
         }
 
-        List<string> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillIdsForCharacter(caster.characterId);
+        List<装备数值服务.授予技能条目> grantedSkills = InventoryShortcutRuntimeBinder.GetGrantedSkillEntriesForCharacter(caster.characterId);
         for (int i = 0; i < grantedSkills.Count; i++)
         {
-            尝试添加技能选项(result, seenSkillIds, grantedSkills[i], 0, 1000 + i, resolveSkill);
+            装备数值服务.授予技能条目 grantedSkill = grantedSkills[i];
+            尝试添加技能选项(result, seenSkillIds, grantedSkill.技能ID, grantedSkill.来源物品ID, 0, 1000 + i, resolveSkill);
         }
 
-        尝试添加技能选项(result, seenSkillIds, normalAttackSkillId, 0, int.MaxValue, resolveSkill);
+        尝试添加技能选项(result, seenSkillIds, normalAttackSkillId, string.Empty, 0, int.MaxValue, resolveSkill);
         result.Sort(比较技能选项);
         return result;
     }
@@ -244,11 +246,12 @@ internal sealed class 战斗敌方决策服务
         List<战斗敌方回合服务.技能选项> choices,
         HashSet<string> seenSkillIds,
         string skillId,
+        string skillSource,
         int weight,
         int order,
         Func<string, BattleSkillDatabase.SkillEntry> resolveSkill)
     {
-        if (choices == null || seenSkillIds == null || string.IsNullOrWhiteSpace(skillId) || !seenSkillIds.Add(skillId))
+        if (choices == null || seenSkillIds == null || string.IsNullOrWhiteSpace(skillId))
         {
             return;
         }
@@ -259,9 +262,19 @@ internal sealed class 战斗敌方决策服务
             return;
         }
 
+        string resolvedSource = BattleSkillDatabase.ResolveSkillSource(skillSource, skill);
+        string key = $"{skillId}|{resolvedSource}";
+        if (!seenSkillIds.Add(key))
+        {
+            return;
+        }
+
         choices.Add(new 战斗敌方回合服务.技能选项
         {
             skillId = skillId,
+            skillSource = string.IsNullOrWhiteSpace(skillSource) || string.Equals(skillSource, BattleSkillDatabase.NoSkillSourceText, StringComparison.Ordinal)
+                ? string.Empty
+                : skillSource,
             weight = weight,
             order = order,
             skill = skill
