@@ -94,6 +94,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int resolveFrame;
         public int castCount = 1;
         public int hitCount = 1;
+        public List<int> extraHitResolveFrames = new List<int>();
         public SkillGroup group = SkillGroup.CombatArt;
         public SkillType skillType = SkillType.Target;
         public CastTarget castTarget = CastTarget.Enemy;
@@ -132,6 +133,27 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int ResolveHitCount()
         {
             return Mathf.Max(1, hitCount);
+        }
+
+        public bool TryResolveHitResolveFrame(int hitIndex, out int frame)
+        {
+            if (hitIndex <= 0)
+            {
+                frame = resolveFrame;
+                return true;
+            }
+
+            int extraIndex = hitIndex - 1;
+            if (extraHitResolveFrames == null ||
+                extraIndex < 0 ||
+                extraIndex >= extraHitResolveFrames.Count)
+            {
+                frame = 0;
+                return false;
+            }
+
+            frame = extraHitResolveFrames[extraIndex];
+            return frame > 0;
         }
 
         public int ResolveManaCost()

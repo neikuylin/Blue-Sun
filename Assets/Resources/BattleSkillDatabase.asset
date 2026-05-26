@@ -27,6 +27,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraHitResolveFrames: 
     group: 0
     skillType: 1
     castTarget: 0
@@ -130,6 +131,7 @@ MonoBehaviour:
     resolveFrame: 35
     castCount: 1
     hitCount: 1
+    extraHitResolveFrames: 
     group: 1
     skillType: 0
     castTarget: 1
@@ -194,6 +196,7 @@ MonoBehaviour:
     resolveFrame: 29
     castCount: 1
     hitCount: 1
+    extraHitResolveFrames: 
     group: 1
     skillType: 1
     castTarget: 1
@@ -258,6 +261,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 2
     hitCount: 1
+    extraHitResolveFrames: 
     group: 1
     skillType: 0
     castTarget: 1
@@ -309,6 +313,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraHitResolveFrames: 
     group: 2
     skillType: 0
     castTarget: 1
@@ -351,6 +356,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraHitResolveFrames: 
     group: 2
     skillType: 0
     castTarget: 0
@@ -393,6 +399,7 @@ MonoBehaviour:
     resolveFrame: 35
     castCount: 1
     hitCount: 2
+    extraHitResolveFrames: 33000000
     group: 1
     skillType: 0
     castTarget: 1

@@ -79,7 +79,7 @@ internal sealed class 战斗技能表现服务
         MonoBehaviour host,
         BattleUnit caster,
         BattleSkillDatabase.SkillEntry skill,
-        Action resolveAction,
+        Action<int> resolveHitAction,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, string> resolveActionStateName,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, bool> resolveCompensateActionMotion,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, float> resolveActionYawOffset,
@@ -87,7 +87,7 @@ internal sealed class 战斗技能表现服务
         Func<BattleUnit, string> resolveIdleStateName,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, float, IEnumerator> createTrackedSkillAudioRoutine,
         Func<Animator, string, float, int> resolveAnimationStateTotalFrames,
-        Func<BattleSkillDatabase.SkillEntry, int, float, float> resolveSkillResolveDelaySeconds,
+        Func<BattleSkillDatabase.SkillEntry, int, int, float, float> resolveSkillResolveDelaySeconds,
         float hitFeelDurationSeconds,
         float hitFeelTimeScale,
         float defaultFixedDeltaTime)
@@ -99,7 +99,7 @@ internal sealed class 战斗技能表现服务
 
         if (skill == null)
         {
-            resolveAction?.Invoke();
+            resolveHitAction?.Invoke(0);
             yield break;
         }
 
@@ -111,7 +111,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            resolveAction?.Invoke();
+            ExecuteAllHitsImmediately(skill, resolveHitAction);
             yield break;
         }
 
@@ -123,7 +123,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            resolveAction?.Invoke();
+            ExecuteAllHitsImmediately(skill, resolveHitAction);
             yield break;
         }
 
@@ -151,19 +151,30 @@ internal sealed class 战斗技能表现服务
         int totalFrames = resolveAnimationStateTotalFrames != null
             ? resolveAnimationStateTotalFrames(animator, actionStateName, clipDuration)
             : 0;
-        float resolveDelay = resolveSkillResolveDelaySeconds != null
-            ? resolveSkillResolveDelaySeconds(skill, totalFrames, clipDuration)
-            : clipDuration;
-
-        if (resolveDelay > 0.01f)
+        int hitCount = skill.ResolveHitCount();
+        float elapsedResolveTime = 0f;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
-            yield return new WaitForSeconds(resolveDelay);
+            float resolveDelay = resolveSkillResolveDelaySeconds != null
+                ? resolveSkillResolveDelaySeconds(skill, hitIndex, totalFrames, clipDuration)
+                : clipDuration;
+            if (resolveDelay < 0f)
+            {
+                continue;
+            }
+
+            float waitDuration = Mathf.Max(0f, resolveDelay - elapsedResolveTime);
+            if (waitDuration > 0.01f)
+            {
+                yield return new WaitForSeconds(waitDuration);
+                elapsedResolveTime += waitDuration;
+            }
+
+            触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
+            resolveHitAction?.Invoke(hitIndex);
         }
 
-        触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
-        resolveAction?.Invoke();
-
-        float remainingDuration = Mathf.Max(0f, clipDuration - Mathf.Max(0f, resolveDelay));
+        float remainingDuration = Mathf.Max(0f, clipDuration - elapsedResolveTime);
         if (remainingDuration > 0.01f)
         {
             yield return new WaitForSeconds(remainingDuration);
@@ -186,6 +197,15 @@ internal sealed class 战斗技能表现服务
         }
 
         caster.SetAnimationPositionCompensation(false);
+    }
+
+    private static void ExecuteAllHitsImmediately(BattleSkillDatabase.SkillEntry skill, Action<int> resolveHitAction)
+    {
+        int hitCount = skill != null ? skill.ResolveHitCount() : 1;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            resolveHitAction?.Invoke(hitIndex);
+        }
     }
 
     private IEnumerator 播放命中停顿流程(float hitFeelDurationSeconds, float hitFeelTimeScale)

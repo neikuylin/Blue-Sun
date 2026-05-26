@@ -163,6 +163,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 DrawResolveFrameField(entry);
                 DrawCountField(entry.FindPropertyRelative("castCount"), "施法次数");
                 DrawCountField(entry.FindPropertyRelative("hitCount"), "命中次数");
+                DrawExtraHitResolveFrameFields(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
@@ -277,6 +278,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
         entry.FindPropertyRelative("castCount").intValue = 1;
         entry.FindPropertyRelative("hitCount").intValue = 1;
+        entry.FindPropertyRelative("extraHitResolveFrames").ClearArray();
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
@@ -677,6 +679,45 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         }
 
         property.intValue = Mathf.Max(1, EditorGUILayout.IntField(label, Mathf.Max(1, property.intValue)));
+    }
+
+    private static void DrawExtraHitResolveFrameFields(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty hitCountProperty = entry.FindPropertyRelative("hitCount");
+        SerializedProperty extraHitResolveFramesProperty = entry.FindPropertyRelative("extraHitResolveFrames");
+        if (hitCountProperty == null || extraHitResolveFramesProperty == null)
+        {
+            return;
+        }
+
+        int requiredCount = Mathf.Max(0, Mathf.Max(1, hitCountProperty.intValue) - 1);
+        while (extraHitResolveFramesProperty.arraySize < requiredCount)
+        {
+            int index = extraHitResolveFramesProperty.arraySize;
+            extraHitResolveFramesProperty.InsertArrayElementAtIndex(index);
+            extraHitResolveFramesProperty.GetArrayElementAtIndex(index).intValue = 0;
+        }
+
+        while (extraHitResolveFramesProperty.arraySize > requiredCount)
+        {
+            extraHitResolveFramesProperty.DeleteArrayElementAtIndex(extraHitResolveFramesProperty.arraySize - 1);
+        }
+
+        for (int i = 0; i < requiredCount; i++)
+        {
+            SerializedProperty frameProperty = extraHitResolveFramesProperty.GetArrayElementAtIndex(i);
+            if (frameProperty == null)
+            {
+                continue;
+            }
+
+            frameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField($"第{i + 2}下判定时间", Mathf.Max(0, frameProperty.intValue)));
+        }
     }
 
     private static void DrawNormalAttackExtraRuleHint(SerializedProperty skillIdProperty)

@@ -2327,12 +2327,12 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                (caster, skill, resolveAction) => skillPresentationService != null
+                (caster, skill, resolveHitAction) => skillPresentationService != null
                     ? skillPresentationService.播放技能动画并在结算点执行(
                         this,
                         caster,
                         skill,
-                        resolveAction,
+                        resolveHitAction,
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                         (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
@@ -2345,7 +2345,7 @@ public class BattleTurnSystem : MonoBehaviour
                         HitFeelTimeScale,
                         DefaultFixedDeltaTime)
                     : null,
-                (caster, targetUnit, skill) => damageResolutionService?.结算单体技能并显示信息(
+                (caster, targetUnit, skill, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                     caster,
                     targetUnit,
                     skill,
@@ -2359,6 +2359,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
                         ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
                         : null,
+                    resolveHitIndex,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,
                         destination,
@@ -2385,7 +2386,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                     战斗信息文本服务.中性信息颜色,
                     message => battleInfoTextService?.显示消息(message)),
-                (caster, targetCellValue, skill) => damageResolutionService?.结算范围技能并显示信息(
+                (caster, targetCellValue, skill, resolveHitIndex) => damageResolutionService?.结算范围技能并显示信息(
                     caster,
                     targetCellValue,
                     skill,
@@ -2400,6 +2401,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
                         ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
                         : null,
+                    resolveHitIndex,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,
                         destination,
@@ -2537,12 +2539,12 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                (source, skillEntry, resolveAction) => skillPresentationService != null
+                (source, skillEntry, resolveHitAction) => skillPresentationService != null
                     ? skillPresentationService.播放技能动画并在结算点执行(
                         this,
                         source,
                         skillEntry,
-                        resolveAction,
+                        resolveHitAction,
                         (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(entry, unit) : string.Empty,
                         (entry, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(entry, unit),
                         (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(entry, unit) : 0f,
@@ -2555,7 +2557,7 @@ public class BattleTurnSystem : MonoBehaviour
                         HitFeelTimeScale,
                         DefaultFixedDeltaTime)
                     : null,
-                (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+                (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                     source,
                     targetUnit,
                     skillEntry,
@@ -2569,6 +2571,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                         ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, skillSource, hitIndex))
                         : null,
+                    resolveHitIndex,
                     (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                         attacker,
                         defender,
@@ -2595,7 +2598,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                     战斗信息文本服务.中性信息颜色,
                     message => battleInfoTextService?.显示消息(message)),
-                (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+                (source, targetCellValue, skillEntry, resolveHitIndex) => damageResolutionService?.结算范围技能并显示信息(
                     source,
                     targetCellValue,
                     skillEntry,
@@ -2610,6 +2613,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                         ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, skillSource, hitIndex))
                         : null,
+                    resolveHitIndex,
                     (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                         attacker,
                         defender,
@@ -2908,12 +2912,12 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, resolveAction) => skillPresentationService != null
+            (caster, skill, resolveHitAction) => skillPresentationService != null
                 ? skillPresentationService.播放技能动画并在结算点执行(
                     this,
                     caster,
                     skill,
-                    resolveAction,
+                    resolveHitAction,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                     (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
@@ -2926,7 +2930,7 @@ public class BattleTurnSystem : MonoBehaviour
                     HitFeelTimeScale,
                     DefaultFixedDeltaTime)
                 : null,
-            (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+            (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                 source,
                 targetUnit,
                 skillEntry,
@@ -2940,6 +2944,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                     ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
+                resolveHitIndex,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
                     defender,
@@ -2966,7 +2971,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                 战斗信息文本服务.中性信息颜色,
                 message => battleInfoTextService?.显示消息(message)),
-            (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+            (source, targetCellValue, skillEntry, resolveHitIndex) => damageResolutionService?.结算范围技能并显示信息(
                 source,
                 targetCellValue,
                 skillEntry,
@@ -2981,6 +2986,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                     ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
+                resolveHitIndex,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
                     defender,
@@ -3045,12 +3051,12 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, resolveAction) => skillPresentationService != null
+            (caster, skill, resolveHitAction) => skillPresentationService != null
                 ? skillPresentationService.播放技能动画并在结算点执行(
                     this,
                     caster,
                     skill,
-                    resolveAction,
+                    resolveHitAction,
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
                     (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
@@ -3063,7 +3069,7 @@ public class BattleTurnSystem : MonoBehaviour
                     HitFeelTimeScale,
                     DefaultFixedDeltaTime)
                 : null,
-            (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+            (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                 source,
                 targetUnit,
                 skillEntry,
@@ -3077,6 +3083,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                     ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
+                resolveHitIndex,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
                     defender,
@@ -3103,7 +3110,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                 战斗信息文本服务.中性信息颜色,
                 message => battleInfoTextService?.显示消息(message)),
-            (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+            (source, targetCellValue, skillEntry, resolveHitIndex) => damageResolutionService?.结算范围技能并显示信息(
                 source,
                 targetCellValue,
                 skillEntry,
@@ -3118,6 +3125,7 @@ public class BattleTurnSystem : MonoBehaviour
                 (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
                     ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
+                resolveHitIndex,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
                     defender,
@@ -3534,19 +3542,30 @@ public class BattleTurnSystem : MonoBehaviour
         return 0;
     }
 
-    private static float ResolveSkillResolveDelaySeconds(BattleSkillDatabase.SkillEntry skill, int totalFrames, float clipDuration)
+    private static float ResolveSkillResolveDelaySeconds(BattleSkillDatabase.SkillEntry skill, int hitIndex, int totalFrames, float clipDuration)
     {
         if (clipDuration <= 0.01f)
         {
             return 0f;
         }
 
-        if (skill == null || skill.resolveFrame <= 0 || totalFrames <= 0)
+        if (skill == null || totalFrames <= 0)
         {
             return clipDuration;
         }
 
-        int clampedFrame = Mathf.Clamp(skill.resolveFrame, 1, totalFrames);
+        if (hitIndex <= 0 && skill.resolveFrame <= 0)
+        {
+            return clipDuration;
+        }
+
+        if (!skill.TryResolveHitResolveFrame(hitIndex, out int resolveFrame) || resolveFrame <= 0)
+        {
+            Debug.LogWarning($"[技能判定时间] 技能“{skill.skillId}”缺少第{hitIndex + 1}下判定时间，已跳过这一段命中。");
+            return -1f;
+        }
+
+        int clampedFrame = Mathf.Clamp(resolveFrame, 1, totalFrames);
         return clipDuration * ((float)clampedFrame / totalFrames);
     }
 
