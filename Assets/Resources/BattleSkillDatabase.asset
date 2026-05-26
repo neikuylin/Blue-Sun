@@ -126,7 +126,7 @@ MonoBehaviour:
     actionSoundPrefab: {fileID: 0}
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     soundDelayFrame: 0
-    enableHitFeel: 1
+    enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 35
     castCount: 1
@@ -191,7 +191,7 @@ MonoBehaviour:
     actionSoundPrefab: {fileID: 0}
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     soundDelayFrame: 0
-    enableHitFeel: 1
+    enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 29
     castCount: 1
@@ -394,7 +394,7 @@ MonoBehaviour:
     actionSoundPrefab: {fileID: 0}
     hitEffectPrefab: {fileID: 0}
     soundDelayFrame: 0
-    enableHitFeel: 1
+    enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 35
     castCount: 1
