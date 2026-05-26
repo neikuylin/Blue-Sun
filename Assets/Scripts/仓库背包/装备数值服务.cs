@@ -208,9 +208,10 @@ internal static class 装备数值服务
 
     public static List<string> 构建授予技能列表(
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
-        Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        Func<int, ItemDatabase.EquipmentSlotType> resolveEquipmentSlotType = null)
     {
-        List<授予技能条目> entries = 构建授予技能条目列表(equipment, resolveItemEntry);
+        List<授予技能条目> entries = 构建授予技能条目列表(equipment, resolveItemEntry, resolveEquipmentSlotType);
         List<string> result = new List<string>(entries.Count);
         for (int i = 0; i < entries.Count; i++)
         {
@@ -222,7 +223,8 @@ internal static class 装备数值服务
 
     public static List<授予技能条目> 构建授予技能条目列表(
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
-        Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        Func<int, ItemDatabase.EquipmentSlotType> resolveEquipmentSlotType = null)
     {
         List<授予技能条目> result = new List<授予技能条目>();
         if (equipment == null || resolveItemEntry == null)
@@ -230,6 +232,8 @@ internal static class 装备数值服务
             return result;
         }
 
+        ItemDatabase.ItemEntry mainHandWeapon = null;
+        ItemDatabase.ItemEntry offHandWeapon = null;
         for (int i = 0; i < equipment.Count; i++)
         {
             InventoryShortcutRuntimeBinder.ItemSlotData slot = equipment[i];
@@ -238,8 +242,36 @@ internal static class 装备数值服务
                 continue;
             }
 
+            if (slot.isFootprintExtension)
+            {
+                continue;
+            }
+
             ItemDatabase.ItemEntry itemEntry = resolveItemEntry(slot.itemId);
-            if (itemEntry == null || itemEntry.grantedSkillIds == null)
+            if (itemEntry == null)
+            {
+                continue;
+            }
+
+            ItemDatabase.EquipmentSlotType actualSlotType = resolveEquipmentSlotType != null
+                ? resolveEquipmentSlotType(i)
+                : ItemDatabase.EquipmentSlotType.None;
+            if (actualSlotType == ItemDatabase.EquipmentSlotType.MainHand && 是攻击力武器条目(itemEntry))
+            {
+                mainHandWeapon = itemEntry;
+            }
+            else if (actualSlotType == ItemDatabase.EquipmentSlotType.OffHand && 是攻击力武器条目(itemEntry))
+            {
+                offHandWeapon = itemEntry;
+            }
+
+            if (actualSlotType == ItemDatabase.EquipmentSlotType.OffHand &&
+                itemEntry.weaponCategory == ItemDatabase.WeaponCategory.OneHanded)
+            {
+                continue;
+            }
+
+            if (itemEntry.grantedSkillIds == null)
             {
                 continue;
             }
@@ -252,8 +284,21 @@ internal static class 装备数值服务
                     continue;
                 }
 
+                if (string.Equals(skillId, BattleSkillDatabase.DualWieldNormalAttackSkillId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 result.Add(new 授予技能条目(skillId, slot.itemId));
             }
+        }
+
+        if (mainHandWeapon != null &&
+            offHandWeapon != null &&
+            mainHandWeapon.weaponCategory == ItemDatabase.WeaponCategory.OneHanded &&
+            offHandWeapon.weaponCategory == ItemDatabase.WeaponCategory.OneHanded)
+        {
+            result.Add(new 授予技能条目(BattleSkillDatabase.DualWieldNormalAttackSkillId, string.Empty));
         }
 
         return result;

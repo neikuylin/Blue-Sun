@@ -121,6 +121,11 @@ public static class CharacterSkillListUtility
             return;
         }
 
+        if (string.Equals(skillId, BattleSkillDatabase.DualWieldNormalAttackSkillId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         if (seen != null && !seen.Add(skillId))
         {
             return;
@@ -132,6 +137,12 @@ public static class CharacterSkillListUtility
     private static void TryAddDisplaySkill(List<DisplaySkillEntry> target, string skillId, bool isGranted, string skillSource = "")
     {
         if (target == null || string.IsNullOrWhiteSpace(skillId))
+        {
+            return;
+        }
+
+        if (!isGranted &&
+            string.Equals(skillId, BattleSkillDatabase.DualWieldNormalAttackSkillId, StringComparison.Ordinal))
         {
             return;
         }

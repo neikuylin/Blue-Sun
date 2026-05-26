@@ -319,6 +319,10 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             else if (shouldDisplay && memorizedIndex >= 0 && entry != null && entry.memorizedSkillIds != null && memorizedIndex < entry.memorizedSkillIds.Count)
             {
                 skillId = entry.memorizedSkillIds[memorizedIndex];
+                if (IsSystemGrantedOnlySkill(skillId))
+                {
+                    skillId = string.Empty;
+                }
             }
 
             widget.skillId = skillId;
@@ -355,6 +359,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
             string skillId = i < warehouseCount && entry != null && entry.warehouseSkillIds != null
                 ? entry.warehouseSkillIds[i]
                 : string.Empty;
+            if (IsSystemGrantedOnlySkill(skillId))
+            {
+                skillId = string.Empty;
+            }
+
             widget.skillId = skillId;
             widget.skillSource = string.Empty;
             widget.isGranted = false;
@@ -618,7 +627,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         CharacterSkillLoadoutDatabase.EnsureWarehouseSlotCapacity(entry, warehouseIndex + 1);
         CharacterSkillLoadoutDatabase.EnsureMemorizedSlotMinSize(entry, memorizedIndex + 1);
         string movedSkillId = entry.warehouseSkillIds[warehouseIndex];
-        if (string.IsNullOrWhiteSpace(movedSkillId))
+        if (string.IsNullOrWhiteSpace(movedSkillId) || IsSystemGrantedOnlySkill(movedSkillId))
         {
             return false;
         }
@@ -743,6 +752,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
 
         string warehouseSkillId = entry.warehouseSkillIds[warehouseIndex];
         if (string.IsNullOrWhiteSpace(warehouseSkillId) ||
+            IsSystemGrantedOnlySkill(warehouseSkillId) ||
             !string.IsNullOrWhiteSpace(entry.memorizedSkillIds[memorizedIndex]))
         {
             return false;
@@ -1140,6 +1150,11 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         return count;
+    }
+
+    private static bool IsSystemGrantedOnlySkill(string skillId)
+    {
+        return string.Equals(skillId, BattleSkillDatabase.DualWieldNormalAttackSkillId, StringComparison.Ordinal);
     }
 
     private static Color ResolveSkillDisplayColor(bool isGranted, bool isUsable)

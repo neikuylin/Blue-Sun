@@ -613,13 +613,27 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         List<ItemSlotData> equipment = instance.GetEquipmentDataForCharacter(characterId, createIfMissing: false);
-        return 装备数值服务.构建授予技能列表(equipment, ResolveItemEntry);
+        return 装备数值服务.构建授予技能列表(
+            equipment,
+            ResolveItemEntry,
+            index => IsEquipmentSlotTypeAt(characterId, index, ItemDatabase.EquipmentSlotType.MainHand)
+                ? ItemDatabase.EquipmentSlotType.MainHand
+                : IsEquipmentSlotTypeAt(characterId, index, ItemDatabase.EquipmentSlotType.OffHand)
+                    ? ItemDatabase.EquipmentSlotType.OffHand
+                    : ItemDatabase.EquipmentSlotType.None);
     }
 
     internal static List<装备数值服务.授予技能条目> GetGrantedSkillEntriesForCharacter(string characterId)
     {
         List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
-        return 装备数值服务.构建授予技能条目列表(equipment, ResolveItemEntry);
+        return 装备数值服务.构建授予技能条目列表(
+            equipment,
+            ResolveItemEntry,
+            index => IsEquipmentSlotTypeAt(characterId, index, ItemDatabase.EquipmentSlotType.MainHand)
+                ? ItemDatabase.EquipmentSlotType.MainHand
+                : IsEquipmentSlotTypeAt(characterId, index, ItemDatabase.EquipmentSlotType.OffHand)
+                    ? ItemDatabase.EquipmentSlotType.OffHand
+                    : ItemDatabase.EquipmentSlotType.None);
     }
 
     public static string GetGrantedSkillSourceItemIdForCharacter(string characterId, string skillId)
