@@ -90,6 +90,7 @@ public class BattleTurnSystem : MonoBehaviour
     private string activeSkillId = string.Empty;
     private string activeSkillSource = string.Empty;
     private BattleSkillDatabase.SkillEntry activeSkill;
+    private int activeSkillRemainingCastCount;
     private bool hasSkillHoverPreview;
     private Vector2Int skillHoverCell;
     private bool skillHoverValid;
@@ -364,6 +365,7 @@ public class BattleTurnSystem : MonoBehaviour
         absoluteRoundIndex = -1;
         activeSkillId = string.Empty;
         activeSkill = null;
+        activeSkillRemainingCastCount = 0;
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
@@ -1991,6 +1993,7 @@ public class BattleTurnSystem : MonoBehaviour
             activeSkillId = skillId;
             activeSkillSource = 解析播放技能来源(skillSource, nextSkill);
             activeSkill = nextSkill;
+            activeSkillRemainingCastCount = nextSkill.ResolveCastCount();
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
             skillTargetingPresentationService?.开始技能指向引导(
@@ -2265,6 +2268,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkillId = string.Empty;
         activeSkillSource = string.Empty;
         activeSkill = null;
+        activeSkillRemainingCastCount = 0;
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
@@ -2302,8 +2306,8 @@ public class BattleTurnSystem : MonoBehaviour
                 activeSkill,
                 (caster, cell, clickedTarget, skill) => CanCastSkillAt(caster, cell, clickedTarget, skill, null),
                 TryMove,
-                GetSkillActionPointCost,
-                GetSkillManaCostForExecution,
+                GetActiveSkillActionPointCostForExecution,
+                GetActiveSkillManaCostForExecution,
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
@@ -2406,7 +2410,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                     战斗信息文本服务.中性信息颜色,
                     message => battleInfoTextService?.显示消息(message)),
-                ClearActiveSkillMode,
+                CompleteActiveSkillCastClick,
                 RefreshHighlights,
                 RefreshTimeline,
                 TryEnterPendingExplorationMode)
@@ -2468,9 +2472,50 @@ public class BattleTurnSystem : MonoBehaviour
         return GetSkillActionPointCost(skill);
     }
 
+    private int GetActiveSkillActionPointCostForExecution(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        return IsActiveSkillContinuation(skill) ? 0 : GetSkillActionPointCost(skill);
+    }
+
     private int GetSkillManaCostForExecution(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
     {
         return GetSkillManaCost(skill);
+    }
+
+    private int GetActiveSkillManaCostForExecution(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        return IsActiveSkillContinuation(skill) ? 0 : GetSkillManaCostForExecution(unit, skill);
+    }
+
+    private bool IsActiveSkillContinuation(BattleSkillDatabase.SkillEntry skill)
+    {
+        return skill != null &&
+            activeSkill == skill &&
+            activeSkillRemainingCastCount > 0 &&
+            activeSkillRemainingCastCount < skill.ResolveCastCount();
+    }
+
+    private void CompleteActiveSkillCastClick()
+    {
+        if (activeSkill == null)
+        {
+            ClearActiveSkillMode();
+            return;
+        }
+
+        activeSkillRemainingCastCount = Mathf.Max(0, activeSkillRemainingCastCount - 1);
+        if (activeSkillRemainingCastCount <= 0)
+        {
+            ClearActiveSkillMode();
+            return;
+        }
+
+        hasSkillHoverPreview = false;
+        skillHoverValid = false;
+        skillHoverHasAnyVisibleCells = false;
+        skillHoverActionPointCost = 0;
+        skillPreviewService?.清空悬停目标(grid);
+        skillPreviewService?.隐藏行动点提示();
     }
 
     private void SetSkillExecutionResolvingState(bool value)
@@ -2948,7 +2993,7 @@ public class BattleTurnSystem : MonoBehaviour
             return GetMoveActionPointCost(unit, path, skill);
         }
 
-        return GetSkillActionPointCost(skill);
+        return GetActiveSkillActionPointCostForExecution(unit, skill);
     }
 
     private bool IsMovementSkillActive()

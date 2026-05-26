@@ -91,6 +91,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public bool enableHitFeel;
         public bool compensateActionMotion;
         public int resolveFrame;
+        public int castCount = 1;
+        public int hitCount = 1;
         public SkillGroup group = SkillGroup.CombatArt;
         public SkillType skillType = SkillType.Target;
         public CastTarget castTarget = CastTarget.Enemy;
@@ -119,6 +121,16 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public int ResolveActionPointCost()
         {
             return Mathf.Max(0, actionPointCost);
+        }
+
+        public int ResolveCastCount()
+        {
+            return Mathf.Max(1, castCount);
+        }
+
+        public int ResolveHitCount()
+        {
+            return Mathf.Max(1, hitCount);
         }
 
         public int ResolveManaCost()

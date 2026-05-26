@@ -160,6 +160,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 BattleSkillDatabase.SkillGroup currentGroup = (BattleSkillDatabase.SkillGroup)group.enumValueIndex;
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawResolveFrameField(entry);
+                DrawCountField(entry.FindPropertyRelative("castCount"), "施法次数");
+                DrawCountField(entry.FindPropertyRelative("hitCount"), "命中次数");
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
@@ -272,6 +274,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("enableHitFeel").boolValue = false;
         entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
+        entry.FindPropertyRelative("castCount").intValue = 1;
+        entry.FindPropertyRelative("hitCount").intValue = 1;
         entry.FindPropertyRelative("group").enumValueIndex = (int)BattleSkillDatabase.SkillGroup.CombatArt;
         entry.FindPropertyRelative("skillType").enumValueIndex = (int)BattleSkillDatabase.SkillType.Target;
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
@@ -658,8 +662,20 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             useMoveDistanceAsRange = true,
             range = 0,
             resolveFrame = 0,
+            castCount = 1,
+            hitCount = 1,
             effectSize = new Vector2Int(3, 3)
         };
+    }
+
+    private static void DrawCountField(SerializedProperty property, string label)
+    {
+        if (property == null)
+        {
+            return;
+        }
+
+        property.intValue = Mathf.Max(1, EditorGUILayout.IntField(label, Mathf.Max(1, property.intValue)));
     }
 
     private static void DrawResolveFrameField(SerializedProperty entry)
