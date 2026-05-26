@@ -19,9 +19,8 @@ MonoBehaviour:
     - 
     - 
     memorizedSkillWeights: 000000000000000000000000
-    warehouseSkillIds:
-    - "\u53CC\u6301\u666E\u901A\u653B\u51FB"
-    warehouseSkillWeights: 00000000
+    warehouseSkillIds: []
+    warehouseSkillWeights: 
   - characterId: "\u7D22\u62C9\u5A1C"
     memorizedSkillIds:
     - 
