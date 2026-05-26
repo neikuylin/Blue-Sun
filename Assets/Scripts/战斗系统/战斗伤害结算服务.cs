@@ -40,7 +40,7 @@ internal sealed class 战斗伤害结算服务
         BattleSkillDatabase.SkillEntry skill,
         Camera battleCamera,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateCombatArtDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateCombatArtDamage,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -69,7 +69,7 @@ internal sealed class 战斗伤害结算服务
             }
 
             CombatDamageResult damageResult = calculateCombatArtDamage != null
-                ? calculateCombatArtDamage(caster, target, skill)
+                ? calculateCombatArtDamage(caster, target, skill, i)
                 : null;
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
@@ -94,7 +94,7 @@ internal sealed class 战斗伤害结算服务
         Func<BattleUnit, string> formatUnitEffectDebugText,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> calculateSkillHitChance,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateSkillDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateSkillDamage,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -122,6 +122,7 @@ internal sealed class 战斗伤害结算服务
                 calculateSkillHitChance,
                 rollSkillHit,
                 calculateSkillDamage,
+                i,
                 applyAttachedEffectsToUnit,
                 showZeroDamagePopup,
                 showDamagePopup,
@@ -146,7 +147,7 @@ internal sealed class 战斗伤害结算服务
         Camera battleCamera,
         Func<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, List<BattleUnit>> collectAreaSkillTargets,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateCombatArtDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateCombatArtDamage,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -191,7 +192,7 @@ internal sealed class 战斗伤害结算服务
                 }
 
                 CombatDamageResult damageResult = calculateCombatArtDamage != null
-                    ? calculateCombatArtDamage(caster, unit, skill)
+                    ? calculateCombatArtDamage(caster, unit, skill, hitIndex)
                     : null;
                 if (damageResult == null || damageResult.appliedDamage <= 0)
                 {
@@ -218,7 +219,7 @@ internal sealed class 战斗伤害结算服务
         Func<BattleUnit, string> formatUnitEffectDebugText,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> calculateSkillHitChance,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateSkillDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateSkillDamage,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -247,6 +248,7 @@ internal sealed class 战斗伤害结算服务
                 calculateSkillHitChance,
                 rollSkillHit,
                 calculateSkillDamage,
+                i,
                 applyAttachedEffectsToUnit,
                 showZeroDamagePopup,
                 showDamagePopup,
@@ -272,7 +274,8 @@ internal sealed class 战斗伤害结算服务
         Func<BattleUnit, string> formatUnitEffectDebugText,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> calculateSkillHitChance,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateSkillDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateSkillDamage,
+        int hitIndex,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -304,7 +307,7 @@ internal sealed class 战斗伤害结算服务
         }
 
         CombatDamageResult damageResult = calculateSkillDamage != null
-            ? calculateSkillDamage(caster, target, skill)
+            ? calculateSkillDamage(caster, target, skill, hitIndex)
             : null;
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
@@ -336,7 +339,8 @@ internal sealed class 战斗伤害结算服务
         Func<BattleUnit, string> formatUnitEffectDebugText,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> calculateSkillHitChance,
         Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, bool> rollSkillHit,
-        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, CombatDamageResult> calculateSkillDamage,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int, CombatDamageResult> calculateSkillDamage,
+        int hitIndex,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry> applyAttachedEffectsToUnit,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
@@ -386,7 +390,7 @@ internal sealed class 战斗伤害结算服务
             }
 
             CombatDamageResult damageResult = calculateSkillDamage != null
-                ? calculateSkillDamage(caster, unit, skill)
+                ? calculateSkillDamage(caster, unit, skill, hitIndex)
                 : null;
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {

@@ -633,6 +633,39 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.查找授予技能来源物品(equipment, ResolveItemEntry, skillId);
     }
 
+    public static string GetCharacterEquippedWeaponSourceItemId(string characterId, ItemDatabase.EquipmentSlotType actualSlotType)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || actualSlotType == ItemDatabase.EquipmentSlotType.None)
+        {
+            return string.Empty;
+        }
+
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
+        if (equipment == null || equipment.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < equipment.Count; i++)
+        {
+            if (!IsEquipmentSlotTypeAt(characterId, i, actualSlotType))
+            {
+                continue;
+            }
+
+            ItemSlotData slot = equipment[i];
+            if (slot.isFootprintExtension || string.IsNullOrWhiteSpace(slot.itemId))
+            {
+                return string.Empty;
+            }
+
+            ItemDatabase.ItemEntry entry = ResolveItemEntry(slot.itemId);
+            return 装备数值服务.是攻击力武器条目(entry) ? slot.itemId : string.Empty;
+        }
+
+        return string.Empty;
+    }
+
     private static List<ItemSlotData> 获取战斗装备数据(string characterId)
     {
         if (string.IsNullOrWhiteSpace(characterId))
@@ -646,6 +679,24 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         }
 
         return 获取敌人装备库装备数据(characterId);
+    }
+
+    private static bool IsEquipmentSlotTypeAt(string characterId, int index, ItemDatabase.EquipmentSlotType slotType)
+    {
+        if (index < 0)
+        {
+            return false;
+        }
+
+        if (instance != null)
+        {
+            return index < instance.equipmentSlots.Count &&
+                instance.equipmentSlots[index] != null &&
+                instance.equipmentSlots[index].equipmentSlotType == slotType;
+        }
+
+        return index < EnemyEquipmentDatabase.SlotTypes.Length &&
+            EnemyEquipmentDatabase.SlotTypes[index] == slotType;
     }
 
     private static List<ItemSlotData> 获取敌人装备库装备数据(string characterId)

@@ -7,6 +7,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "BattleSkillDatabase";
     public const string MoveSkillId = "移动";
+    public const string DualWieldNormalAttackSkillId = "双持普通攻击";
     public const string NoSkillSourceText = "无";
 
     public enum SkillGroup

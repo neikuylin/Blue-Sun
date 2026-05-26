@@ -149,6 +149,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 }
 
                 EditorGUILayout.PropertyField(skillIdProperty, new GUIContent("\u6280\u80fdID"));
+                DrawNormalAttackExtraRuleHint(skillIdProperty);
 
                 group.enumValueIndex = EditorGUILayout.Popup("\u5206\u7ec4", group.enumValueIndex, SkillGroupLabels);
                 skillType.enumValueIndex = EditorGUILayout.Popup("\u6280\u80fd\u7c7b\u578b", skillType.enumValueIndex, SkillTypeLabels);
@@ -676,6 +677,22 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         }
 
         property.intValue = Mathf.Max(1, EditorGUILayout.IntField(label, Mathf.Max(1, property.intValue)));
+    }
+
+    private static void DrawNormalAttackExtraRuleHint(SerializedProperty skillIdProperty)
+    {
+        if (skillIdProperty == null ||
+            !string.Equals(skillIdProperty.stringValue, "普通攻击", System.StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        EditorGUILayout.HelpBox(
+            "普通攻击额外规则：\n" +
+            "施法次数：选择目标次数，目标选满后统一播放动画和结算。\n" +
+            "命中次数：每次动画命中点内结算的伤害段数。\n" +
+            "双持普通攻击：第1段读取主手武器，第2段读取副手武器；缺少对应武器会在 Console 警告。",
+            MessageType.Info);
     }
 
     private static void DrawResolveFrameField(SerializedProperty entry)

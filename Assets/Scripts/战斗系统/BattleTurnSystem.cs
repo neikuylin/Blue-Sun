@@ -2356,8 +2356,8 @@ public class BattleTurnSystem : MonoBehaviour
                         : MinHitChancePercent,
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
-                    (source, destination, skillEntry) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, activeSkillSource)
+                    (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
                         : null,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,
@@ -2397,8 +2397,8 @@ public class BattleTurnSystem : MonoBehaviour
                         : MinHitChancePercent,
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
-                    (source, destination, skillEntry) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, activeSkillSource)
+                    (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
                         : null,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
                         source,
@@ -2566,8 +2566,8 @@ public class BattleTurnSystem : MonoBehaviour
                         : MinHitChancePercent,
                     (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, skillSource)
+                    (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, skillSource, hitIndex))
                         : null,
                     (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                         attacker,
@@ -2607,8 +2607,8 @@ public class BattleTurnSystem : MonoBehaviour
                         : MinHitChancePercent,
                     (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, skillSource)
+                    (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, skillSource, hitIndex))
                         : null,
                     (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                         attacker,
@@ -2718,6 +2718,52 @@ public class BattleTurnSystem : MonoBehaviour
     private int GetActiveSkillManaCostForExecution(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
     {
         return IsActiveSkillContinuation(skill) ? 0 : GetSkillManaCostForExecution(unit, skill);
+    }
+
+    private static string ResolveSkillDamageSourceForHit(
+        BattleUnit caster,
+        BattleSkillDatabase.SkillEntry skill,
+        string defaultSkillSource,
+        int hitIndex)
+    {
+        if (skill == null ||
+            !string.Equals(skill.skillId, BattleSkillDatabase.DualWieldNormalAttackSkillId, System.StringComparison.Ordinal))
+        {
+            return defaultSkillSource;
+        }
+
+        if (caster == null || string.IsNullOrWhiteSpace(caster.characterId))
+        {
+            Debug.LogWarning($"[双持普通攻击错误] 无法读取施法者角色ID，不能结算第{hitIndex + 1}段伤害。");
+            return string.Empty;
+        }
+
+        ItemDatabase.EquipmentSlotType slotType;
+        string slotName;
+        if (hitIndex == 0)
+        {
+            slotType = ItemDatabase.EquipmentSlotType.MainHand;
+            slotName = "主手";
+        }
+        else if (hitIndex == 1)
+        {
+            slotType = ItemDatabase.EquipmentSlotType.OffHand;
+            slotName = "副手";
+        }
+        else
+        {
+            Debug.LogWarning($"[双持普通攻击错误] 第{hitIndex + 1}段伤害没有对应的主手/副手来源。");
+            return string.Empty;
+        }
+
+        string sourceItemId = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponSourceItemId(caster.characterId, slotType);
+        if (string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            Debug.LogWarning($"[双持普通攻击错误] 角色 {caster.characterId} 缺少{slotName}武器，不能结算第{hitIndex + 1}段伤害。");
+            return string.Empty;
+        }
+
+        return sourceItemId;
     }
 
     private bool IsActiveSkillContinuation(BattleSkillDatabase.SkillEntry skill)
@@ -2891,8 +2937,8 @@ public class BattleTurnSystem : MonoBehaviour
                     : MinHitChancePercent,
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
+                (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -2932,8 +2978,8 @@ public class BattleTurnSystem : MonoBehaviour
                     : MinHitChancePercent,
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
+                (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -3028,8 +3074,8 @@ public class BattleTurnSystem : MonoBehaviour
                     : MinHitChancePercent,
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
+                (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
@@ -3069,8 +3115,8 @@ public class BattleTurnSystem : MonoBehaviour
                     : MinHitChancePercent,
                 (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
                     skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
-                (attacker, defender, currentSkill) => skillCoreResolutionService != null
-                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, resolvedSkillSource)
+                (attacker, defender, currentSkill, hitIndex) => skillCoreResolutionService != null
+                    ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, ResolveSkillDamageSourceForHit(attacker, currentSkill, resolvedSkillSource, hitIndex))
                     : null,
                 (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
                     attacker,
