@@ -140,13 +140,14 @@ internal sealed class 战斗技能预览服务
         bool isSkillModeActive,
         bool skillHoverValid,
         int skillHoverActionPointCost,
+        int remainingTargetSelectionCount,
         BattleUnit activeUnit,
         Color insufficientColor,
         Color normalColor,
         Func<Transform> resolveOverlayCanvasTransform,
         Func<Transform, string, Transform> findChildByName)
     {
-        if (!应该显示行动点提示(isSkillModeActive, skillHoverValid, skillHoverActionPointCost))
+        if (!应该显示行动点提示(isSkillModeActive, skillHoverValid))
         {
             隐藏行动点提示();
             return;
@@ -159,7 +160,11 @@ internal sealed class 战斗技能预览服务
             return;
         }
 
-        hint.text = "消耗行动点：" + skillHoverActionPointCost;
+        int targetSelectionCount = Mathf.Max(1, remainingTargetSelectionCount);
+        string selectionText = targetSelectionCount > 1
+            ? "选择目标次数：" + targetSelectionCount
+            : "选择目标";
+        hint.text = selectionText + "\n消耗行动点：" + skillHoverActionPointCost;
         hint.color = activeUnit != null && skillHoverActionPointCost > activeUnit.currentActionPoints
             ? insufficientColor
             : normalColor;
@@ -243,9 +248,9 @@ internal sealed class 战斗技能预览服务
             : hoveredEnemyFlashColor;
     }
 
-    private static bool 应该显示行动点提示(bool isSkillModeActive, bool skillHoverValid, int skillHoverActionPointCost)
+    private static bool 应该显示行动点提示(bool isSkillModeActive, bool skillHoverValid)
     {
-        return isSkillModeActive && skillHoverValid && skillHoverActionPointCost > 0;
+        return isSkillModeActive && skillHoverValid;
     }
 
     private TMP_Text 确保行动点提示(
@@ -288,7 +293,7 @@ internal sealed class 战斗技能预览服务
         skillCostHintRect.anchorMin = new Vector2(0.5f, 0.5f);
         skillCostHintRect.anchorMax = new Vector2(0.5f, 0.5f);
         skillCostHintRect.pivot = new Vector2(0f, 0.5f);
-        skillCostHintRect.sizeDelta = new Vector2(260f, 44f);
+        skillCostHintRect.sizeDelta = new Vector2(320f, 72f);
 
         skillCostHintText.raycastTarget = false;
         skillCostHintText.fontSize = 28f;

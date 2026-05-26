@@ -2214,6 +2214,7 @@ public class BattleTurnSystem : MonoBehaviour
                 IsSkillModeActive(),
                 skillHoverValid,
                 skillHoverActionPointCost,
+                GetRemainingTargetSelectionCount(),
                 activeUnit,
                 skillCostInsufficientColor,
                 skillCostNormalColor,
@@ -2232,6 +2233,7 @@ public class BattleTurnSystem : MonoBehaviour
             IsSkillModeActive(),
             skillHoverValid,
             skillHoverActionPointCost,
+            GetRemainingTargetSelectionCount(),
             activeUnit,
             skillCostInsufficientColor,
             skillCostNormalColor,
@@ -2436,6 +2438,16 @@ public class BattleTurnSystem : MonoBehaviour
         return activeSkill != null &&
             activeSkill.ResolveCastCount() > 1 &&
             !IsMovementSkillId(activeSkillId);
+    }
+
+    private int GetRemainingTargetSelectionCount()
+    {
+        if (!ShouldQueueActiveSkillTargets())
+        {
+            return 1;
+        }
+
+        return Mathf.Max(1, activeSkill.ResolveCastCount() - queuedActiveSkillTargetCells.Count);
     }
 
     private void QueueActiveSkillTarget(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
