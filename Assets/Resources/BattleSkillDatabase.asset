@@ -256,7 +256,7 @@ MonoBehaviour:
     enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 0
-    castCount: 1
+    castCount: 2
     hitCount: 1
     group: 1
     skillType: 0
@@ -307,7 +307,7 @@ MonoBehaviour:
     enableHitFeel: 0
     compensateActionMotion: 0
     resolveFrame: 0
-    castCount: 2
+    castCount: 1
     hitCount: 1
     group: 2
     skillType: 0
