@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - skillId: "\u79FB\u52A8"
+    skillSource: 
     description: 
     actionStateName: 
     actionYawOffset: 0
@@ -114,6 +115,7 @@ MonoBehaviour:
       soundDelayFrame: 0
       compensateActionMotion: 0
   - skillId: "\u666E\u901A\u653B\u51FB"
+    skillSource: 
     description: "\u6734\u5B9E\u65E0\u534E"
     actionStateName: 
     actionYawOffset: 0
@@ -175,6 +177,7 @@ MonoBehaviour:
       soundDelayFrame: 5
       compensateActionMotion: 0
   - skillId: "\u56DE\u65CB\u65A9"
+    skillSource: 
     description: 
     actionStateName: 
     actionYawOffset: 0
@@ -236,6 +239,7 @@ MonoBehaviour:
       soundDelayFrame: 0
       compensateActionMotion: 1
   - skillId: "\u5C04\u51FB"
+    skillSource: 
     description: 
     actionStateName: 
     actionYawOffset: 0
@@ -284,6 +288,7 @@ MonoBehaviour:
       soundDelayFrame: 0
       compensateActionMotion: 0
   - skillId: "\u706B\u7403"
+    skillSource: 
     description: "\u5BF9\u4E8E\u795E\u804C\u8005\u6765\u8BF4\uFF0C\u8FD9\u64AE\u706B\u7130\u627F\u8F7D\u7740\u4ED6\u4EEC\u7684\u4FE1\u4EF0\u3002"
     actionStateName: 
     actionYawOffset: 0
@@ -323,6 +328,7 @@ MonoBehaviour:
     requiredWeaponCategories: 
     weaponActionOverrides: []
   - skillId: "\u96C6\u4E2D"
+    skillSource: 
     description: 
     actionStateName: 
     actionYawOffset: 0
@@ -361,3 +367,52 @@ MonoBehaviour:
     - "\u96C6\u4E2D"
     requiredWeaponCategories: 
     weaponActionOverrides: []
+  - skillId: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
+    skillSource: 
+    description: "2\u4E0B\u6734\u5B9E\u65E0\u534E"
+    actionStateName: 
+    actionYawOffset: 0
+    actionSound: {fileID: 0}
+    actionSoundPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 0}
+    soundDelayFrame: 0
+    enableHitFeel: 1
+    compensateActionMotion: 0
+    resolveFrame: 0
+    group: 1
+    skillType: 0
+    castTarget: 1
+    icon: {fileID: 21300000, guid: 2382dd75de0a41d47bacf44862fb0cdd, type: 3}
+    noDamage: 0
+    damageMultiplier: 0.75
+    attributeMultiplier: 1
+    fixedDamage: 0
+    hitRateModifier: 0
+    damageType: 0
+    actionPointCost: 2
+    manaCost: 0
+    cooldownTurns: 0
+    useMoveDistanceAsRange: 0
+    range: 1
+    areaCastType: 0
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
+    effectSize: {x: 1, y: 1}
+    attachedEffects: []
+    attachedEffectIds: []
+    requiredWeaponCategories: 01000000
+    weaponActionOverrides:
+    - enabled: 1
+      weaponCategory: 1
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
