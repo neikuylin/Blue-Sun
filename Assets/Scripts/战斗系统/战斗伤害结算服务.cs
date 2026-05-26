@@ -58,28 +58,32 @@ internal sealed class 战斗伤害结算服务
             return;
         }
 
-        if (rollSkillHit == null || !rollSkillHit(caster, target, skill))
+        int hitCount = skill.ResolveHitCount();
+        for (int i = 0; i < hitCount; i++)
         {
-            playDodgeReaction?.Invoke(target);
-            BattleDamageNumberPopup.ShowMiss(target, battleCamera);
-            return;
-        }
+            if (rollSkillHit == null || !rollSkillHit(caster, target, skill))
+            {
+                playDodgeReaction?.Invoke(target);
+                BattleDamageNumberPopup.ShowMiss(target, battleCamera);
+                continue;
+            }
 
-        CombatDamageResult damageResult = calculateCombatArtDamage != null
-            ? calculateCombatArtDamage(caster, target, skill)
-            : null;
-        if (damageResult == null || damageResult.appliedDamage <= 0)
-        {
+            CombatDamageResult damageResult = calculateCombatArtDamage != null
+                ? calculateCombatArtDamage(caster, target, skill)
+                : null;
+            if (damageResult == null || damageResult.appliedDamage <= 0)
+            {
+                applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
+                showZeroDamagePopup?.Invoke(target, skill);
+                continue;
+            }
+
+            playHitReaction?.Invoke(target);
+            target.ApplyDamage(damageResult.appliedDamage);
             applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
-            showZeroDamagePopup?.Invoke(target, skill);
-            return;
+            showDamagePopup?.Invoke(target, damageResult);
+            handleUnitDefeat?.Invoke(target);
         }
-
-        playHitReaction?.Invoke(target);
-        target.ApplyDamage(damageResult.appliedDamage);
-        applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
-        showDamagePopup?.Invoke(target, damageResult);
-        handleUnitDefeat?.Invoke(target);
     }
 
     public void 结算单体技能并显示信息(
@@ -106,29 +110,33 @@ internal sealed class 战斗伤害结算服务
         string neutralInfoColorHex,
         Action<string> showBattleInfoMessage)
     {
-        string message = 应用单体技能伤害并生成消息(
-            caster,
-            target,
-            skill,
-            battleCamera,
-            formatUnitEffectDebugText,
-            calculateSkillHitChance,
-            rollSkillHit,
-            calculateSkillDamage,
-            applyAttachedEffectsToUnit,
-            showZeroDamagePopup,
-            showDamagePopup,
-            playDodgeReaction,
-            playHitReaction,
-            handleUnitDefeat,
-            resolveBattleInfoUnitName,
-            resolveBattleInfoSkillName,
-            formatBattleInfoDamageText,
-            buildUnitDefeatMessage,
-            buildCriticalBattleInfoText,
-            wrapBattleInfoColor,
-            neutralInfoColorHex);
-        showBattleInfoMessage?.Invoke(message);
+        int hitCount = skill != null ? skill.ResolveHitCount() : 1;
+        for (int i = 0; i < hitCount; i++)
+        {
+            string message = 应用单体技能伤害并生成消息(
+                caster,
+                target,
+                skill,
+                battleCamera,
+                formatUnitEffectDebugText,
+                calculateSkillHitChance,
+                rollSkillHit,
+                calculateSkillDamage,
+                applyAttachedEffectsToUnit,
+                showZeroDamagePopup,
+                showDamagePopup,
+                playDodgeReaction,
+                playHitReaction,
+                handleUnitDefeat,
+                resolveBattleInfoUnitName,
+                resolveBattleInfoSkillName,
+                formatBattleInfoDamageText,
+                buildUnitDefeatMessage,
+                buildCriticalBattleInfoText,
+                wrapBattleInfoColor,
+                neutralInfoColorHex);
+            showBattleInfoMessage?.Invoke(message);
+        }
     }
 
     public void 应用战技范围伤害(
@@ -172,28 +180,32 @@ internal sealed class 战斗伤害结算服务
                 continue;
             }
 
-            if (rollSkillHit == null || !rollSkillHit(caster, unit, skill))
+            int hitCount = skill.ResolveHitCount();
+            for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
             {
-                playDodgeReaction?.Invoke(unit);
-                BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
-                continue;
-            }
+                if (rollSkillHit == null || !rollSkillHit(caster, unit, skill))
+                {
+                    playDodgeReaction?.Invoke(unit);
+                    BattleDamageNumberPopup.ShowMiss(unit, battleCamera);
+                    continue;
+                }
 
-            CombatDamageResult damageResult = calculateCombatArtDamage != null
-                ? calculateCombatArtDamage(caster, unit, skill)
-                : null;
-            if (damageResult == null || damageResult.appliedDamage <= 0)
-            {
+                CombatDamageResult damageResult = calculateCombatArtDamage != null
+                    ? calculateCombatArtDamage(caster, unit, skill)
+                    : null;
+                if (damageResult == null || damageResult.appliedDamage <= 0)
+                {
+                    applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
+                    showZeroDamagePopup?.Invoke(unit, skill);
+                    continue;
+                }
+
+                playHitReaction?.Invoke(unit);
+                unit.ApplyDamage(damageResult.appliedDamage);
                 applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
-                showZeroDamagePopup?.Invoke(unit, skill);
-                continue;
+                showDamagePopup?.Invoke(unit, damageResult);
+                handleUnitDefeat?.Invoke(unit);
             }
-
-            playHitReaction?.Invoke(unit);
-            unit.ApplyDamage(damageResult.appliedDamage);
-            applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
-            showDamagePopup?.Invoke(unit, damageResult);
-            handleUnitDefeat?.Invoke(unit);
         }
     }
 
@@ -222,30 +234,34 @@ internal sealed class 战斗伤害结算服务
         string neutralInfoColorHex,
         Action<string> showBattleInfoMessage)
     {
-        string message = 应用范围技能伤害并生成消息(
-            caster,
-            targetCell,
-            skill,
-            battleCamera,
-            collectAreaSkillTargets,
-            formatUnitEffectDebugText,
-            calculateSkillHitChance,
-            rollSkillHit,
-            calculateSkillDamage,
-            applyAttachedEffectsToUnit,
-            showZeroDamagePopup,
-            showDamagePopup,
-            playDodgeReaction,
-            playHitReaction,
-            handleUnitDefeat,
-            resolveBattleInfoUnitName,
-            resolveBattleInfoSkillName,
-            formatBattleInfoDamageText,
-            buildUnitDefeatMessage,
-            buildCriticalBattleInfoText,
-            wrapBattleInfoColor,
-            neutralInfoColorHex);
-        showBattleInfoMessage?.Invoke(message);
+        int hitCount = skill != null ? skill.ResolveHitCount() : 1;
+        for (int i = 0; i < hitCount; i++)
+        {
+            string message = 应用范围技能伤害并生成消息(
+                caster,
+                targetCell,
+                skill,
+                battleCamera,
+                collectAreaSkillTargets,
+                formatUnitEffectDebugText,
+                calculateSkillHitChance,
+                rollSkillHit,
+                calculateSkillDamage,
+                applyAttachedEffectsToUnit,
+                showZeroDamagePopup,
+                showDamagePopup,
+                playDodgeReaction,
+                playHitReaction,
+                handleUnitDefeat,
+                resolveBattleInfoUnitName,
+                resolveBattleInfoSkillName,
+                formatBattleInfoDamageText,
+                buildUnitDefeatMessage,
+                buildCriticalBattleInfoText,
+                wrapBattleInfoColor,
+                neutralInfoColorHex);
+            showBattleInfoMessage?.Invoke(message);
+        }
     }
 
     private static string 应用单体技能伤害并生成消息(
