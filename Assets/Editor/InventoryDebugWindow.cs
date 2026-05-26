@@ -17,7 +17,7 @@ public sealed class InventoryDebugWindow : EditorWindow
     private int moveFrom;
     private int moveTo = 1;
 
-    [MenuItem("Tools/物品/物品调试窗口")]
+    [MenuItem("工具/物品/物品调试窗口")]
     private static void Open()
     {
         InventoryDebugWindow window = CreateInstance<InventoryDebugWindow>();

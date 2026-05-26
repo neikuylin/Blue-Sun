@@ -378,7 +378,7 @@ MonoBehaviour:
     soundDelayFrame: 0
     enableHitFeel: 1
     compensateActionMotion: 0
-    resolveFrame: 0
+    resolveFrame: 35
     group: 1
     skillType: 0
     castTarget: 1
@@ -410,7 +410,7 @@ MonoBehaviour:
       targetSelectionStateName: 
       targetSelectionYawOffset: 0
       actionStateName: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
-      actionYawOffset: 0
+      actionYawOffset: 45
       postUseYawOffset: 0
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
