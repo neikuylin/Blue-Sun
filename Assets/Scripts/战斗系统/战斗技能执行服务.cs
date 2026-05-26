@@ -29,7 +29,9 @@ internal sealed class 战斗技能执行服务
         Action 清理主动技能模式,
         Action 刷新高亮,
         Action 刷新时间轴,
-        Action 尝试进入待处理探索模式)
+        Action 尝试进入待处理探索模式,
+        bool 消耗资源 = true,
+        bool 执行后清理技能模式 = true)
     {
         if (!技能模式激活 || 正在结算技能 || !技能目标选择已就绪 || 宿主 == null || 单位 == null)
         {
@@ -73,7 +75,9 @@ internal sealed class 战斗技能执行服务
                 清理主动技能模式,
                 刷新高亮,
                 刷新时间轴,
-                尝试进入待处理探索模式));
+                尝试进入待处理探索模式,
+                消耗资源,
+                执行后清理技能模式));
         }
 
         if (当前技能.skillType == BattleSkillDatabase.SkillType.Area)
@@ -92,7 +96,9 @@ internal sealed class 战斗技能执行服务
                 清理主动技能模式,
                 刷新高亮,
                 刷新时间轴,
-                尝试进入待处理探索模式));
+                尝试进入待处理探索模式,
+                消耗资源,
+                执行后清理技能模式));
         }
 
         return 当前执行协程;
@@ -112,7 +118,9 @@ internal sealed class 战斗技能执行服务
         Action 清理主动技能模式,
         Action 刷新高亮,
         Action 刷新时间轴,
-        Action 尝试进入待处理探索模式)
+        Action 尝试进入待处理探索模式,
+        bool 消耗资源,
+        bool 执行后清理技能模式)
     {
         if (施法者 == null || 目标 == null || 技能 == null)
         {
@@ -121,25 +129,35 @@ internal sealed class 战斗技能执行服务
 
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
-        if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
+        if (消耗资源 && (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗)))
         {
             yield break;
         }
 
         设置技能结算状态?.Invoke(true);
-        施法者.SpendActionPoints(行动点消耗);
-        施法者.SpendMana(法力消耗);
+        if (消耗资源)
+        {
+            施法者.SpendActionPoints(行动点消耗);
+            施法者.SpendMana(法力消耗);
+        }
         面向目标单位?.Invoke(施法者, 目标);
         if (播放技能动画并在结算点执行 != null)
         {
             yield return 播放技能动画并在结算点执行(施法者, 技能, () => 结算单体技能?.Invoke(施法者, 目标, 技能));
         }
 
-        清理主动技能模式?.Invoke();
+        if (执行后清理技能模式)
+        {
+            清理主动技能模式?.Invoke();
+        }
+
         刷新高亮?.Invoke();
         刷新时间轴?.Invoke();
         设置技能结算状态?.Invoke(false);
-        尝试进入待处理探索模式?.Invoke();
+        if (执行后清理技能模式)
+        {
+            尝试进入待处理探索模式?.Invoke();
+        }
     }
 
     private IEnumerator 执行范围技能协程(
@@ -156,7 +174,9 @@ internal sealed class 战斗技能执行服务
         Action 清理主动技能模式,
         Action 刷新高亮,
         Action 刷新时间轴,
-        Action 尝试进入待处理探索模式)
+        Action 尝试进入待处理探索模式,
+        bool 消耗资源,
+        bool 执行后清理技能模式)
     {
         if (施法者 == null || 技能 == null)
         {
@@ -165,24 +185,34 @@ internal sealed class 战斗技能执行服务
 
         int 行动点消耗 = 获取技能行动点消耗 != null ? 获取技能行动点消耗(施法者, 技能) : 0;
         int 法力消耗 = 获取技能法力消耗 != null ? 获取技能法力消耗(施法者, 技能) : 0;
-        if (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗))
+        if (消耗资源 && (!施法者.CanSpendActionPoints(行动点消耗) || !施法者.CanSpendMana(法力消耗)))
         {
             yield break;
         }
 
         设置技能结算状态?.Invoke(true);
-        施法者.SpendActionPoints(行动点消耗);
-        施法者.SpendMana(法力消耗);
+        if (消耗资源)
+        {
+            施法者.SpendActionPoints(行动点消耗);
+            施法者.SpendMana(法力消耗);
+        }
         面向目标格子?.Invoke(施法者, 目标格子);
         if (播放技能动画并在结算点执行 != null)
         {
             yield return 播放技能动画并在结算点执行(施法者, 技能, () => 结算范围技能?.Invoke(施法者, 目标格子, 技能));
         }
 
-        清理主动技能模式?.Invoke();
+        if (执行后清理技能模式)
+        {
+            清理主动技能模式?.Invoke();
+        }
+
         刷新高亮?.Invoke();
         刷新时间轴?.Invoke();
         设置技能结算状态?.Invoke(false);
-        尝试进入待处理探索模式?.Invoke();
+        if (执行后清理技能模式)
+        {
+            尝试进入待处理探索模式?.Invoke();
+        }
     }
 }

@@ -91,6 +91,8 @@ public class BattleTurnSystem : MonoBehaviour
     private string activeSkillSource = string.Empty;
     private BattleSkillDatabase.SkillEntry activeSkill;
     private int activeSkillRemainingCastCount;
+    private readonly List<BattleUnit> queuedActiveSkillTargets = new List<BattleUnit>();
+    private readonly List<Vector2Int> queuedActiveSkillTargetCells = new List<Vector2Int>();
     private bool hasSkillHoverPreview;
     private Vector2Int skillHoverCell;
     private bool skillHoverValid;
@@ -366,6 +368,8 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkillId = string.Empty;
         activeSkill = null;
         activeSkillRemainingCastCount = 0;
+        queuedActiveSkillTargets.Clear();
+        queuedActiveSkillTargetCells.Clear();
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
@@ -1994,6 +1998,8 @@ public class BattleTurnSystem : MonoBehaviour
             activeSkillSource = 解析播放技能来源(skillSource, nextSkill);
             activeSkill = nextSkill;
             activeSkillRemainingCastCount = nextSkill.ResolveCastCount();
+            queuedActiveSkillTargets.Clear();
+            queuedActiveSkillTargetCells.Clear();
             hasSkillHoverPreview = false;
             skillHoverHasAnyVisibleCells = false;
             skillTargetingPresentationService?.开始技能指向引导(
@@ -2269,6 +2275,8 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkillSource = string.Empty;
         activeSkill = null;
         activeSkillRemainingCastCount = 0;
+        queuedActiveSkillTargets.Clear();
+        queuedActiveSkillTargetCells.Clear();
         hasSkillHoverPreview = false;
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
@@ -2291,6 +2299,12 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void TryUseActiveSkill(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
     {
+        if (ShouldQueueActiveSkillTargets())
+        {
+            QueueActiveSkillTarget(unit, clickedCell, target);
+            return;
+        }
+
         skillExecutionRoutine = skillExecutionService != null
             ? skillExecutionService.尝试使用当前技能(
                 this,
@@ -2415,6 +2429,213 @@ public class BattleTurnSystem : MonoBehaviour
                 RefreshTimeline,
                 TryEnterPendingExplorationMode)
             : skillExecutionRoutine;
+    }
+
+    private bool ShouldQueueActiveSkillTargets()
+    {
+        return activeSkill != null &&
+            activeSkill.ResolveCastCount() > 1 &&
+            !IsMovementSkillId(activeSkillId);
+    }
+
+    private void QueueActiveSkillTarget(BattleUnit unit, Vector2Int clickedCell, BattleUnit target)
+    {
+        if (unit == null ||
+            activeSkill == null ||
+            skillExecutionService == null ||
+            isResolvingSkillExecution ||
+            skillTargetingPresentationService == null ||
+            !skillTargetingPresentationService.技能目标选择已就绪 ||
+            !CanCastSkillAt(unit, clickedCell, target, activeSkill, null))
+        {
+            return;
+        }
+
+        queuedActiveSkillTargets.Add(target);
+        queuedActiveSkillTargetCells.Add(clickedCell);
+        hasSkillHoverPreview = false;
+        skillHoverValid = false;
+        skillHoverHasAnyVisibleCells = false;
+        skillHoverActionPointCost = 0;
+        skillPreviewService?.清空悬停目标(grid);
+        skillPreviewService?.隐藏行动点提示();
+        RefreshHighlights();
+
+        if (queuedActiveSkillTargetCells.Count < activeSkill.ResolveCastCount())
+        {
+            return;
+        }
+
+        List<BattleUnit> selectedTargets = new List<BattleUnit>(queuedActiveSkillTargets);
+        List<Vector2Int> selectedCells = new List<Vector2Int>(queuedActiveSkillTargetCells);
+        BattleSkillDatabase.SkillEntry selectedSkill = activeSkill;
+        string selectedSkillId = activeSkillId;
+        string selectedSkillSource = activeSkillSource;
+        queuedActiveSkillTargets.Clear();
+        queuedActiveSkillTargetCells.Clear();
+
+        if (skillExecutionRoutine != null)
+        {
+            StopCoroutine(skillExecutionRoutine);
+        }
+
+        skillExecutionRoutine = StartCoroutine(ExecuteQueuedActiveSkillCasts(
+            unit,
+            selectedTargets,
+            selectedCells,
+            selectedSkillId,
+            selectedSkillSource,
+            selectedSkill));
+    }
+
+    private IEnumerator ExecuteQueuedActiveSkillCasts(
+        BattleUnit caster,
+        List<BattleUnit> targets,
+        List<Vector2Int> targetCells,
+        string skillId,
+        string skillSource,
+        BattleSkillDatabase.SkillEntry skill)
+    {
+        if (caster == null || skill == null || targets == null || targetCells == null)
+        {
+            yield break;
+        }
+
+        int castCount = Mathf.Min(targetCells.Count, targets.Count);
+        for (int i = 0; i < castCount; i++)
+        {
+            bool consumeResource = i == 0;
+            bool clearSkillMode = i == castCount - 1;
+            Coroutine castRoutine = skillExecutionService.尝试使用当前技能(
+                this,
+                null,
+                caster,
+                targetCells[i],
+                targets[i],
+                true,
+                isResolvingSkillExecution,
+                true,
+                skillId,
+                skillSource,
+                skill,
+                (source, cell, clickedTarget, skillEntry) => CanCastSkillAt(source, cell, clickedTarget, skillEntry, null),
+                TryMove,
+                GetSkillActionPointCost,
+                GetSkillManaCostForExecution,
+                SetSkillExecutionResolvingState,
+                FaceTowardTargetUnit,
+                FaceTowardTargetCell,
+                (source, skillEntry, resolveAction) => skillPresentationService != null
+                    ? skillPresentationService.播放技能动画并在结算点执行(
+                        this,
+                        source,
+                        skillEntry,
+                        resolveAction,
+                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(entry, unit) : string.Empty,
+                        (entry, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(entry, unit),
+                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(entry, unit) : 0f,
+                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(entry, unit) : 0f,
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+                        PlayTrackedSkillAudioRoutine,
+                        ResolveAnimationStateTotalFrames,
+                        ResolveSkillResolveDelaySeconds,
+                        HitFeelDurationSeconds,
+                        HitFeelTimeScale,
+                        DefaultFixedDeltaTime)
+                    : null,
+                (source, targetUnit, skillEntry) => damageResolutionService?.结算单体技能并显示信息(
+                    source,
+                    targetUnit,
+                    skillEntry,
+                    battleCamera,
+                    战斗技能基础结算服务.格式化单位效果调试文本,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                        : MinHitChancePercent,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                        skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, skillSource)
+                        : null,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                        attacker,
+                        defender,
+                        currentSkill,
+                        battleCamera,
+                        physicalDamageColor),
+                    ShowZeroDamagePopup,
+                    ShowDamagePopup,
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveDodgeSound,
+                        ResolveDodgeSoundPrefab,
+                        unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    target => PlaySkillHitReaction(target, skillEntry),
+                    HandleUnitDefeat,
+                    uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                    skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                    damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                    unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                    isCritical => battleInfoTextService != null ? battleInfoTextService.构建暴击信息(isCritical) : string.Empty,
+                    (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                    战斗信息文本服务.中性信息颜色,
+                    message => battleInfoTextService?.显示消息(message)),
+                (source, targetCellValue, skillEntry) => damageResolutionService?.结算范围技能并显示信息(
+                    source,
+                    targetCellValue,
+                    skillEntry,
+                    battleCamera,
+                    skillAreaRuleService != null ? skillAreaRuleService.收集区域技能目标 : null,
+                    战斗技能基础结算服务.格式化单位效果调试文本,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能命中率(attacker, defender, currentSkill)
+                        : MinHitChancePercent,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null &&
+                        skillCoreResolutionService.判定技能命中(attacker, defender, currentSkill),
+                    (attacker, defender, currentSkill) => skillCoreResolutionService != null
+                        ? skillCoreResolutionService.计算技能伤害(attacker, defender, currentSkill, skillSource)
+                        : null,
+                    (attacker, defender, currentSkill) => skillCoreResolutionService?.应用附加效果到单位(
+                        attacker,
+                        defender,
+                        currentSkill,
+                        battleCamera,
+                        physicalDamageColor),
+                    ShowZeroDamagePopup,
+                    ShowDamagePopup,
+                    target => skillPresentationService?.播放受击反应(
+                        target,
+                        battleCamera,
+                        ResolveDodgeSound,
+                        ResolveDodgeSoundPrefab,
+                        unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
+                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
+                        ShouldCompensateGlobalMotionForState),
+                    target => PlaySkillHitReaction(target, skillEntry),
+                    HandleUnitDefeat,
+                    uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
+                    skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
+                    damageResult => battleInfoTextService != null ? battleInfoTextService.构建伤害信息文本(damageResult) : string.Empty,
+                    unitToShow => battleInfoTextService != null ? battleInfoTextService.构建单位死亡信息(unitToShow) : string.Empty,
+                    isCritical => battleInfoTextService != null ? battleInfoTextService.构建范围暴击信息(isCritical) : string.Empty,
+                    (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
+                    战斗信息文本服务.中性信息颜色,
+                    message => battleInfoTextService?.显示消息(message)),
+                clearSkillMode ? (System.Action)ClearActiveSkillMode : null,
+                RefreshHighlights,
+                RefreshTimeline,
+                clearSkillMode ? (System.Action)TryEnterPendingExplorationMode : null,
+                consumeResource,
+                clearSkillMode);
+
+            if (castRoutine != null)
+            {
+                yield return castRoutine;
+            }
+        }
     }
 
     private int GetSkillRange(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
