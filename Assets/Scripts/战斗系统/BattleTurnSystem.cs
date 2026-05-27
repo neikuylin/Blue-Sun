@@ -2307,19 +2307,44 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        skillExecutionRoutine = skillExecutionService != null
-            ? skillExecutionService.尝试使用当前技能(
+        if (skillExecutionService == null)
+        {
+            return;
+        }
+
+        bool skillModeActive = IsSkillModeActive();
+        bool targetingReady = skillTargetingPresentationService != null && skillTargetingPresentationService.技能目标选择已就绪;
+        string selectedSkillId = activeSkillId;
+        string selectedSkillSource = activeSkillSource;
+        BattleSkillDatabase.SkillEntry selectedSkill = activeSkill;
+        if (!skillModeActive || isResolvingSkillExecution || !targetingReady || unit == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(selectedSkillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal))
+        {
+            if (selectedSkill == null || !CanCastSkillAt(unit, clickedCell, target, selectedSkill, null))
+            {
+                return;
+            }
+
+            ClearActiveSkillMode();
+            RefreshHighlights();
+        }
+
+        skillExecutionRoutine = skillExecutionService.尝试使用当前技能(
                 this,
                 skillExecutionRoutine,
                 unit,
                 clickedCell,
                 target,
-                IsSkillModeActive(),
-                isResolvingSkillExecution,
-                skillTargetingPresentationService != null && skillTargetingPresentationService.技能目标选择已就绪,
-                activeSkillId,
-                activeSkillSource,
-                activeSkill,
+                skillModeActive,
+                false,
+                targetingReady,
+                selectedSkillId,
+                selectedSkillSource,
+                selectedSkill,
                 (caster, cell, clickedTarget, skill) => CanCastSkillAt(caster, cell, clickedTarget, skill, null),
                 TryMove,
                 GetActiveSkillActionPointCostForExecution,
@@ -2358,7 +2383,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
                     (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, selectedSkillSource, hitIndex))
                         : null,
                     resolveHitIndex,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
@@ -2400,7 +2425,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (source, destination, skillEntry) => skillCoreResolutionService != null &&
                         skillCoreResolutionService.判定技能命中(source, destination, skillEntry),
                     (source, destination, skillEntry, hitIndex) => skillCoreResolutionService != null
-                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, activeSkillSource, hitIndex))
+                        ? skillCoreResolutionService.计算技能伤害(source, destination, skillEntry, ResolveSkillDamageSourceForHit(source, skillEntry, selectedSkillSource, hitIndex))
                         : null,
                     resolveHitIndex,
                     (source, destination, skillEntry) => skillCoreResolutionService?.应用附加效果到单位(
@@ -2429,11 +2454,10 @@ public class BattleTurnSystem : MonoBehaviour
                     (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                     战斗信息文本服务.中性信息颜色,
                     message => battleInfoTextService?.显示消息(message)),
-                CompleteActiveSkillCastClick,
+                null,
                 RefreshHighlights,
                 RefreshTimeline,
-                TryEnterPendingExplorationMode)
-            : skillExecutionRoutine;
+                TryEnterPendingExplorationMode);
     }
 
     private bool ShouldQueueActiveSkillTargets()
@@ -2488,6 +2512,8 @@ public class BattleTurnSystem : MonoBehaviour
         string selectedSkillSource = activeSkillSource;
         queuedActiveSkillTargets.Clear();
         queuedActiveSkillTargetCells.Clear();
+        ClearActiveSkillMode();
+        RefreshHighlights();
 
         if (skillExecutionRoutine != null)
         {
@@ -2642,7 +2668,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (content, colorHex) => battleInfoTextService != null ? battleInfoTextService.包装颜色(content, colorHex) : content,
                     战斗信息文本服务.中性信息颜色,
                     message => battleInfoTextService?.显示消息(message)),
-                clearSkillMode ? (System.Action)ClearActiveSkillMode : null,
+                null,
                 RefreshHighlights,
                 RefreshTimeline,
                 clearSkillMode ? (System.Action)TryEnterPendingExplorationMode : null,
