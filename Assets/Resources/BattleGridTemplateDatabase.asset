@@ -1019,7 +1019,7 @@ MonoBehaviour:
   - templateId: "\u5730\u7262\u5BC6\u5BA4"
     displayName: "\u5730\u7262\u5BC6\u5BA4"
     width: 20
-    height: 21
+    height: 20
     walkableCells:
     - x: 0
       y: 19
@@ -1071,8 +1071,6 @@ MonoBehaviour:
       y: 19
     - x: 9
       y: 19
-    - x: 10
-      y: 19
     - x: 11
       y: 19
     - x: 12
@@ -1821,46 +1819,8 @@ MonoBehaviour:
       y: 10
     - x: 10
       y: 2
-    - x: 0
-      y: 20
-    - x: 2
-      y: 20
-    - x: 3
-      y: 20
-    - x: 4
-      y: 20
-    - x: 5
-      y: 20
-    - x: 6
-      y: 20
-    - x: 7
-      y: 20
-    - x: 8
-      y: 20
-    - x: 9
-      y: 20
     - x: 10
-      y: 20
-    - x: 11
-      y: 20
-    - x: 12
-      y: 20
-    - x: 13
-      y: 20
-    - x: 14
-      y: 20
-    - x: 15
-      y: 20
-    - x: 16
-      y: 20
-    - x: 17
-      y: 20
-    - x: 18
-      y: 20
-    - x: 19
-      y: 20
-    - x: 1
-      y: 20
+      y: 19
     enemySpawnSlots:
     - slotName: "\u654C\u4EBA\u4F4D1"
       cell:
@@ -1905,7 +1865,7 @@ MonoBehaviour:
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
       x: 10
-      y: 19
+      y: 18
     hasEastDoorEntrance: 1
     eastDoorEntranceCell:
       x: 19
