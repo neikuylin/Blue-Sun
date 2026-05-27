@@ -578,6 +578,7 @@ GameObject:
   - component: {fileID: 4213518545967551612}
   - component: {fileID: 1629362172173563937}
   - component: {fileID: 7357066298774006249}
+  - component: {fileID: 9103355422246730198}
   m_Layer: 0
   m_Name: "\u95E8\u52A8\u753B\u7EC4"
   m_TagString: Untagged
@@ -585,6 +586,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &9103355422246730198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6778947948155756910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21d2e7d6a2f948c4934c8e9ac7c313e9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6E05\u7A7A\u623F\u95F4\u5899\u4F53\u52A8\u753B\u63A7\u5236\u5668"
+  "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B":
+  - {fileID: 242598238573095425}
+  - {fileID: 3299028170399680642}
+  - {fileID: 4782569641177855587}
+  - {fileID: 2569874649932693262}
+  "\u8FDB\u623F\u95F4\u65F6\u64AD\u653E\u7684\u97F3\u9891\u7EC4\u4EF6":
+  - {fileID: 8940354996794333161}
+  "\u5207\u623F\u95F4\u65F6\u64AD\u653E\u7684\u6B63\u5411\u97F3\u9891\u7EC4\u4EF6":
+  - {fileID: 6529655892366326948}
+  "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53": []
+  "\u6E05\u7A7A\u623F\u95F4\u540E\u5173\u95ED\u7684\u7269\u4F53": []
 --- !u!4 &5291463146626030257
 Transform:
   m_ObjectHideFlags: 0
