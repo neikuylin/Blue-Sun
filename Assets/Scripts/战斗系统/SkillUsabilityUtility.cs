@@ -93,6 +93,11 @@ public static class SkillUsabilityUtility
             return true;
         }
 
+        if (string.Equals(skillId, BattleSkillDatabase.MoveSkillId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         ItemDatabase.WeaponCategory equippedCategory =
             InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(ownerCharacterId);
         if (!entry.RequiresWeaponCategory(equippedCategory))
