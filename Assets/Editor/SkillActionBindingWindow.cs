@@ -64,13 +64,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         SerializedProperty skillIdProperty = entry.FindPropertyRelative("skillId");
-        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
-        SerializedProperty actionYawOffsetProperty = entry.FindPropertyRelative("actionYawOffset");
-        SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
-        SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
-        SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
         SerializedProperty enableHitFeelProperty = entry.FindPropertyRelative("enableHitFeel");
-        SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
         SerializedProperty requiredWeaponCategoriesProperty = entry.FindPropertyRelative("requiredWeaponCategories");
 
@@ -81,13 +75,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
         {
             EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(skillId) ? "（未命名技能）" : skillId, EditorStyles.boldLabel);
             EditorGUILayout.LabelField("分组", groupLabel);
-            ClearLegacySkillActionFields(
-                actionStateNameProperty,
-                actionYawOffsetProperty,
-                actionSoundProperty,
-                actionSoundPrefabProperty,
-                soundDelayFrameProperty,
-                compensateActionMotionProperty);
 
             if (enableHitFeelProperty != null)
             {
@@ -210,6 +197,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
+        SerializedProperty hitSoundProperty = entry.FindPropertyRelative("hitSound");
+        SerializedProperty hitSoundPrefabProperty = entry.FindPropertyRelative("hitSoundPrefab");
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
 
@@ -272,6 +261,16 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionSoundPrefabProperty != null)
             {
                 EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
+            }
+
+            if (hitSoundProperty != null)
+            {
+                EditorGUILayout.PropertyField(hitSoundProperty, new GUIContent("受击音效"));
+            }
+
+            if (hitSoundPrefabProperty != null)
+            {
+                EditorGUILayout.PropertyField(hitSoundPrefabProperty, new GUIContent("受击音效预制体"));
             }
 
             if (soundDelayFrameProperty != null)
@@ -402,6 +401,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
             actionSoundPrefabProperty.objectReferenceValue = null;
         }
 
+        SerializedProperty hitSoundProperty = entry.FindPropertyRelative("hitSound");
+        if (hitSoundProperty != null)
+        {
+            hitSoundProperty.objectReferenceValue = null;
+        }
+
+        SerializedProperty hitSoundPrefabProperty = entry.FindPropertyRelative("hitSoundPrefab");
+        if (hitSoundPrefabProperty != null)
+        {
+            hitSoundPrefabProperty.objectReferenceValue = null;
+        }
+
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
         if (soundDelayFrameProperty != null)
         {
@@ -409,45 +420,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
-        if (compensateActionMotionProperty != null)
-        {
-            compensateActionMotionProperty.boolValue = false;
-        }
-    }
-
-    private static void ClearLegacySkillActionFields(
-        SerializedProperty actionStateNameProperty,
-        SerializedProperty actionYawOffsetProperty,
-        SerializedProperty actionSoundProperty,
-        SerializedProperty actionSoundPrefabProperty,
-        SerializedProperty soundDelayFrameProperty,
-        SerializedProperty compensateActionMotionProperty)
-    {
-        if (actionStateNameProperty != null)
-        {
-            actionStateNameProperty.stringValue = string.Empty;
-        }
-
-        if (actionYawOffsetProperty != null)
-        {
-            actionYawOffsetProperty.floatValue = 0f;
-        }
-
-        if (actionSoundProperty != null)
-        {
-            actionSoundProperty.objectReferenceValue = null;
-        }
-
-        if (actionSoundPrefabProperty != null)
-        {
-            actionSoundPrefabProperty.objectReferenceValue = null;
-        }
-
-        if (soundDelayFrameProperty != null)
-        {
-            soundDelayFrameProperty.intValue = 0;
-        }
-
         if (compensateActionMotionProperty != null)
         {
             compensateActionMotionProperty.boolValue = false;
@@ -532,6 +504,8 @@ public sealed class SkillActionBindingWindow : EditorWindow
         public float postUseYawOffset;
         public UnityEngine.Object actionSound;
         public UnityEngine.Object actionSoundPrefab;
+        public UnityEngine.Object hitSound;
+        public UnityEngine.Object hitSoundPrefab;
         public int soundDelayFrame;
         public bool compensateActionMotion;
     }
@@ -602,6 +576,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (actionSoundPrefabProperty != null)
         {
             snapshot.actionSoundPrefab = actionSoundPrefabProperty.objectReferenceValue;
+        }
+
+        SerializedProperty hitSoundProperty = entry.FindPropertyRelative("hitSound");
+        if (hitSoundProperty != null)
+        {
+            snapshot.hitSound = hitSoundProperty.objectReferenceValue;
+        }
+
+        SerializedProperty hitSoundPrefabProperty = entry.FindPropertyRelative("hitSoundPrefab");
+        if (hitSoundPrefabProperty != null)
+        {
+            snapshot.hitSoundPrefab = hitSoundPrefabProperty.objectReferenceValue;
         }
 
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
@@ -684,6 +670,18 @@ public sealed class SkillActionBindingWindow : EditorWindow
         if (actionSoundPrefabProperty != null)
         {
             actionSoundPrefabProperty.objectReferenceValue = snapshot.actionSoundPrefab;
+        }
+
+        SerializedProperty hitSoundProperty = entry.FindPropertyRelative("hitSound");
+        if (hitSoundProperty != null)
+        {
+            hitSoundProperty.objectReferenceValue = snapshot.hitSound;
+        }
+
+        SerializedProperty hitSoundPrefabProperty = entry.FindPropertyRelative("hitSoundPrefab");
+        if (hitSoundPrefabProperty != null)
+        {
+            hitSoundPrefabProperty.objectReferenceValue = snapshot.hitSoundPrefab;
         }
 
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");

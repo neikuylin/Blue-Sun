@@ -2339,6 +2339,7 @@ public class BattleTurnSystem : MonoBehaviour
                         (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                         PlayTrackedSkillAudioRoutine,
+                        PlaySkillHitAudio,
                         ResolveAnimationStateTotalFrames,
                         ResolveSkillResolveDelaySeconds,
                         HitFeelDurationSeconds,
@@ -2551,6 +2552,7 @@ public class BattleTurnSystem : MonoBehaviour
                         (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(entry, unit) : 0f,
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                         PlayTrackedSkillAudioRoutine,
+                        PlaySkillHitAudio,
                         ResolveAnimationStateTotalFrames,
                         ResolveSkillResolveDelaySeconds,
                         HitFeelDurationSeconds,
@@ -2924,6 +2926,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
+                    PlaySkillHitAudio,
                     ResolveAnimationStateTotalFrames,
                     ResolveSkillResolveDelaySeconds,
                     HitFeelDurationSeconds,
@@ -3063,6 +3066,7 @@ public class BattleTurnSystem : MonoBehaviour
                     (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
                     PlayTrackedSkillAudioRoutine,
+                    PlaySkillHitAudio,
                     ResolveAnimationStateTotalFrames,
                     ResolveSkillResolveDelaySeconds,
                     HitFeelDurationSeconds,
@@ -3512,6 +3516,20 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         handle.Stop();
+    }
+
+    private void PlaySkillHitAudio(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (skill == null)
+        {
+            return;
+        }
+
+        BattleAudioUtility.PlayOnce(
+            skillActionResolverService != null ? skillActionResolverService.解析受击音效(skill, unit) : null,
+            skillActionResolverService != null ? skillActionResolverService.解析受击音效预制体(skill, unit) : null,
+            unit,
+            battleCamera);
     }
 
     private static int ResolveAnimationStateTotalFrames(Animator animator, string stateName, float clipDuration)

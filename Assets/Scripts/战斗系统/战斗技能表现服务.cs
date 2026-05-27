@@ -86,6 +86,7 @@ internal sealed class 战斗技能表现服务
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, float> resolvePostUseYawOffset,
         Func<BattleUnit, string> resolveIdleStateName,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, float, IEnumerator> createTrackedSkillAudioRoutine,
+        Action<BattleUnit, BattleSkillDatabase.SkillEntry> playSkillHitAudio,
         Func<Animator, string, float, int> resolveAnimationStateTotalFrames,
         Func<BattleSkillDatabase.SkillEntry, int, int, float, float> resolveSkillResolveDelaySeconds,
         float hitFeelDurationSeconds,
@@ -111,7 +112,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            ExecuteAllHitsImmediately(skill, resolveHitAction);
+            ExecuteAllHitsImmediately(caster, skill, resolveHitAction, playSkillHitAudio);
             yield break;
         }
 
@@ -123,7 +124,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            ExecuteAllHitsImmediately(skill, resolveHitAction);
+            ExecuteAllHitsImmediately(caster, skill, resolveHitAction, playSkillHitAudio);
             yield break;
         }
 
@@ -171,6 +172,7 @@ internal sealed class 战斗技能表现服务
             }
 
             触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
+            playSkillHitAudio?.Invoke(caster, skill);
             resolveHitAction?.Invoke(hitIndex);
         }
 
@@ -199,11 +201,16 @@ internal sealed class 战斗技能表现服务
         caster.SetAnimationPositionCompensation(false);
     }
 
-    private static void ExecuteAllHitsImmediately(BattleSkillDatabase.SkillEntry skill, Action<int> resolveHitAction)
+    private static void ExecuteAllHitsImmediately(
+        BattleUnit caster,
+        BattleSkillDatabase.SkillEntry skill,
+        Action<int> resolveHitAction,
+        Action<BattleUnit, BattleSkillDatabase.SkillEntry> playSkillHitAudio)
     {
         int hitCount = skill != null ? skill.ResolveHitCount() : 1;
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
+            playSkillHitAudio?.Invoke(caster, skill);
             resolveHitAction?.Invoke(hitIndex);
         }
     }

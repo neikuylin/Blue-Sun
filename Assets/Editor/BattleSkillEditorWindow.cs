@@ -272,9 +272,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         entry.FindPropertyRelative("skillId").stringValue = string.Empty;
         entry.FindPropertyRelative("description").stringValue = string.Empty;
-        ClearLegacyActionFields(entry);
         entry.FindPropertyRelative("enableHitFeel").boolValue = false;
-        entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
         entry.FindPropertyRelative("resolveFrame").intValue = 0;
         entry.FindPropertyRelative("castCount").intValue = 1;
         entry.FindPropertyRelative("hitCount").intValue = 1;
@@ -304,21 +302,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
-    }
-
-    private static void ClearLegacyActionFields(SerializedProperty entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        entry.FindPropertyRelative("actionStateName").stringValue = string.Empty;
-        entry.FindPropertyRelative("actionYawOffset").floatValue = 0f;
-        entry.FindPropertyRelative("actionSound").objectReferenceValue = null;
-        entry.FindPropertyRelative("actionSoundPrefab").objectReferenceValue = null;
-        entry.FindPropertyRelative("soundDelayFrame").intValue = 0;
-        entry.FindPropertyRelative("compensateActionMotion").boolValue = false;
     }
 
     private bool GetFoldoutState(string key)
@@ -743,28 +726,14 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             return;
         }
 
-        SerializedProperty actionStateNameProperty = entry.FindPropertyRelative("actionStateName");
         SerializedProperty resolveFrameProperty = entry.FindPropertyRelative("resolveFrame");
-        if (actionStateNameProperty == null || resolveFrameProperty == null)
+        if (resolveFrameProperty == null)
         {
             return;
         }
 
-        string actionStateName = actionStateNameProperty.stringValue;
-        if (string.IsNullOrWhiteSpace(actionStateName))
-        {
-            resolveFrameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue)));
-            EditorGUILayout.LabelField("说明", "技能动作已改为武器分流，当前不再从本体动作自动推导总帧数");
-            return;
-        }
-
-        AnimationClip clip = FindActionClipByStateName(actionStateName);
-        int totalFrames = ResolveClipFrameCount(clip);
-        int editedResolveFrame = EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue));
-        resolveFrameProperty.intValue = totalFrames > 0
-            ? Mathf.Clamp(editedResolveFrame, 0, totalFrames)
-            : Mathf.Max(0, editedResolveFrame);
-        EditorGUILayout.LabelField("说明", totalFrames > 0 ? $"这个动画共 {totalFrames} 帧" : "未能解析动画总帧数");
+        resolveFrameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue)));
+        EditorGUILayout.LabelField("说明", "技能动作已改为武器分流，当前不再从本体动作自动推导总帧数");
     }
 
     private static AnimationClip FindActionClipByStateName(string stateName)

@@ -76,6 +76,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
             public float postUseYawOffset;
             public AudioClip actionSound;
             public GameObject actionSoundPrefab;
+            public AudioClip hitSound;
+            public GameObject hitSoundPrefab;
             public int soundDelayFrame;
             public bool compensateActionMotion;
         }
@@ -83,14 +85,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string skillId = string.Empty;
         public string skillSource = string.Empty;
         public string description = string.Empty;
-        public string actionStateName = string.Empty;
-        public float actionYawOffset;
-        public AudioClip actionSound;
-        public GameObject actionSoundPrefab;
         public GameObject hitEffectPrefab;
-        public int soundDelayFrame;
         public bool enableHitFeel;
-        public bool compensateActionMotion;
         public int resolveFrame;
         public int castCount = 1;
         public int hitCount = 1;

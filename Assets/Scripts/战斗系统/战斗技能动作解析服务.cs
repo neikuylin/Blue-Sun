@@ -62,6 +62,18 @@ internal sealed class 战斗技能动作解析服务
         return overrideEntry != null ? Mathf.Max(0, overrideEntry.soundDelayFrame) : 0;
     }
 
+    public AudioClip 解析受击音效(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    {
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = 解析动作覆盖(skill, unit);
+        return overrideEntry != null ? overrideEntry.hitSound : null;
+    }
+
+    public GameObject 解析受击音效预制体(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
+    {
+        BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = 解析动作覆盖(skill, unit);
+        return overrideEntry != null ? overrideEntry.hitSoundPrefab : null;
+    }
+
     public bool 解析动作位移补偿(BattleSkillDatabase.SkillEntry skill, BattleUnit unit)
     {
         BattleSkillDatabase.SkillEntry.WeaponScopedActionOverride overrideEntry = 解析动作覆盖(skill, unit);
