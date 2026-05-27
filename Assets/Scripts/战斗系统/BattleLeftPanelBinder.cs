@@ -246,9 +246,9 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             target.sprite = icon;
             target.enabled = icon != null;
             target.gameObject.SetActive(icon != null);
-            target.color = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId)
-                ? EnabledSkillColor
-                : DisabledSkillColor;
+            target.color = SkillUsabilityUtility.技能无法使用(skillDatabase, currentCharacterId, skillId, null)
+                ? DisabledSkillColor
+                : EnabledSkillColor;
         }
     }
 

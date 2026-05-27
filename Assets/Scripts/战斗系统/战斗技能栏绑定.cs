@@ -108,8 +108,9 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
     private void 立即刷新(bool force)
     {
         string 角色ID = 解析当前角色ID();
+        BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
         List<CharacterSkillListUtility.DisplaySkillEntry> 最终技能列表 = CharacterSkillListUtility.BuildDisplaySkillEntries(角色ID);
-        string 技能签名 = 构建技能签名(角色ID, 最终技能列表);
+        string 技能签名 = 构建技能签名(角色ID, 当前单位, 最终技能列表);
 
         刷新技能栏可见性(角色ID);
 
@@ -161,11 +162,13 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         return 当前单位.characterId ?? string.Empty;
     }
 
-    private static string 构建技能签名(string 角色ID, List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
+    private static string 构建技能签名(string 角色ID, BattleUnit 当前单位, List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
     {
+        int 当前行动力 = 当前单位 != null ? 当前单位.currentActionPoints : -1;
+        int 当前法力 = 当前单位 != null ? 当前单位.currentMana : -1;
         if (技能列表 == null || 技能列表.Count == 0)
         {
-            return 角色ID ?? string.Empty;
+            return $"{角色ID ?? string.Empty}|AP:{当前行动力}|MP:{当前法力}";
         }
 
         List<string> 签名片段 = new List<string>(技能列表.Count);
@@ -175,7 +178,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             签名片段.Add($"{条目.SkillId}:{条目.SkillSource}");
         }
 
-        return (角色ID ?? string.Empty) + "|" + string.Join("|", 签名片段);
+        return $"{角色ID ?? string.Empty}|AP:{当前行动力}|MP:{当前法力}|" + string.Join("|", 签名片段);
     }
 
     private void 重建技能格子(List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
@@ -230,7 +233,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
             return;
         }
 
-        if (!SkillUsabilityUtility.IsSkillUsable(技能数据库, 当前角色ID, 格子.技能ID))
+        BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
+        if (SkillUsabilityUtility.技能无法使用(技能数据库, 当前角色ID, 格子.技能ID, 当前单位))
         {
             return;
         }
@@ -305,8 +309,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         Sprite 图标 = 解析技能图标(格子.技能ID);
-        bool 可用 = !string.IsNullOrWhiteSpace(格子.技能ID) &&
-            SkillUsabilityUtility.IsSkillUsable(技能数据库, 当前角色ID, 格子.技能ID);
+        BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
+        bool 可用 = !SkillUsabilityUtility.技能无法使用(技能数据库, 当前角色ID, 格子.技能ID, 当前单位);
 
         if (格子.空图标 != null)
         {
@@ -317,7 +321,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         {
             格子.技能图标.sprite = 图标;
             格子.技能图标.gameObject.SetActive(图标 != null);
-            格子.技能图标.color = 可用 ? Color.white : new Color(1f, 1f, 1f, 0.35f);
+            格子.技能图标.color = 可用 ? SkillUsabilityUtility.EnabledSkillColor : SkillUsabilityUtility.DisabledSkillColor;
         }
 
         if (格子.按钮 != null)

@@ -382,7 +382,7 @@ public sealed class SkillLoadoutRuntimeBinder : MonoBehaviour
         }
 
         Sprite icon = shouldDisplay ? ResolveSkillIcon(skillId) : null;
-        bool isUsable = SkillUsabilityUtility.IsSkillUsable(skillDatabase, currentCharacterId, skillId);
+        bool isUsable = !SkillUsabilityUtility.技能无法使用(skillDatabase, currentCharacterId, skillId, null);
         widget.skillIcon.sprite = icon;
         widget.skillIcon.enabled = shouldDisplay && icon != null;
         widget.skillIcon.gameObject.SetActive(shouldDisplay && icon != null);
