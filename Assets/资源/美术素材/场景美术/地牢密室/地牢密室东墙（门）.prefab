@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 7337935173879952516}
   - component: {fileID: 1141223788498718276}
   - component: {fileID: 4248280980405236309}
+  - component: {fileID: 6241019391374565447}
+  - component: {fileID: 9047057676977472963}
   m_Layer: 0
   m_Name: "\u5730\u7262\u5BC6\u5BA4\u4E1C\u5899\uFF08\u95E8\uFF09"
   m_TagString: Untagged
@@ -82,6 +84,34 @@ MonoBehaviour:
   - {fileID: 1048783730942519442}
   - {fileID: 4036387346621284549}
   "\u6E05\u7A7A\u623F\u95F4\u540E\u5173\u95ED\u7684\u7269\u4F53": []
+--- !u!114 &6241019391374565447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1382157491842643455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78412e8a82d6c841961f91e24cf1efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6362\u623F\u65F6\u5899\u4F53\u9AD8\u4E8E3D\u6750\u8D28\u5207\u6362\u5668"
+--- !u!114 &9047057676977472963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1382157491842643455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
+  targetRenderers: []
+  includeChildRenderers: 1
+  includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 0
 --- !u!1 &6883556853514915384
 GameObject:
   m_ObjectHideFlags: 0
