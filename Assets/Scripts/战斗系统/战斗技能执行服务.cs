@@ -20,6 +20,7 @@ internal sealed class 战斗技能执行服务
         Action<BattleUnit, Vector2Int> 尝试移动,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<BattleUnit, BattleSkillDatabase.SkillEntry> 记录技能使用,
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, BattleUnit> 面向目标单位,
         Action<BattleUnit, Vector2Int> 面向目标格子,
@@ -68,6 +69,7 @@ internal sealed class 战斗技能执行服务
                 当前技能,
                 获取技能行动点消耗,
                 获取技能法力消耗,
+                记录技能使用,
                 设置技能结算状态,
                 面向目标单位,
                 播放技能动画并在结算点执行,
@@ -89,6 +91,7 @@ internal sealed class 战斗技能执行服务
                 当前技能,
                 获取技能行动点消耗,
                 获取技能法力消耗,
+                记录技能使用,
                 设置技能结算状态,
                 面向目标格子,
                 播放技能动画并在结算点执行,
@@ -111,6 +114,7 @@ internal sealed class 战斗技能执行服务
         BattleSkillDatabase.SkillEntry 技能,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<BattleUnit, BattleSkillDatabase.SkillEntry> 记录技能使用,
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, BattleUnit> 面向目标单位,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action<int>, IEnumerator> 播放技能动画并在结算点执行,
@@ -139,6 +143,7 @@ internal sealed class 战斗技能执行服务
         {
             施法者.SpendActionPoints(行动点消耗);
             施法者.SpendMana(法力消耗);
+            记录技能使用?.Invoke(施法者, 技能);
         }
         面向目标单位?.Invoke(施法者, 目标);
         if (播放技能动画并在结算点执行 != null)
@@ -167,6 +172,7 @@ internal sealed class 战斗技能执行服务
         BattleSkillDatabase.SkillEntry 技能,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能行动点消耗,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, int> 获取技能法力消耗,
+        Action<BattleUnit, BattleSkillDatabase.SkillEntry> 记录技能使用,
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, Vector2Int> 面向目标格子,
         Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action<int>, IEnumerator> 播放技能动画并在结算点执行,
@@ -195,6 +201,7 @@ internal sealed class 战斗技能执行服务
         {
             施法者.SpendActionPoints(行动点消耗);
             施法者.SpendMana(法力消耗);
+            记录技能使用?.Invoke(施法者, 技能);
         }
         面向目标格子?.Invoke(施法者, 目标格子);
         if (播放技能动画并在结算点执行 != null)

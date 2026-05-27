@@ -61,6 +61,7 @@ MonoBehaviour:
     description: "\u5BBD\u5203"
     grantedSkillIds:
     - "\u666E\u901A\u653B\u51FB"
+    - "\u56DE\u65CB\u65A9"
     weaponAttributeMultipliers:
     - attributeType: 1
       multiplier: 1

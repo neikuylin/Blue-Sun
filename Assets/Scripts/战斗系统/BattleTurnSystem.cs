@@ -134,6 +134,7 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗探索移动服务 explorationMoveService;
     private 格子触发导航服务 gridTriggerNavigationService;
     private 战斗伤害弹字服务 damagePopupService;
+    private 战斗技能冷却服务 skillCooldownService;
 
     public BattleUnit ActiveUnit
     {
@@ -153,6 +154,13 @@ public class BattleTurnSystem : MonoBehaviour
     public bool IsExplorationMode
     {
         get { return currentMode == BattleFlowMode.Exploration; }
+    }
+
+    public int 获取技能剩余冷却回合(string ownerCharacterId, string skillId)
+    {
+        return skillCooldownService != null
+            ? skillCooldownService.获取剩余冷却回合(ownerCharacterId, skillId)
+            : 0;
     }
 
     public BattleUnit FindUnitByCharacterId(string characterId)
@@ -326,6 +334,11 @@ public class BattleTurnSystem : MonoBehaviour
             damagePopupService = new 战斗伤害弹字服务();
         }
 
+        if (skillCooldownService == null)
+        {
+            skillCooldownService = new 战斗技能冷却服务();
+        }
+
         gridTriggerNavigationService.初始化(this, grid, TryMoveToGridTriggerCell);
         battleInfoTextService.绑定显示器(BattleInfoWindowPresenter.FindInActiveScene());
 
@@ -370,6 +383,7 @@ public class BattleTurnSystem : MonoBehaviour
         activeSkillRemainingCastCount = 0;
         queuedActiveSkillTargets.Clear();
         queuedActiveSkillTargetCells.Clear();
+        skillCooldownService.清空();
         currentMode = BattleFlowMode.Exploration;
         activeExplorationActionId = ExplorationMoveSkillId;
         pendingExplorationModeEnter = false;
@@ -590,7 +604,7 @@ public class BattleTurnSystem : MonoBehaviour
                 units,
                 skillChoices,
                 grid,
-                (unit, choice) => enemyExecutionService.可以使用技能(unit, choice, GetSkillActionPointCost, GetSkillManaCost),
+                (unit, choice) => 可以使用技能(unit, choice != null ? choice.skill : null),
                 IsEnemySkillTarget,
                 (unit, targetCell, target, skill) => enemyExecutionService.可以在目标处施放(unit, targetCell, target, skill, CanCastSkillAt)),
             (caster, skillChoices) => enemyDecisionService.尝试向技能范围移动(
@@ -603,7 +617,7 @@ public class BattleTurnSystem : MonoBehaviour
                 GetSkillManaCost,
                 GetMoveActionPointCost,
                 GetSkillActionPointCost,
-                (unit, choice) => enemyExecutionService.可以使用技能(unit, choice, GetSkillActionPointCost, GetSkillManaCost),
+                (unit, choice) => 可以使用技能(unit, choice != null ? choice.skill : null),
                 IsEnemySkillTarget,
                 (unit, castCell, target, skill) => enemyExecutionService.可以从格子施放(
                     unit,
@@ -1057,6 +1071,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         bool switchedFromCombat = currentMode == BattleFlowMode.Combat;
         currentMode = BattleFlowMode.Exploration;
+        skillCooldownService?.清空();
         activeExplorationActionId = ExplorationMoveSkillId;
         waitingForEnemyAction = false;
         currentRoundOrder.Clear();
@@ -1205,6 +1220,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         absoluteRoundIndex++;
+        skillCooldownService?.推进大回合冷却();
         currentRoundOrder.AddRange(upcomingRoundOrders[0]);
         upcomingRoundOrders.RemoveAt(0);
         CacheCurrentRoundTieBreakers();
@@ -1978,8 +1994,7 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        if (!activeUnit.CanSpendActionPoints(GetSkillActionPointCost(nextSkill)) ||
-            !activeUnit.CanSpendMana(GetSkillManaCost(nextSkill)))
+        if (!可以使用技能(activeUnit, nextSkill))
         {
             ClearActiveSkillMode();
             RefreshHighlights();
@@ -2349,6 +2364,7 @@ public class BattleTurnSystem : MonoBehaviour
                 TryMove,
                 GetActiveSkillActionPointCostForExecution,
                 GetActiveSkillManaCostForExecution,
+                记录技能使用冷却,
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
@@ -2563,6 +2579,7 @@ public class BattleTurnSystem : MonoBehaviour
                 TryMove,
                 GetSkillActionPointCost,
                 GetSkillManaCostForExecution,
+                consumeResource ? (System.Action<BattleUnit, BattleSkillDatabase.SkillEntry>)记录技能使用冷却 : null,
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
@@ -2752,6 +2769,26 @@ public class BattleTurnSystem : MonoBehaviour
         return IsActiveSkillContinuation(skill) ? 0 : GetSkillManaCostForExecution(unit, skill);
     }
 
+    private bool 可以使用技能(BattleUnit unit, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (unit == null || skill == null)
+        {
+            return false;
+        }
+
+        return !SkillUsabilityUtility.技能无法使用(
+            skillDatabase,
+            unit.characterId,
+            skill.skillId,
+            unit,
+            获取技能剩余冷却回合);
+    }
+
+    private void 记录技能使用冷却(BattleUnit 使用者, BattleSkillDatabase.SkillEntry 技能)
+    {
+        skillCooldownService?.记录技能使用(使用者, 技能);
+    }
+
     private static string ResolveSkillDamageSourceForHit(
         BattleUnit caster,
         BattleSkillDatabase.SkillEntry skill,
@@ -2937,6 +2974,7 @@ public class BattleTurnSystem : MonoBehaviour
             TryMove,
             GetSkillActionPointCost,
             GetSkillManaCostForExecution,
+            记录技能使用冷却,
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
@@ -3077,6 +3115,7 @@ public class BattleTurnSystem : MonoBehaviour
             TryMove,
             GetSkillActionPointCost,
             GetSkillManaCostForExecution,
+            记录技能使用冷却,
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,

@@ -162,7 +162,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         return 当前单位.characterId ?? string.Empty;
     }
 
-    private static string 构建技能签名(string 角色ID, BattleUnit 当前单位, List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
+    private string 构建技能签名(string 角色ID, BattleUnit 当前单位, List<CharacterSkillListUtility.DisplaySkillEntry> 技能列表)
     {
         int 当前行动力 = 当前单位 != null ? 当前单位.currentActionPoints : -1;
         int 当前法力 = 当前单位 != null ? 当前单位.currentMana : -1;
@@ -175,7 +175,8 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         for (int i = 0; i < 技能列表.Count; i++)
         {
             CharacterSkillListUtility.DisplaySkillEntry 条目 = 技能列表[i];
-            签名片段.Add($"{条目.SkillId}:{条目.SkillSource}");
+            int 剩余冷却 = 战斗回合系统 != null ? 战斗回合系统.获取技能剩余冷却回合(角色ID, 条目.SkillId) : 0;
+            签名片段.Add($"{条目.SkillId}:{条目.SkillSource}:CD{剩余冷却}");
         }
 
         return $"{角色ID ?? string.Empty}|AP:{当前行动力}|MP:{当前法力}|" + string.Join("|", 签名片段);
@@ -234,7 +235,7 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
         }
 
         BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
-        if (SkillUsabilityUtility.技能无法使用(技能数据库, 当前角色ID, 格子.技能ID, 当前单位))
+        if (SkillUsabilityUtility.技能无法使用(技能数据库, 当前角色ID, 格子.技能ID, 当前单位, 战斗回合系统.获取技能剩余冷却回合))
         {
             return;
         }
@@ -310,7 +311,16 @@ public sealed class 战斗技能栏绑定 : MonoBehaviour
 
         Sprite 图标 = 解析技能图标(格子.技能ID);
         BattleUnit 当前单位 = 战斗回合系统 != null ? 战斗回合系统.ActiveUnit : null;
-        bool 可用 = !SkillUsabilityUtility.技能无法使用(技能数据库, 当前角色ID, 格子.技能ID, 当前单位);
+        SkillUsabilityUtility.获取技能剩余冷却回合 获取剩余冷却回合 =
+            战斗回合系统 != null
+                ? (SkillUsabilityUtility.获取技能剩余冷却回合)战斗回合系统.获取技能剩余冷却回合
+                : null;
+        bool 可用 = !SkillUsabilityUtility.技能无法使用(
+            技能数据库,
+            当前角色ID,
+            格子.技能ID,
+            当前单位,
+            获取剩余冷却回合);
 
         if (格子.空图标 != null)
         {
