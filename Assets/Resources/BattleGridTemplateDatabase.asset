@@ -1019,7 +1019,7 @@ MonoBehaviour:
   - templateId: "\u5730\u7262\u5BC6\u5BA4"
     displayName: "\u5730\u7262\u5BC6\u5BA4"
     width: 20
-    height: 20
+    height: 21
     walkableCells:
     - x: 0
       y: 19
@@ -1821,6 +1821,46 @@ MonoBehaviour:
       y: 10
     - x: 10
       y: 2
+    - x: 0
+      y: 20
+    - x: 2
+      y: 20
+    - x: 3
+      y: 20
+    - x: 4
+      y: 20
+    - x: 5
+      y: 20
+    - x: 6
+      y: 20
+    - x: 7
+      y: 20
+    - x: 8
+      y: 20
+    - x: 9
+      y: 20
+    - x: 10
+      y: 20
+    - x: 11
+      y: 20
+    - x: 12
+      y: 20
+    - x: 13
+      y: 20
+    - x: 14
+      y: 20
+    - x: 15
+      y: 20
+    - x: 16
+      y: 20
+    - x: 17
+      y: 20
+    - x: 18
+      y: 20
+    - x: 19
+      y: 20
+    - x: 1
+      y: 20
     enemySpawnSlots:
     - slotName: "\u654C\u4EBA\u4F4D1"
       cell:
@@ -1832,121 +1872,11 @@ MonoBehaviour:
         x: 15
         y: 15
       encounterEnemyIndex: 1
-    defaultFloorPrefab: {fileID: 3359640931704841970, guid: 3f657dc5ac81f714b812c2e55d5801e2, type: 3}
+    defaultFloorPrefab: {fileID: 5598969195761890678, guid: 1b0a727c2bb52db43ae61db4def229cb, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 0}
     "\u82B1\u74E3\u66DD\u5149\u533A\u57DF\u5217\u8868": []
-    propVisuals:
-    - propName: "\u5B9D\u7BB1"
-      prefab: {fileID: 212658068931087221, guid: 4745a1d5ad7d8be4296ac2a226e56f54, type: 3}
-      anchorCell:
-        x: 10
-        y: 10
-      localOffset: {x: 0, y: 0, z: 0}
-      alignToBattleCamera: 1
-      blocksMovement: 1
-      isTriggerable: 1
-      chestContentGroupId: "\u6728\u7BB1\u6218\u5229\u54C1"
-      triggerCells:
-      - x: 8
-        y: 12
-      - x: 8
-        y: 11
-      - x: 8
-        y: 10
-      - x: 8
-        y: 9
-      - x: 8
-        y: 8
-      - x: 9
-        y: 8
-      - x: 10
-        y: 8
-      - x: 11
-        y: 8
-      - x: 12
-        y: 8
-      - x: 12
-        y: 9
-      - x: 12
-        y: 10
-      - x: 12
-        y: 11
-      - x: 12
-        y: 12
-      - x: 11
-        y: 12
-      - x: 10
-        y: 12
-      - x: 9
-        y: 12
-      - x: 7
-        y: 13
-      - x: 7
-        y: 12
-      - x: 7
-        y: 11
-      - x: 7
-        y: 10
-      - x: 7
-        y: 9
-      - x: 7
-        y: 8
-      - x: 7
-        y: 7
-      - x: 8
-        y: 7
-      - x: 9
-        y: 7
-      - x: 10
-        y: 7
-      - x: 11
-        y: 7
-      - x: 12
-        y: 7
-      - x: 13
-        y: 7
-      - x: 13
-        y: 8
-      - x: 13
-        y: 9
-      - x: 13
-        y: 10
-      - x: 13
-        y: 11
-      - x: 13
-        y: 12
-      - x: 13
-        y: 13
-      - x: 12
-        y: 13
-      - x: 11
-        y: 13
-      - x: 10
-        y: 13
-      - x: 9
-        y: 13
-      - x: 8
-        y: 13
-      blockedCells:
-      - x: 10
-        y: 10
-      - x: 9
-        y: 10
-      - x: 9
-        y: 9
-      - x: 10
-        y: 9
-      - x: 11
-        y: 9
-      - x: 11
-        y: 10
-      - x: 11
-        y: 11
-      - x: 10
-        y: 11
-      - x: 9
-        y: 11
+    propVisuals: []
     wallVisuals:
     - wallName: "\u4E1C\u5899"
       prefab: {fileID: 8711905010607594450, guid: 64df42f58d758824f884cf678609a8ee, type: 3}
@@ -1975,7 +1905,7 @@ MonoBehaviour:
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
       x: 10
-      y: 18
+      y: 19
     hasEastDoorEntrance: 1
     eastDoorEntranceCell:
       x: 19
