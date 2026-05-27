@@ -134,6 +134,7 @@ public class BattleTurnSystem : MonoBehaviour
     private 战斗探索移动服务 explorationMoveService;
     private 格子触发导航服务 gridTriggerNavigationService;
     private 战斗伤害弹字服务 damagePopupService;
+    private 战斗镜头震动服务 cameraShakeService;
     private 战斗技能冷却服务 skillCooldownService;
 
     public BattleUnit ActiveUnit
@@ -334,6 +335,11 @@ public class BattleTurnSystem : MonoBehaviour
             damagePopupService = new 战斗伤害弹字服务();
         }
 
+        if (cameraShakeService == null)
+        {
+            cameraShakeService = new 战斗镜头震动服务();
+        }
+
         if (skillCooldownService == null)
         {
             skillCooldownService = new 战斗技能冷却服务();
@@ -424,6 +430,7 @@ public class BattleTurnSystem : MonoBehaviour
         timelineService?.Dispose();
         explorationMoveService?.停止全部(this);
         skillPresentationService?.恢复全局时间缩放(this, HitFeelTimeScale);
+        cameraShakeService?.停止(this);
         UnbindEndTurnButton();
         UnbindSkillButton();
     }
@@ -3229,6 +3236,11 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void ShowDamagePopup(BattleUnit target, CombatDamageResult damageResult)
     {
+        if (damageResult != null && damageResult.isCritical && damageResult.appliedDamage > 0)
+        {
+            cameraShakeService?.播放暴击震动(this, battleCamera);
+        }
+
         damagePopupService?.显示伤害弹字(
             target,
             damageResult,
