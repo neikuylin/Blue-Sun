@@ -11286,8 +11286,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c4761fa514cb3d4fbdb6e73da324672, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  "\u5F53\u524DID\u6587\u672C": {fileID: 1955067413}
-  "\u89D2\u8272\u540D\u6587\u672C": {fileID: 1955067414}
+  "\u5F53\u524DID\u6587\u672C": {fileID: 1955067414}
+  "\u89D2\u8272\u540D\u6587\u672C": {fileID: 0}
   "\u751F\u547D\u503C\u6587\u672C": {fileID: 348946097}
   "\u9B54\u6CD5\u503C\u6587\u672C": {fileID: 800460030}
   "\u653B\u51FB\u529B\u6587\u672C": {fileID: 1471778121}
