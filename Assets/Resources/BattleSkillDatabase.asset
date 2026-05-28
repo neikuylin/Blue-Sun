@@ -133,7 +133,7 @@ MonoBehaviour:
     group: 1
     skillType: 0
     castTarget: 1
-    icon: {fileID: 21300000, guid: a8a1b3e337f09c643b91931fe1f7ef80, type: 3}
+    icon: {fileID: 21300000, guid: 8efdc17088529454086d8d674b6fb302, type: 3}
     noDamage: 0
     damageMultiplier: 1
     attributeMultiplier: 1
@@ -381,7 +381,7 @@ MonoBehaviour:
     group: 1
     skillType: 0
     castTarget: 1
-    icon: {fileID: 21300000, guid: 2382dd75de0a41d47bacf44862fb0cdd, type: 3}
+    icon: {fileID: 21300000, guid: 84c2d1ff9335b1f48ab5d60822f38fb1, type: 3}
     noDamage: 0
     damageMultiplier: 0.75
     attributeMultiplier: 1
