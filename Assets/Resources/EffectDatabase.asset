@@ -64,7 +64,7 @@ MonoBehaviour:
   - effectId: "\u96C6\u4E2D"
     displayName: "\u96C6\u4E2D"
     description: "\u5168\u8EAB\u8D2F\u6CE8 \u589E\u52A020%\u547D\u4E2D\u7387"
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: f5df72a174dd8b445842557b2a42c01a, type: 3}
     valueStackRule: 0
     durationStackRule: 2
     durationTurnOwner: 0
@@ -72,4 +72,4 @@ MonoBehaviour:
     - statField: 6
       healthDamageType: 0
       amountMode: 1
-      amount: 20
+      amount: 40
