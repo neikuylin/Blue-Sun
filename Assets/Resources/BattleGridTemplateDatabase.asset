@@ -1939,6 +1939,46 @@ MonoBehaviour:
         y: 8
       - x: 8
         y: 8
+    - propName: "\u7BDD\u706B\u7ACB\u67F11"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+      anchorCell:
+        x: 4
+        y: 11
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      isTriggerable: 0
+      chestContentGroupId: 
+      triggerCells: []
+      blockedCells:
+      - x: 4
+        y: 11
+      - x: 4
+        y: 10
+      - x: 3
+        y: 10
+      - x: 3
+        y: 11
+    - propName: "\u7BDD\u706B\u7ACB\u67F12"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+      anchorCell:
+        x: 17
+        y: 11
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+      blocksMovement: 1
+      isTriggerable: 0
+      chestContentGroupId: 
+      triggerCells: []
+      blockedCells:
+      - x: 17
+        y: 11
+      - x: 17
+        y: 10
+      - x: 16
+        y: 10
+      - x: 16
+        y: 11
     wallVisuals:
     - wallName: "\u4E1C\u5899"
       prefab: {fileID: 1382157491842643455, guid: f05183f6f8ff1c7408c1626a94d7c0c2, type: 3}
