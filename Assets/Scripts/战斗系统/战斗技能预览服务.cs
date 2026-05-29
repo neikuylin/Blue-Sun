@@ -145,9 +145,10 @@ internal sealed class 战斗技能预览服务
         Color insufficientColor,
         Color normalColor,
         Func<Transform> resolveOverlayCanvasTransform,
-        Func<Transform, string, Transform> findChildByName)
+        Func<Transform, string, Transform> findChildByName,
+        bool forceShowInvalid = false)
     {
-        if (!应该显示行动点提示(isSkillModeActive, skillHoverValid))
+        if (!应该显示行动点提示(isSkillModeActive, skillHoverValid, forceShowInvalid))
         {
             隐藏行动点提示();
             return;
@@ -165,7 +166,7 @@ internal sealed class 战斗技能预览服务
             ? "选择目标次数：" + targetSelectionCount
             : "选择目标";
         hint.text = selectionText + "\n消耗行动点：" + skillHoverActionPointCost;
-        hint.color = activeUnit != null && skillHoverActionPointCost > activeUnit.currentActionPoints
+        hint.color = forceShowInvalid || (activeUnit != null && skillHoverActionPointCost > activeUnit.currentActionPoints)
             ? insufficientColor
             : normalColor;
         hint.gameObject.SetActive(true);
@@ -248,9 +249,9 @@ internal sealed class 战斗技能预览服务
             : hoveredEnemyFlashColor;
     }
 
-    private static bool 应该显示行动点提示(bool isSkillModeActive, bool skillHoverValid)
+    private static bool 应该显示行动点提示(bool isSkillModeActive, bool skillHoverValid, bool forceShowInvalid)
     {
-        return isSkillModeActive && skillHoverValid;
+        return isSkillModeActive && (skillHoverValid || forceShowInvalid);
     }
 
     private TMP_Text 确保行动点提示(

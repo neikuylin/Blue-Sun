@@ -98,6 +98,7 @@ public class BattleTurnSystem : MonoBehaviour
     private bool skillHoverValid;
     private bool skillHoverHasAnyVisibleCells;
     private int skillHoverActionPointCost;
+    private bool skillHoverForceShowInvalidHint;
     private bool isResolvingSkillExecution;
     private BattleFlowMode currentMode = BattleFlowMode.Combat;
     private string activeExplorationActionId = ExplorationMoveSkillId;
@@ -2126,6 +2127,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
+                skillHoverForceShowInvalidHint = false;
                 RefreshSkillHoverHighlights();
             }
 
@@ -2147,6 +2149,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
+                skillHoverForceShowInvalidHint = false;
                 RefreshSkillHoverHighlights();
             }
 
@@ -2188,6 +2191,7 @@ public class BattleTurnSystem : MonoBehaviour
                 hasSkillHoverPreview = false;
                 skillHoverValid = false;
                 skillHoverActionPointCost = 0;
+                skillHoverForceShowInvalidHint = false;
                 RefreshSkillHoverHighlights();
             }
 
@@ -2206,6 +2210,7 @@ public class BattleTurnSystem : MonoBehaviour
                 skillHoverValid = false;
                 skillHoverHasAnyVisibleCells = false;
                 skillHoverActionPointCost = 0;
+                skillHoverForceShowInvalidHint = false;
                 RefreshSkillHoverHighlights();
             }
 
@@ -2217,7 +2222,10 @@ public class BattleTurnSystem : MonoBehaviour
         bool footprintInside = grid.IsFootprintInside(activeUnit, hoveredCell);
         List<Vector2Int> path = IsMovementSkillActive() && footprintInside ? grid.FindPath(activeUnit, hoveredCell) : null;
         bool canCastAtHover = CanCastSkillAt(activeUnit, hoveredCell, hoveredUnit, activeSkill, path);
-        int actionPointCost = canCastAtHover ? GetHoveredSkillActionPointCost(activeUnit, path, activeSkill) : 0;
+        bool shouldShowInvalidMoveHint = ShouldShowInvalidMoveHint(hoveredUnit, path, canCastAtHover);
+        int actionPointCost = canCastAtHover || shouldShowInvalidMoveHint
+            ? GetHoveredSkillActionPointCost(activeUnit, path, activeSkill)
+            : 0;
         bool hasAnyVisibleCells = shouldShowAreaPreview &&
             skillPreviewAreaService != null &&
             skillPreviewAreaService.是否存在可见技能预览格(
@@ -2230,7 +2238,8 @@ public class BattleTurnSystem : MonoBehaviour
             skillHoverCell == hoveredCell &&
             skillHoverValid == canCastAtHover &&
             skillHoverHasAnyVisibleCells == hasAnyVisibleCells &&
-            skillHoverActionPointCost == actionPointCost)
+            skillHoverActionPointCost == actionPointCost &&
+            skillHoverForceShowInvalidHint == shouldShowInvalidMoveHint)
         {
             skillPreviewService?.更新行动点提示(
                 IsSkillModeActive(),
@@ -2241,7 +2250,8 @@ public class BattleTurnSystem : MonoBehaviour
                 skillCostInsufficientColor,
                 skillCostNormalColor,
                 ResolveOverlayCanvasTransform,
-                FindChildByName);
+                FindChildByName,
+                shouldShowInvalidMoveHint);
             return;
         }
 
@@ -2250,6 +2260,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverValid = canCastAtHover;
         skillHoverHasAnyVisibleCells = hasAnyVisibleCells;
         skillHoverActionPointCost = actionPointCost;
+        skillHoverForceShowInvalidHint = shouldShowInvalidMoveHint;
         RefreshSkillHoverHighlights();
         skillPreviewService?.更新行动点提示(
             IsSkillModeActive(),
@@ -2260,7 +2271,20 @@ public class BattleTurnSystem : MonoBehaviour
             skillCostInsufficientColor,
             skillCostNormalColor,
             ResolveOverlayCanvasTransform,
-            FindChildByName);
+            FindChildByName,
+            shouldShowInvalidMoveHint);
+    }
+
+    private bool ShouldShowInvalidMoveHint(BattleUnit hoveredUnit, List<Vector2Int> path, bool canCastAtHover)
+    {
+        if (!IsMovementSkillActive() || canCastAtHover)
+        {
+            return false;
+        }
+
+        return path != null &&
+            path.Count > 1 &&
+            (hoveredUnit == null || hoveredUnit == activeUnit);
     }
 
     private bool ShouldShowSkillAreaPreview(BattleSkillDatabase.SkillEntry skill)
@@ -2305,6 +2329,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
+        skillHoverForceShowInvalidHint = false;
         skillPreviewService?.清空悬停目标(grid);
         skillPreviewService?.隐藏行动点提示();
         skillTargetingPresentationService?.清空技能模式状态(this, shouldRestoreRotation);
@@ -2519,6 +2544,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
+        skillHoverForceShowInvalidHint = false;
         skillPreviewService?.清空悬停目标(grid);
         skillPreviewService?.隐藏行动点提示();
         RefreshHighlights();
@@ -2869,6 +2895,7 @@ public class BattleTurnSystem : MonoBehaviour
         skillHoverValid = false;
         skillHoverHasAnyVisibleCells = false;
         skillHoverActionPointCost = 0;
+        skillHoverForceShowInvalidHint = false;
         skillPreviewService?.清空悬停目标(grid);
         skillPreviewService?.隐藏行动点提示();
     }
