@@ -238,3 +238,61 @@ MonoBehaviour:
       value: 0
     prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
+  - itemId: "itm_\u51BB\u8680\u9508\u5251"
+    displayName: "\u51BB\u8680\u9508\u5251"
+    category: 0
+    quality: 0
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 80
+      fire: 0
+      corruption: 0
+      cold: 20
+    fixedDamage: 4
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u6218\u58EB\u4EEC\u9057\u843D\u7684\u6B66\u5668\uFF0C\u7ECF\u8FC7\u5BD2\u51B7\u7684\u6D17\u793C"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 0.4
+    - attributeType: 3
+      multiplier: 0.4
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
+    prefab: {fileID: 9097273418362567220, guid: 42a0f0f3c2eb0434ca3bdcf5055acb3d, type: 3}
+    weaponModelPrefab: {fileID: 7459018655969567533, guid: 5023984c6d826684ca46cb7bd521fef4, type: 3}
+  - itemId: "itm_\u62A4\u536B\u957F\u5251"
+    displayName: "\u62A4\u536B\u957F\u5251"
+    category: 0
+    quality: 1
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 5
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u6807\u51C6\u7684\u6559\u4F1A\u58EB\u5175\u6B66\u5668"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 0.6
+    - attributeType: 2
+      multiplier: 0.6
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 0
+    prefab: {fileID: 6957880364246062323, guid: a34b0490725da774798f21fe3c6d7a00, type: 3}
+    weaponModelPrefab: {fileID: 5394119811632698155, guid: 7e09bad3ee3d71449b19425bc2f85d34, type: 3}

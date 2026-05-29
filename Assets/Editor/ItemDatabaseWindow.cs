@@ -34,6 +34,7 @@ public sealed class ItemDatabaseWindow : EditorWindow
     private ItemDatabase.EquipmentSlotType filterEquipmentSlot = ItemDatabase.EquipmentSlotType.None;
     private ItemDatabase.WeaponCategory filterWeaponCategory = ItemDatabase.WeaponCategory.None;
     private Vector2 scroll;
+    private bool createPanelExpanded;
     private readonly Dictionary<string, bool> entryFoldoutStates = new Dictionary<string, bool>();
 
     [MenuItem("Tools/物品/物品数据库")]
@@ -69,7 +70,14 @@ public sealed class ItemDatabaseWindow : EditorWindow
 
     private void DrawCreatePanel()
     {
-        EditorGUILayout.LabelField("新增物品", EditorStyles.boldLabel);
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            createPanelExpanded = EditorGUILayout.Foldout(createPanelExpanded, "新增物品", true);
+            if (!createPanelExpanded)
+            {
+                return;
+            }
+        }
 
         createCategory = (ItemDatabase.ItemCategory)EditorGUILayout.Popup(
             "类别",

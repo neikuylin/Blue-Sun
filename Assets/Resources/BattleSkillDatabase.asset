@@ -406,7 +406,7 @@ MonoBehaviour:
       weaponCategory: 1
       raiseHandStateName: 
       raiseHandYawOffset: 0
-      targetSelectionStateName: 
+      targetSelectionStateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
       targetSelectionYawOffset: 0
       actionStateName: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
       actionYawOffset: 45
