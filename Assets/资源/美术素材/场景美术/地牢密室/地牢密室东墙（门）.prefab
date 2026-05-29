@@ -192,7 +192,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -11000
+  m_SortingOrder: -1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: f564abd7e4eb6c2459157e12814965f7, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -418,7 +418,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
   lightingMode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: -11000
   replaceMaterial: 1
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
