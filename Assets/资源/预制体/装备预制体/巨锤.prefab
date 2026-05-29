@@ -109,7 +109,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -3.1}
   m_SizeDelta: {x: 99, y: 200}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &9081047560648067155
@@ -140,7 +140,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: f7a39a7df4c642341a6b238a6ccc54d3, type: 3}
+  m_Sprite: {fileID: 21300000, guid: accb13aa3c606ef4a8d0b76d57840546, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -162,7 +162,7 @@ GameObject:
   - component: {fileID: 5341672668271076882}
   - component: {fileID: 7256363560193659177}
   m_Layer: 5
-  m_Name: "\u592A\u9633"
+  m_Name: "\u5DE8\u9524"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

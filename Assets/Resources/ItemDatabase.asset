@@ -209,7 +209,7 @@ MonoBehaviour:
     weaponResistancePenetrations:
     - resistanceType: 1
       value: 0
-    prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
+    prefab: {fileID: 1777214541461665262, guid: d41bccd52e2b014468dbb2345e018410, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
   - itemId: "itm_\u4FEE\u58EB\u6756"
     displayName: "\u4FEE\u58EB\u6756"
@@ -236,7 +236,7 @@ MonoBehaviour:
     weaponResistancePenetrations:
     - resistanceType: 1
       value: 0
-    prefab: {fileID: 7459018655969567533, guid: adb806981a36eef42a654b38cfd1eba6, type: 3}
+    prefab: {fileID: 1777214541461665262, guid: d41bccd52e2b014468dbb2345e018410, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
   - itemId: "itm_\u51BB\u8680\u9508\u5251"
     displayName: "\u51BB\u8680\u9508\u5251"
@@ -296,3 +296,140 @@ MonoBehaviour:
       value: 0
     prefab: {fileID: 6957880364246062323, guid: a34b0490725da774798f21fe3c6d7a00, type: 3}
     weaponModelPrefab: {fileID: 5394119811632698155, guid: 7e09bad3ee3d71449b19425bc2f85d34, type: 3}
+  - itemId: "itm_\u62A4\u536B\u9524"
+    displayName: "\u62A4\u536B\u9524"
+    category: 0
+    quality: 1
+    equipmentSlot: 3
+    weaponCategory: 1
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 6
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u6559\u4F1A\u58EB\u5175\u7684\u524D\u950B\u6B66\u5668"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 10
+    prefab: {fileID: 4663607098901541209, guid: 4ab487250ed043f498f1d3e3752ed058, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u5927\u5251"
+    displayName: "\u5927\u5251"
+    category: 0
+    quality: 0
+    equipmentSlot: 1
+    weaponCategory: 2
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 5
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u8BB8\u591A\u61A7\u61AC\u767D\u8863\u519B\u7684\u58EB\u5175\u4EEC\u4F1A\u9009\u62E9\u8FD9\u79CD\u6B66\u5668"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1.5
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 10
+    prefab: {fileID: 1777214541461665262, guid: a6ea59085de712341a528a15950704ba, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u5DE8\u9524"
+    displayName: "\u5DE8\u9524"
+    category: 0
+    quality: 0
+    equipmentSlot: 1
+    weaponCategory: 2
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 0
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u61A7\u61AC\u767D\u8863\u519B\u7684\u58EB\u5175\u4EEC\u4F7F\u7528\u7684\u6B66\u5668"
+    grantedSkillIds:
+    - 
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1.35
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 10
+    prefab: {fileID: 1777214541461665262, guid: 5b08e957915991c4194ac634109e1040, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u767D\u8863\u519B\u5927\u5251"
+    displayName: "\u767D\u8863\u519B\u5927\u5251"
+    category: 0
+    quality: 1
+    equipmentSlot: 1
+    weaponCategory: 2
+    weaponDamageDistribution:
+      physical: 50
+      fire: 50
+      corruption: 0
+      cold: 0
+    fixedDamage: 7
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u53D7\u8D50\u798F\u7684\u767D\u8863\u519B\u6240\u4F7F\u7528\u7684\u6B66\u5668\uFF0C\u80FD\u638C\u63E1\u706B\u7130\u7684\u529B\u91CF"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1
+    - attributeType: 3
+      multiplier: 0.8
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 10
+    prefab: {fileID: 1777214541461665262, guid: e5da334dbf174884fb020a636411ad24, type: 3}
+    weaponModelPrefab: {fileID: 0}
+  - itemId: "itm_\u767D\u8863\u519B\u5927\u9524"
+    displayName: "\u767D\u8863\u519B\u5927\u9524"
+    category: 0
+    quality: 1
+    equipmentSlot: 1
+    weaponCategory: 2
+    weaponDamageDistribution:
+      physical: 100
+      fire: 0
+      corruption: 0
+      cold: 0
+    fixedDamage: 9
+    criticalChanceBonus: 0
+    criticalDamageBonus: 0
+    staffDamageMultiplier: 1
+    manaRecovery: 0
+    description: "\u653E\u5F03\u8D50\u798F\u6301\u7EED\u953B\u70BC\u7684\u767D\u8863\u519B\u4F7F\u7528\u7684\u6B66\u5668"
+    grantedSkillIds:
+    - "\u666E\u901A\u653B\u51FB"
+    weaponAttributeMultipliers:
+    - attributeType: 1
+      multiplier: 1.68
+    weaponResistancePenetrations:
+    - resistanceType: 1
+      value: 15
+    prefab: {fileID: 1777214541461665262, guid: 61b1dbf9bcc561e4e8cbeeae91846c0d, type: 3}
+    weaponModelPrefab: {fileID: 0}
