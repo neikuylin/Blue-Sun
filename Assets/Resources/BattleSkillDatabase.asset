@@ -24,7 +24,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 0
     skillType: 1
@@ -136,7 +136,7 @@ MonoBehaviour:
     resolveFrame: 35
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 1
     skillType: 0
@@ -203,7 +203,7 @@ MonoBehaviour:
     resolveFrame: 29
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 1
     skillType: 1
@@ -265,12 +265,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 1
     projectilePrefab: {fileID: 8991566687844452409, guid: f22578cbdb4aa164ba7dd3e489a49399, type: 3}
-    projectileStartFrame: 13
+    projectileStartFrame: 11
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 1
     skillType: 0
@@ -322,7 +322,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 2
     skillType: 0
@@ -363,7 +363,7 @@ MonoBehaviour:
     resolveFrame: 0
     castCount: 1
     hitCount: 1
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 
     group: 2
     skillType: 0
@@ -404,7 +404,7 @@ MonoBehaviour:
     resolveFrame: 35
     castCount: 1
     hitCount: 2
-    extraProjectileStartFrames:
+    extraProjectileStartFrames: 
     extraHitResolveFrames: 33000000
     group: 1
     skillType: 0
