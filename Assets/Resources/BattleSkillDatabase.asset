@@ -261,7 +261,7 @@ MonoBehaviour:
     projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
     enableHitFeel: 0
     resolveFrame: 0
-    castCount: 2
+    castCount: 1
     hitCount: 1
     extraHitResolveFrames: 
     group: 1
