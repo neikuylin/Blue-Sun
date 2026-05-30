@@ -88,10 +88,12 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public GameObject hitEffectPrefab;
         public bool useProjectile;
         public GameObject projectilePrefab;
+        public int projectileStartFrame;
         public bool enableHitFeel;
         public int resolveFrame;
         public int castCount = 1;
         public int hitCount = 1;
+        public List<int> extraProjectileStartFrames = new List<int>();
         public List<int> extraHitResolveFrames = new List<int>();
         public SkillGroup group = SkillGroup.CombatArt;
         public SkillType skillType = SkillType.Target;
@@ -151,6 +153,27 @@ public sealed class BattleSkillDatabase : ScriptableObject
             }
 
             frame = extraHitResolveFrames[extraIndex];
+            return frame > 0;
+        }
+
+        public bool TryResolveProjectileStartFrame(int hitIndex, out int frame)
+        {
+            if (hitIndex <= 0)
+            {
+                frame = projectileStartFrame;
+                return true;
+            }
+
+            int extraIndex = hitIndex - 1;
+            if (extraProjectileStartFrames == null ||
+                extraIndex < 0 ||
+                extraIndex >= extraProjectileStartFrames.Count)
+            {
+                frame = 0;
+                return false;
+            }
+
+            frame = extraProjectileStartFrames[extraIndex];
             return frame > 0;
         }
 

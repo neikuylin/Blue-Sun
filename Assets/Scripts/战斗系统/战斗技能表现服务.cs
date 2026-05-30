@@ -157,7 +157,7 @@ internal sealed class 战斗技能表现服务
             ? resolveAnimationStateTotalFrames(animator, actionStateName, clipDuration)
             : 0;
         int hitCount = skill.ResolveHitCount();
-        float elapsedResolveTime = 0f;
+        float actionStartTime = Time.time;
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
             float resolveDelay = resolveSkillResolveDelaySeconds != null
@@ -168,22 +168,26 @@ internal sealed class 战斗技能表现服务
                 continue;
             }
 
-            float waitDuration = Mathf.Max(0f, resolveDelay - elapsedResolveTime);
+            float elapsedActionTime = Mathf.Max(0f, Time.time - actionStartTime);
+            float waitDuration = Mathf.Max(0f, resolveDelay - elapsedActionTime);
             if (waitDuration > 0.01f)
             {
                 yield return new WaitForSeconds(waitDuration);
-                elapsedResolveTime += waitDuration;
             }
 
-            触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
-            playSkillHitAudio?.Invoke(caster, skill);
+            if (!skill.useProjectile)
+            {
+                触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
+                playSkillHitAudio?.Invoke(caster, skill);
+            }
+
             if (resolveHitRoutine != null)
             {
                 yield return resolveHitRoutine(hitIndex);
             }
         }
 
-        float remainingDuration = Mathf.Max(0f, clipDuration - elapsedResolveTime);
+        float remainingDuration = Mathf.Max(0f, clipDuration - Mathf.Max(0f, Time.time - actionStartTime));
         if (remainingDuration > 0.01f)
         {
             yield return new WaitForSeconds(remainingDuration);
@@ -217,7 +221,11 @@ internal sealed class 战斗技能表现服务
         int hitCount = skill != null ? skill.ResolveHitCount() : 1;
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
-            playSkillHitAudio?.Invoke(caster, skill);
+            if (skill == null || !skill.useProjectile)
+            {
+                playSkillHitAudio?.Invoke(caster, skill);
+            }
+
             if (resolveHitRoutine != null)
             {
                 yield return resolveHitRoutine(hitIndex);

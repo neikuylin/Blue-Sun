@@ -288,6 +288,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("hitEffectPrefab").objectReferenceValue = null;
         entry.FindPropertyRelative("useProjectile").boolValue = false;
         entry.FindPropertyRelative("projectilePrefab").objectReferenceValue = null;
+        entry.FindPropertyRelative("projectileStartFrame").intValue = 0;
+        entry.FindPropertyRelative("extraProjectileStartFrames").ClearArray();
         entry.FindPropertyRelative("noDamage").boolValue = false;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
@@ -314,7 +316,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
     {
         SerializedProperty useProjectile = entry.FindPropertyRelative("useProjectile");
         SerializedProperty projectilePrefab = entry.FindPropertyRelative("projectilePrefab");
-        if (useProjectile == null || projectilePrefab == null)
+        SerializedProperty projectileStartFrame = entry.FindPropertyRelative("projectileStartFrame");
+        if (useProjectile == null || projectilePrefab == null || projectileStartFrame == null)
         {
             return;
         }
@@ -324,6 +327,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         {
             EditorGUI.indentLevel++;
             EditorGUILayout.PropertyField(projectilePrefab, new GUIContent("飞行物体预制体"));
+            projectileStartFrame.intValue = Mathf.Max(0, EditorGUILayout.IntField("飞行开始时间", Mathf.Max(0, projectileStartFrame.intValue)));
+            DrawExtraProjectileStartFrameFields(entry);
             EditorGUI.indentLevel--;
         }
         else
@@ -734,6 +739,44 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             }
 
             frameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField($"第{i + 2}下判定时间", Mathf.Max(0, frameProperty.intValue)));
+        }
+    }
+
+    private static void DrawExtraProjectileStartFrameFields(SerializedProperty entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SerializedProperty hitCountProperty = entry.FindPropertyRelative("hitCount");
+        SerializedProperty extraProjectileStartFramesProperty = entry.FindPropertyRelative("extraProjectileStartFrames");
+        if (hitCountProperty == null || extraProjectileStartFramesProperty == null)
+        {
+            return;
+        }
+
+        int requiredCount = Mathf.Max(0, Mathf.Max(1, hitCountProperty.intValue) - 1);
+        while (extraProjectileStartFramesProperty.arraySize < requiredCount)
+        {
+            extraProjectileStartFramesProperty.InsertArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize);
+            extraProjectileStartFramesProperty.GetArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize - 1).intValue = 0;
+        }
+
+        while (extraProjectileStartFramesProperty.arraySize > requiredCount)
+        {
+            extraProjectileStartFramesProperty.DeleteArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize - 1);
+        }
+
+        for (int i = 0; i < requiredCount; i++)
+        {
+            SerializedProperty frameProperty = extraProjectileStartFramesProperty.GetArrayElementAtIndex(i);
+            if (frameProperty == null)
+            {
+                continue;
+            }
+
+            frameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField($"第{i + 2}发飞行开始时间", Mathf.Max(0, frameProperty.intValue)));
         }
     }
 

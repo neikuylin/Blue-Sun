@@ -19,10 +19,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 0
     skillType: 1
@@ -129,10 +131,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 35
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 1
     skillType: 0
@@ -194,10 +198,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 29
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 1
     skillType: 1
@@ -259,10 +265,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 1
     projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
+    projectileStartFrame: 15
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 1
     skillType: 0
@@ -309,10 +317,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 1
     projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 2
     skillType: 0
@@ -348,10 +358,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
     hitCount: 1
+    extraProjectileStartFrames:
     extraHitResolveFrames: 
     group: 2
     skillType: 0
@@ -387,10 +399,12 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 0}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
     enableHitFeel: 0
     resolveFrame: 35
     castCount: 1
     hitCount: 2
+    extraProjectileStartFrames:
     extraHitResolveFrames: 33000000
     group: 1
     skillType: 0

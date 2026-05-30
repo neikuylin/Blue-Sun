@@ -3037,6 +3037,14 @@ public class BattleTurnSystem : MonoBehaviour
             yield break;
         }
 
+        skillPresentationService?.触发技能命中停顿(
+            this,
+            skill,
+            HitFeelDurationSeconds,
+            HitFeelTimeScale,
+            DefaultFixedDeltaTime);
+        PlaySkillHitAudio(caster, skill);
+
         if (resolveHitRoutine != null)
         {
             yield return resolveHitRoutine(hitIndex);
@@ -3706,7 +3714,19 @@ public class BattleTurnSystem : MonoBehaviour
 
         if (skill.useProjectile)
         {
-            return clipDuration;
+            if (hitIndex <= 0 && skill.projectileStartFrame <= 0)
+            {
+                return clipDuration;
+            }
+
+            if (!skill.TryResolveProjectileStartFrame(hitIndex, out int projectileStartFrame) || projectileStartFrame <= 0)
+            {
+                Debug.LogWarning($"[飞行开始时间] 技能“{skill.skillId}”缺少第{hitIndex + 1}发飞行开始时间，已跳过这一发。");
+                return -1f;
+            }
+
+            int clampedProjectileStartFrame = Mathf.Clamp(projectileStartFrame, 1, totalFrames);
+            return clipDuration * ((float)clampedProjectileStartFrame / totalFrames);
         }
 
         if (hitIndex <= 0 && skill.resolveFrame <= 0)
