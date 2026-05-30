@@ -237,9 +237,21 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6503633320108814995, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
+      propertyPath: m_Color.b
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 6503633320108814995, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
+      propertyPath: m_Color.g
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 6503633320108814995, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 6503633320108814995, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 7913202879871080831, guid: 56df3a2c41229d84bbc08b127e073734, type: 3}
       propertyPath: m_Name
       value: "\u76D8\u5B50\u70B9\u4F4D"
@@ -277,7 +289,7 @@ MonoBehaviour:
   lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -309,9 +321,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
     - target: {fileID: 3204177829536251797, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
+      propertyPath: m_Color.b
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 3204177829536251797, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
+      propertyPath: m_Color.g
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 3204177829536251797, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 3204177829536251797, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 3725875222009511330, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       propertyPath: m_Name
       value: "\u74F6\u5B50\u7EC4\u70B9\u4F4D"
@@ -389,7 +413,7 @@ MonoBehaviour:
   lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -461,9 +485,21 @@ PrefabInstance:
       value: "\u7F50\u5B502\u70B9\u4F4D"
       objectReference: {fileID: 0}
     - target: {fileID: 2050394123779647874, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
+      propertyPath: m_Color.b
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050394123779647874, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
+      propertyPath: m_Color.g
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050394123779647874, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050394123779647874, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 3916657872593677402, guid: ef61bd9ae6642b54f83d02297fd79909, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -506,7 +542,7 @@ MonoBehaviour:
   lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -533,9 +569,21 @@ PrefabInstance:
       value: "\u7F50\u5B501\u70B9\u4F4D"
       objectReference: {fileID: 0}
     - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.b
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.g
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78431374
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10758, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 6384333158346698777, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.31
@@ -585,7 +633,8 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 4308006335695821455, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 445338701659243620, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
@@ -613,7 +662,7 @@ MonoBehaviour:
   lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
@@ -645,9 +694,21 @@ PrefabInstance:
       value: "\u7F50\u5B501\u70B9\u4F4D (1)"
       objectReference: {fileID: 0}
     - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.b
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.g
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78
+      objectReference: {fileID: 0}
+    - target: {fileID: 5317666391202598672, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
+      objectReference: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
     - target: {fileID: 6384333158346698777, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -14.68
@@ -730,7 +791,7 @@ MonoBehaviour:
   lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
-  replaceMaterial: 1
+  replaceMaterial: 0
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
   undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
