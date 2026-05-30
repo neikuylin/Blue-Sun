@@ -14,6 +14,9 @@ public sealed class 飞行弹道表现 : MonoBehaviour
 
     [SerializeField] private float 飞行速度 = 8f;
     [SerializeField] private 武器挂载点选择 出发武器挂载点 = 武器挂载点选择.右手;
+    [SerializeField] private bool 火焰粒子尾焰;
+    [SerializeField] private float 尾焰后拖速度 = 2f;
+    [SerializeField] private bool 清除粒子重力 = true;
 
     private Transform 目标受击点;
     private Action 到达回调;
@@ -52,6 +55,7 @@ public sealed class 飞行弹道表现 : MonoBehaviour
 
         到达回调 = 到达后执行;
         transform.position = 出发点.position;
+        应用火焰粒子尾焰(出发点.position, 目标受击点.position);
         正在飞行 = true;
     }
 
@@ -106,6 +110,51 @@ public sealed class 飞行弹道表现 : MonoBehaviour
     private string 取得出发挂载点名称()
     {
         return 出发武器挂载点 == 武器挂载点选择.左手 ? 左手武器挂载点名称 : 右手武器挂载点名称;
+    }
+
+    private void 应用火焰粒子尾焰(Vector3 出发位置, Vector3 目标位置)
+    {
+        if (!火焰粒子尾焰)
+        {
+            return;
+        }
+
+        ParticleSystem[] particleSystems = GetComponentsInChildren<ParticleSystem>(true);
+        if (particleSystems.Length == 0)
+        {
+            Debug.LogWarning("[Projectile] 已启用火焰粒子尾焰，但飞行道具下没有 ParticleSystem。", this);
+            return;
+        }
+
+        Vector3 flightDirection = 目标位置 - 出发位置;
+        if (flightDirection.sqrMagnitude <= 0.0001f)
+        {
+            Debug.LogWarning("[Projectile] 飞行方向过短，无法计算火焰粒子尾焰方向。", this);
+            return;
+        }
+
+        Vector3 tailVelocity = -flightDirection.normalized * Mathf.Max(0f, 尾焰后拖速度);
+        for (int i = 0; i < particleSystems.Length; i++)
+        {
+            ParticleSystem particleSystem = particleSystems[i];
+            if (particleSystem == null)
+            {
+                continue;
+            }
+
+            ParticleSystem.MainModule main = particleSystem.main;
+            if (清除粒子重力)
+            {
+                main.gravityModifier = 0f;
+            }
+
+            ParticleSystem.VelocityOverLifetimeModule velocity = particleSystem.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(tailVelocity.x);
+            velocity.y = new ParticleSystem.MinMaxCurve(tailVelocity.y);
+            velocity.z = new ParticleSystem.MinMaxCurve(tailVelocity.z);
+        }
     }
 
     private static Transform 查找Avatar胸口受击点(BattleUnit target)
