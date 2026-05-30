@@ -264,8 +264,8 @@ MonoBehaviour:
     description: 
     hitEffectPrefab: {fileID: 0}
     useProjectile: 1
-    projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
-    projectileStartFrame: 15
+    projectilePrefab: {fileID: 8991566687844452409, guid: f22578cbdb4aa164ba7dd3e489a49399, type: 3}
+    projectileStartFrame: 13
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
