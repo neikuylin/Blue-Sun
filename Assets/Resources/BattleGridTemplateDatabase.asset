@@ -1959,8 +1959,8 @@ MonoBehaviour:
         y: 10
       - x: 3
         y: 11
-    - propName: "\u7BDD\u706B\u7ACB\u67F12"
-      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+    - propName: "\u7BDD\u706B\u7ACB\u67F1\u6B8B\u7F3A"
+      prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
       anchorCell:
         x: 17
         y: 11
@@ -3328,8 +3328,8 @@ MonoBehaviour:
         y: 11
       - x: 19
         y: 12
-    - propName: "\u7BDD\u706B\u7ACB\u67F1\uFF08\u6B8B\u7F3A\uFF09"
-      prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
+    - propName: "\u7BDD\u706B\u7ACB\u67F12"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
       anchorCell:
         x: 5
         y: 12
