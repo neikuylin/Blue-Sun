@@ -2,7 +2,6 @@ using UnityEngine;
 
 internal static class BattleHitEffectUtility
 {
-    private const string HitMountPointName = "\u53D7\u51FB\u6302\u8F7D\u70B9";
     private const float DefaultDestroyDelaySeconds = 5f;
 
     public static void TryPlaySkillHitEffect(BattleUnit target, BattleSkillDatabase.SkillEntry skill, Camera battleCamera)
@@ -12,10 +11,9 @@ internal static class BattleHitEffectUtility
             return;
         }
 
-        Transform mountPoint = FindHitMountPoint(target.transform);
+        Transform mountPoint = FindAvatarChestMountPoint(target);
         if (mountPoint == null)
         {
-            Debug.LogWarning($"[HitEffect] {target.unitName} missing mount point '{HitMountPointName}', skip hit effect for skill '{skill.skillId}'.");
             return;
         }
 
@@ -38,24 +36,34 @@ internal static class BattleHitEffectUtility
         Object.Destroy(instance, ResolveDestroyDelay(instance));
     }
 
-    private static Transform FindHitMountPoint(Transform root)
+    private static Transform FindAvatarChestMountPoint(BattleUnit target)
     {
-        if (root == null)
+        if (target == null)
         {
             return null;
         }
 
-        Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
-        for (int i = 0; i < transforms.Length; i++)
+        Animator animator = target.GetComponentInChildren<Animator>(true);
+        if (animator == null)
         {
-            Transform current = transforms[i];
-            if (current != null && string.Equals(current.name, HitMountPointName, System.StringComparison.Ordinal))
-            {
-                return current;
-            }
+            Debug.LogWarning($"[HitEffect] {target.unitName} 没有 Animator，无法按 Avatar Chest 播放受击特效。");
+            return null;
         }
 
-        return null;
+        if (!animator.isHuman)
+        {
+            Debug.LogWarning($"[HitEffect] {target.unitName} 的 Animator 不是 Humanoid，无法按 Avatar Chest 播放受击特效。", animator);
+            return null;
+        }
+
+        Transform chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+        if (chest == null)
+        {
+            Debug.LogWarning($"[HitEffect] {target.unitName} 的 Avatar 没有绑定 Chest，无法播放受击特效。", animator);
+            return null;
+        }
+
+        return chest;
     }
 
     private static void ApplyMountedEffectScaleCompensation(Transform instance, Transform mountPoint)
