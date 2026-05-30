@@ -187,7 +187,7 @@ MonoBehaviour:
   - itemId: "itm_\u6728\u5F13"
     displayName: "\u6728\u5F13"
     category: 0
-    quality: 2
+    quality: 0
     equipmentSlot: 1
     weaponCategory: 3
     weaponDamageDistribution:
@@ -209,7 +209,7 @@ MonoBehaviour:
     weaponResistancePenetrations:
     - resistanceType: 1
       value: 0
-    prefab: {fileID: 1777214541461665262, guid: d41bccd52e2b014468dbb2345e018410, type: 3}
+    prefab: {fileID: 1777214541461665262, guid: 5b08e957915991c4194ac634109e1040, type: 3}
     weaponModelPrefab: {fileID: 1717406733745140, guid: a24be36680dc43a48a3379a7a57757a9, type: 3}
   - itemId: "itm_\u4FEE\u58EB\u6756"
     displayName: "\u4FEE\u58EB\u6756"
@@ -375,7 +375,7 @@ MonoBehaviour:
     weaponResistancePenetrations:
     - resistanceType: 1
       value: 10
-    prefab: {fileID: 1777214541461665262, guid: 5b08e957915991c4194ac634109e1040, type: 3}
+    prefab: {fileID: 1777214541461665262, guid: eefc412d038be2d44af3c96bfbff1f88, type: 3}
     weaponModelPrefab: {fileID: 0}
   - itemId: "itm_\u767D\u8863\u519B\u5927\u5251"
     displayName: "\u767D\u8863\u519B\u5927\u5251"
