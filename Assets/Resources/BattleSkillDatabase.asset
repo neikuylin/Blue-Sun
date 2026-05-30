@@ -396,7 +396,7 @@ MonoBehaviour:
   - skillId: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
     skillSource: 
     description: "2\u4E0B\u6734\u5B9E\u65E0\u534E"
-    hitEffectPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
     projectileStartFrame: 0
