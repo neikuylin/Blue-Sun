@@ -1720,7 +1720,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         for (int i = targetUnits.Count - 1; i > 0; i--)
         {
-            int swapIndex = Random.Range(0, i + 1);
+            int swapIndex = UnityEngine.Random.Range(0, i + 1);
             BattleUnit current = targetUnits[i];
             BattleUnit swapped = targetUnits[swapIndex];
             int currentTieBreaker = tieBreakers[current];
@@ -1932,7 +1932,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private static TMP_Text FindActiveUnitIdText()
     {
-        TMP_Text[] texts = Object.FindObjectsOfType<TMP_Text>(true);
+        TMP_Text[] texts = UnityEngine.Object.FindObjectsOfType<TMP_Text>(true);
         for (int i = 0; i < texts.Length; i++)
         {
             TMP_Text text = texts[i];
