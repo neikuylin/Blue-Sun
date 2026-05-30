@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -2400,25 +2401,7 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                (caster, skill, resolveHitAction) => skillPresentationService != null
-                    ? skillPresentationService.播放技能动画并在结算点执行(
-                        this,
-                        caster,
-                        skill,
-                        resolveHitAction,
-                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
-                        (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
-                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
-                        (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
-                        PlayTrackedSkillAudioRoutine,
-                        PlaySkillHitAudio,
-                        ResolveAnimationStateTotalFrames,
-                        ResolveSkillResolveDelaySeconds,
-                        HitFeelDurationSeconds,
-                        HitFeelTimeScale,
-                        DefaultFixedDeltaTime)
-                    : null,
+                (caster, targetUnitForProjectile, skill, resolveHitRoutine) => 播放技能动画并处理弹道(caster, targetUnitForProjectile, skill, resolveHitRoutine),
                 (caster, targetUnit, skill, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                     caster,
                     targetUnit,
@@ -2616,25 +2599,7 @@ public class BattleTurnSystem : MonoBehaviour
                 SetSkillExecutionResolvingState,
                 FaceTowardTargetUnit,
                 FaceTowardTargetCell,
-                (source, skillEntry, resolveHitAction) => skillPresentationService != null
-                    ? skillPresentationService.播放技能动画并在结算点执行(
-                        this,
-                        source,
-                        skillEntry,
-                        resolveHitAction,
-                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(entry, unit) : string.Empty,
-                        (entry, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(entry, unit),
-                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(entry, unit) : 0f,
-                        (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(entry, unit) : 0f,
-                        unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
-                        PlayTrackedSkillAudioRoutine,
-                        PlaySkillHitAudio,
-                        ResolveAnimationStateTotalFrames,
-                        ResolveSkillResolveDelaySeconds,
-                        HitFeelDurationSeconds,
-                        HitFeelTimeScale,
-                        DefaultFixedDeltaTime)
-                    : null,
+                (source, targetUnitForProjectile, skillEntry, resolveHitRoutine) => 播放技能动画并处理弹道(source, targetUnitForProjectile, skillEntry, resolveHitRoutine),
                 (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                     source,
                     targetUnit,
@@ -2979,6 +2944,105 @@ public class BattleTurnSystem : MonoBehaviour
         EnterExplorationMode();
     }
 
+    private IEnumerator 播放技能动画并处理弹道(
+        BattleUnit caster,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill,
+        Func<int, IEnumerator> resolveHitRoutine)
+    {
+        if (skillPresentationService == null)
+        {
+            yield break;
+        }
+
+        yield return skillPresentationService.播放技能动画并在结算点执行(
+            this,
+            caster,
+            skill,
+            hitIndex => 执行弹道或结算(caster, target, skill, hitIndex, resolveHitRoutine),
+            (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(entry, unit) : string.Empty,
+            (entry, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(entry, unit),
+            (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(entry, unit) : 0f,
+            (entry, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(entry, unit) : 0f,
+            unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
+            PlayTrackedSkillAudioRoutine,
+            PlaySkillHitAudio,
+            ResolveAnimationStateTotalFrames,
+            ResolveSkillResolveDelaySeconds,
+            HitFeelDurationSeconds,
+            HitFeelTimeScale,
+            DefaultFixedDeltaTime);
+    }
+
+    private IEnumerator 执行弹道或结算(
+        BattleUnit caster,
+        BattleUnit target,
+        BattleSkillDatabase.SkillEntry skill,
+        int hitIndex,
+        Func<int, IEnumerator> resolveHitRoutine)
+    {
+        if (skill == null || !skill.useProjectile)
+        {
+            if (resolveHitRoutine != null)
+            {
+                yield return resolveHitRoutine(hitIndex);
+            }
+
+            yield break;
+        }
+
+        if (skill.projectilePrefab == null)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”启用了飞行弹道，但没有绑定飞行物体预制体。");
+            yield break;
+        }
+
+        if (caster == null)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”缺少施法者，无法播放飞行弹道。");
+            yield break;
+        }
+
+        if (target == null)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”启用了飞行弹道，但当前结算没有目标单位。飞行弹道只支持点选单位技能。");
+            yield break;
+        }
+
+        GameObject projectileObject = Instantiate(skill.projectilePrefab);
+        if (projectileObject == null)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”生成飞行物体失败。");
+            yield break;
+        }
+
+        飞行弹道表现 projectile = projectileObject.GetComponent<飞行弹道表现>();
+        if (projectile == null)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”绑定的飞行物体预制体没有挂载“飞行弹道表现”脚本。", projectileObject);
+            Destroy(projectileObject);
+            yield break;
+        }
+
+        bool arrived = false;
+        projectile.播放(caster, target, () => arrived = true);
+        while (projectileObject != null && !arrived)
+        {
+            yield return null;
+        }
+
+        if (!arrived)
+        {
+            Debug.LogWarning($"[Projectile] 技能“{skill.skillId}”的飞行弹道未到达目标，已跳过本次结算。");
+            yield break;
+        }
+
+        if (resolveHitRoutine != null)
+        {
+            yield return resolveHitRoutine(hitIndex);
+        }
+    }
+
     private IEnumerator ExecuteTargetSkillRoutine(BattleUnit caster, BattleUnit target, BattleSkillDatabase.SkillEntry skill)
     {
         yield return ExecuteTargetSkillRoutine(caster, target, skill, string.Empty);
@@ -3012,25 +3076,7 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, resolveHitAction) => skillPresentationService != null
-                ? skillPresentationService.播放技能动画并在结算点执行(
-                    this,
-                    caster,
-                    skill,
-                    resolveHitAction,
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
-                    (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
-                    PlayTrackedSkillAudioRoutine,
-                    PlaySkillHitAudio,
-                    ResolveAnimationStateTotalFrames,
-                    ResolveSkillResolveDelaySeconds,
-                    HitFeelDurationSeconds,
-                    HitFeelTimeScale,
-                    DefaultFixedDeltaTime)
-                : null,
+            (caster, targetUnitForProjectile, skill, resolveHitRoutine) => 播放技能动画并处理弹道(caster, targetUnitForProjectile, skill, resolveHitRoutine),
             (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                 source,
                 targetUnit,
@@ -3153,25 +3199,7 @@ public class BattleTurnSystem : MonoBehaviour
             SetSkillExecutionResolvingState,
             FaceTowardTargetUnit,
             FaceTowardTargetCell,
-            (caster, skill, resolveHitAction) => skillPresentationService != null
-                ? skillPresentationService.播放技能动画并在结算点执行(
-                    this,
-                    caster,
-                    skill,
-                    resolveHitAction,
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作状态名(skill, unit) : string.Empty,
-                    (skill, unit) => skillActionResolverService != null && skillActionResolverService.解析动作位移补偿(skill, unit),
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析动作偏航(skill, unit) : 0f,
-                    (skill, unit) => skillActionResolverService != null ? skillActionResolverService.解析收招偏航(skill, unit) : 0f,
-                    unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : string.Empty,
-                    PlayTrackedSkillAudioRoutine,
-                    PlaySkillHitAudio,
-                    ResolveAnimationStateTotalFrames,
-                    ResolveSkillResolveDelaySeconds,
-                    HitFeelDurationSeconds,
-                    HitFeelTimeScale,
-                    DefaultFixedDeltaTime)
-                : null,
+            (caster, targetUnitForProjectile, skill, resolveHitRoutine) => 播放技能动画并处理弹道(caster, targetUnitForProjectile, skill, resolveHitRoutine),
             (source, targetUnit, skillEntry, resolveHitIndex) => damageResolutionService?.结算单体技能并显示信息(
                 source,
                 targetUnit,
@@ -3672,6 +3700,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         if (skill == null || totalFrames <= 0)
+        {
+            return clipDuration;
+        }
+
+        if (skill.useProjectile)
         {
             return clipDuration;
         }

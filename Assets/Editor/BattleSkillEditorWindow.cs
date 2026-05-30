@@ -160,12 +160,16 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 BattleSkillDatabase.SkillGroup currentGroup = (BattleSkillDatabase.SkillGroup)group.enumValueIndex;
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
-                DrawResolveFrameField(entry);
                 DrawCountField(entry.FindPropertyRelative("castCount"), "施法次数");
                 DrawCountField(entry.FindPropertyRelative("hitCount"), "命中次数");
-                DrawExtraHitResolveFrameFields(entry);
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
+                DrawProjectileFields(entry);
+                if (!IsProjectileEnabled(entry))
+                {
+                    DrawResolveFrameField(entry);
+                    DrawExtraHitResolveFrameFields(entry);
+                }
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.Spell)
                 {
@@ -282,6 +286,8 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("castTarget").enumValueIndex = (int)BattleSkillDatabase.CastTarget.Enemy;
         entry.FindPropertyRelative("icon").objectReferenceValue = null;
         entry.FindPropertyRelative("hitEffectPrefab").objectReferenceValue = null;
+        entry.FindPropertyRelative("useProjectile").boolValue = false;
+        entry.FindPropertyRelative("projectilePrefab").objectReferenceValue = null;
         entry.FindPropertyRelative("noDamage").boolValue = false;
         entry.FindPropertyRelative("damageMultiplier").floatValue = 1f;
         entry.FindPropertyRelative("attributeMultiplier").floatValue = 1f;
@@ -302,6 +308,34 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
+    }
+
+    private static void DrawProjectileFields(SerializedProperty entry)
+    {
+        SerializedProperty useProjectile = entry.FindPropertyRelative("useProjectile");
+        SerializedProperty projectilePrefab = entry.FindPropertyRelative("projectilePrefab");
+        if (useProjectile == null || projectilePrefab == null)
+        {
+            return;
+        }
+
+        useProjectile.boolValue = EditorGUILayout.Toggle("启用飞行弹道", useProjectile.boolValue);
+        if (useProjectile.boolValue)
+        {
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(projectilePrefab, new GUIContent("飞行物体预制体"));
+            EditorGUI.indentLevel--;
+        }
+        else
+        {
+            projectilePrefab.objectReferenceValue = null;
+        }
+    }
+
+    private static bool IsProjectileEnabled(SerializedProperty entry)
+    {
+        SerializedProperty useProjectile = entry.FindPropertyRelative("useProjectile");
+        return useProjectile != null && useProjectile.boolValue;
     }
 
     private bool GetFoldoutState(string key)

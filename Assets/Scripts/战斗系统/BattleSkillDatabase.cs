@@ -86,6 +86,8 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public string skillSource = string.Empty;
         public string description = string.Empty;
         public GameObject hitEffectPrefab;
+        public bool useProjectile;
+        public GameObject projectilePrefab;
         public bool enableHitFeel;
         public int resolveFrame;
         public int castCount = 1;

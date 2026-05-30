@@ -79,7 +79,7 @@ internal sealed class 战斗技能表现服务
         MonoBehaviour host,
         BattleUnit caster,
         BattleSkillDatabase.SkillEntry skill,
-        Action<int> resolveHitAction,
+        Func<int, IEnumerator> resolveHitRoutine,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, string> resolveActionStateName,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, bool> resolveCompensateActionMotion,
         Func<BattleSkillDatabase.SkillEntry, BattleUnit, float> resolveActionYawOffset,
@@ -100,7 +100,11 @@ internal sealed class 战斗技能表现服务
 
         if (skill == null)
         {
-            resolveHitAction?.Invoke(0);
+            if (resolveHitRoutine != null)
+            {
+                yield return resolveHitRoutine(0);
+            }
+
             yield break;
         }
 
@@ -112,7 +116,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            ExecuteAllHitsImmediately(caster, skill, resolveHitAction, playSkillHitAudio);
+            yield return ExecuteAllHitsImmediately(caster, skill, resolveHitRoutine, playSkillHitAudio);
             yield break;
         }
 
@@ -124,7 +128,7 @@ internal sealed class 战斗技能表现服务
                 yield return createTrackedSkillAudioRoutine(caster, skill, 0f);
             }
 
-            ExecuteAllHitsImmediately(caster, skill, resolveHitAction, playSkillHitAudio);
+            yield return ExecuteAllHitsImmediately(caster, skill, resolveHitRoutine, playSkillHitAudio);
             yield break;
         }
 
@@ -173,7 +177,10 @@ internal sealed class 战斗技能表现服务
 
             触发技能命中停顿(host, skill, hitFeelDurationSeconds, hitFeelTimeScale, defaultFixedDeltaTime);
             playSkillHitAudio?.Invoke(caster, skill);
-            resolveHitAction?.Invoke(hitIndex);
+            if (resolveHitRoutine != null)
+            {
+                yield return resolveHitRoutine(hitIndex);
+            }
         }
 
         float remainingDuration = Mathf.Max(0f, clipDuration - elapsedResolveTime);
@@ -201,17 +208,20 @@ internal sealed class 战斗技能表现服务
         caster.SetAnimationPositionCompensation(false);
     }
 
-    private static void ExecuteAllHitsImmediately(
+    private static IEnumerator ExecuteAllHitsImmediately(
         BattleUnit caster,
         BattleSkillDatabase.SkillEntry skill,
-        Action<int> resolveHitAction,
+        Func<int, IEnumerator> resolveHitRoutine,
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> playSkillHitAudio)
     {
         int hitCount = skill != null ? skill.ResolveHitCount() : 1;
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
         {
             playSkillHitAudio?.Invoke(caster, skill);
-            resolveHitAction?.Invoke(hitIndex);
+            if (resolveHitRoutine != null)
+            {
+                yield return resolveHitRoutine(hitIndex);
+            }
         }
     }
 

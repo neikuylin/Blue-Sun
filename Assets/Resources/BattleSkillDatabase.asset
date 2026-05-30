@@ -17,6 +17,8 @@ MonoBehaviour:
     skillSource: 
     description: 
     hitEffectPrefab: {fileID: 0}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
@@ -125,6 +127,8 @@ MonoBehaviour:
     skillSource: 
     description: "\u6734\u5B9E\u65E0\u534E"
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
     enableHitFeel: 0
     resolveFrame: 35
     castCount: 1
@@ -188,6 +192,8 @@ MonoBehaviour:
     skillSource: 
     description: 
     hitEffectPrefab: {fileID: 3354951294846537511, guid: 412f5e5b4060db643899c59cdb1447b1, type: 3}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
     enableHitFeel: 0
     resolveFrame: 29
     castCount: 1
@@ -251,6 +257,8 @@ MonoBehaviour:
     skillSource: 
     description: 
     hitEffectPrefab: {fileID: 0}
+    useProjectile: 1
+    projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 2
@@ -299,6 +307,8 @@ MonoBehaviour:
     skillSource: 
     description: "\u5BF9\u4E8E\u795E\u804C\u8005\u6765\u8BF4\uFF0C\u8FD9\u64AE\u706B\u7130\u627F\u8F7D\u7740\u4ED6\u4EEC\u7684\u4FE1\u4EF0\u3002"
     hitEffectPrefab: {fileID: 0}
+    useProjectile: 1
+    projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
@@ -336,6 +346,8 @@ MonoBehaviour:
     skillSource: 
     description: 
     hitEffectPrefab: {fileID: 0}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
@@ -373,6 +385,8 @@ MonoBehaviour:
     skillSource: 
     description: "2\u4E0B\u6734\u5B9E\u65E0\u534E"
     hitEffectPrefab: {fileID: 0}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
     enableHitFeel: 0
     resolveFrame: 35
     castCount: 1

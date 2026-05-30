@@ -24,7 +24,7 @@ internal sealed class 战斗技能执行服务
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, BattleUnit> 面向目标单位,
         Action<BattleUnit, Vector2Int> 面向目标格子,
-        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action<int>, IEnumerator> 播放技能动画并在结算点执行,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, Func<int, IEnumerator>, IEnumerator> 播放技能动画并在结算点执行,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> 结算单体技能,
         Action<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, int> 结算范围技能,
         Action 清理主动技能模式,
@@ -117,7 +117,7 @@ internal sealed class 战斗技能执行服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> 记录技能使用,
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, BattleUnit> 面向目标单位,
-        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action<int>, IEnumerator> 播放技能动画并在结算点执行,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, Func<int, IEnumerator>, IEnumerator> 播放技能动画并在结算点执行,
         Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> 结算单体技能,
         Action 清理主动技能模式,
         Action 刷新高亮,
@@ -148,7 +148,7 @@ internal sealed class 战斗技能执行服务
         面向目标单位?.Invoke(施法者, 目标);
         if (播放技能动画并在结算点执行 != null)
         {
-            yield return 播放技能动画并在结算点执行(施法者, 技能, hitIndex => 结算单体技能?.Invoke(施法者, 目标, 技能, hitIndex));
+            yield return 播放技能动画并在结算点执行(施法者, 目标, 技能, hitIndex => 执行单体结算协程(施法者, 目标, 技能, hitIndex, 结算单体技能));
         }
 
         if (执行后清理技能模式)
@@ -175,7 +175,7 @@ internal sealed class 战斗技能执行服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> 记录技能使用,
         Action<bool> 设置技能结算状态,
         Action<BattleUnit, Vector2Int> 面向目标格子,
-        Func<BattleUnit, BattleSkillDatabase.SkillEntry, Action<int>, IEnumerator> 播放技能动画并在结算点执行,
+        Func<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, Func<int, IEnumerator>, IEnumerator> 播放技能动画并在结算点执行,
         Action<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, int> 结算范围技能,
         Action 清理主动技能模式,
         Action 刷新高亮,
@@ -206,7 +206,7 @@ internal sealed class 战斗技能执行服务
         面向目标格子?.Invoke(施法者, 目标格子);
         if (播放技能动画并在结算点执行 != null)
         {
-            yield return 播放技能动画并在结算点执行(施法者, 技能, hitIndex => 结算范围技能?.Invoke(施法者, 目标格子, 技能, hitIndex));
+            yield return 播放技能动画并在结算点执行(施法者, null, 技能, hitIndex => 执行范围结算协程(施法者, 目标格子, 技能, hitIndex, 结算范围技能));
         }
 
         if (执行后清理技能模式)
@@ -221,5 +221,27 @@ internal sealed class 战斗技能执行服务
         {
             尝试进入待处理探索模式?.Invoke();
         }
+    }
+
+    private static IEnumerator 执行单体结算协程(
+        BattleUnit 施法者,
+        BattleUnit 目标,
+        BattleSkillDatabase.SkillEntry 技能,
+        int 命中序号,
+        Action<BattleUnit, BattleUnit, BattleSkillDatabase.SkillEntry, int> 结算单体技能)
+    {
+        结算单体技能?.Invoke(施法者, 目标, 技能, 命中序号);
+        yield break;
+    }
+
+    private static IEnumerator 执行范围结算协程(
+        BattleUnit 施法者,
+        Vector2Int 目标格子,
+        BattleSkillDatabase.SkillEntry 技能,
+        int 命中序号,
+        Action<BattleUnit, Vector2Int, BattleSkillDatabase.SkillEntry, int> 结算范围技能)
+    {
+        结算范围技能?.Invoke(施法者, 目标格子, 技能, 命中序号);
+        yield break;
     }
 }
