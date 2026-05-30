@@ -33,8 +33,8 @@ MonoBehaviour:
     useAutoVisualAnchor: 1
   - characterId: "\u745F\u838E"
     displayName: "\u745F\u838E"
-    modelPrefab: {fileID: 2989264307952094044, guid: 4544a577f5c8fd744be413d89b242dea, type: 3}
-    animatorController: {fileID: 0}
+    modelPrefab: {fileID: 7054687806154366708, guid: 58adb434a31303f499e328257a4362db, type: 3}
+    animatorController: {fileID: 9100000, guid: c3e4f1f5c4ee3ac498e5bc1a21c73821, type: 2}
     modelScale: {x: 1.7, y: 1.7, z: 1.7}
     useAutoVisualAnchor: 1
   - characterId: "\u7D22\u62C9\u5A1C"
