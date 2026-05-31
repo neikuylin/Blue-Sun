@@ -1587,8 +1587,6 @@ MonoBehaviour:
       y: 7
     - x: 13
       y: 8
-    - x: 14
-      y: 8
     - x: 15
       y: 8
     - x: 16
@@ -1861,6 +1859,8 @@ MonoBehaviour:
       y: 20
     - x: 8
       y: 20
+    - x: 14
+      y: 8
     enemySpawnSlots:
     - slotName: "\u654C\u4EBA\u4F4D1"
       cell:
@@ -1994,6 +1994,14 @@ MonoBehaviour:
         x: 0
         y: 0
       side: 3
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u897F"
+      prefab: {fileID: 1928778994792063281, guid: e24929aa1c1249b438fa6259a8bba94e, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 2
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
