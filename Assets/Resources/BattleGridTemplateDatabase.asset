@@ -3469,10 +3469,10 @@ MonoBehaviour:
     westDoorPlayerSpawnCell:
       x: 0
       y: 0
-    hasNorthDoorPlayerSpawn: 0
+    hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
-      x: 0
-      y: 0
+      x: 13
+      y: 23
     hasEastDoorEntrance: 0
     eastDoorEntranceCell:
       x: 0

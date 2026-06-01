@@ -39,6 +39,8 @@ MonoBehaviour:
         direction: 2
       - targetNodeId: node_3
         direction: 1
+      - targetNodeId: "\u5165\u53E3"
+        direction: 1
       nextNodeIds: []
     - nodeId: node_2
       displayName: node_2
@@ -52,7 +54,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 771.19995, y: 242}
+      position: {x: 801.6, y: 265.99994}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u796D\u7940\u623F"
