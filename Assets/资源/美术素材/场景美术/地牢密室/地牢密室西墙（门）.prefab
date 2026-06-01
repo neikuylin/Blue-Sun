@@ -194,6 +194,7 @@ GameObject:
   - component: {fileID: 3925193685971078288}
   - component: {fileID: 8498898313582267591}
   - component: {fileID: 3034599710558617257}
+  - component: {fileID: 5968032910149180583}
   m_Layer: 0
   m_Name: "\u897F\u5899\u95E8\u906E\u7F69"
   m_TagString: Untagged
@@ -305,6 +306,65 @@ MonoBehaviour:
   applyLineRenderers: 0
   applyTrailRenderers: 0
   applyMeshRenderers: 0
+--- !u!331 &5968032910149180583
+SpriteMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4845048154005943545}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10758, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 21300000, guid: 189cd68c7b54e4b43959bc8c0f5b8fb7, type: 3}
+  m_MaskAlphaCutoff: 0.2
+  m_FrontSortingLayerID: 0
+  m_BackSortingLayerID: 0
+  m_FrontSortingLayer: 0
+  m_BackSortingLayer: 0
+  m_FrontSortingOrder: 0
+  m_BackSortingOrder: 0
+  m_IsCustomRangeActive: 0
+  m_SpriteSortPoint: 0
+  m_MaskSource: 0
 --- !u!1 &9160998917137029566
 GameObject:
   m_ObjectHideFlags: 0
@@ -525,6 +585,10 @@ PrefabInstance:
       propertyPath: "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B.Array.data[0]"
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1604981186467474789, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 189cd68c7b54e4b43959bc8c0f5b8fb7, type: 3}
     - target: {fileID: 2421801718405588176, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: replaceMaterial
       value: 0
@@ -569,6 +633,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5203321568869631957, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5974698609626886414, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_MaskInteraction
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5974698609626886414, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -580,6 +652,18 @@ PrefabInstance:
     - target: {fileID: 6047837367274148202, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8373245005976858555, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8649523101326094690, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8651836182403329782, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_MaskInteraction
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8651836182403329782, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
