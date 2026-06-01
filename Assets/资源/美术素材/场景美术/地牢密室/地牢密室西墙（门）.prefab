@@ -442,7 +442,7 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 0
   includeInactiveChildren: 1
-  revealRegardlessOfRenderLevel: 1
+  revealRegardlessOfRenderLevel: 0
 --- !u!114 &8469209619738625283
 MonoBehaviour:
   m_ObjectHideFlags: 0

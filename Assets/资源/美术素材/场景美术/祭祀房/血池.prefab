@@ -5270,12 +5270,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6259205812033011833, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4895998813510050548}
-    - targetCorrespondingSourceObject: {fileID: 6084187369538701814, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6251292395781177894}
-    - targetCorrespondingSourceObject: {fileID: 6084187369538701814, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8960985063259033105}
   m_SourcePrefab: {fileID: 100100000, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
 --- !u!1 &575085828992031748 stripped
 GameObject:
@@ -5328,57 +5322,6 @@ MonoBehaviour:
   includeChildRenderers: 0
   includeInactiveChildren: 0
   revealRegardlessOfRenderLevel: 0
---- !u!1 &7250629205486972163 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6084187369538701814, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}
-  m_PrefabInstance: {fileID: 3526328359063282933}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &6251292395781177894
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7250629205486972163}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
-  targetRenderers: []
-  includeChildRenderers: 0
-  includeInactiveChildren: 1
-  revealRegardlessOfRenderLevel: 0
---- !u!114 &8960985063259033105
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7250629205486972163}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
-  mode: 2
-  lightingMode: 0
-  overwriteSortingOrder: 1
-  sortingOrder: 1
-  replaceMaterial: 0
-  below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
-  above3DMaterial: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
-  undecidedMaterial: {fileID: 2100000, guid: 59f117c32ccf4b29b68a0d2ec8a31a3b, type: 2}
-  unlitBelow3DMaterial: {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
-  unlitAbove3DMaterial: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
-  unlitUndecidedMaterial: {fileID: 2100000, guid: f091e8a78ef2460b8f0e0e2fcbad8027, type: 2}
-  includeInactive: 1
-  applyOnValidate: 1
-  applySpriteRenderers: 1
-  applyParticleRenderers: 0
-  applyLineRenderers: 0
-  applyTrailRenderers: 0
-  applyMeshRenderers: 0
 --- !u!1 &7362578832015205516 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6259205812033011833, guid: 2e54b0109230c6a41bb75d69966a0668, type: 3}

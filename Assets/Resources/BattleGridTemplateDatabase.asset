@@ -2034,7 +2034,7 @@ MonoBehaviour:
       y: 0
     hasWestDoorEntrance: 1
     westDoorEntranceCell:
-      x: 0
+      x: 2
       y: 10
     hasNorthDoorEntrance: 0
     northDoorEntranceCell:

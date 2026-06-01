@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c2e95e6a64b4213a52d12b58d2c9a31, type: 3}
   m_Name: SpriteOcclusionRevealSettings
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   revealEnabled: 1
   radiusWorld: 2.3
   softnessWorld: 1.5
