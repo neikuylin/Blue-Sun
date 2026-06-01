@@ -9,6 +9,9 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class InventoryShortcutRuntimeBinder : MonoBehaviour
 {
+    public static event Action<ItemDatabase.ItemEntry> 装备物品拖拽开始;
+    public static event Action 装备物品拖拽结束;
+
     public struct ItemSlotSnapshot
     {
         public int index;
@@ -2084,7 +2087,9 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             GetExtensionIndexForData = GetExtensionIndexForData,
             PrepareItemSlotDataForStorage = PrepareItemSlotDataForStorage,
             RefreshFootprintSlots = RefreshFootprintSlots,
-            PlayItemSound = ItemSoundUtility.PlayForItem
+            PlayItemSound = ItemSoundUtility.PlayForItem,
+            NotifyEquipmentDragStarted = entry => 装备物品拖拽开始?.Invoke(entry),
+            NotifyEquipmentDragEnded = () => 装备物品拖拽结束?.Invoke()
         };
     }
 

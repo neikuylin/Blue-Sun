@@ -16,6 +16,7 @@ internal sealed class 仓储交互服务
         public Image dragIconImage;
         public InventoryShortcutRuntimeBinder.SlotRef hoveredRotateSlot;
         public bool hasHoveredRotateSlot;
+        public bool isDraggingEquipment;
     }
 
     internal sealed class Context
@@ -50,6 +51,8 @@ internal sealed class 仓储交互服务
         public Func<InventoryShortcutRuntimeBinder.ItemSlotData, string, InventoryShortcutRuntimeBinder.ItemSlotData> PrepareItemSlotDataForStorage;
         public Action<InventoryShortcutRuntimeBinder.SlotKind, int, InventoryShortcutRuntimeBinder.ItemSlotData> RefreshFootprintSlots;
         public Action<string> PlayItemSound;
+        public Action<ItemDatabase.ItemEntry> NotifyEquipmentDragStarted;
+        public Action NotifyEquipmentDragEnded;
     }
 
     internal delegate bool TryGetSlotDataDelegate(InventoryShortcutRuntimeBinder.SlotRef slot, out InventoryShortcutRuntimeBinder.ItemSlotData data);
@@ -107,6 +110,13 @@ internal sealed class 仓储交互服务
         state.draggingSourceWidget = widget;
         context.SetWidgetDraggingVisible?.Invoke(widget, false);
         state.isDragging = true;
+
+        ItemDatabase.ItemEntry draggedEntry = context.ResolveItemEntry != null ? context.ResolveItemEntry(data.itemId) : null;
+        state.isDraggingEquipment = draggedEntry != null && draggedEntry.category == ItemDatabase.ItemCategory.Equipment;
+        if (state.isDraggingEquipment)
+        {
+            context.NotifyEquipmentDragStarted?.Invoke(draggedEntry);
+        }
     }
 
     public void HandleDrag(State state, Context context, PointerEventData eventData)
@@ -262,7 +272,10 @@ internal sealed class 仓储交互服务
 
     public void HandleEndDrag(State state, Context context)
     {
+        bool wasDraggingEquipment = state.isDraggingEquipment;
+
         state.isDragging = false;
+        state.isDraggingEquipment = false;
         if (state.dragIconRoot != null)
         {
             state.dragIconRoot.gameObject.SetActive(false);
@@ -277,6 +290,11 @@ internal sealed class 仓储交互服务
         context.SetWidgetDraggingVisible?.Invoke(state.draggingSourceWidget, true);
         state.draggingSourceWidget = null;
         context.RefreshByRef?.Invoke(state.draggingSource);
+
+        if (wasDraggingEquipment)
+        {
+            context.NotifyEquipmentDragEnded?.Invoke();
+        }
     }
 
     private static void ClearHoveredRotateSlot(State state, Context context)
