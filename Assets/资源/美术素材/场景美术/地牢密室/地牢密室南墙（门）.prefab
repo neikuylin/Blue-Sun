@@ -647,9 +647,17 @@ PrefabInstance:
       propertyPath: direction
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5974698609626886414, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_MaskInteraction
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6047837367274148202, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_Name
       value: "\u5730\u523A\u95E8\u52A8\u753B\u7EC4"
+      objectReference: {fileID: 0}
+    - target: {fileID: 8651836182403329782, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: m_MaskInteraction
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
