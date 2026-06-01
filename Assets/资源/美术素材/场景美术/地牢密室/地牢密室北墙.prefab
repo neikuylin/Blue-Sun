@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3162967419761628857}
   - component: {fileID: 5895023732853614406}
+  - component: {fileID: 4944940008571532992}
   m_Layer: 0
   m_Name: "\u5730\u7262\u5BC6\u5BA4\u5317\u5899"
   m_TagString: Untagged
@@ -62,6 +63,21 @@ MonoBehaviour:
   drawAnchorLabel: 1
   gridColor: {r: 0.1, g: 0.85, b: 1, a: 0.85}
   anchorColor: {r: 1, g: 0.55, b: 0.1, a: 0.9}
+--- !u!114 &4944940008571532992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8730512120695660658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85d30c659ab30794f8dfbd47f04d4641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6444\u50CF\u673A\u8FB9\u754C\u53C2\u8003\u56FE"
+  direction: 0
+  targetSpriteObject: {fileID: 8744824923521610986}
+  positionOffset: 0
 --- !u!1 &8744824923521610986
 GameObject:
   m_ObjectHideFlags: 0
