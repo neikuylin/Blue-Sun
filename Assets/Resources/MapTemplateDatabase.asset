@@ -33,18 +33,16 @@ MonoBehaviour:
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u5730\u7262\u5BC6\u5BA4"
       connections:
-      - targetNodeId: node_3
-        direction: 0
       - targetNodeId: node_2
         direction: 2
       - targetNodeId: node_3
-        direction: 1
+        direction: 0
       - targetNodeId: "\u5165\u53E3"
         direction: 1
       nextNodeIds: []
     - nodeId: node_2
       displayName: node_2
-      position: {x: 532.2, y: 241.80002}
+      position: {x: 490.60004, y: 274.60004}
       roomTypeId: chest
       encounterPresetId: 
       battleGridTemplateId: 
@@ -54,7 +52,7 @@ MonoBehaviour:
       nextNodeIds: []
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
-      position: {x: 801.6, y: 265.99994}
+      position: {x: 785.59985, y: 265.19995}
       roomTypeId: encounter_battle
       encounterPresetId: "2\u4EBA\u5C0F\u961F"
       battleGridTemplateId: "\u796D\u7940\u623F"
