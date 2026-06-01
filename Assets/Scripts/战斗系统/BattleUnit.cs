@@ -759,6 +759,12 @@ public class BattleUnit : MonoBehaviour
             return;
         }
 
+        if (!gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning($"<color=#FFA500>[战斗受击反应] 单位“{unitName}”已经失活，跳过动画“{stateName}”。通常是多段命中里前一段已经击杀目标，后一段不再播放受击反应。</color>", this);
+            return;
+        }
+
         Animator animator = GetComponentInChildren<Animator>(true);
         if (animator == null || animator.runtimeAnimatorController == null)
         {
