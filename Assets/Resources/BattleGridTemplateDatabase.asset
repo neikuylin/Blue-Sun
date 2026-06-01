@@ -1939,8 +1939,8 @@ MonoBehaviour:
         y: 8
       - x: 8
         y: 8
-    - propName: "\u7BDD\u706B\u7ACB\u67F11"
-      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
+    - propName: "\u7BDD\u706B\u7ACB\u67F1\u6B8B\u7F3A"
+      prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
       anchorCell:
         x: 4
         y: 11
@@ -1959,8 +1959,8 @@ MonoBehaviour:
         y: 10
       - x: 3
         y: 11
-    - propName: "\u7BDD\u706B\u7ACB\u67F1\u6B8B\u7F3A"
-      prefab: {fileID: 6608369181458584709, guid: 8cd5b45dc2a317242a8e43d04dab6876, type: 3}
+    - propName: "\u7BDD\u706B\u7ACB\u67F1"
+      prefab: {fileID: 117263519741134997, guid: 6ab92dee60f3a0b46b3c5d68f89164ac, type: 3}
       anchorCell:
         x: 17
         y: 11
@@ -1996,7 +1996,7 @@ MonoBehaviour:
       side: 3
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
-    - wallName: "\u897F"
+    - wallName: "\u897F\u5899"
       prefab: {fileID: 1928778994792063281, guid: e24929aa1c1249b438fa6259a8bba94e, type: 3}
       cell:
         x: 0
@@ -2019,7 +2019,7 @@ MonoBehaviour:
     hasWestDoorPlayerSpawn: 1
     westDoorPlayerSpawnCell:
       x: 1
-      y: 10
+      y: 9
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
       x: 10
@@ -2032,10 +2032,10 @@ MonoBehaviour:
     southDoorEntranceCell:
       x: 0
       y: 0
-    hasWestDoorEntrance: 0
+    hasWestDoorEntrance: 1
     westDoorEntranceCell:
       x: 0
-      y: 0
+      y: 9
     hasNorthDoorEntrance: 0
     northDoorEntranceCell:
       x: 0
