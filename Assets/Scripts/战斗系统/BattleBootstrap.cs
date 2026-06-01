@@ -390,9 +390,10 @@ public class BattleBootstrap : MonoBehaviour
 
         grid.width = Mathf.Max(1, gridTemplate.width);
         grid.height = Mathf.Max(1, gridTemplate.height);
-        grid.SetValidCells(BuildRuntimeWalkableCells(gridTemplate));
-        ConfigureCurrentRoomDoorExitCells(grid);
         grid.cellSize = gridCellSize;
+        grid.SetValidCells(BuildRuntimeWalkableCells(gridTemplate));
+        grid.SetPropBlockedCells(BuildPropBlockedCells(gridTemplate));
+        ConfigureCurrentRoomDoorExitCells(grid);
         grid.BuildVisuals();
         return grid;
     }
@@ -593,12 +594,31 @@ public class BattleBootstrap : MonoBehaviour
     private static List<Vector2Int> BuildRuntimeWalkableCells(格子模板数据库.格子模板条目 gridTemplate)
     {
         List<Vector2Int> result = ConvertCells(gridTemplate != null ? gridTemplate.walkableCells : null);
-        if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
+        HashSet<Vector2Int> blockedCells = BuildPropBlockedCells(gridTemplate);
+        if (blockedCells.Count == 0)
         {
             return result;
         }
 
+        for (int i = result.Count - 1; i >= 0; i--)
+        {
+            if (blockedCells.Contains(result[i]))
+            {
+                result.RemoveAt(i);
+            }
+        }
+
+        return result;
+    }
+
+    private static HashSet<Vector2Int> BuildPropBlockedCells(格子模板数据库.格子模板条目 gridTemplate)
+    {
         HashSet<Vector2Int> blockedCells = new HashSet<Vector2Int>();
+        if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
+        {
+            return blockedCells;
+        }
+
         for (int i = 0; i < gridTemplate.propVisuals.Count; i++)
         {
             格子模板数据库.PropVisualEntry prop = gridTemplate.propVisuals[i];
@@ -619,15 +639,7 @@ public class BattleBootstrap : MonoBehaviour
             }
         }
 
-        for (int i = result.Count - 1; i >= 0; i--)
-        {
-            if (blockedCells.Contains(result[i]))
-            {
-                result.RemoveAt(i);
-            }
-        }
-
-        return result;
+        return blockedCells;
     }
 
     private static List<BattleGrid.DoorExitDefinition> BuildCurrentRoomDoorExitDefinitions()

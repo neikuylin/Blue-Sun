@@ -83,6 +83,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         if (settings == null || !settings.RevealEnabled || cameraToUse == null)
         {
             ClearReveal();
+            BattleGrid.ClearOcclusionOccupiedCellShadow();
             return;
         }
 
@@ -92,6 +93,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.RadiusWorld);
         float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.SoftnessWorld);
         ApplyReveal(cameraToUse, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
+        BattleGrid.ApplyOcclusionOccupiedCellShadow(revealCount, revealRadiusPixels, revealSoftnessPixels, RevealCenters);
     }
 
     public void 开启无视高低3D都挖空()
