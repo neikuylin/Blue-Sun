@@ -7,8 +7,9 @@ public class BattleGrid : MonoBehaviour
     private const string OcclusionOccupiedCellShadowShaderName = "项目/战斗/挖空内占用格黑底";
     private const int GridOutlineSortingOrderBase = -9000;
     private const int GridOutlineSortingOrderRelativeLimit = 999;
-    private const int FootprintOverlaySortingOrder = -10005;
-    private const int OcclusionOccupiedCellShadowSortingOrder = -11999;
+    public const int FootprintOverlaySortingOrder = -10005;
+    public const int OcclusionOccupiedCellShadowSortingOrder = -11999;
+    public const int HoverFootprintOverlaySortingOrder = 10000;
     private const int OcclusionRevealMax = 32;
     private const int DoorExitHalfWidth = 1;
     private const int DoorExitLength = 10;
@@ -1543,7 +1544,7 @@ public class BattleGrid : MonoBehaviour
             hoverOverlayRenderer = hoverOverlayObject.AddComponent<MeshRenderer>();
             meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + 0.02f);
             hoverOverlayRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-            hoverOverlayRenderer.sortingOrder = 10000;
+            hoverOverlayRenderer.sortingOrder = HoverFootprintOverlaySortingOrder;
 
             List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
             for (int i = 0; i < loops.Count; i++)
@@ -1553,7 +1554,7 @@ public class BattleGrid : MonoBehaviour
                     loops[i],
                     outlineColor,
                     overlayY + 0.021f,
-                    10001);
+                    HoverFootprintOverlaySortingOrder + 1);
                 if (line != null)
                 {
                     hoverOutlineRenderers.Add(line);

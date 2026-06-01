@@ -64,7 +64,20 @@ public sealed class Sprite角色遮挡挖空控制器编辑器 : Editor
             revealRegardlessOfRenderLevel,
             new GUIContent("无视高低3D都挖空", "默认关闭。开启后，这个控制器管理的Renderer即使使用低于3D材质，也会参与角色遮挡挖空。"));
 
+        DrawGridSortingReference();
+
         serializedObject.ApplyModifiedProperties();
+    }
+
+    private static void DrawGridSortingReference()
+    {
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("相关格子显示层级", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox(
+            $"移动范围/攻击范围/普通占用格底层：{BattleGrid.FootprintOverlaySortingOrder}\n" +
+            $"挖空内占用格黑底层：{BattleGrid.OcclusionOccupiedCellShadowSortingOrder}\n" +
+            $"鼠标悬停目标/移动落点底层：{BattleGrid.HoverFootprintOverlaySortingOrder}",
+            MessageType.Info);
     }
 
     private void DrawSharedSettings()
