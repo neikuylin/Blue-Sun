@@ -153,7 +153,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
-            Vector3 screenPosition = cameraToUse.WorldToScreenPoint(unit.transform.position);
+            Vector3 screenPosition = cameraToUse.WorldToScreenPoint(unit.GetOcclusionRevealCenterWorldPosition());
             if (screenPosition.z <= 0f)
             {
                 continue;

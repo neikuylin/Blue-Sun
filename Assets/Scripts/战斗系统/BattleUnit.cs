@@ -135,6 +135,11 @@ public class BattleUnit : MonoBehaviour
         return useAutoVisualAnchor ? GetVisualAnchorWorldPosition() : transform.position;
     }
 
+    public Vector3 GetOcclusionRevealCenterWorldPosition()
+    {
+        return useAutoVisualAnchor ? GetVisualBoundsCenterWorldPosition() : transform.position;
+    }
+
     public void ConfigureAnimationBindings(BattleCharacterBindingDatabase.BindingEntry binding)
     {
         idleStateName = string.Empty;
@@ -1059,6 +1064,21 @@ public class BattleUnit : MonoBehaviour
 
     private Vector3 GetVisualAnchorWorldPosition()
     {
+        if (!TryGetVisualBounds(out Bounds combinedBounds))
+        {
+            return transform.position;
+        }
+
+        return new Vector3(combinedBounds.center.x, combinedBounds.min.y, combinedBounds.center.z);
+    }
+
+    private Vector3 GetVisualBoundsCenterWorldPosition()
+    {
+        return TryGetVisualBounds(out Bounds combinedBounds) ? combinedBounds.center : transform.position;
+    }
+
+    private bool TryGetVisualBounds(out Bounds combinedBounds)
+    {
         Renderer[] renderers = GetComponentsInChildren<Renderer>();
         List<Renderer> validRenderers = new List<Renderer>();
         for (int i = 0; i < renderers.Length; i++)
@@ -1074,16 +1094,17 @@ public class BattleUnit : MonoBehaviour
 
         if (validRenderers.Count == 0)
         {
-            return transform.position;
+            combinedBounds = default;
+            return false;
         }
 
-        Bounds combinedBounds = validRenderers[0].bounds;
+        combinedBounds = validRenderers[0].bounds;
         for (int i = 1; i < validRenderers.Count; i++)
         {
             combinedBounds.Encapsulate(validRenderers[i].bounds);
         }
 
-        return new Vector3(combinedBounds.center.x, combinedBounds.min.y, combinedBounds.center.z);
+        return true;
     }
 
     private void CacheRenderers()
