@@ -590,6 +590,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 21300000, guid: 189cd68c7b54e4b43959bc8c0f5b8fb7, type: 3}
     - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u5207\u623F\u95F4\u65F6\u5173\u95ED\u7684\u7269\u4F53.Array.size"
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u5207\u623F\u95F4\u65F6\u5173\u95ED\u7684\u7269\u4F53.Array.data[0]"
+      value: 
+      objectReference: {fileID: 7697404895870079387}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53.Array.size"
       value: 1
       objectReference: {fileID: 0}

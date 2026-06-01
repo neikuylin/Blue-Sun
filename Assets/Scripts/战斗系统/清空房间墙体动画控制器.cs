@@ -10,6 +10,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     [SerializeField] private List<Behaviour> 进房间时倒放后要停在第一帧的动画 = new List<Behaviour>();
     [SerializeField] private List<Behaviour> 进房间时播放的音频组件 = new List<Behaviour>();
     [SerializeField] private List<Behaviour> 切房间时播放的正向音频组件 = new List<Behaviour>();
+    [SerializeField] private List<GameObject> 切房间时关闭的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
 
@@ -56,6 +57,8 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     public float 播放切房间时正向动画()
     {
         StopRoomEnterReverse();
+        ApplyGameObjectState(切房间时关闭的物体, false);
+
         if (roomEnterForwardRoutine != null)
         {
             StopCoroutine(roomEnterForwardRoutine);
