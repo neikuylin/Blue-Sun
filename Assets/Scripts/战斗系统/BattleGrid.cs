@@ -8,7 +8,7 @@ public class BattleGrid : MonoBehaviour
     private const int GridOutlineSortingOrderBase = -9000;
     private const int GridOutlineSortingOrderRelativeLimit = 999;
     private const int FootprintOverlaySortingOrder = -10005;
-    private const int OcclusionOccupiedCellShadowSortingOrder = -10006;
+    private const int OcclusionOccupiedCellShadowSortingOrder = -11999;
     private const int OcclusionRevealMax = 32;
     private const int DoorExitHalfWidth = 1;
     private const int DoorExitLength = 10;
