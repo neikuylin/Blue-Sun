@@ -2004,6 +2004,14 @@ MonoBehaviour:
       side: 2
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
+    - wallName: "\u5357\u5899"
+      prefab: {fileID: 1928778994792063281, guid: 745ccc7e44b877f4aa39e4231db3c869, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 3
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
       x: 10
@@ -2028,10 +2036,10 @@ MonoBehaviour:
     eastDoorEntranceCell:
       x: 19
       y: 16
-    hasSouthDoorEntrance: 0
+    hasSouthDoorEntrance: 1
     southDoorEntranceCell:
-      x: 0
-      y: 0
+      x: 10
+      y: 2
     hasWestDoorEntrance: 1
     westDoorEntranceCell:
       x: 2
