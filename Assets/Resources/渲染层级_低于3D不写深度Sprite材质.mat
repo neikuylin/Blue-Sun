@@ -9,14 +9,18 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: "\u6E32\u67D3\u5C42\u7EA7_\u4F4E\u4E8E3D\u4E0D\u5199\u6DF1\u5EA6Sprite\u6750\u8D28"
   m_Shader: {fileID: 4800000, guid: 18adf27cdc1c41d2af1813f19aa101cf, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _DISSOLVESMOOTHEDGES_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -30,6 +34,8 @@ Material:
     - _AmbientStrength: 0.45
     - _DissolveEdgeWidth: 18
     - _DissolveNoiseScale: 6
+    - _DissolveScrollSpeed: 48
+    - _DissolveSmoothEdges: 1
     - _DissolveStrength: 0.45
     - _FacingAmount: 0.65
     - _LightStrength: 1
@@ -38,3 +44,4 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
