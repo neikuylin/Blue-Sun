@@ -589,6 +589,22 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 21300000, guid: 189cd68c7b54e4b43959bc8c0f5b8fb7, type: 3}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53.Array.size"
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53.Array.data[0]"
+      value: 
+      objectReference: {fileID: 7697404895870079387}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B.Array.size"
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1837561797496903448, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+      propertyPath: "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B.Array.data[1]"
+      value: 
+      objectReference: {fileID: 3164515639733168906}
     - target: {fileID: 2224174925625929280, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_Center.x
       value: 0
@@ -690,6 +706,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 5681139114158815561}
   m_SourcePrefab: {fileID: 100100000, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+--- !u!114 &3164515639733168906 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4121204480816794611, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+  m_PrefabInstance: {fileID: 1358938744838938873}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7697404895870079387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31a19414c41e5ae4aae2af33fee712f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Mask
 --- !u!4 &3887926272173524536 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2823576435068511937, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
@@ -734,6 +761,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
   direction: 2
+--- !u!1 &7697404895870079387 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8649523101326094690, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
+  m_PrefabInstance: {fileID: 1358938744838938873}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6648419065424421316
 PrefabInstance:
   m_ObjectHideFlags: 0
