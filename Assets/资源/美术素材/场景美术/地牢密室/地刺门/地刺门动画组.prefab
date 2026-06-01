@@ -36,6 +36,7 @@ Transform:
   m_Children:
   - {fileID: 5743176848232947692}
   - {fileID: 874051136756981268}
+  - {fileID: 5391271275533620583}
   m_Father: {fileID: 2823576435068511937}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8651836182403329782
@@ -140,6 +141,40 @@ MonoBehaviour:
   "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53":
   - {fileID: 8649523101326094690}
   "\u6E05\u7A7A\u623F\u95F4\u540E\u5173\u95ED\u7684\u7269\u4F53": []
+--- !u!65 &5546304179073406827
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5203321568869631957}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.3705883, y: 7.6411767, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5681139114158815561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5203321568869631957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e22ceca175d942c8896f461e7d9b3b72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
+  direction: 2
 --- !u!1 &6047837367274148202
 GameObject:
   m_ObjectHideFlags: 0
@@ -220,40 +255,6 @@ MonoBehaviour:
   includeChildRenderers: 0
   includeInactiveChildren: 1
   revealRegardlessOfRenderLevel: 1
---- !u!65 &5546304179073406827
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5203321568869631957}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 3.3705883, y: 7.6411767, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &5681139114158815561
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5203321568869631957}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e22ceca175d942c8896f461e7d9b3b72, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
-  direction: 2
 --- !u!1 &8373245005976858555
 GameObject:
   m_ObjectHideFlags: 0
@@ -488,8 +489,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c71b03d11404e14a87c1b9b2c853e26, type: 3}
-  m_Name: ""
-  m_EditorClassIdentifier: ""
+  m_Name: 
+  m_EditorClassIdentifier: 
   "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 5203321568869631957}
   "\u6765\u6E90\u7269\u4F53\u5305\u542B\u5B50\u7269\u4F53Sprite": 0
   "\u76EE\u6807SpriteRenderers":
@@ -502,3 +503,65 @@ MonoBehaviour:
   "\u906E\u7F69\u900F\u660E\u5224\u5B9A": 0.5
   "\u6392\u5E8F\u8303\u56F4\u5411\u524D\u6269\u5C55": 1
   "\u6392\u5E8F\u8303\u56F4\u5411\u540E\u6269\u5C55": 1
+--- !u!1001 &2396200111871703515
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6631985629825206053}
+    m_Modifications:
+    - target: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_Name
+      value: "\u5730\u523A\u97F3\u6548"
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.0493307
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.0471201
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+--- !u!4 &5391271275533620583 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7750879571149319356, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
+  m_PrefabInstance: {fileID: 2396200111871703515}
+  m_PrefabAsset: {fileID: 0}
