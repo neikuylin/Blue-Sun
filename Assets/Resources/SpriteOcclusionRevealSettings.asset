@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SpriteOcclusionRevealSettings
   m_EditorClassIdentifier: 
   revealEnabled: 1
-  radiusWorld: 4
+  radiusWorld: 2.8
   softnessWorld: 1.5
   dissolveNoiseScale: 14.6
   dissolveStrength: 0.76
