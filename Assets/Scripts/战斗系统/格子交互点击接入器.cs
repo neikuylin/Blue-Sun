@@ -7,7 +7,7 @@ internal sealed class 格子交互点击接入器
 
     public bool 处理点击(
         Camera battleCamera,
-        Func<MapTemplateDatabase.ConnectionDirection, 可交互状态对象切换器, bool> 请求门交互,
+        Func<MapTemplateDatabase.ConnectionDirection, 房间方向按钮, 可交互状态对象切换器, bool> 请求门交互,
         Func<格子物件触发器, bool> 请求物件交互)
     {
         if (!Input.GetMouseButtonDown(0) || BattleInputService.IsPointerBlockedByUi() || battleCamera == null)
@@ -24,7 +24,7 @@ internal sealed class 格子交互点击接入器
         if (hit.门按钮 != null &&
             hit.门按钮.TryGetConnectionDirection(out MapTemplateDatabase.ConnectionDirection direction))
         {
-            bool accepted = 请求门交互 != null && 请求门交互(direction, hit.状态对象切换器);
+            bool accepted = 请求门交互 != null && 请求门交互(direction, hit.门按钮, hit.状态对象切换器);
             if (accepted)
             {
                 SetHoveredStateSwitcher(hit.状态对象切换器);

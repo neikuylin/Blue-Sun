@@ -108,6 +108,7 @@ public class BattleTurnSystem : MonoBehaviour
     private Vector2Int pendingDoorNavigationCell;
     private bool doorExitNavigationLocked;
     private bool forceNavigationFollowerFollow;
+    private 房间方向按钮 pendingDoorNavigationButton;
     private 可交互状态对象切换器 pendingDoorNavigationStateSwitcher;
     private bool enterBattleAnimationInProgress;
     private bool beginTurnAfterEnterBattle;
@@ -770,6 +771,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     public bool TryNavigateToDoor(
         MapTemplateDatabase.ConnectionDirection direction,
+        房间方向按钮 doorButton,
         可交互状态对象切换器 doorStateSwitcher)
     {
         if (!IsExplorationMode)
@@ -811,7 +813,7 @@ public class BattleTurnSystem : MonoBehaviour
             !gridTriggerNavigationService.尝试移动到触发格并执行(
             activeUnit,
             triggerCells,
-            () => LockDoorExitNavigation(activeUnit, direction, autoDestination)))
+            () => LockDoorExitNavigation(activeUnit, direction, autoDestination, doorButton)))
         {
             ClearPendingDoorNavigation();
             return false;
@@ -913,7 +915,8 @@ public class BattleTurnSystem : MonoBehaviour
     private void LockDoorExitNavigation(
         BattleUnit unit,
         MapTemplateDatabase.ConnectionDirection direction,
-        Vector2Int autoDestination)
+        Vector2Int autoDestination,
+        房间方向按钮 doorButton)
     {
         if (unit == null)
         {
@@ -927,6 +930,7 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         pendingDoorNavigationCell = autoDestination;
+        pendingDoorNavigationButton = doorButton;
         doorExitNavigationLocked = true;
         hasPendingDoorNavigationCell = true;
         换房移动开始?.Invoke(direction);
@@ -939,7 +943,7 @@ public class BattleTurnSystem : MonoBehaviour
         MapTemplateDatabase.ConnectionDirection direction,
         Vector2Int autoDestination)
     {
-        yield return PlayRoomEnterForwardAnimations();
+        yield return PlayRoomEnterForwardAnimations(pendingDoorNavigationButton);
 
         if (unit == null)
         {
@@ -992,7 +996,7 @@ public class BattleTurnSystem : MonoBehaviour
         });
     }
 
-    private IEnumerator PlayRoomEnterForwardAnimations()
+    private IEnumerator PlayRoomEnterForwardAnimations(房间方向按钮 clickedButton)
     {
         清空房间墙体动画控制器[] controllers = FindObjectsOfType<清空房间墙体动画控制器>(false);
         float duration = 0f;
@@ -1004,7 +1008,7 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            duration = Mathf.Max(duration, controller.播放切房间时正向动画());
+            duration = Mathf.Max(duration, controller.播放切房间时正向动画(clickedButton));
         }
 
         if (duration > 0f)
@@ -1023,6 +1027,7 @@ public class BattleTurnSystem : MonoBehaviour
 
         hasPendingDoorNavigationCell = false;
         pendingDoorNavigationCell = default;
+        pendingDoorNavigationButton = null;
         doorExitNavigationLocked = false;
         ClearForcedNavigationFollowerFollow();
 
