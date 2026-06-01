@@ -70,6 +70,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6152468694838229873}
   - component: {fileID: 7169123693063493396}
+  - component: {fileID: 9084306172849185241}
+  - component: {fileID: 6049572371904826118}
   m_Layer: 0
   m_Name: "\u5730\u523A\u95E8\u52A8\u753B\u7EC4"
   m_TagString: Untagged
@@ -115,6 +117,40 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!65 &9084306172849185241
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3297637941705887514}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.464706, y: 5.117647, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6049572371904826118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3297637941705887514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e22ceca175d942c8896f461e7d9b3b72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
+  direction: 2
 --- !u!1 &4845048154005943545
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,6 +162,8 @@ GameObject:
   - component: {fileID: 3925193685971078288}
   - component: {fileID: 8498898313582267591}
   - component: {fileID: 3034599710558617257}
+  - component: {fileID: 2774514478509806434}
+  - component: {fileID: 7590687384024318714}
   m_Layer: 0
   m_Name: "\u897F\u5899\u95E8\u906E\u7F69"
   m_TagString: Untagged
@@ -237,6 +275,34 @@ MonoBehaviour:
   applyLineRenderers: 0
   applyTrailRenderers: 0
   applyMeshRenderers: 0
+--- !u!114 &2774514478509806434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4845048154005943545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
+  targetRenderers: []
+  includeChildRenderers: 0
+  includeInactiveChildren: 1
+  revealRegardlessOfRenderLevel: 0
+--- !u!114 &7590687384024318714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4845048154005943545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78412e8a82d6c841961f91e24cf1efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6362\u623F\u65F6\u5899\u4F53\u9AD8\u4E8E3D\u6750\u8D28\u5207\u6362\u5668"
 --- !u!1 &9160998917137029566
 GameObject:
   m_ObjectHideFlags: 0
@@ -249,6 +315,7 @@ GameObject:
   - component: {fileID: 987806801534459948}
   - component: {fileID: 7820058049906654246}
   - component: {fileID: 947208741882184861}
+  - component: {fileID: 8469209619738625283}
   m_Layer: 0
   m_Name: "\u56FE\u50CF"
   m_TagString: Untagged
@@ -375,7 +442,19 @@ MonoBehaviour:
   targetRenderers: []
   includeChildRenderers: 0
   includeInactiveChildren: 1
-  revealRegardlessOfRenderLevel: 0
+  revealRegardlessOfRenderLevel: 1
+--- !u!114 &8469209619738625283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9160998917137029566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78412e8a82d6c841961f91e24cf1efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6362\u623F\u65F6\u5899\u4F53\u9AD8\u4E8E3D\u6750\u8D28\u5207\u6362\u5668"
 --- !u!1001 &760410286229348289
 PrefabInstance:
   m_ObjectHideFlags: 0

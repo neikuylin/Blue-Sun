@@ -2019,7 +2019,7 @@ MonoBehaviour:
     hasWestDoorPlayerSpawn: 1
     westDoorPlayerSpawnCell:
       x: 1
-      y: 9
+      y: 10
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
       x: 10
@@ -2035,7 +2035,7 @@ MonoBehaviour:
     hasWestDoorEntrance: 1
     westDoorEntranceCell:
       x: 0
-      y: 9
+      y: 10
     hasNorthDoorEntrance: 0
     northDoorEntranceCell:
       x: 0
