@@ -8,6 +8,19 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
 {
     private const string MaskObjectName = "自动生成_引用Sprite遮罩";
 
+    private enum 遮罩显示区域
+    {
+        内部 = 0,
+        外部 = 1
+    }
+
+    private enum 引用遮罩渲染层级
+    {
+        不决定 = 0,
+        高于3D = 1,
+        低于3D = 2
+    }
+
     [SerializeField, InspectorName("遮罩来源物体")]
     private GameObject 遮罩来源物体;
 
@@ -29,6 +42,12 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
     [SerializeField, InspectorName("只使用引用遮罩")]
     private bool 只使用引用遮罩 = true;
 
+    [SerializeField, InspectorName("遮罩显示区域")]
+    private 遮罩显示区域 显示区域 = 遮罩显示区域.内部;
+
+    [SerializeField, InspectorName("渲染层级")]
+    private 引用遮罩渲染层级 渲染层级 = 引用遮罩渲染层级.不决定;
+
     [SerializeField, InspectorName("引用遮罩材质")]
     private Material 引用遮罩材质;
 
@@ -47,6 +66,7 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
     private static readonly int ReferenceMaskUvRectId = Shader.PropertyToID("_ReferenceMaskUvRect");
     private static readonly int ReferenceMaskAlphaCutoffId = Shader.PropertyToID("_ReferenceMaskAlphaCutoff");
     private static readonly int ReferenceMaskFlipId = Shader.PropertyToID("_ReferenceMaskFlip");
+    private static readonly int ReferenceMaskInvertId = Shader.PropertyToID("_ReferenceMaskInvert");
 
     private SpriteMask runtimeMask;
     private MaterialPropertyBlock materialPropertyBlock;
@@ -232,6 +252,7 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
             materialPropertyBlock.SetVector(ReferenceMaskUvRectId, uvRect);
             materialPropertyBlock.SetFloat(ReferenceMaskAlphaCutoffId, 遮罩透明判定);
             materialPropertyBlock.SetVector(ReferenceMaskFlipId, flip);
+            materialPropertyBlock.SetFloat(ReferenceMaskInvertId, 显示区域 == 遮罩显示区域.外部 ? 1f : 0f);
             target.SetPropertyBlock(materialPropertyBlock);
         }
     }
@@ -243,14 +264,27 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
             return 引用遮罩材质;
         }
 
-        引用遮罩材质 = Resources.Load<Material>("引用Sprite内部遮罩");
-        if (引用遮罩材质 != null)
+        Material layerMaterial = Resources.Load<Material>(GetReferenceMaskMaterialResourceName());
+        if (layerMaterial != null)
         {
-            return 引用遮罩材质;
+            return layerMaterial;
         }
 
-        Shader shader = Shader.Find("项目/渲染/引用Sprite内部遮罩");
+        Shader shader = Shader.Find("项目/渲染/受光不写深度引用Sprite遮罩");
         return shader != null ? new Material(shader) { name = "引用Sprite内部遮罩_运行时材质" } : null;
+    }
+
+    private string GetReferenceMaskMaterialResourceName()
+    {
+        switch (渲染层级)
+        {
+            case 引用遮罩渲染层级.高于3D:
+                return "引用Sprite遮罩_高于3D受光不写深度Sprite材质";
+            case 引用遮罩渲染层级.低于3D:
+                return "引用Sprite遮罩_低于3D受光不写深度Sprite材质";
+            default:
+                return "引用Sprite遮罩_不决定受光不写深度Sprite材质";
+        }
     }
 
     private void ApplyMaskSortingRange(SpriteMask mask, SpriteRenderer[] targets)

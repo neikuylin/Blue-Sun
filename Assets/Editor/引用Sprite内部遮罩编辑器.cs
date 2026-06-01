@@ -11,6 +11,8 @@ public sealed class 引用Sprite内部遮罩编辑器 : Editor
     private SerializedProperty 包含未激活子物体;
     private SerializedProperty 同步来源位置旋转缩放;
     private SerializedProperty 只使用引用遮罩;
+    private SerializedProperty 显示区域;
+    private SerializedProperty 渲染层级;
     private SerializedProperty 引用遮罩材质;
     private SerializedProperty 遮罩透明判定;
     private SerializedProperty 排序范围向前扩展;
@@ -25,6 +27,8 @@ public sealed class 引用Sprite内部遮罩编辑器 : Editor
         包含未激活子物体 = serializedObject.FindProperty("包含未激活子物体");
         同步来源位置旋转缩放 = serializedObject.FindProperty("同步来源位置旋转缩放");
         只使用引用遮罩 = serializedObject.FindProperty("只使用引用遮罩");
+        显示区域 = serializedObject.FindProperty("显示区域");
+        渲染层级 = serializedObject.FindProperty("渲染层级");
         引用遮罩材质 = serializedObject.FindProperty("引用遮罩材质");
         遮罩透明判定 = serializedObject.FindProperty("遮罩透明判定");
         排序范围向前扩展 = serializedObject.FindProperty("排序范围向前扩展");
@@ -59,9 +63,15 @@ public sealed class 引用Sprite内部遮罩编辑器 : Editor
         if (只使用引用遮罩.boolValue)
         {
             EditorGUILayout.HelpBox(
-                "开启后不会使用Unity的SpriteMaskInteraction，因此不会吃到其它非引用遮罩。目标会改用引用遮罩材质显示。",
+                "开启后不会使用Unity的SpriteMaskInteraction，因此不会吃到其它非引用遮罩。目标会按渲染层级自动套用受光引用遮罩材质。",
                 MessageType.Info);
-            EditorGUILayout.PropertyField(引用遮罩材质, new GUIContent("引用遮罩材质"));
+            EditorGUILayout.PropertyField(显示区域, new GUIContent("遮罩显示区域"));
+            EditorGUILayout.PropertyField(渲染层级, new GUIContent("渲染层级"));
+            EditorGUILayout.PropertyField(引用遮罩材质, new GUIContent("自定义引用遮罩材质"));
+            if (引用遮罩材质.objectReferenceValue != null)
+            {
+                EditorGUILayout.HelpBox("已指定自定义材质时，渲染层级选择不会自动替换材质。", MessageType.Warning);
+            }
         }
 
         EditorGUILayout.PropertyField(遮罩透明判定, new GUIContent("遮罩透明判定"));
