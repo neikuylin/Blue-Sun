@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!1 &1928778994792063281
 GameObject:
@@ -49,7 +49,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f0630459f34742c7af82c598ad030100, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6218\u6597\u683C\u5B50\u6C99\u76D8\u8F85\u52A9"
   anchorLocalOffset: {x: 0, y: 0, z: 0}
   anchorCellInSandbox: {x: 10, y: 10}
@@ -72,7 +72,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 21d2e7d6a2f948c4934c8e9ac7c313e9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E05\u7A7A\u623F\u95F4\u5899\u4F53\u52A8\u753B\u63A7\u5236\u5668"
   "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B": []
   "\u8FDB\u623F\u95F4\u65F6\u64AD\u653E\u7684\u97F3\u9891\u7EC4\u4EF6": []
@@ -82,6 +82,7 @@ MonoBehaviour:
   "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u7269\u4F53":
   - {fileID: 7410332326749164648}
   "\u6E05\u7A7A\u623F\u95F4\u540E\u5173\u95ED\u7684\u7269\u4F53": []
+  "\u6E05\u7A7A\u623F\u95F4\u540E\u5F00\u542F\u7684\u78B0\u649E\u4F53": []
 --- !u!1 &2772787332833356415
 GameObject:
   m_ObjectHideFlags: 0
@@ -184,7 +185,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 1
   lightingMode: 0
@@ -307,7 +308,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
   lightingMode: 0
@@ -488,7 +489,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
   lightingMode: 0
@@ -605,7 +606,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1910805604078183296, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: "\u906E\u7F69\u6765\u6E90\u7269\u4F53"
-      value:
+      value: 
       objectReference: {fileID: 4845048154005943545}
     - target: {fileID: 2823576435068511937, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -653,7 +654,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5714530876501644947, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: "\u906E\u7F69\u6765\u6E90\u7269\u4F53"
-      value:
+      value: 
       objectReference: {fileID: 4845048154005943545}
     - target: {fileID: 5974698609626886414, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_MaskInteraction
@@ -661,7 +662,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5974698609626886414, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 4c57b4ca05ad448bb58992ec4bf78b01, type: 2}
     - target: {fileID: 6047837367274148202, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: m_Name
@@ -673,11 +674,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8651836182403329782, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 4c57b4ca05ad448bb58992ec4bf78b01, type: 2}
     - target: {fileID: 8763687693978074259, guid: 343c59431caefba4a90cda861690d5e0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 2fc6d16d2a5a4ba0b5fb143f5f5e4c1d, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -743,7 +744,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6422821347390970093, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
     - target: {fileID: 8866921149496972867, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: m_SortingOrder
@@ -751,7 +752,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8866921149496972867, guid: 2ea7b30b0e901364da69dd03803e215e, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 0d7178cbda7e44df94a3a816de81a2d3, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -782,7 +783,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 1
   lightingMode: 0

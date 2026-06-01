@@ -14,6 +14,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
     [SerializeField] private List<GameObject> 切房间时关闭的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后开启的物体 = new List<GameObject>();
     [SerializeField] private List<GameObject> 清空房间后关闭的物体 = new List<GameObject>();
+    [SerializeField] private List<Collider> 清空房间后开启的碰撞体 = new List<Collider>();
 
     private bool hasAppliedState;
     private bool appliedClearedState;
@@ -136,6 +137,7 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
         appliedClearedState = roomCleared;
         ApplyGameObjectState(清空房间后开启的物体, roomCleared);
         ApplyGameObjectState(清空房间后关闭的物体, !roomCleared);
+        ApplyColliderState(清空房间后开启的碰撞体, roomCleared);
     }
 
     private static void ApplyGameObjectState(List<GameObject> targets, bool active)
@@ -149,6 +151,20 @@ public sealed class 清空房间墙体动画控制器 : MonoBehaviour
             }
 
             target.SetActive(active);
+        }
+    }
+
+    private static void ApplyColliderState(List<Collider> targets, bool enabled)
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            Collider target = targets[i];
+            if (target == null)
+            {
+                continue;
+            }
+
+            target.enabled = enabled;
         }
     }
 

@@ -461,13 +461,6 @@ public class BattleTurnSystem : MonoBehaviour
             return;
         }
 
-        gridInteractionClickAdapter?.更新悬浮(battleCamera);
-        if (gridInteractionClickAdapter != null &&
-            gridInteractionClickAdapter.处理点击(battleCamera, TryNavigateToDoor, TryTriggerGridInteraction))
-        {
-            return;
-        }
-
         if (activeUnit == null || !activeUnit.IsAlive)
         {
             return;

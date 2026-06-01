@@ -1866,12 +1866,12 @@ MonoBehaviour:
       cell:
         x: 4
         y: 15
-      encounterEnemyIndex: -1
+      encounterEnemyIndex: 0
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
         x: 15
         y: 15
-      encounterEnemyIndex: -1
+      encounterEnemyIndex: 1
     defaultFloorPrefab: {fileID: 5598969195761890678, guid: 1b0a727c2bb52db43ae61db4def229cb, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 0}

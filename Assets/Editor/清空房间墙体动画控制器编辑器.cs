@@ -11,6 +11,7 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
     private SerializedProperty 切房间时关闭的物体;
     private SerializedProperty 清空房间后开启的物体;
     private SerializedProperty 清空房间后关闭的物体;
+    private SerializedProperty 清空房间后开启的碰撞体;
 
     private void OnEnable()
     {
@@ -21,6 +22,7 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
         切房间时关闭的物体 = serializedObject.FindProperty("切房间时关闭的物体");
         清空房间后开启的物体 = serializedObject.FindProperty("清空房间后开启的物体");
         清空房间后关闭的物体 = serializedObject.FindProperty("清空房间后关闭的物体");
+        清空房间后开启的碰撞体 = serializedObject.FindProperty("清空房间后开启的碰撞体");
     }
 
     public override void OnInspectorGUI()
@@ -35,6 +37,8 @@ public sealed class 清空房间墙体动画控制器编辑器 : Editor
         EditorGUILayout.LabelField("清空房间后", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(清空房间后开启的物体, new GUIContent("清空房间后开启的物体"), true);
         EditorGUILayout.PropertyField(清空房间后关闭的物体, new GUIContent("清空房间后关闭的物体"), true);
+        EditorGUILayout.PropertyField(清空房间后开启的碰撞体, new GUIContent("清空房间后开启的碰撞体"), true);
+        EditorGUILayout.HelpBox("这里绑定的碰撞体在非清空房间状态下会关闭，清空房间事件触发后会打开。适合门按钮BoxCollider，避免战斗中挡住点击。", MessageType.Info);
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("公开动作", EditorStyles.boldLabel);
