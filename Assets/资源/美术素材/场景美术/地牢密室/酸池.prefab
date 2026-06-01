@@ -102,7 +102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
-  includeChildRenderers: 0
+  includeChildRenderers: 1
   includeInactiveChildren: 1
   revealRegardlessOfRenderLevel: 0
 --- !u!1 &6776211151206327933
@@ -184,7 +184,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -11000
+  m_SortingOrder: -10500
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: f781337f04a03014e9a4b4e60ff20698, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -276,7 +276,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -10000
+  m_SortingOrder: -10400
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 148cdb5a313832647a7d648597c92830, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
