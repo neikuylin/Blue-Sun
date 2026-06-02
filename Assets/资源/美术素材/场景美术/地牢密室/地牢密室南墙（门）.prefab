@@ -527,7 +527,7 @@ Transform:
   m_GameObject: {fileID: 9072583319365138449}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: 9.9, z: 0}
   m_LocalScale: {x: -1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -559,7 +559,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: cef4bc737d654bcb94f95bb7ed1d3d8b, type: 2}
+  - {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -605,7 +605,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
-  lightingMode: 1
+  lightingMode: 0
   overwriteSortingOrder: 0
   sortingOrder: -10000
   replaceMaterial: 0
