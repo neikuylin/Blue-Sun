@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!1 &5203321568869631957
 GameObject:
@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 5546304179073406827}
   - component: {fileID: 5681139114158815561}
   - component: {fileID: 5714530876501644947}
+  - component: {fileID: 8401532631449946916}
   m_Layer: 0
   m_Name: "\u5730\u523A\u95E8"
   m_TagString: Untagged
@@ -36,7 +37,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5743176848232947692}
   - {fileID: 874051136756981268}
   m_Father: {fileID: 2823576435068511937}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -133,7 +133,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage:
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 21d2e7d6a2f948c4934c8e9ac7c313e9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E05\u7A7A\u623F\u95F4\u5899\u4F53\u52A8\u753B\u63A7\u5236\u5668"
   "\u8FDB\u623F\u95F4\u65F6\u5012\u653E\u540E\u8981\u505C\u5728\u7B2C\u4E00\u5E27\u7684\u52A8\u753B":
   - {fileID: 7225511536908477237}
@@ -194,7 +194,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e22ceca175d942c8896f461e7d9b3b72, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u623F\u95F4\u65B9\u5411\u6309\u94AE"
   direction: 2
 --- !u!114 &5714530876501644947
@@ -207,7 +207,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c71b03d11404e14a87c1b9b2c853e26, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u5F15\u7528Sprite\u5185\u90E8\u906E\u7F69"
   "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 0}
   "\u6765\u6E90\u7269\u4F53\u5305\u542B\u5B50\u7269\u4F53Sprite": 1
@@ -222,6 +222,27 @@ MonoBehaviour:
   "\u906E\u7F69\u900F\u660E\u5224\u5B9A": 0.5
   "\u6392\u5E8F\u8303\u56F4\u5411\u524D\u6269\u5C55": 1
   "\u6392\u5E8F\u8303\u56F4\u5411\u540E\u6269\u5C55": 1
+--- !u!114 &8401532631449946916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5203321568869631957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df331671f75b444d8ba4961c31b7da29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u53EF\u4EA4\u4E92\u72B6\u6001\u5BF9\u8C61\u5207\u6362\u5668"
+  "\u8868\u73B0\u65B9\u5F0F": 1
+  "\u666E\u901A\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u60AC\u6D6E\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u9009\u4E2D\u72B6\u6001\u5BF9\u8C61": {fileID: 0}
+  "\u5305\u542B\u672A\u6FC0\u6D3BSprite": 1
+  "\u666E\u901A\u989C\u8272": {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+  "\u60AC\u6D6E\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
+  "\u9009\u4E2D\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
+  "\u542F\u7528\u4E92\u65A5\u9009\u4E2D": 1
 --- !u!1 &6047837367274148202
 GameObject:
   m_ObjectHideFlags: 0
@@ -254,6 +275,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6631985629825206053}
+  - {fileID: 5743176848232947692}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2421801718405588176
@@ -266,7 +288,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 81bf0bc9507e4d45ba0e2a5d0f69d122, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 1
   lightingMode: 0
@@ -296,7 +318,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4b4db180b4234a62a01d8685b7ac5f1d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::Sprite\u89D2\u8272\u906E\u6321\u6316\u7A7A\u63A7\u5236\u5668"
   targetRenderers: []
   includeChildRenderers: 0
@@ -404,7 +426,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c71b03d11404e14a87c1b9b2c853e26, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u5F15\u7528Sprite\u5185\u90E8\u906E\u7F69"
   "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 0}
   "\u6765\u6E90\u7269\u4F53\u5305\u542B\u5B50\u7269\u4F53Sprite": 1
@@ -451,11 +473,11 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 6631985629825206053}
+  m_Father: {fileID: 2823576435068511937}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 3.66}
+  m_AnchoredPosition: {x: -8.34557, y: -1.9136598}
   m_SizeDelta: {x: 5.464706, y: 5.117647}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!212 &8763687693978074259
@@ -527,7 +549,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31a19414c41e5ae4aae2af33fee712f6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Mask
   m_ShowMaskGraphic: 1
 --- !u!95 &1191792772129982645
@@ -547,7 +569,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage:
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
@@ -562,8 +584,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c71b03d11404e14a87c1b9b2c853e26, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 5203321568869631957}
   "\u6765\u6E90\u7269\u4F53\u5305\u542B\u5B50\u7269\u4F53Sprite": 0
   "\u76EE\u6807SpriteRenderers":
