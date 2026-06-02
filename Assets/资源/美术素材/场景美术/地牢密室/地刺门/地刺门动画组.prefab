@@ -586,7 +586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c71b03d11404e14a87c1b9b2c853e26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 5203321568869631957}
+  "\u906E\u7F69\u6765\u6E90\u7269\u4F53": {fileID: 8373245005976858555}
   "\u6765\u6E90\u7269\u4F53\u5305\u542B\u5B50\u7269\u4F53Sprite": 0
   "\u76EE\u6807SpriteRenderers":
   - {fileID: 8763687693978074259}
