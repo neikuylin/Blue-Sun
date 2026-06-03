@@ -19,6 +19,16 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
     private SerializedProperty 外扩火焰强度;
     private SerializedProperty 闪烁强度;
     private SerializedProperty 闪烁速度;
+    private SerializedProperty 启用火星粒子;
+    private SerializedProperty 火星粒子材质;
+    private SerializedProperty 火星数量;
+    private SerializedProperty 火星大小;
+    private SerializedProperty 火星上升速度;
+    private SerializedProperty 火星左右扰动;
+    private SerializedProperty 火星生命周期;
+    private SerializedProperty 火星起始颜色;
+    private SerializedProperty 火星结束颜色;
+    private SerializedProperty 火星发射范围倍率;
 
     private void OnEnable()
     {
@@ -37,6 +47,16 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         外扩火焰强度 = serializedObject.FindProperty("外扩火焰强度");
         闪烁强度 = serializedObject.FindProperty("闪烁强度");
         闪烁速度 = serializedObject.FindProperty("闪烁速度");
+        启用火星粒子 = serializedObject.FindProperty("启用火星粒子");
+        火星粒子材质 = serializedObject.FindProperty("火星粒子材质");
+        火星数量 = serializedObject.FindProperty("火星数量");
+        火星大小 = serializedObject.FindProperty("火星大小");
+        火星上升速度 = serializedObject.FindProperty("火星上升速度");
+        火星左右扰动 = serializedObject.FindProperty("火星左右扰动");
+        火星生命周期 = serializedObject.FindProperty("火星生命周期");
+        火星起始颜色 = serializedObject.FindProperty("火星起始颜色");
+        火星结束颜色 = serializedObject.FindProperty("火星结束颜色");
+        火星发射范围倍率 = serializedObject.FindProperty("火星发射范围倍率");
     }
 
     public override void OnInspectorGUI()
@@ -72,6 +92,22 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         EditorGUILayout.PropertyField(外扩火焰强度, new GUIContent("外扩火焰强度"));
         EditorGUILayout.PropertyField(闪烁强度, new GUIContent("闪烁强度"));
         EditorGUILayout.PropertyField(闪烁速度, new GUIContent("闪烁速度"));
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("上飘火星粒子", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(启用火星粒子, new GUIContent("启用火星粒子"));
+        if (启用火星粒子.boolValue)
+        {
+            EditorGUILayout.PropertyField(火星粒子材质, new GUIContent("火星粒子材质", "可选。为空时脚本会创建一个临时粒子材质。"));
+            EditorGUILayout.PropertyField(火星数量, new GUIContent("火星数量", "每秒发射的火星数量。"));
+            EditorGUILayout.PropertyField(火星大小, new GUIContent("火星大小"));
+            EditorGUILayout.PropertyField(火星上升速度, new GUIContent("火星上升速度"));
+            EditorGUILayout.PropertyField(火星左右扰动, new GUIContent("火星左右扰动", "控制火星在X/Z方向被空气扰动的幅度。"));
+            EditorGUILayout.PropertyField(火星生命周期, new GUIContent("火星生命周期"));
+            EditorGUILayout.PropertyField(火星起始颜色, new GUIContent("火星起始颜色"));
+            EditorGUILayout.PropertyField(火星结束颜色, new GUIContent("火星结束颜色"));
+            EditorGUILayout.PropertyField(火星发射范围倍率, new GUIContent("火星发射范围倍率", "基于3D模型本体包围盒的发射范围。"));
+        }
 
         bool changed = EditorGUI.EndChangeCheck();
         serializedObject.ApplyModifiedProperties();
