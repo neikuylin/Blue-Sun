@@ -1050,7 +1050,7 @@ MonoBehaviour:
       y: 0
     hasWestDoorPlayerSpawn: 1
     westDoorPlayerSpawnCell:
-      x: 0
+      x: 1
       y: 9
     hasNorthDoorPlayerSpawn: 1
     northDoorPlayerSpawnCell:
@@ -1064,10 +1064,10 @@ MonoBehaviour:
     southDoorEntranceCell:
       x: 0
       y: 0
-    hasWestDoorEntrance: 0
+    hasWestDoorEntrance: 1
     westDoorEntranceCell:
-      x: 0
-      y: 0
+      x: 2
+      y: 9
     hasNorthDoorEntrance: 0
     northDoorEntranceCell:
       x: 0
