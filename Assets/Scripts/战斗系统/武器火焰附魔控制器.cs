@@ -267,7 +267,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
     private void 取组件和参数块()
     {
-        if (spriteRenderer == null)
+        if (meshRenderer == null)
         {
             meshRenderer = GetComponent<MeshRenderer>();
         }
