@@ -1028,6 +1028,14 @@ MonoBehaviour:
       side: 2
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
+    - wallName: "\u5357\u5899"
+      prefab: {fileID: 1928778994792063281, guid: 745ccc7e44b877f4aa39e4231db3c869, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 3
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
     defaultPlayerSpawnCell:
       x: 10
@@ -2053,7 +2061,7 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     - wallName: "\u5357\u5899"
-      prefab: {fileID: 1928778994792063281, guid: 745ccc7e44b877f4aa39e4231db3c869, type: 3}
+      prefab: {fileID: 1928778994792063281, guid: 90d2e2ff919bab442a9112f0a70ec64c, type: 3}
       cell:
         x: 0
         y: 0
