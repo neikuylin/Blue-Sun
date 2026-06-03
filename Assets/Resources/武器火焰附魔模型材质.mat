@@ -7,14 +7,14 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: "\u6B66\u5668\u706B\u7130\u9644\u9B54Sprite\u6750\u8D28"
+  m_Name: "\u6B66\u5668\u706B\u7130\u9644\u9B54\u6A21\u578B\u6750\u8D28"
   m_Shader: {fileID: 4800000, guid: 9054f3c693e6422da81bb36ed396cfad, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:
@@ -26,16 +26,16 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - PixelSnap: 0
     - _FireIntensity: 1.15
     - _FireScale: 11
     - _FireSpeed: 2.4
     - _FlickerSpeed: 4
     - _FlickerStrength: 0.22
+    - _Glossiness: 0.5
+    - _Metallic: 0
     - _OriginalKeep: 0.72
     - _OuterFireIntensity: 1.3
     - _OuterFireRange: 2
-    - _ZTest: 8
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _CoreFireColor: {r: 1, g: 0.9, b: 0.28, a: 1}

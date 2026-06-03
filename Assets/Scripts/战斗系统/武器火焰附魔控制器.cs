@@ -2,12 +2,12 @@ using UnityEngine;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
-[RequireComponent(typeof(SpriteRenderer))]
 [AddComponentMenu("特效/武器火焰附魔控制器")]
 public sealed class 武器火焰附魔控制器 : MonoBehaviour
 {
-    private const string 默认火焰材质路径 = "武器火焰附魔Sprite材质";
+    private const string 默认火焰材质路径 = "武器火焰附魔模型材质";
 
+    private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
     private static readonly int DarkFireColorId = Shader.PropertyToID("_DarkFireColor");
     private static readonly int MainFireColorId = Shader.PropertyToID("_MainFireColor");
@@ -21,6 +21,8 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private static readonly int OuterFireIntensityId = Shader.PropertyToID("_OuterFireIntensity");
     private static readonly int FlickerStrengthId = Shader.PropertyToID("_FlickerStrength");
     private static readonly int FlickerSpeedId = Shader.PropertyToID("_FlickerSpeed");
+    private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
+    private static readonly int GlossinessId = Shader.PropertyToID("_Glossiness");
 
     [SerializeField] private bool 启用附魔 = true;
     [SerializeField] private Material 火焰材质;
@@ -37,19 +39,19 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     [SerializeField, Range(0f, 4f)] private float 外扩火焰强度 = 1.3f;
     [SerializeField, Range(0f, 1f)] private float 闪烁强度 = 0.22f;
     [SerializeField, Range(0f, 12f)] private float 闪烁速度 = 4f;
-    [SerializeField, HideInInspector] private Material 原始材质;
+    [SerializeField, HideInInspector] private Material[] 原始材质列表;
 
-    private SpriteRenderer spriteRenderer;
+    private MeshRenderer meshRenderer;
     private MaterialPropertyBlock propertyBlock;
 
     public bool 当前启用附魔 => 启用附魔;
     public Material 当前火焰材质 => 火焰材质;
-    public Material 当前原始材质 => 原始材质;
+    public Material[] 当前原始材质列表 => 原始材质列表;
 
     private void Reset()
     {
         取组件和参数块();
-        记录原始材质();
+        记录原始材质列表();
         加载默认火焰材质();
         应用附魔设置();
     }
@@ -81,9 +83,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     public void 应用附魔设置()
     {
         取组件和参数块();
-        if (spriteRenderer == null)
+        if (meshRenderer == null)
         {
-            Debug.LogWarning($"[武器火焰附魔] {name} 缺少 SpriteRenderer，无法应用火焰附魔。", this);
+            Debug.LogWarning($"[武器火焰附魔] {name} 缺少 MeshRenderer，无法应用3D武器火焰附魔。", this);
             return;
         }
 
@@ -93,7 +95,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        记录原始材质();
+        记录原始材质列表();
         加载默认火焰材质();
         if (火焰材质 == null)
         {
@@ -101,8 +103,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        spriteRenderer.sharedMaterial = 火焰材质;
-        spriteRenderer.GetPropertyBlock(propertyBlock);
+        应用火焰材质到全部材质槽();
+        meshRenderer.GetPropertyBlock(propertyBlock);
+        写入原始材质参数(propertyBlock);
         propertyBlock.SetColor(ColorId, 颜色);
         propertyBlock.SetColor(DarkFireColorId, 暗部火焰颜色);
         propertyBlock.SetColor(MainFireColorId, 主火焰颜色);
@@ -116,40 +119,128 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         propertyBlock.SetFloat(OuterFireIntensityId, 外扩火焰强度);
         propertyBlock.SetFloat(FlickerStrengthId, 闪烁强度);
         propertyBlock.SetFloat(FlickerSpeedId, 闪烁速度);
-        spriteRenderer.SetPropertyBlock(propertyBlock);
+        meshRenderer.SetPropertyBlock(propertyBlock);
     }
 
     [ContextMenu("还原武器原始材质")]
     public void 还原原始材质()
     {
         取组件和参数块();
-        if (spriteRenderer == null)
+        if (meshRenderer == null)
         {
             return;
         }
 
         propertyBlock.Clear();
-        spriteRenderer.SetPropertyBlock(propertyBlock);
+        meshRenderer.SetPropertyBlock(propertyBlock);
 
-        if (原始材质 != null)
+        if (原始材质列表 != null && 原始材质列表.Length > 0)
         {
-            spriteRenderer.sharedMaterial = 原始材质;
+            meshRenderer.sharedMaterials = 原始材质列表;
         }
     }
 
-    private void 记录原始材质()
+    private void 记录原始材质列表()
     {
-        if (spriteRenderer == null || 原始材质 != null)
+        if (meshRenderer == null || (原始材质列表 != null && 原始材质列表.Length > 0))
         {
             return;
         }
 
-        if (火焰材质 != null && spriteRenderer.sharedMaterial == 火焰材质)
+        Material[] currentMaterials = meshRenderer.sharedMaterials;
+        if (currentMaterials == null || currentMaterials.Length == 0)
         {
             return;
         }
 
-        原始材质 = spriteRenderer.sharedMaterial;
+        if (火焰材质 != null && 全部材质都是火焰材质(currentMaterials))
+        {
+            return;
+        }
+
+        原始材质列表 = currentMaterials;
+    }
+
+    private bool 全部材质都是火焰材质(Material[] materials)
+    {
+        if (materials == null || materials.Length == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < materials.Length; i++)
+        {
+            if (materials[i] != 火焰材质)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void 应用火焰材质到全部材质槽()
+    {
+        Material[] currentMaterials = meshRenderer.sharedMaterials;
+        if (currentMaterials == null || currentMaterials.Length == 0)
+        {
+            meshRenderer.sharedMaterial = 火焰材质;
+            return;
+        }
+
+        Material[] fireMaterials = new Material[currentMaterials.Length];
+        for (int i = 0; i < fireMaterials.Length; i++)
+        {
+            fireMaterials[i] = 火焰材质;
+        }
+
+        meshRenderer.sharedMaterials = fireMaterials;
+    }
+
+    private void 写入原始材质参数(MaterialPropertyBlock block)
+    {
+        Material sourceMaterial = 取第一个原始材质();
+        if (sourceMaterial == null)
+        {
+            return;
+        }
+
+        if (sourceMaterial.HasProperty(MainTexId))
+        {
+            Texture mainTexture = sourceMaterial.GetTexture(MainTexId);
+            if (mainTexture != null)
+            {
+                block.SetTexture(MainTexId, mainTexture);
+            }
+        }
+
+        if (sourceMaterial.HasProperty(MetallicId))
+        {
+            block.SetFloat(MetallicId, sourceMaterial.GetFloat(MetallicId));
+        }
+
+        if (sourceMaterial.HasProperty(GlossinessId))
+        {
+            block.SetFloat(GlossinessId, sourceMaterial.GetFloat(GlossinessId));
+        }
+    }
+
+    private Material 取第一个原始材质()
+    {
+        if (原始材质列表 == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < 原始材质列表.Length; i++)
+        {
+            if (原始材质列表[i] != null)
+            {
+                return 原始材质列表[i];
+            }
+        }
+
+        return null;
     }
 
     private void 加载默认火焰材质()
@@ -178,7 +269,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     {
         if (spriteRenderer == null)
         {
-            spriteRenderer = GetComponent<SpriteRenderer>();
+            meshRenderer = GetComponent<MeshRenderer>();
         }
 
         if (propertyBlock == null)

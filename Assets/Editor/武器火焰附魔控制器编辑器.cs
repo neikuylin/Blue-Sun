@@ -49,7 +49,7 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.LabelField("开关与材质", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(启用附魔, new GUIContent("启用附魔"));
-        EditorGUILayout.PropertyField(火焰材质, new GUIContent("火焰材质", "为空时会尝试读取 Resources/武器火焰附魔Sprite材质。"));
+        EditorGUILayout.PropertyField(火焰材质, new GUIContent("火焰材质", "为空时会尝试读取 Resources/武器火焰附魔模型材质。"));
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("火焰颜色", EditorStyles.boldLabel);
@@ -63,12 +63,12 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         EditorGUILayout.PropertyField(火焰强度, new GUIContent("火焰强度"));
         EditorGUILayout.PropertyField(火焰速度, new GUIContent("火焰速度"));
         EditorGUILayout.PropertyField(火焰密度, new GUIContent("火焰密度"));
-        EditorGUILayout.PropertyField(流动方向, new GUIContent("流动方向", "以Sprite UV方向为基准，(0,1)通常表示向上流动。"));
+        EditorGUILayout.PropertyField(流动方向, new GUIContent("流动方向", "以模型UV方向为基准，(0,1)通常表示沿UV纵向流动。"));
         EditorGUILayout.PropertyField(原图保留强度, new GUIContent("原图保留强度", "越高越能看清武器原图，越低越像被火焰吞掉。"));
 
         EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("外扩包围火焰", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(外扩火焰范围, new GUIContent("外扩火焰范围", "只会显示在Sprite图片自带的透明留白里。"));
+        EditorGUILayout.PropertyField(外扩火焰范围, new GUIContent("外扩火焰范围", "3D模型会按法线向外扩一层轮廓火焰。"));
         EditorGUILayout.PropertyField(外扩火焰强度, new GUIContent("外扩火焰强度"));
         EditorGUILayout.PropertyField(闪烁强度, new GUIContent("闪烁强度"));
         EditorGUILayout.PropertyField(闪烁速度, new GUIContent("闪烁速度"));
@@ -102,25 +102,21 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
             return;
         }
 
-        SpriteRenderer spriteRenderer = controller.GetComponent<SpriteRenderer>();
-        if (spriteRenderer == null)
+        MeshRenderer meshRenderer = controller.GetComponent<MeshRenderer>();
+        if (meshRenderer == null)
         {
-            EditorGUILayout.HelpBox("这个对象缺少 SpriteRenderer，无法应用武器火焰附魔。", MessageType.Error);
+            EditorGUILayout.HelpBox("这个对象缺少 MeshRenderer，无法应用3D武器火焰附魔。请挂到真正带模型渲染器的武器物体上。", MessageType.Error);
             return;
         }
 
         if (controller.当前火焰材质 == null)
         {
-            EditorGUILayout.HelpBox("没有指定火焰材质。为空时脚本会尝试读取 Resources/武器火焰附魔Sprite材质。", MessageType.Info);
+            EditorGUILayout.HelpBox("没有指定火焰材质。为空时脚本会尝试读取 Resources/武器火焰附魔模型材质。", MessageType.Info);
         }
 
-        if (spriteRenderer.sprite == null)
-        {
-            EditorGUILayout.HelpBox("SpriteRenderer 没有 Sprite，材质会被应用，但不会显示火焰。", MessageType.Warning);
-        }
-
+        Material[] originalMaterials = controller.当前原始材质列表;
         EditorGUILayout.HelpBox(
-            $"当前SpriteRenderer材质：{(spriteRenderer.sharedMaterial != null ? spriteRenderer.sharedMaterial.name : "无")}\n记录的原始材质：{(controller.当前原始材质 != null ? controller.当前原始材质.name : "无")}",
+            $"当前MeshRenderer材质槽数量：{meshRenderer.sharedMaterials.Length}\n记录的原始材质槽数量：{(originalMaterials != null ? originalMaterials.Length : 0)}",
             MessageType.Info);
     }
 
