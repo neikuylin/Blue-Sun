@@ -111,6 +111,31 @@ public class BattleBootstrap : MonoBehaviour
         currentDungeonTemplateId = DefaultDungeonTemplateId;
         currentDungeonNodeId = DefaultDungeonNodeId;
         pendingEntranceDirection = null;
+        副本选择状态.清空选择();
+    }
+
+    public static void 开始新的副本模板(string templateId)
+    {
+        if (string.IsNullOrWhiteSpace(templateId))
+        {
+            Debug.LogWarning("BattleBootstrap：开始新的副本模板失败，地图模板ID为空。");
+            return;
+        }
+
+        string resolvedTemplateId = templateId.Trim();
+        MapTemplateDatabase database = MapTemplateDatabase.LoadDefault();
+        if (database == null || FindTemplateWithoutMutation(database, resolvedTemplateId) == null)
+        {
+            Debug.LogWarning($"BattleBootstrap：开始新的副本模板失败，地图模板ID不存在：{resolvedTemplateId}");
+            return;
+        }
+
+        ClearRoomStateMemories(destroyPreservedRuntimeRoots: true);
+        playerVitalsSnapshots.Clear();
+        currentDungeonTemplateId = resolvedTemplateId;
+        currentDungeonNodeId = DefaultDungeonNodeId;
+        pendingEntranceDirection = null;
+        SetRoomClearedEvent(false);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -271,6 +296,12 @@ public class BattleBootstrap : MonoBehaviour
     {
         if (!Application.isPlaying)
         {
+            return;
+        }
+
+        if (!副本选择状态.已选择地图模板)
+        {
+            Debug.LogWarning("BattleBootstrap：没有从副本选择场景记录地图模板ID，战斗副本不会初始化。");
             return;
         }
 

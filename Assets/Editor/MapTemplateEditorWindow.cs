@@ -225,8 +225,9 @@ public sealed class MapTemplateEditorWindow : EditorWindow
         string editedTemplateId = EditorGUILayout.TextField("模板ID", template.templateId);
         template.templateId = NormalizeIdentifier(editedTemplateId, oldTemplateId);
         template.displayName = EditorGUILayout.TextField("模板名字", template.displayName);
+        template.maxPartySize = Mathf.Max(1, EditorGUILayout.IntField("最大人数", template.maxPartySize));
         EditorGUILayout.LabelField("节点数量", template.nodes.Count.ToString());
-        EditorGUILayout.HelpBox("模板ID仅用于内部定位，不建议输入空格。想写可读名字，请改“模板名字”。", MessageType.None);
+        EditorGUILayout.HelpBox("模板ID仅用于内部定位，不建议输入空格。想写可读名字，请改“模板名字”。最大人数目前只记录参数，暂未限制启程角色。", MessageType.None);
 
         if (!string.Equals(oldTemplateId, template.templateId, StringComparison.Ordinal))
         {

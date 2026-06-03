@@ -40,6 +40,7 @@ public sealed class MapTemplateDatabase : ScriptableObject
     {
         public string templateId = string.Empty;
         public string displayName = string.Empty;
+        public int maxPartySize = 4;
         public List<MapNodeEntry> nodes = new List<MapNodeEntry>();
     }
 
@@ -134,6 +135,8 @@ public sealed class MapTemplateDatabase : ScriptableObject
         {
             template.nodes = new List<MapNodeEntry>();
         }
+
+        template.maxPartySize = Mathf.Max(1, template.maxPartySize);
 
         for (int i = 0; i < template.nodes.Count; i++)
         {

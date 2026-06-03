@@ -15,6 +15,7 @@ MonoBehaviour:
   entries:
   - templateId: "\u5730\u72621"
     displayName: "\u5730\u72621"
+    maxPartySize: 2
     nodes:
     - nodeId: node_3
       displayName: node_3
