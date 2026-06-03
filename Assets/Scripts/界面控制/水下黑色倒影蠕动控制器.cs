@@ -11,6 +11,7 @@ using UnityEditor;
 public sealed class 水下黑色倒影蠕动控制器 : MonoBehaviour
 {
     private static readonly Vector3 战斗摄像机参考角度 = new Vector3(48.6f, 45f, 0f);
+    private static readonly int ColorId = Shader.PropertyToID("_Color");
     private static readonly int DirectionalFlowId = Shader.PropertyToID("_DirectionalFlow");
     private static readonly int FlowDirectionId = Shader.PropertyToID("_FlowDirection");
     private static readonly int DirectionalIntensityId = Shader.PropertyToID("_DirectionalIntensity");
@@ -34,6 +35,7 @@ public sealed class 水下黑色倒影蠕动控制器 : MonoBehaviour
     }
 
     [SerializeField] private 蠕动方向 方向 = 蠕动方向.无方向;
+    [SerializeField] private bool 保留原图颜色和透明度;
     [SerializeField] private 方向基准 东西南北基准 = 方向基准.战斗摄像机投影;
     [SerializeField, Range(0f, 4f)] private float 方向激烈程度 = 1.8f;
     [SerializeField, Range(0.1f, 20f)] private float 方向蠕动密度 = 8f;
@@ -97,6 +99,7 @@ public sealed class 水下黑色倒影蠕动控制器 : MonoBehaviour
         propertyBlock.SetFloat(DirectionalWaveScaleId, 方向蠕动密度);
         propertyBlock.SetFloat(DirectionalSpeedId, 方向推进速度);
         propertyBlock.SetFloat(DirectionalSidePullId, 横切撕扯);
+        应用颜色模式(propertyBlock);
         spriteRenderer.SetPropertyBlock(propertyBlock);
     }
 
@@ -108,10 +111,29 @@ public sealed class 水下黑色倒影蠕动控制器 : MonoBehaviour
             return;
         }
 
-        spriteRenderer.GetPropertyBlock(propertyBlock);
-        propertyBlock.SetFloat(DirectionalFlowId, 0f);
-        propertyBlock.SetVector(FlowDirectionId, Vector4.zero);
+        propertyBlock.Clear();
         spriteRenderer.SetPropertyBlock(propertyBlock);
+    }
+
+    private void 应用颜色模式(MaterialPropertyBlock block)
+    {
+        if (block == null)
+        {
+            return;
+        }
+
+        if (!保留原图颜色和透明度)
+        {
+            Material material = spriteRenderer != null ? spriteRenderer.sharedMaterial : null;
+            if (material != null && material.HasProperty(ColorId))
+            {
+                block.SetColor(ColorId, material.GetColor(ColorId));
+            }
+
+            return;
+        }
+
+        block.SetColor(ColorId, Color.white);
     }
 
     private Vector2 取材质方向()

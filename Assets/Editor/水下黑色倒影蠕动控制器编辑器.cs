@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class 水下黑色倒影蠕动控制器编辑器 : Editor
 {
     private SerializedProperty 方向;
+    private SerializedProperty 保留原图颜色和透明度;
     private SerializedProperty 东西南北基准;
     private SerializedProperty 方向激烈程度;
     private SerializedProperty 方向蠕动密度;
@@ -14,6 +15,7 @@ public sealed class 水下黑色倒影蠕动控制器编辑器 : Editor
     private void OnEnable()
     {
         方向 = serializedObject.FindProperty("方向");
+        保留原图颜色和透明度 = serializedObject.FindProperty("保留原图颜色和透明度");
         东西南北基准 = serializedObject.FindProperty("东西南北基准");
         方向激烈程度 = serializedObject.FindProperty("方向激烈程度");
         方向蠕动密度 = serializedObject.FindProperty("方向蠕动密度");
@@ -29,6 +31,10 @@ public sealed class 水下黑色倒影蠕动控制器编辑器 : Editor
         DrawMaterialStatus(controller);
 
         EditorGUI.BeginChangeCheck();
+        EditorGUILayout.LabelField("颜色模式", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(保留原图颜色和透明度, new GUIContent("保留原图颜色和透明度", "默认关闭，保持当前黑色倒影。开启后忽略材质黑色染色，保留Sprite本身颜色和透明度，只做蠕动。"));
+
+        EditorGUILayout.Space(6f);
         EditorGUILayout.LabelField("流向", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(方向, new GUIContent("蠕动方向", "无方向就是原本适合平静水下的蠕动。东、南、西、北会叠加更激烈的方向流动。"));
         EditorGUILayout.PropertyField(东西南北基准, new GUIContent("东西南北基准", "战斗摄像机投影会使用48.6、45度视角下的横纵方向，对齐地图格子的东南西北。"));
