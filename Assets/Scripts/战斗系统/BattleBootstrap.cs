@@ -27,6 +27,7 @@ public class BattleBootstrap : MonoBehaviour
     private const string GridObjectName = "BattleGrid";
     private const string RoomContentRootName = "RoomContent";
     private const string RoomClearedEventId = "清空房间";
+    private const string DungeonClearedEventId = "清空副本";
     private const int DefaultUnitFootprintSize = 3;
     private static readonly Vector2Int PlayerFormationSpacing = new Vector2Int(4, 4);
 
@@ -203,6 +204,10 @@ public class BattleBootstrap : MonoBehaviour
 
         memory.encounterCleared = true;
         SetRoomClearedEvent(true);
+        if (IsCurrentRoomBossBattleRoom())
+        {
+            EventRuntimeState.SetState(DungeonClearedEventId, true);
+        }
     }
 
     public static void SetRoomClearedEvent(bool cleared)
@@ -236,6 +241,24 @@ public class BattleBootstrap : MonoBehaviour
     {
         MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
         return node != null && RoomTypeDatabase.IsEncounterBattleType(node.roomTypeId);
+    }
+
+    public static bool IsCurrentRoomBossBattleRoom()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        return node != null && RoomTypeDatabase.IsBossBattleType(node.roomTypeId);
+    }
+
+    public static bool IsCurrentRoomEnemyBattleRoom()
+    {
+        MapTemplateDatabase.MapNodeEntry node = ResolveBattleRoomNode();
+        if (node == null)
+        {
+            return false;
+        }
+
+        return RoomTypeDatabase.IsEncounterBattleType(node.roomTypeId) ||
+            RoomTypeDatabase.IsBossBattleType(node.roomTypeId);
     }
 
     public static bool IsCurrentRoomChestRoom()

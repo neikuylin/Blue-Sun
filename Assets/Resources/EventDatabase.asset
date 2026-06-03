@@ -60,4 +60,8 @@ MonoBehaviour:
   - eventId: "\u6E05\u7A7A\u623F\u95F4"
     displayName: "\u6E05\u7A7A\u623F\u95F4"
     enabled: 0
-    description:
+    description: "\u95E8\u6309\u94AE\u53EF\u9009"
+  - eventId: "\u6E05\u7A7A\u526F\u672C"
+    displayName: "\u6E05\u7A7A\u526F\u672C"
+    enabled: 0
+    description: "\u5F39\u51FA\u56DE\u57CE\u56FE\u6807"

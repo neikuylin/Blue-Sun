@@ -1070,7 +1070,7 @@ public class BattleTurnSystem : MonoBehaviour
 
     private void EnterExplorationMode(bool playExitAnimation = true)
     {
-        if (BattleBootstrap.IsCurrentRoomEncounterBattleRoom() && !HasLivingEnemies())
+        if (BattleBootstrap.IsCurrentRoomEnemyBattleRoom() && !HasLivingEnemies())
         {
             BattleBootstrap.MarkCurrentRoomEncounterCleared();
             BattleBootstrap.ConfigureCurrentRoomDoorExitCells(grid);

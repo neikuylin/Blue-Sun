@@ -83,16 +83,22 @@ public sealed class RoomTypeDatabase : ScriptableObject
         return string.Equals(NormalizeRoomTypeId(roomTypeId), ChestTypeId, StringComparison.Ordinal);
     }
 
+    public static bool IsBossBattleType(string roomTypeId)
+    {
+        return string.Equals(NormalizeRoomTypeId(roomTypeId), BossBattleTypeId, StringComparison.Ordinal);
+    }
+
     public static bool RequiresBattleGridTemplate(string roomTypeId)
     {
         string id = NormalizeRoomTypeId(roomTypeId);
         return string.Equals(id, EncounterBattleTypeId, StringComparison.Ordinal) ||
-            string.Equals(id, ChestTypeId, StringComparison.Ordinal);
+            string.Equals(id, ChestTypeId, StringComparison.Ordinal) ||
+            string.Equals(id, BossBattleTypeId, StringComparison.Ordinal);
     }
 
     public static bool RequiresEncounterPreset(string roomTypeId)
     {
-        return IsEncounterBattleType(roomTypeId);
+        return IsEncounterBattleType(roomTypeId) || IsBossBattleType(roomTypeId);
     }
 
     public static string NormalizeRoomTypeId(string roomTypeId)
