@@ -1,11 +1,16 @@
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [AddComponentMenu("特效/武器火焰附魔控制器")]
 public sealed class 武器火焰附魔控制器 : MonoBehaviour
 {
     private const string 默认火焰材质路径 = "武器火焰附魔模型材质";
+    private const string 默认火星粒子材质路径 = "武器火星粒子材质";
     private const string 火星粒子物体名 = "火焰附魔火星粒子";
 
     private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
@@ -57,7 +62,10 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private MaterialPropertyBlock propertyBlock;
     private ParticleSystem 火星粒子系统;
     private ParticleSystemRenderer 火星粒子渲染器;
-    private Material 自动火星粒子材质;
+
+#if UNITY_EDITOR
+    private double 上次编辑器预览时间;
+#endif
 
     public bool 当前启用附魔 => 启用附魔;
     public Material 当前火焰材质 => 火焰材质;
@@ -73,11 +81,24 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
     private void OnEnable()
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            上次编辑器预览时间 = EditorApplication.timeSinceStartup;
+            EditorApplication.update -= 编辑器预览更新;
+            EditorApplication.update += 编辑器预览更新;
+        }
+#endif
+
         应用附魔设置();
     }
 
     private void OnDisable()
     {
+#if UNITY_EDITOR
+        EditorApplication.update -= 编辑器预览更新;
+#endif
+
         还原原始材质();
     }
 
@@ -366,6 +387,8 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             火星粒子渲染器.renderMode = ParticleSystemRenderMode.Billboard;
             火星粒子渲染器.sortingOrder = 0;
             火星粒子渲染器.sharedMaterial = 取火星粒子材质();
+            火星粒子渲染器.minParticleSize = 0f;
+            火星粒子渲染器.maxParticleSize = 0.5f;
         }
 
         if (!火星粒子系统.isPlaying)
@@ -433,26 +456,58 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return 火星粒子材质;
         }
 
-        if (自动火星粒子材质 != null)
+        火星粒子材质 = Resources.Load<Material>(默认火星粒子材质路径);
+        if (火星粒子材质 == null)
         {
-            return 自动火星粒子材质;
-        }
-
-        Shader shader = Shader.Find("Particles/Standard Unlit");
-        if (shader == null)
-        {
-            Debug.LogWarning($"[武器火焰附魔] {name} 找不到 Particles/Standard Unlit Shader，火星粒子可能不可见。", this);
+            Debug.LogWarning($"[武器火焰附魔] {name} 找不到 Resources/{默认火星粒子材质路径}，火星粒子不可见。", this);
             return null;
         }
 
-        自动火星粒子材质 = new Material(shader)
-        {
-            name = "自动火星粒子材质",
-            hideFlags = HideFlags.HideAndDontSave
-        };
-        自动火星粒子材质.SetColor("_Color", Color.white);
-        return 自动火星粒子材质;
+        return 火星粒子材质;
     }
+
+#if UNITY_EDITOR
+    private void 编辑器预览更新()
+    {
+        if (Application.isPlaying || this == null || !isActiveAndEnabled)
+        {
+            return;
+        }
+
+        if (!启用附魔 || !启用火星粒子)
+        {
+            return;
+        }
+
+        取组件和参数块();
+        if (meshRenderer == null)
+        {
+            return;
+        }
+
+        if (火星粒子系统 == null)
+        {
+            应用火星粒子设置();
+        }
+
+        if (火星粒子系统 == null)
+        {
+            return;
+        }
+
+        double currentTime = EditorApplication.timeSinceStartup;
+        float deltaTime = Mathf.Clamp((float)(currentTime - 上次编辑器预览时间), 0f, 0.05f);
+        上次编辑器预览时间 = currentTime;
+
+        if (!火星粒子系统.isPlaying)
+        {
+            火星粒子系统.Play();
+        }
+
+        火星粒子系统.Simulate(deltaTime, true, false, false);
+        SceneView.RepaintAll();
+    }
+#endif
 
     private Vector4 取标准化流动方向()
     {

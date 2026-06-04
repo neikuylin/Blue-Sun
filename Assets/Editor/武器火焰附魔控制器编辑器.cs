@@ -98,7 +98,7 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         EditorGUILayout.PropertyField(启用火星粒子, new GUIContent("启用火星粒子"));
         if (启用火星粒子.boolValue)
         {
-            EditorGUILayout.PropertyField(火星粒子材质, new GUIContent("火星粒子材质", "可选。为空时脚本会创建一个临时粒子材质。"));
+            EditorGUILayout.PropertyField(火星粒子材质, new GUIContent("火星粒子材质", "可选。为空时脚本会读取 Resources/武器火星粒子材质。"));
             EditorGUILayout.PropertyField(火星数量, new GUIContent("火星数量", "每秒发射的火星数量。"));
             EditorGUILayout.PropertyField(火星大小, new GUIContent("火星大小"));
             EditorGUILayout.PropertyField(火星上升速度, new GUIContent("火星上升速度"));
