@@ -33,8 +33,9 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
     [Header("模型整体")]
     [SerializeField] private MeshRenderer 目标模型渲染器;
-    [SerializeField, Range(0.1f, 4f)] private float 整体宽度倍率 = 1.15f;
+    [SerializeField, Range(0.1f, 4f)] private float 整体长轴倍率 = 1.15f;
     [SerializeField, Range(0.1f, 6f)] private float 速度长度倍率 = 1.2f;
+    [SerializeField, Range(0f, 1f)] private float 前端回退倍率 = 0.22f;
 
     [Header("拖尾开关")]
     [SerializeField] private bool 启用拖尾 = true;
@@ -101,8 +102,9 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         拖尾持续时间 = Mathf.Clamp(拖尾持续时间, 0.03f, 1f);
         触发速度阈值 = Mathf.Max(0f, 触发速度阈值);
         宽度倍率 = Mathf.Clamp(宽度倍率, 0.1f, 3f);
-        整体宽度倍率 = Mathf.Clamp(整体宽度倍率, 0.1f, 4f);
+        整体长轴倍率 = Mathf.Clamp(整体长轴倍率, 0.1f, 4f);
         速度长度倍率 = Mathf.Clamp(速度长度倍率, 0.1f, 6f);
+        前端回退倍率 = Mathf.Clamp01(前端回退倍率);
         最大片段数 = Mathf.Clamp(最大片段数, 0, 80);
         边缘柔和 = Mathf.Clamp01(边缘柔和);
         火焰噪声密度 = Mathf.Clamp(火焰噪声密度, 0.1f, 40f);
@@ -192,7 +194,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         float speed = movement.magnitude / Mathf.Max(deltaTime, 0.0001f);
         if (距上次生成时间 >= 生成间隔 && speed >= 触发速度阈值)
         {
-            创建模型整体片段(当前中心, bounds, movement, speed, material);
+            创建模型整体片段(renderer, 当前中心, bounds, movement, speed, material);
             距上次生成时间 = 0f;
         }
 
@@ -210,24 +212,25 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         片段列表.Clear();
     }
 
-    private void 创建模型整体片段(Vector3 当前中心, Bounds 当前包围盒, Vector3 移动方向, float speed, Material material)
+    private void 创建模型整体片段(MeshRenderer renderer, Vector3 当前中心, Bounds 当前包围盒, Vector3 移动方向, float speed, Material material)
     {
         if (最大片段数 <= 0)
         {
             return;
         }
 
-        Vector3 sideDirection = 取整体侧向(移动方向);
+        Vector3 weaponAxis = 取模型最长轴方向(renderer, 当前包围盒);
         Vector3 direction = 移动方向.sqrMagnitude > 0.000001f ? 移动方向.normalized : transform.forward;
         float length = speed * 生成间隔 * 速度长度倍率;
-        Vector3 上一中心 = 当前中心 - direction * length;
-        float width = Mathf.Max(当前包围盒.size.x, 当前包围盒.size.y, 当前包围盒.size.z) * 整体宽度倍率;
-        Vector3 halfSide = sideDirection * (width * 0.5f);
+        Vector3 当前拖尾中心 = 当前中心 - direction * (length * 前端回退倍率);
+        Vector3 上一中心 = 当前拖尾中心 - direction * length;
+        float weaponLength = 取模型最长轴长度(renderer, 当前包围盒) * 整体长轴倍率;
+        Vector3 halfSide = weaponAxis * (weaponLength * 0.5f);
         创建片段(
             上一中心 - halfSide,
             上一中心 + halfSide,
-            当前中心 - halfSide,
-            当前中心 + halfSide,
+            当前拖尾中心 - halfSide,
+            当前拖尾中心 + halfSide,
             material);
     }
 
@@ -304,21 +307,70 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         片段列表.Add(segment);
     }
 
-    private Vector3 取整体侧向(Vector3 移动方向)
+    private Vector3 取模型最长轴方向(MeshRenderer renderer, Bounds worldBounds)
     {
-        Vector3 direction = 移动方向.sqrMagnitude > 0.000001f ? 移动方向.normalized : transform.forward;
-        Vector3 side = Vector3.Cross(direction, transform.forward);
-        if (side.sqrMagnitude <= 0.000001f)
+        if (renderer == null)
         {
-            side = Vector3.Cross(direction, transform.up);
+            return transform.forward;
         }
 
-        if (side.sqrMagnitude <= 0.000001f)
+        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
         {
-            side = transform.right;
+            return 取世界包围盒最长轴方向(worldBounds);
         }
 
-        return side.normalized;
+        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
+        Transform rendererTransform = renderer.transform;
+        if (localSize.x >= localSize.y && localSize.x >= localSize.z)
+        {
+            return rendererTransform.right.normalized;
+        }
+
+        if (localSize.y >= localSize.x && localSize.y >= localSize.z)
+        {
+            return rendererTransform.up.normalized;
+        }
+
+        return rendererTransform.forward.normalized;
+    }
+
+    private float 取模型最长轴长度(MeshRenderer renderer, Bounds worldBounds)
+    {
+        if (renderer == null)
+        {
+            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+        }
+
+        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+        {
+            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+        }
+
+        Bounds localBounds = meshFilter.sharedMesh.bounds;
+        Vector3 localSize = localBounds.size;
+        Vector3 lossyScale = renderer.transform.lossyScale;
+        float x = Mathf.Abs(localSize.x * lossyScale.x);
+        float y = Mathf.Abs(localSize.y * lossyScale.y);
+        float z = Mathf.Abs(localSize.z * lossyScale.z);
+        return Mathf.Max(x, y, z);
+    }
+
+    private Vector3 取世界包围盒最长轴方向(Bounds worldBounds)
+    {
+        Vector3 size = worldBounds.size;
+        if (size.x >= size.y && size.x >= size.z)
+        {
+            return Vector3.right;
+        }
+
+        if (size.y >= size.x && size.y >= size.z)
+        {
+            return Vector3.up;
+        }
+
+        return Vector3.forward;
     }
 
     private void 更新片段(float deltaTime)

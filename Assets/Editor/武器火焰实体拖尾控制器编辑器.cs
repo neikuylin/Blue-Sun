@@ -73,7 +73,7 @@ public sealed class 武器火焰实体拖尾控制器编辑器 : Editor
 
         if (mode.enumValueIndex == 0)
         {
-            DrawSection("模型整体", "目标模型渲染器", "整体宽度倍率", "速度长度倍率", "拖尾容器");
+            DrawSection("模型整体", "目标模型渲染器", "整体长轴倍率", "速度长度倍率", "前端回退倍率", "拖尾容器");
             return;
         }
 
