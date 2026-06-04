@@ -172,6 +172,7 @@ GameObject:
   - component: {fileID: 1301628817768341468}
   - component: {fileID: 3016210404075057841}
   - component: {fileID: 1776870507740999785}
+  - component: {fileID: 304979761293603264}
   m_Layer: 0
   m_Name: "\u76F4\u5251"
   m_TagString: Untagged
@@ -265,8 +266,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7abedea3592f41eb8bc620c4a12cda33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u706B\u7130\u9644\u9B54\u63A7\u5236\u5668"
+  "\u542F\u7528\u9644\u9B54": 0
   "\u539F\u59CB\u6750\u8D28\u5217\u8868":
   - {fileID: 2100000, guid: 8f5367100291c034c82279a3888282eb, type: 2}
+--- !u!114 &304979761293603264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7194361354705236364}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15fabb4ed3fff83489bc860d6545baa2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u7279\u6548\u72B6\u6001\u6865\u63A5\u5668"
+  "\u6548\u679C\u9A71\u52A8\u7279\u6548\u5217\u8868":
+  - "\u6548\u679CID": "\u706B\u7130\u9644\u9B54"
+    "\u7279\u6548\u811A\u672C": {fileID: 1776870507740999785}
 --- !u!1 &8666520025450344722
 GameObject:
   m_ObjectHideFlags: 0

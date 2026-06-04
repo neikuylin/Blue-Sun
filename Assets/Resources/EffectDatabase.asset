@@ -84,4 +84,4 @@ MonoBehaviour:
     - statField: 18
       healthDamageType: 1
       amountMode: 0
-      amount: 5
+      amount: 4

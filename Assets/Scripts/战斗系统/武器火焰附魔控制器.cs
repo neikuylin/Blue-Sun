@@ -7,7 +7,7 @@ using UnityEditor;
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [AddComponentMenu("特效/武器火焰附魔控制器")]
-public sealed class 武器火焰附魔控制器 : MonoBehaviour
+public sealed class 武器火焰附魔控制器 : MonoBehaviour, 武器特效开关接口
 {
     private const string 全局配置路径 = "武器火焰附魔全局配置";
     private const string 火星粒子物体名 = "火焰附魔火星粒子";
@@ -40,6 +40,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private static readonly int TrailIntensityId = Shader.PropertyToID("_Intensity");
     private static readonly int TrailZTestId = Shader.PropertyToID("_ZTest");
 
+    [SerializeField] private bool 启用附魔;
     [SerializeField, HideInInspector] private Material[] 原始材质列表;
 
     private 武器火焰附魔全局配置 全局配置缓存;
@@ -65,7 +66,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private bool 已请求编辑器延迟应用;
 #endif
 
-    public bool 当前启用附魔 => 取全局配置() != null && 取全局配置().启用附魔;
+    public bool 当前启用附魔 => 启用附魔;
     public Material 当前火焰材质 => 取全局配置() != null ? 取全局配置().火焰材质 : null;
     public Material[] 当前原始材质列表 => 原始材质列表;
     public 武器火焰附魔全局配置 当前全局配置 => 取全局配置();
@@ -97,6 +98,11 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private void 确保编辑状态特效子物体()
     {
         if (Application.isPlaying)
+        {
+            return;
+        }
+
+        if (PrefabUtility.IsPartOfPrefabAsset(gameObject))
         {
             return;
         }
@@ -227,7 +233,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        if (!config.启用附魔)
+        if (!启用附魔)
         {
             还原原始材质();
             设置火星粒子子物体启用(false);
@@ -261,6 +267,17 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         meshRenderer.SetPropertyBlock(propertyBlock);
         应用火星粒子设置(config);
         应用Trail拖尾设置(config);
+    }
+
+    public void 设置武器特效启用(bool 启用)
+    {
+        if (启用附魔 == 启用)
+        {
+            return;
+        }
+
+        启用附魔 = 启用;
+        应用附魔设置();
     }
 
     [ContextMenu("还原武器原始材质")]
@@ -519,7 +536,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private void 更新Trail火焰拖尾()
     {
         武器火焰附魔全局配置 config = 取全局配置();
-        if (config == null || !config.启用附魔 || !config.启用Trail火焰拖尾)
+        if (config == null || !启用附魔 || !config.启用Trail火焰拖尾)
         {
             停止Trail拖尾();
             return;
@@ -900,7 +917,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         }
 
         武器火焰附魔全局配置 config = 取全局配置();
-        if (config == null || !config.启用附魔 || !config.启用火星粒子)
+        if (config == null || !启用附魔 || !config.启用火星粒子)
         {
             return;
         }

@@ -103,5 +103,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7abedea3592f41eb8bc620c4a12cda33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u706B\u7130\u9644\u9B54\u63A7\u5236\u5668"
+  "\u542F\u7528\u9644\u9B54": 0
   "\u539F\u59CB\u6750\u8D28\u5217\u8868":
   - {fileID: 2100000, guid: 8f5367100291c034c82279a3888282eb, type: 2}

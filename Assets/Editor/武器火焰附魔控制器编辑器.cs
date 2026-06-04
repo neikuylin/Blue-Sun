@@ -15,6 +15,23 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
 
     public override void OnInspectorGUI()
     {
+        serializedObject.Update();
+        SerializedProperty enableProperty = serializedObject.FindProperty("启用附魔");
+        if (enableProperty != null)
+        {
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(enableProperty, new GUIContent("启用附魔"));
+            if (EditorGUI.EndChangeCheck())
+            {
+                serializedObject.ApplyModifiedProperties();
+                ApplySelectedControllers();
+            }
+            else
+            {
+                serializedObject.ApplyModifiedProperties();
+            }
+        }
+
         武器火焰附魔控制器 controller = target as 武器火焰附魔控制器;
         DrawStatus(controller);
 
@@ -65,7 +82,6 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
     private void DrawGlobalConfigFields()
     {
         EditorGUILayout.LabelField("开关与材质", EditorStyles.boldLabel);
-        DrawProperty("启用附魔", "启用附魔");
         DrawProperty("火焰材质", "火焰材质");
 
         EditorGUILayout.Space(6f);
