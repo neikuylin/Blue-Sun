@@ -38,12 +38,14 @@ Shader "项目/特效/武器火焰实体拖尾"
             struct appdata
             {
                 float4 vertex : POSITION;
+                fixed4 color : COLOR;
                 float2 uv : TEXCOORD0;
             };
 
             struct v2f
             {
                 float4 vertex : SV_POSITION;
+                fixed4 color : COLOR;
                 float2 uv : TEXCOORD0;
             };
 
@@ -76,6 +78,7 @@ Shader "项目/特效/武器火焰实体拖尾"
             {
                 v2f output;
                 output.vertex = UnityObjectToClipPos(input.vertex);
+                output.color = input.color;
                 output.uv = input.uv;
                 return output;
             }
@@ -90,8 +93,8 @@ Shader "项目/特效/武器火焰实体拖尾"
                 float broken = saturate(1 - noise * _NoiseStrength * (0.4 + _Age01));
 
                 fixed4 color = lerp(_ColorA, _ColorB, center);
-                float alpha = color.a * edge * fade * fade * headFade * broken;
-                return fixed4(color.rgb * _Intensity * broken, alpha);
+                float alpha = color.a * edge * fade * fade * headFade * broken * input.color.a;
+                return fixed4(color.rgb * input.color.rgb * _Intensity * broken, alpha);
             }
             ENDCG
         }

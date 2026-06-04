@@ -43,11 +43,11 @@ public sealed class 武器火焰实体拖尾控制器编辑器 : Editor
             SerializedProperty renderer = serializedObject.FindProperty("目标模型渲染器");
             if (renderer == null || renderer.objectReferenceValue == null)
             {
-                EditorGUILayout.HelpBox("当前是按模型整体生成。目标模型渲染器为空时，运行时会读取本物体上的 MeshRenderer。", MessageType.Info);
+                EditorGUILayout.HelpBox("当前是按模型整体生成。运行时会创建一个 TrailRenderer，目标模型渲染器为空时会读取本物体上的 MeshRenderer。", MessageType.Info);
                 return;
             }
 
-            EditorGUILayout.HelpBox("当前是按模型整体生成。拖尾大小会按目标模型渲染器的包围盒计算。", MessageType.Info);
+            EditorGUILayout.HelpBox("当前是按模型整体生成。Trail 宽度会按目标模型渲染器的最长轴计算。", MessageType.Info);
             return;
         }
 
@@ -55,11 +55,11 @@ public sealed class 武器火焰实体拖尾控制器编辑器 : Editor
         SerializedProperty tip = serializedObject.FindProperty("刀尖点");
         if (hilt == null || tip == null || hilt.objectReferenceValue == null || tip.objectReferenceValue == null)
         {
-            EditorGUILayout.HelpBox("需要绑定刀柄点和刀尖点。脚本会用上一帧到当前帧的两点位置生成实体火焰面片。", MessageType.Warning);
+            EditorGUILayout.HelpBox("需要绑定刀柄点和刀尖点。Trail 会跟随两点中点，宽度按两点距离计算。", MessageType.Warning);
             return;
         }
 
-        EditorGUILayout.HelpBox("已绑定刀柄点和刀尖点。挥动速度超过阈值时会生成世界空间实体拖尾。", MessageType.Info);
+        EditorGUILayout.HelpBox("已绑定刀柄点和刀尖点。挥动速度超过阈值时会启用 Trail 拖尾。", MessageType.Info);
     }
 
     private void DrawModeFields()
@@ -73,7 +73,7 @@ public sealed class 武器火焰实体拖尾控制器编辑器 : Editor
 
         if (mode.enumValueIndex == 0)
         {
-            DrawSection("模型整体", "目标模型渲染器", "整体长轴倍率", "速度长度倍率", "前端回退倍率", "拖尾容器");
+            DrawSection("模型整体", "目标模型渲染器", "整体长轴倍率", "拖尾容器");
             return;
         }
 
@@ -82,14 +82,7 @@ public sealed class 武器火焰实体拖尾控制器编辑器 : Editor
 
     private void DrawGenerationFields()
     {
-        SerializedProperty mode = serializedObject.FindProperty("生成方式");
-        if (mode != null && mode.enumValueIndex == 1)
-        {
-            DrawSection("拖尾生成", "生成间隔", "拖尾持续时间", "触发速度阈值", "宽度倍率", "最大片段数");
-            return;
-        }
-
-        DrawSection("拖尾生成", "生成间隔", "拖尾持续时间", "触发速度阈值", "最大片段数");
+        DrawSection("Trail生成", "拖尾持续时间", "触发速度阈值", "最小顶点距离", "末端宽度倍率", "低速宽度收缩");
     }
 
     private void DrawSection(string title, params string[] propertyNames)

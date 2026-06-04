@@ -1,16 +1,14 @@
-using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteAlways]
 [DisallowMultipleComponent]
 [AddComponentMenu("特效/武器火焰实体拖尾控制器")]
 public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 {
     private const string 默认材质路径 = "武器火焰实体拖尾材质";
+    private const string Trail物体名 = "武器火焰Trail拖尾";
 
     private static readonly int ColorAId = Shader.PropertyToID("_ColorA");
     private static readonly int ColorBId = Shader.PropertyToID("_ColorB");
-    private static readonly int Age01Id = Shader.PropertyToID("_Age01");
     private static readonly int SoftnessId = Shader.PropertyToID("_Softness");
     private static readonly int NoiseScaleId = Shader.PropertyToID("_NoiseScale");
     private static readonly int NoiseStrengthId = Shader.PropertyToID("_NoiseStrength");
@@ -34,20 +32,18 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     [Header("模型整体")]
     [SerializeField] private MeshRenderer 目标模型渲染器;
     [SerializeField, Range(0.1f, 4f)] private float 整体长轴倍率 = 1.15f;
-    [SerializeField, Range(0.1f, 6f)] private float 速度长度倍率 = 1.2f;
-    [SerializeField, Range(0f, 1f)] private float 前端回退倍率 = 0.22f;
 
     [Header("拖尾开关")]
     [SerializeField] private bool 启用拖尾 = true;
     [SerializeField] private bool 无视深度 = true;
     [SerializeField] private Material 拖尾材质;
 
-    [Header("拖尾生成")]
-    [SerializeField, Range(0.005f, 0.2f)] private float 生成间隔 = 0.018f;
-    [SerializeField, Range(0.03f, 1f)] private float 拖尾持续时间 = 0.18f;
+    [Header("Trail生成")]
+    [SerializeField, Range(0.03f, 1f)] private float 拖尾持续时间 = 0.22f;
     [SerializeField, Range(0f, 20f)] private float 触发速度阈值 = 0.25f;
-    [SerializeField, Range(0.1f, 3f)] private float 宽度倍率 = 1.08f;
-    [SerializeField, Range(0, 80)] private int 最大片段数 = 24;
+    [SerializeField, Range(0.01f, 1f)] private float 最小顶点距离 = 0.03f;
+    [SerializeField, Range(0f, 1f)] private float 末端宽度倍率 = 0.08f;
+    [SerializeField, Range(0f, 1f)] private float 低速宽度收缩 = 0.35f;
 
     [Header("视觉")]
     [SerializeField] private Color 外侧颜色 = new Color(1f, 0.16f, 0.02f, 0.75f);
@@ -57,37 +53,26 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float 火焰破碎强度 = 0.28f;
     [SerializeField, Range(0f, 6f)] private float 亮度 = 1.8f;
 
-    private readonly List<拖尾片段> 片段列表 = new List<拖尾片段>();
-    private MaterialPropertyBlock 参数块;
+    private TrailRenderer trailRenderer;
+    private Transform trailTransform;
     private Material 运行时材质;
     private Material 运行时材质来源;
-    private Vector3 上次刀柄位置;
-    private Vector3 上次刀尖位置;
-    private Vector3 上次整体中心;
-    private float 距上次生成时间;
-    private double 上次更新时间;
+    private MaterialPropertyBlock 参数块;
+    private Vector3 上次位置;
     private bool 已采样;
     private bool 缺少绑定已警告;
     private bool 缺少模型渲染器已警告;
     private bool 缺少材质已警告;
 
-    private sealed class 拖尾片段
-    {
-        public GameObject 物体;
-        public Mesh 网格;
-        public MeshRenderer 渲染器;
-        public float 已存在时间;
-    }
-
     private void OnEnable()
     {
-        上次更新时间 = 取当前时间();
         重置采样();
     }
 
     private void OnDisable()
     {
         清空片段();
+
         if (运行时材质 != null)
         {
             销毁对象(运行时材质);
@@ -98,14 +83,12 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
     private void OnValidate()
     {
-        生成间隔 = Mathf.Clamp(生成间隔, 0.005f, 0.2f);
+        整体长轴倍率 = Mathf.Clamp(整体长轴倍率, 0.1f, 4f);
         拖尾持续时间 = Mathf.Clamp(拖尾持续时间, 0.03f, 1f);
         触发速度阈值 = Mathf.Max(0f, 触发速度阈值);
-        宽度倍率 = Mathf.Clamp(宽度倍率, 0.1f, 3f);
-        整体长轴倍率 = Mathf.Clamp(整体长轴倍率, 0.1f, 4f);
-        速度长度倍率 = Mathf.Clamp(速度长度倍率, 0.1f, 6f);
-        前端回退倍率 = Mathf.Clamp01(前端回退倍率);
-        最大片段数 = Mathf.Clamp(最大片段数, 0, 80);
+        最小顶点距离 = Mathf.Clamp(最小顶点距离, 0.01f, 1f);
+        末端宽度倍率 = Mathf.Clamp01(末端宽度倍率);
+        低速宽度收缩 = Mathf.Clamp01(低速宽度收缩);
         边缘柔和 = Mathf.Clamp01(边缘柔和);
         火焰噪声密度 = Mathf.Clamp(火焰噪声密度, 0.1f, 40f);
         火焰破碎强度 = Mathf.Clamp01(火焰破碎强度);
@@ -114,11 +97,14 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
     private void Update()
     {
-        float deltaTime = 取DeltaTime();
-        更新片段(deltaTime);
+        if (!Application.isPlaying)
+        {
+            return;
+        }
 
         if (!启用拖尾)
         {
+            设置Trail发射(false);
             重置采样();
             return;
         }
@@ -126,280 +112,178 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         Material material = 取拖尾材质();
         if (material == null)
         {
+            设置Trail发射(false);
             return;
         }
 
-        if (生成方式 == 拖尾生成方式.按模型整体生成)
+        if (!取TrailRenderer(material))
         {
-            更新模型整体拖尾(deltaTime, material);
             return;
         }
 
-        更新绑定点拖尾(deltaTime, material);
-    }
-
-    private void 更新绑定点拖尾(float deltaTime, Material material)
-    {
-        if (!检查绑定点())
+        if (生成方式 == 拖尾生成方式.按绑定点生成)
         {
-            重置采样();
+            更新绑定点Trail();
             return;
         }
 
-        Vector3 当前刀柄位置 = 刀柄点.position;
-        Vector3 当前刀尖位置 = 刀尖点.position;
-        if (!已采样)
-        {
-            上次刀柄位置 = 当前刀柄位置;
-            上次刀尖位置 = 当前刀尖位置;
-            已采样 = true;
-            return;
-        }
-
-        距上次生成时间 += deltaTime;
-        float speed = Mathf.Max(
-            Vector3.Distance(上次刀柄位置, 当前刀柄位置),
-            Vector3.Distance(上次刀尖位置, 当前刀尖位置)) / Mathf.Max(deltaTime, 0.0001f);
-
-        if (距上次生成时间 >= 生成间隔 && speed >= 触发速度阈值)
-        {
-            创建片段(上次刀柄位置, 上次刀尖位置, 当前刀柄位置, 当前刀尖位置, material);
-            距上次生成时间 = 0f;
-        }
-
-        上次刀柄位置 = 当前刀柄位置;
-        上次刀尖位置 = 当前刀尖位置;
-    }
-
-    private void 更新模型整体拖尾(float deltaTime, Material material)
-    {
-        MeshRenderer renderer = 取目标模型渲染器();
-        if (renderer == null)
-        {
-            重置采样();
-            return;
-        }
-
-        Bounds bounds = renderer.bounds;
-        Vector3 当前中心 = bounds.center;
-        if (!已采样)
-        {
-            上次整体中心 = 当前中心;
-            已采样 = true;
-            return;
-        }
-
-        距上次生成时间 += deltaTime;
-        Vector3 movement = 当前中心 - 上次整体中心;
-        float speed = movement.magnitude / Mathf.Max(deltaTime, 0.0001f);
-        if (距上次生成时间 >= 生成间隔 && speed >= 触发速度阈值)
-        {
-            创建模型整体片段(renderer, 当前中心, bounds, movement, speed, material);
-            距上次生成时间 = 0f;
-        }
-
-        上次整体中心 = 当前中心;
+        更新模型整体Trail();
     }
 
     [ContextMenu("清空火焰实体拖尾")]
     public void 清空片段()
     {
-        for (int i = 片段列表.Count - 1; i >= 0; i--)
+        if (trailRenderer != null)
         {
-            销毁片段(片段列表[i]);
+            trailRenderer.Clear();
         }
 
-        片段列表.Clear();
+        if (trailTransform != null)
+        {
+            销毁对象(trailTransform.gameObject);
+            trailTransform = null;
+            trailRenderer = null;
+        }
     }
 
-    private void 创建模型整体片段(MeshRenderer renderer, Vector3 当前中心, Bounds 当前包围盒, Vector3 移动方向, float speed, Material material)
+    private void 更新模型整体Trail()
     {
-        if (最大片段数 <= 0)
+        MeshRenderer renderer = 取目标模型渲染器();
+        if (renderer == null)
+        {
+            设置Trail发射(false);
+            重置采样();
+            return;
+        }
+
+        Bounds bounds = renderer.bounds;
+        Vector3 position = bounds.center;
+        float speed = 计算速度(position);
+        更新Trail位置和宽度(position, 取模型最长轴长度(renderer, bounds) * 整体长轴倍率, speed);
+    }
+
+    private void 更新绑定点Trail()
+    {
+        if (!检查绑定点())
+        {
+            设置Trail发射(false);
+            重置采样();
+            return;
+        }
+
+        Vector3 position = (刀柄点.position + 刀尖点.position) * 0.5f;
+        float width = Vector3.Distance(刀柄点.position, 刀尖点.position);
+        float speed = 计算速度(position);
+        更新Trail位置和宽度(position, width, speed);
+    }
+
+    private void 更新Trail位置和宽度(Vector3 position, float baseWidth, float speed)
+    {
+        if (trailTransform == null || trailRenderer == null)
         {
             return;
         }
 
-        Vector3 weaponAxis = 取模型最长轴方向(renderer, 当前包围盒);
-        Vector3 direction = 移动方向.sqrMagnitude > 0.000001f ? 移动方向.normalized : transform.forward;
-        float length = speed * 生成间隔 * 速度长度倍率;
-        Vector3 当前拖尾中心 = 当前中心 - direction * (length * 前端回退倍率);
-        Vector3 上一中心 = 当前拖尾中心 - direction * length;
-        float weaponLength = 取模型最长轴长度(renderer, 当前包围盒) * 整体长轴倍率;
-        Vector3 halfSide = weaponAxis * (weaponLength * 0.5f);
-        创建片段(
-            上一中心 - halfSide,
-            上一中心 + halfSide,
-            当前拖尾中心 - halfSide,
-            当前拖尾中心 + halfSide,
-            material);
+        trailTransform.position = position;
+        float speed01 = 触发速度阈值 <= 0f ? 1f : Mathf.Clamp01(speed / Mathf.Max(触发速度阈值 * 4f, 0.0001f));
+        float widthScale = Mathf.Lerp(低速宽度收缩, 1f, speed01);
+        trailRenderer.widthMultiplier = Mathf.Max(0.001f, baseWidth * widthScale);
+        设置Trail宽度曲线();
+        写入Trail材质参数();
+        设置Trail发射(speed >= 触发速度阈值);
     }
 
-    private void 创建片段(Vector3 上一刀柄, Vector3 上一刀尖, Vector3 当前刀柄, Vector3 当前刀尖, Material material)
+    private float 计算速度(Vector3 position)
     {
-        if (最大片段数 <= 0)
+        if (!已采样)
+        {
+            上次位置 = position;
+            已采样 = true;
+            return 0f;
+        }
+
+        float speed = Vector3.Distance(上次位置, position) / Mathf.Max(Time.deltaTime, 0.0001f);
+        上次位置 = position;
+        return speed;
+    }
+
+    private bool 取TrailRenderer(Material material)
+    {
+        if (trailRenderer != null && trailTransform != null)
+        {
+            配置TrailRenderer(material);
+            return true;
+        }
+
+        Transform parent = 拖尾容器 != null ? 拖尾容器 : transform;
+        Transform existing = parent.Find(Trail物体名);
+        if (existing != null)
+        {
+            trailTransform = existing;
+            trailRenderer = existing.GetComponent<TrailRenderer>();
+        }
+
+        if (trailRenderer == null)
+        {
+            GameObject trailObject = new GameObject(Trail物体名);
+            trailObject.transform.SetParent(parent, false);
+            trailTransform = trailObject.transform;
+            trailRenderer = trailObject.AddComponent<TrailRenderer>();
+        }
+
+        配置TrailRenderer(material);
+        return trailRenderer != null;
+    }
+
+    private void 配置TrailRenderer(Material material)
+    {
+        if (trailRenderer == null)
         {
             return;
         }
 
-        while (片段列表.Count >= 最大片段数)
-        {
-            销毁片段(片段列表[0]);
-            片段列表.RemoveAt(0);
-        }
-
-        Vector3 上一中心 = (上一刀柄 + 上一刀尖) * 0.5f;
-        Vector3 当前中心 = (当前刀柄 + 当前刀尖) * 0.5f;
-        上一刀柄 = Vector3.LerpUnclamped(上一中心, 上一刀柄, 宽度倍率);
-        上一刀尖 = Vector3.LerpUnclamped(上一中心, 上一刀尖, 宽度倍率);
-        当前刀柄 = Vector3.LerpUnclamped(当前中心, 当前刀柄, 宽度倍率);
-        当前刀尖 = Vector3.LerpUnclamped(当前中心, 当前刀尖, 宽度倍率);
-
-        Transform parent = 拖尾容器 != null ? 拖尾容器 : null;
-        GameObject segmentObject = new GameObject("武器火焰实体拖尾片段");
-        segmentObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-        segmentObject.transform.SetParent(parent, false);
-        segmentObject.transform.position = Vector3.zero;
-        segmentObject.transform.rotation = Quaternion.identity;
-        segmentObject.transform.localScale = Vector3.one;
-
-        Matrix4x4 worldToSegment = segmentObject.transform.worldToLocalMatrix;
-
-        Mesh mesh = new Mesh
-        {
-            name = "武器火焰实体拖尾网格",
-            hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild
-        };
-        mesh.vertices = new[]
-        {
-            worldToSegment.MultiplyPoint3x4(上一刀柄),
-            worldToSegment.MultiplyPoint3x4(上一刀尖),
-            worldToSegment.MultiplyPoint3x4(当前刀柄),
-            worldToSegment.MultiplyPoint3x4(当前刀尖)
-        };
-        mesh.uv = new[]
-        {
-            new Vector2(0f, 0f),
-            new Vector2(0f, 1f),
-            new Vector2(1f, 0f),
-            new Vector2(1f, 1f)
-        };
-        mesh.triangles = new[] { 0, 1, 2, 2, 1, 3 };
-        mesh.RecalculateBounds();
-
-        MeshFilter meshFilter = segmentObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = mesh;
-
-        MeshRenderer meshRenderer = segmentObject.AddComponent<MeshRenderer>();
-        meshRenderer.sharedMaterial = material;
-        meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        meshRenderer.receiveShadows = false;
-        meshRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-        meshRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-
-        拖尾片段 segment = new 拖尾片段
-        {
-            物体 = segmentObject,
-            网格 = mesh,
-            渲染器 = meshRenderer,
-            已存在时间 = 0f
-        };
-        写入片段参数(segment, 0f);
-        片段列表.Add(segment);
+        trailRenderer.sharedMaterial = material;
+        trailRenderer.time = 拖尾持续时间;
+        trailRenderer.minVertexDistance = 最小顶点距离;
+        trailRenderer.numCornerVertices = 3;
+        trailRenderer.numCapVertices = 2;
+        trailRenderer.autodestruct = false;
+        trailRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        trailRenderer.receiveShadows = false;
+        trailRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        trailRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        trailRenderer.textureMode = LineTextureMode.Stretch;
+        trailRenderer.alignment = LineAlignment.View;
+        trailRenderer.colorGradient = 创建Trail颜色渐变();
     }
 
-    private Vector3 取模型最长轴方向(MeshRenderer renderer, Bounds worldBounds)
+    private void 设置Trail宽度曲线()
     {
-        if (renderer == null)
+        if (trailRenderer == null)
         {
-            return transform.forward;
+            return;
         }
 
-        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
-        if (meshFilter == null || meshFilter.sharedMesh == null)
-        {
-            return 取世界包围盒最长轴方向(worldBounds);
-        }
-
-        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
-        Transform rendererTransform = renderer.transform;
-        if (localSize.x >= localSize.y && localSize.x >= localSize.z)
-        {
-            return rendererTransform.right.normalized;
-        }
-
-        if (localSize.y >= localSize.x && localSize.y >= localSize.z)
-        {
-            return rendererTransform.up.normalized;
-        }
-
-        return rendererTransform.forward.normalized;
+        AnimationCurve widthCurve = new AnimationCurve(
+            new Keyframe(0f, 末端宽度倍率),
+            new Keyframe(0.2f, 1f),
+            new Keyframe(1f, 0f));
+        trailRenderer.widthCurve = widthCurve;
     }
 
-    private float 取模型最长轴长度(MeshRenderer renderer, Bounds worldBounds)
+    private void 设置Trail发射(bool emitting)
     {
-        if (renderer == null)
+        if (trailRenderer == null)
         {
-            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+            return;
         }
 
-        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
-        if (meshFilter == null || meshFilter.sharedMesh == null)
-        {
-            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
-        }
-
-        Bounds localBounds = meshFilter.sharedMesh.bounds;
-        Vector3 localSize = localBounds.size;
-        Vector3 lossyScale = renderer.transform.lossyScale;
-        float x = Mathf.Abs(localSize.x * lossyScale.x);
-        float y = Mathf.Abs(localSize.y * lossyScale.y);
-        float z = Mathf.Abs(localSize.z * lossyScale.z);
-        return Mathf.Max(x, y, z);
+        trailRenderer.emitting = emitting;
     }
 
-    private Vector3 取世界包围盒最长轴方向(Bounds worldBounds)
+    private void 写入Trail材质参数()
     {
-        Vector3 size = worldBounds.size;
-        if (size.x >= size.y && size.x >= size.z)
-        {
-            return Vector3.right;
-        }
-
-        if (size.y >= size.x && size.y >= size.z)
-        {
-            return Vector3.up;
-        }
-
-        return Vector3.forward;
-    }
-
-    private void 更新片段(float deltaTime)
-    {
-        for (int i = 片段列表.Count - 1; i >= 0; i--)
-        {
-            拖尾片段 segment = 片段列表[i];
-            if (segment == null || segment.物体 == null)
-            {
-                片段列表.RemoveAt(i);
-                continue;
-            }
-
-            segment.已存在时间 += deltaTime;
-            float age01 = segment.已存在时间 / Mathf.Max(拖尾持续时间, 0.0001f);
-            if (age01 >= 1f)
-            {
-                销毁片段(segment);
-                片段列表.RemoveAt(i);
-                continue;
-            }
-
-            写入片段参数(segment, age01);
-        }
-    }
-
-    private void 写入片段参数(拖尾片段 segment, float age01)
-    {
-        if (segment == null || segment.渲染器 == null)
+        if (trailRenderer == null)
         {
             return;
         }
@@ -409,15 +293,14 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
             参数块 = new MaterialPropertyBlock();
         }
 
-        segment.渲染器.GetPropertyBlock(参数块);
+        trailRenderer.GetPropertyBlock(参数块);
         参数块.SetColor(ColorAId, 外侧颜色);
         参数块.SetColor(ColorBId, 内侧颜色);
-        参数块.SetFloat(Age01Id, Mathf.Clamp01(age01));
         参数块.SetFloat(SoftnessId, 边缘柔和);
         参数块.SetFloat(NoiseScaleId, 火焰噪声密度);
         参数块.SetFloat(NoiseStrengthId, 火焰破碎强度);
         参数块.SetFloat(IntensityId, 亮度);
-        segment.渲染器.SetPropertyBlock(参数块);
+        trailRenderer.SetPropertyBlock(参数块);
     }
 
     private bool 检查绑定点()
@@ -430,7 +313,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
         if (!缺少绑定已警告)
         {
-            Debug.LogWarning($"[武器火焰实体拖尾] {name} 缺少刀柄点或刀尖点，无法生成实体拖尾。", this);
+            Debug.LogWarning($"[武器火焰Trail拖尾] {name} 缺少刀柄点或刀尖点，无法按绑定点生成拖尾。", this);
             缺少绑定已警告 = true;
         }
 
@@ -452,11 +335,32 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
         if (!缺少模型渲染器已警告)
         {
-            Debug.LogWarning($"[武器火焰实体拖尾] {name} 使用模型整体生成，但缺少 MeshRenderer，无法生成实体拖尾。", this);
+            Debug.LogWarning($"[武器火焰Trail拖尾] {name} 使用模型整体生成，但缺少 MeshRenderer，无法生成拖尾。", this);
             缺少模型渲染器已警告 = true;
         }
 
         return null;
+    }
+
+    private float 取模型最长轴长度(MeshRenderer renderer, Bounds worldBounds)
+    {
+        if (renderer == null)
+        {
+            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+        }
+
+        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+        {
+            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+        }
+
+        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
+        Vector3 lossyScale = renderer.transform.lossyScale;
+        float x = Mathf.Abs(localSize.x * lossyScale.x);
+        float y = Mathf.Abs(localSize.y * lossyScale.y);
+        float z = Mathf.Abs(localSize.z * lossyScale.z);
+        return Mathf.Max(x, y, z);
     }
 
     private Material 取拖尾材质()
@@ -466,7 +370,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         {
             if (!缺少材质已警告)
             {
-                Debug.LogWarning($"[武器火焰实体拖尾] {name} 找不到拖尾材质，也找不到 Resources/{默认材质路径}。", this);
+                Debug.LogWarning($"[武器火焰Trail拖尾] {name} 找不到拖尾材质，也找不到 Resources/{默认材质路径}。", this);
                 缺少材质已警告 = true;
             }
 
@@ -483,7 +387,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
 
             运行时材质 = new Material(sourceMaterial)
             {
-                name = $"{sourceMaterial.name}_运行时"
+                name = $"{sourceMaterial.name}_Trail运行时"
             };
             运行时材质来源 = sourceMaterial;
         }
@@ -497,48 +401,27 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         return 运行时材质;
     }
 
-    private float 取DeltaTime()
+    private static Gradient 创建Trail颜色渐变()
     {
-        double currentTime = 取当前时间();
-        float deltaTime = Mathf.Clamp((float)(currentTime - 上次更新时间), 0.0001f, 0.1f);
-        上次更新时间 = currentTime;
-        return deltaTime;
-    }
-
-    private static double 取当前时间()
-    {
-#if UNITY_EDITOR
-        if (!Application.isPlaying)
-        {
-            return UnityEditor.EditorApplication.timeSinceStartup;
-        }
-#endif
-
-        return Time.timeAsDouble;
+        Gradient gradient = new Gradient();
+        gradient.SetKeys(
+            new[]
+            {
+                new GradientColorKey(Color.white, 0f),
+                new GradientColorKey(Color.white, 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(0.7f, 0.55f),
+                new GradientAlphaKey(0f, 1f)
+            });
+        return gradient;
     }
 
     private void 重置采样()
     {
         已采样 = false;
-        距上次生成时间 = 0f;
-    }
-
-    private void 销毁片段(拖尾片段 segment)
-    {
-        if (segment == null)
-        {
-            return;
-        }
-
-        if (segment.网格 != null)
-        {
-            销毁对象(segment.网格);
-        }
-
-        if (segment.物体 != null)
-        {
-            销毁对象(segment.物体);
-        }
     }
 
     private static void 销毁对象(Object target)
