@@ -47,11 +47,11 @@ MonoBehaviour:
   "Trail\u6301\u7EED\u65F6\u95F4": 0.268
   "Trail\u89E6\u53D1\u901F\u5EA6\u9608\u503C": 15.2
   "Trail\u6700\u5C0F\u9876\u70B9\u8DDD\u79BB": 0.814
-  "Trail\u672B\u7AEF\u5BBD\u5EA6\u500D\u7387": 1
+  "Trail\u672B\u7AEF\u5BBD\u5EA6\u500D\u7387": 0.437
   "Trail\u4F4E\u901F\u5BBD\u5EA6\u6536\u7F29": 0
-  "Trail\u5916\u4FA7\u989C\u8272": {r: 1, g: 0.16, b: 0.02, a: 0.75}
-  "Trail\u5185\u4FA7\u989C\u8272": {r: 1, g: 0.82, b: 0.18, a: 0.95}
+  "Trail\u5916\u4FA7\u989C\u8272": {r: 1, g: 0.16, b: 0.02, a: 0.72156864}
+  "Trail\u5185\u4FA7\u989C\u8272": {r: 1, g: 0.59974253, b: 0, a: 0.95}
   "Trail\u8FB9\u7F18\u67D4\u548C": 0.01
   "Trail\u706B\u7130\u566A\u58F0\u5BC6\u5EA6": 6.6
   "Trail\u706B\u7130\u7834\u788E\u5F3A\u5EA6": 0.162
-  "Trail\u4EAE\u5EA6": 1.03
+  "Trail\u4EAE\u5EA6": 1.1
