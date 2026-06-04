@@ -45,7 +45,8 @@ public sealed class EffectDatabase : ScriptableObject
         CorruptionResistancePenetration,
         ColdResistancePenetration,
         CriticalChance,
-        CriticalDamage
+        CriticalDamage,
+        WeaponEnchantment
     }
 
     [Serializable]

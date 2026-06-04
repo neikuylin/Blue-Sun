@@ -2421,6 +2421,17 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
         return 装备数值服务.获取角色已装备武器类型(equipment, ResolveItemEntry);
     }
 
+    public static ItemDatabase.WeaponCategory GetCharacterEquippedWeaponCategory(string characterId, string sourceItemId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId) || string.IsNullOrWhiteSpace(sourceItemId))
+        {
+            return ItemDatabase.WeaponCategory.None;
+        }
+
+        List<ItemSlotData> equipment = 获取战斗装备数据(characterId);
+        return 装备数值服务.获取来源武器类型(equipment, ResolveItemEntry, sourceItemId);
+    }
+
     public static float GetCharacterStaffDamageMultiplier(string characterId)
     {
         if (instance == null || string.IsNullOrWhiteSpace(characterId))

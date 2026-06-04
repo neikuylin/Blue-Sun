@@ -16,6 +16,16 @@ internal struct DamageComponent
     public float amount;
 }
 
+internal struct WeaponEnchantmentAttackPower
+{
+    public float physical;
+    public float fire;
+    public float corruption;
+    public float cold;
+
+    public float Total => physical + fire + corruption + cold;
+}
+
 internal sealed class CombatDamageResult
 {
     public readonly List<DamageComponent> components = new List<DamageComponent>();

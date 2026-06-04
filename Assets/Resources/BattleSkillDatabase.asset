@@ -445,3 +445,43 @@ MonoBehaviour:
       hitSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
       soundDelayFrame: 0
       compensateActionMotion: 0
+  - skillId: "\u706B\u7130\u9644\u9B54"
+    skillSource: 
+    description: "\u70B9\u71C3\u624B\u4E2D\u7684\u6B66\u5668\uFF0C\u4F7F\u653B\u51FB\u9020\u6210\u989D\u5916\u7684\u706B\u7130\u4F24\u5BB3"
+    hitEffectPrefab: {fileID: 0}
+    useProjectile: 0
+    projectilePrefab: {fileID: 0}
+    projectileStartFrame: 0
+    enableHitFeel: 0
+    resolveFrame: 0
+    castCount: 1
+    hitCount: 1
+    extraProjectileStartFrames: 
+    extraHitResolveFrames: 
+    group: 2
+    skillType: 0
+    castTarget: 0
+    icon: {fileID: 21300000, guid: 2382dd75de0a41d47bacf44862fb0cdd, type: 3}
+    noDamage: 1
+    damageMultiplier: 1
+    attributeMultiplier: 0
+    fixedDamage: 0
+    hitRateModifier: 0
+    damageType: 0
+    actionPointCost: 2
+    manaCost: 2
+    cooldownTurns: 2
+    useMoveDistanceAsRange: 0
+    range: 1
+    areaCastType: 0
+    circularAxisAreaType: 0
+    axisWidth: 3
+    axisAngle: 180
+    effectSize: {x: 1, y: 1}
+    attachedEffects:
+    - effectId: "\u706B\u7130\u9644\u9B54"
+      durationTurns: 2
+      applyChancePercent: 100
+    attachedEffectIds: []
+    requiredWeaponCategories: 
+    weaponActionOverrides: []

@@ -45,7 +45,8 @@ public sealed class EffectEditorWindow : EditorWindow
         EffectDatabase.CharacterStatField.CorruptionResistancePenetration,
         EffectDatabase.CharacterStatField.ColdResistancePenetration,
         EffectDatabase.CharacterStatField.CriticalChance,
-        EffectDatabase.CharacterStatField.CriticalDamage
+        EffectDatabase.CharacterStatField.CriticalDamage,
+        EffectDatabase.CharacterStatField.WeaponEnchantment
     };
 
     private static readonly string[] StatFieldLabels =
@@ -67,7 +68,8 @@ public sealed class EffectEditorWindow : EditorWindow
         "\u8150\u8d25\u6297\u6027\u7a7f\u900f",
         "\u5bd2\u51b7\u6297\u6027\u7a7f\u900f",
         "\u66b4\u51fb\u7387",
-        "\u66b4\u51fb\u4f24\u5bb3"
+        "\u66b4\u51fb\u4f24\u5bb3",
+        "赋予武器"
     };
 
     private static readonly string[] AmountModeLabels =
@@ -82,6 +84,14 @@ public sealed class EffectEditorWindow : EditorWindow
         "\u706b\u7130",
         "\u8150\u8d25",
         "\u5bd2\u51b7"
+    };
+
+    private static readonly string[] WeaponEnchantmentDamageTypeLabels =
+    {
+        "物理伤害",
+        "火焰伤害",
+        "腐败伤害",
+        "寒冷伤害"
     };
 
     private Vector2 scroll;
@@ -228,15 +238,24 @@ public sealed class EffectEditorWindow : EditorWindow
                 EffectDatabase.CharacterStatField selectedField =
                     (EffectDatabase.CharacterStatField)statFieldProperty.enumValueIndex;
                 if (selectedField == EffectDatabase.CharacterStatField.TargetHealth ||
+                    selectedField == EffectDatabase.CharacterStatField.WeaponEnchantment ||
                     selectedField == EffectDatabase.CharacterStatField.MaxHealth)
                 {
                     SerializedProperty healthDamageTypeProperty = modifier.FindPropertyRelative("healthDamageType");
+                    string[] damageTypeLabels = selectedField == EffectDatabase.CharacterStatField.WeaponEnchantment
+                        ? WeaponEnchantmentDamageTypeLabels
+                        : HealthDamageTypeLabels;
                     healthDamageTypeProperty.enumValueIndex = EditorGUILayout.Popup(
                         healthDamageTypeProperty.enumValueIndex,
-                        HealthDamageTypeLabels,
-                        GUILayout.Width(70f));
+                        damageTypeLabels,
+                        GUILayout.Width(selectedField == EffectDatabase.CharacterStatField.WeaponEnchantment ? 90f : 70f));
                 }
-                if (ShouldForcePercentAmountMode(selectedField))
+                if (selectedField == EffectDatabase.CharacterStatField.WeaponEnchantment)
+                {
+                    amountModeProperty.enumValueIndex = (int)EffectDatabase.StatModifier.AmountMode.Flat;
+                    EditorGUILayout.LabelField("纯数值", GUILayout.Width(90f));
+                }
+                else if (ShouldForcePercentAmountMode(selectedField))
                 {
                     amountModeProperty.enumValueIndex = (int)EffectDatabase.StatModifier.AmountMode.Percent;
                     EditorGUILayout.LabelField("\u767e\u5206\u6bd4", GUILayout.Width(90f));

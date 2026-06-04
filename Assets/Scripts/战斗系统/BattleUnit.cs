@@ -495,6 +495,72 @@ public class BattleUnit : MonoBehaviour
             treatPercentAsPoints: true));
     }
 
+    internal WeaponEnchantmentAttackPower GetWeaponEnchantmentAttackPower(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        WeaponEnchantmentAttackPower result = new WeaponEnchantmentAttackPower();
+        if (!CanApplyWeaponEnchantment(weaponCategory))
+        {
+            return result;
+        }
+
+        EffectDatabase database = EffectDatabase.LoadDefault();
+        if (database == null || activeEffects.Count == 0)
+        {
+            return result;
+        }
+
+        for (int effectIndex = 0; effectIndex < activeEffects.Count; effectIndex++)
+        {
+            ActiveEffectState activeEffect = activeEffects[effectIndex];
+            if (activeEffect == null || activeEffect.remainingTurns <= 0 || string.IsNullOrWhiteSpace(activeEffect.effectId))
+            {
+                continue;
+            }
+
+            EffectDatabase.EffectEntry effectEntry = database.FindEntry(activeEffect.effectId);
+            if (effectEntry == null || effectEntry.statModifiers == null || effectEntry.statModifiers.Count == 0)
+            {
+                continue;
+            }
+
+            int stackCount = Mathf.Max(1, activeEffect.stackCount);
+            for (int modifierIndex = 0; modifierIndex < effectEntry.statModifiers.Count; modifierIndex++)
+            {
+                EffectDatabase.StatModifier modifier = effectEntry.statModifiers[modifierIndex];
+                if (modifier == null || modifier.statField != EffectDatabase.CharacterStatField.WeaponEnchantment)
+                {
+                    continue;
+                }
+
+                float amount = modifier.amount * stackCount;
+                switch (modifier.healthDamageType)
+                {
+                    case EffectDatabase.StatModifier.HealthDamageType.Fire:
+                        result.fire += amount;
+                        break;
+                    case EffectDatabase.StatModifier.HealthDamageType.Corruption:
+                        result.corruption += amount;
+                        break;
+                    case EffectDatabase.StatModifier.HealthDamageType.Cold:
+                        result.cold += amount;
+                        break;
+                    default:
+                        result.physical += amount;
+                        break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static bool CanApplyWeaponEnchantment(ItemDatabase.WeaponCategory weaponCategory)
+    {
+        return weaponCategory == ItemDatabase.WeaponCategory.OneHanded ||
+            weaponCategory == ItemDatabase.WeaponCategory.TwoHanded ||
+            weaponCategory == ItemDatabase.WeaponCategory.Bow;
+    }
+
     public void NormalizeRuntimeState()
     {
         currentHealth = Mathf.Clamp(currentHealth, 0, GetEffectiveMaxHealth());

@@ -193,6 +193,15 @@ internal static class 装备数值服务
         return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
     }
 
+    public static ItemDatabase.WeaponCategory 获取来源武器类型(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry,
+        string sourceItemId)
+    {
+        ItemDatabase.ItemEntry weaponEntry = 获取来源武器条目(equipment, resolveItemEntry, sourceItemId);
+        return weaponEntry != null ? weaponEntry.weaponCategory : ItemDatabase.WeaponCategory.None;
+    }
+
     public static float 获取角色法杖伤害倍率(
         List<InventoryShortcutRuntimeBinder.ItemSlotData> equipment,
         Func<string, ItemDatabase.ItemEntry> resolveItemEntry)

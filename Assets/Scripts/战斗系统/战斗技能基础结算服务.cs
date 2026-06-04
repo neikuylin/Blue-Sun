@@ -37,7 +37,10 @@ internal sealed class 战斗技能基础结算服务
             return null;
         }
 
-        float attackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId, skillSource);
+        float baseAttackPower = InventoryShortcutRuntimeBinder.GetCharacterWeaponAttackPower(caster.characterId, skillSource);
+        ItemDatabase.WeaponCategory weaponCategory = 解析武器类型(caster.characterId, skillSource);
+        WeaponEnchantmentAttackPower enchantmentAttackPower = caster.GetWeaponEnchantmentAttackPower(weaponCategory);
+        float attackPower = baseAttackPower + enchantmentAttackPower.Total;
         if (attackPower <= 0f)
         {
             return null;
@@ -58,7 +61,18 @@ internal sealed class 战斗技能基础结算服务
             damage *= Mathf.Max(0f, totalCriticalDamage) / 100f;
         }
 
-        构建伤害分量(result.components, damage, InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId, skillSource), caster, target, skillSource);
+        float damageMultiplier = Mathf.Max(0f, skill.damageMultiplier);
+        float criticalMultiplier = result.isCritical ? Mathf.Max(0f, totalCriticalDamage) / 100f : 1f;
+        构建伤害分量(
+            result.components,
+            baseAttackPower,
+            enchantmentAttackPower,
+            damageMultiplier,
+            criticalMultiplier,
+            InventoryShortcutRuntimeBinder.GetCharacterWeaponDamageDistribution(caster.characterId, skillSource),
+            caster,
+            target,
+            skillSource);
         for (int i = 0; i < result.components.Count; i++)
         {
             result.totalDamage += result.components[i].amount;
@@ -287,14 +301,17 @@ internal sealed class 战斗技能基础结算服务
 
     private void 构建伤害分量(
         List<DamageComponent> components,
-        float totalDamage,
+        float baseAttackPower,
+        WeaponEnchantmentAttackPower enchantmentAttackPower,
+        float damageMultiplier,
+        float criticalMultiplier,
         ItemDatabase.WeaponDamageDistribution distribution,
         BattleUnit caster,
         BattleUnit target,
         string skillSource = null)
     {
         components.Clear();
-        if (totalDamage <= 0f || distribution == null)
+        if ((baseAttackPower <= 0f && enchantmentAttackPower.Total <= 0f) || distribution == null)
         {
             return;
         }
@@ -305,29 +322,48 @@ internal sealed class 战斗技能基础结算服务
             return;
         }
 
-        添加伤害分量(components, DamageAttributeType.Physical, totalDamage, distribution.physical, distributionTotal, caster, target, skillSource);
-        添加伤害分量(components, DamageAttributeType.Fire, totalDamage, distribution.fire, distributionTotal, caster, target, skillSource);
-        添加伤害分量(components, DamageAttributeType.Corruption, totalDamage, distribution.corruption, distributionTotal, caster, target, skillSource);
-        添加伤害分量(components, DamageAttributeType.Cold, totalDamage, distribution.cold, distributionTotal, caster, target, skillSource);
+        float finalMultiplier = Mathf.Max(0f, damageMultiplier) * Mathf.Max(0f, criticalMultiplier);
+        添加伤害分量(components, DamageAttributeType.Physical, baseAttackPower, distribution.physical, distributionTotal, enchantmentAttackPower.physical, finalMultiplier, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Fire, baseAttackPower, distribution.fire, distributionTotal, enchantmentAttackPower.fire, finalMultiplier, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Corruption, baseAttackPower, distribution.corruption, distributionTotal, enchantmentAttackPower.corruption, finalMultiplier, caster, target, skillSource);
+        添加伤害分量(components, DamageAttributeType.Cold, baseAttackPower, distribution.cold, distributionTotal, enchantmentAttackPower.cold, finalMultiplier, caster, target, skillSource);
     }
 
     private void 添加伤害分量(
         List<DamageComponent> components,
         DamageAttributeType attributeType,
-        float totalDamage,
+        float baseAttackPower,
         int distributionValue,
         int distributionTotal,
+        float enchantmentAttackPower,
+        float finalMultiplier,
         BattleUnit caster,
         BattleUnit target,
         string skillSource = null)
     {
-        if (components == null || totalDamage <= 0f || distributionValue <= 0 || distributionTotal <= 0)
+        if (components == null || finalMultiplier <= 0f || distributionTotal <= 0)
         {
             return;
         }
 
-        float baseAmount = totalDamage * distributionValue / distributionTotal;
-        float mitigatedAmount = 应用抗性(baseAmount, caster, target, attributeType, skillSource);
+        float amount = ((Mathf.Max(0f, baseAttackPower) * distributionValue / distributionTotal) + enchantmentAttackPower) * finalMultiplier;
+        添加固定伤害分量(components, attributeType, amount, caster, target, skillSource);
+    }
+
+    private void 添加固定伤害分量(
+        List<DamageComponent> components,
+        DamageAttributeType attributeType,
+        float amount,
+        BattleUnit caster,
+        BattleUnit target,
+        string skillSource = null)
+    {
+        if (components == null || amount <= 0f)
+        {
+            return;
+        }
+
+        float mitigatedAmount = 应用抗性(amount, caster, target, attributeType, skillSource);
         if (mitigatedAmount <= 0f)
         {
             return;
@@ -338,6 +374,13 @@ internal sealed class 战斗技能基础结算服务
             attributeType = attributeType,
             amount = mitigatedAmount
         });
+    }
+
+    private static ItemDatabase.WeaponCategory 解析武器类型(string characterId, string skillSource)
+    {
+        return string.IsNullOrWhiteSpace(skillSource)
+            ? InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(characterId)
+            : InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(characterId, skillSource);
     }
 
     private void 构建法术伤害分量(
@@ -353,12 +396,10 @@ internal sealed class 战斗技能基础结算服务
             return;
         }
 
-        添加伤害分量(
+        添加固定伤害分量(
             components,
             转换法术伤害类型(skill.damageType),
             totalDamage,
-            100,
-            100,
             caster,
             target);
     }
