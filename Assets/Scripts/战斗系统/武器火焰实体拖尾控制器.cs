@@ -32,6 +32,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     [Header("模型整体")]
     [SerializeField] private MeshRenderer 目标模型渲染器;
     [SerializeField, Range(0.1f, 4f)] private float 整体长轴倍率 = 1.15f;
+    [SerializeField, Range(-2f, 2f)] private float 发射面偏移 = 0.08f;
 
     [Header("拖尾开关")]
     [SerializeField] private bool 启用拖尾 = true;
@@ -84,6 +85,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     private void OnValidate()
     {
         整体长轴倍率 = Mathf.Clamp(整体长轴倍率, 0.1f, 4f);
+        发射面偏移 = Mathf.Clamp(发射面偏移, -2f, 2f);
         拖尾持续时间 = Mathf.Clamp(拖尾持续时间, 0.03f, 1f);
         触发速度阈值 = Mathf.Max(0f, 触发速度阈值);
         最小顶点距离 = Mathf.Clamp(最小顶点距离, 0.01f, 1f);
@@ -157,9 +159,12 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         }
 
         Bounds bounds = renderer.bounds;
-        Vector3 position = bounds.center;
+        Vector3 planeNormal = 取模型最薄轴方向(renderer, bounds);
+        Vector3 weaponAxis = 取模型最长轴方向(renderer, bounds);
+        Vector3 position = bounds.center + planeNormal * 发射面偏移;
         float speed = 计算速度(position);
-        更新Trail位置和宽度(position, 取模型最长轴长度(renderer, bounds) * 整体长轴倍率, speed);
+        Quaternion rotation = 取Trail平面旋转(planeNormal, weaponAxis);
+        更新Trail位置旋转和宽度(position, rotation, 取模型最长轴长度(renderer, bounds) * 整体长轴倍率, speed);
     }
 
     private void 更新绑定点Trail()
@@ -174,10 +179,10 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         Vector3 position = (刀柄点.position + 刀尖点.position) * 0.5f;
         float width = Vector3.Distance(刀柄点.position, 刀尖点.position);
         float speed = 计算速度(position);
-        更新Trail位置和宽度(position, width, speed);
+        更新Trail位置旋转和宽度(position, transform.rotation, width, speed);
     }
 
-    private void 更新Trail位置和宽度(Vector3 position, float baseWidth, float speed)
+    private void 更新Trail位置旋转和宽度(Vector3 position, Quaternion rotation, float baseWidth, float speed)
     {
         if (trailTransform == null || trailRenderer == null)
         {
@@ -185,6 +190,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         }
 
         trailTransform.position = position;
+        trailTransform.rotation = rotation;
         float speed01 = 触发速度阈值 <= 0f ? 1f : Mathf.Clamp01(speed / Mathf.Max(触发速度阈值 * 4f, 0.0001f));
         float widthScale = Mathf.Lerp(低速宽度收缩, 1f, speed01);
         trailRenderer.widthMultiplier = Mathf.Max(0.001f, baseWidth * widthScale);
@@ -253,7 +259,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         trailRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
         trailRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         trailRenderer.textureMode = LineTextureMode.Stretch;
-        trailRenderer.alignment = LineAlignment.View;
+        trailRenderer.alignment = LineAlignment.TransformZ;
         trailRenderer.colorGradient = 创建Trail颜色渐变();
     }
 
@@ -361,6 +367,110 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         float y = Mathf.Abs(localSize.y * lossyScale.y);
         float z = Mathf.Abs(localSize.z * lossyScale.z);
         return Mathf.Max(x, y, z);
+    }
+
+    private Vector3 取模型最长轴方向(MeshRenderer renderer, Bounds worldBounds)
+    {
+        if (renderer == null)
+        {
+            return transform.up;
+        }
+
+        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+        {
+            return 取世界包围盒最长轴方向(worldBounds);
+        }
+
+        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
+        Transform rendererTransform = renderer.transform;
+        if (localSize.x >= localSize.y && localSize.x >= localSize.z)
+        {
+            return rendererTransform.right.normalized;
+        }
+
+        if (localSize.y >= localSize.x && localSize.y >= localSize.z)
+        {
+            return rendererTransform.up.normalized;
+        }
+
+        return rendererTransform.forward.normalized;
+    }
+
+    private Vector3 取模型最薄轴方向(MeshRenderer renderer, Bounds worldBounds)
+    {
+        if (renderer == null)
+        {
+            return transform.forward;
+        }
+
+        MeshFilter meshFilter = renderer.GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+        {
+            return 取世界包围盒最薄轴方向(worldBounds);
+        }
+
+        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
+        Transform rendererTransform = renderer.transform;
+        if (localSize.x <= localSize.y && localSize.x <= localSize.z)
+        {
+            return rendererTransform.right.normalized;
+        }
+
+        if (localSize.y <= localSize.x && localSize.y <= localSize.z)
+        {
+            return rendererTransform.up.normalized;
+        }
+
+        return rendererTransform.forward.normalized;
+    }
+
+    private static Vector3 取世界包围盒最长轴方向(Bounds worldBounds)
+    {
+        Vector3 size = worldBounds.size;
+        if (size.x >= size.y && size.x >= size.z)
+        {
+            return Vector3.right;
+        }
+
+        if (size.y >= size.x && size.y >= size.z)
+        {
+            return Vector3.up;
+        }
+
+        return Vector3.forward;
+    }
+
+    private static Vector3 取世界包围盒最薄轴方向(Bounds worldBounds)
+    {
+        Vector3 size = worldBounds.size;
+        if (size.x <= size.y && size.x <= size.z)
+        {
+            return Vector3.right;
+        }
+
+        if (size.y <= size.x && size.y <= size.z)
+        {
+            return Vector3.up;
+        }
+
+        return Vector3.forward;
+    }
+
+    private Quaternion 取Trail平面旋转(Vector3 planeNormal, Vector3 weaponAxis)
+    {
+        Vector3 normal = planeNormal.sqrMagnitude > 0.000001f ? planeNormal.normalized : transform.forward;
+        Vector3 axis = weaponAxis.sqrMagnitude > 0.000001f ? weaponAxis.normalized : transform.up;
+        if (Mathf.Abs(Vector3.Dot(normal, axis)) > 0.98f)
+        {
+            axis = Vector3.Cross(normal, transform.right);
+            if (axis.sqrMagnitude <= 0.000001f)
+            {
+                axis = Vector3.Cross(normal, transform.up);
+            }
+        }
+
+        return Quaternion.LookRotation(normal, axis.normalized);
     }
 
     private Material 取拖尾材质()
