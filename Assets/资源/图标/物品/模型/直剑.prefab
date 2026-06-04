@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1301628817768341468}
   - component: {fileID: 3016210404075057841}
   - component: {fileID: 1776870507740999785}
+  - component: {fileID: 4272037790545669963}
   m_Layer: 0
   m_Name: "\u76F4\u5251"
   m_TagString: Untagged
@@ -134,6 +135,35 @@ MonoBehaviour:
   "\u706B\u661F\u53D1\u5C04\u8303\u56F4\u500D\u7387": 0.75
   "\u539F\u59CB\u6750\u8D28\u5217\u8868":
   - {fileID: 2100000, guid: 8f5367100291c034c82279a3888282eb, type: 2}
+--- !u!114 &4272037790545669963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7194361354705236364}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19bcdf9e10c4e6aa66ddd4e25e06428, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u706B\u7130\u5B9E\u4F53\u62D6\u5C3E\u63A7\u5236\u5668"
+  "\u5200\u67C4\u70B9": {fileID: 3804897529382065016}
+  "\u5200\u5C16\u70B9": {fileID: 3804897529382065016}
+  "\u62D6\u5C3E\u5BB9\u5668": {fileID: 3804897529382065016}
+  "\u542F\u7528\u62D6\u5C3E": 1
+  "\u65E0\u89C6\u6DF1\u5EA6": 1
+  "\u62D6\u5C3E\u6750\u8D28": {fileID: 2100000, guid: f02ca9c5d94f4c35a8ab8f7c3a9e6a4b, type: 2}
+  "\u751F\u6210\u95F4\u9694": 0.018
+  "\u62D6\u5C3E\u6301\u7EED\u65F6\u95F4": 0.18
+  "\u89E6\u53D1\u901F\u5EA6\u9608\u503C": 0.25
+  "\u5BBD\u5EA6\u500D\u7387": 1.08
+  "\u6700\u5927\u7247\u6BB5\u6570": 24
+  "\u5916\u4FA7\u989C\u8272": {r: 1, g: 0.16, b: 0.02, a: 0.75}
+  "\u5185\u4FA7\u989C\u8272": {r: 1, g: 0.82, b: 0.18, a: 0.95}
+  "\u8FB9\u7F18\u67D4\u548C": 0.35
+  "\u706B\u7130\u566A\u58F0\u5BC6\u5EA6": 8
+  "\u706B\u7130\u7834\u788E\u5F3A\u5EA6": 0.28
+  "\u4EAE\u5EA6": 1.8
 --- !u!1 &8666520025450344722
 GameObject:
   m_ObjectHideFlags: 0
