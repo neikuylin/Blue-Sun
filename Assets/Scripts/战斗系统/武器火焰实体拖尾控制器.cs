@@ -17,10 +17,24 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     private static readonly int IntensityId = Shader.PropertyToID("_Intensity");
     private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
 
+    public enum 拖尾生成方式
+    {
+        按模型整体生成 = 0,
+        按绑定点生成 = 1
+    }
+
+    [Header("生成方式")]
+    [SerializeField] private 拖尾生成方式 生成方式 = 拖尾生成方式.按模型整体生成;
+
     [Header("绑定点")]
     [SerializeField] private Transform 刀柄点;
     [SerializeField] private Transform 刀尖点;
     [SerializeField] private Transform 拖尾容器;
+
+    [Header("模型整体")]
+    [SerializeField] private MeshRenderer 目标模型渲染器;
+    [SerializeField, Range(0.1f, 4f)] private float 整体宽度倍率 = 1.15f;
+    [SerializeField, Range(0.1f, 6f)] private float 速度长度倍率 = 1.2f;
 
     [Header("拖尾开关")]
     [SerializeField] private bool 启用拖尾 = true;
@@ -48,10 +62,12 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
     private Material 运行时材质来源;
     private Vector3 上次刀柄位置;
     private Vector3 上次刀尖位置;
+    private Vector3 上次整体中心;
     private float 距上次生成时间;
     private double 上次更新时间;
     private bool 已采样;
     private bool 缺少绑定已警告;
+    private bool 缺少模型渲染器已警告;
     private bool 缺少材质已警告;
 
     private sealed class 拖尾片段
@@ -85,6 +101,8 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         拖尾持续时间 = Mathf.Clamp(拖尾持续时间, 0.03f, 1f);
         触发速度阈值 = Mathf.Max(0f, 触发速度阈值);
         宽度倍率 = Mathf.Clamp(宽度倍率, 0.1f, 3f);
+        整体宽度倍率 = Mathf.Clamp(整体宽度倍率, 0.1f, 4f);
+        速度长度倍率 = Mathf.Clamp(速度长度倍率, 0.1f, 6f);
         最大片段数 = Mathf.Clamp(最大片段数, 0, 80);
         边缘柔和 = Mathf.Clamp01(边缘柔和);
         火焰噪声密度 = Mathf.Clamp(火焰噪声密度, 0.1f, 40f);
@@ -103,15 +121,26 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
             return;
         }
 
-        if (!检查绑定())
-        {
-            重置采样();
-            return;
-        }
-
         Material material = 取拖尾材质();
         if (material == null)
         {
+            return;
+        }
+
+        if (生成方式 == 拖尾生成方式.按模型整体生成)
+        {
+            更新模型整体拖尾(deltaTime, material);
+            return;
+        }
+
+        更新绑定点拖尾(deltaTime, material);
+    }
+
+    private void 更新绑定点拖尾(float deltaTime, Material material)
+    {
+        if (!检查绑定点())
+        {
+            重置采样();
             return;
         }
 
@@ -140,6 +169,36 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         上次刀尖位置 = 当前刀尖位置;
     }
 
+    private void 更新模型整体拖尾(float deltaTime, Material material)
+    {
+        MeshRenderer renderer = 取目标模型渲染器();
+        if (renderer == null)
+        {
+            重置采样();
+            return;
+        }
+
+        Bounds bounds = renderer.bounds;
+        Vector3 当前中心 = bounds.center;
+        if (!已采样)
+        {
+            上次整体中心 = 当前中心;
+            已采样 = true;
+            return;
+        }
+
+        距上次生成时间 += deltaTime;
+        Vector3 movement = 当前中心 - 上次整体中心;
+        float speed = movement.magnitude / Mathf.Max(deltaTime, 0.0001f);
+        if (距上次生成时间 >= 生成间隔 && speed >= 触发速度阈值)
+        {
+            创建模型整体片段(当前中心, bounds, movement, speed, material);
+            距上次生成时间 = 0f;
+        }
+
+        上次整体中心 = 当前中心;
+    }
+
     [ContextMenu("清空火焰实体拖尾")]
     public void 清空片段()
     {
@@ -149,6 +208,27 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         }
 
         片段列表.Clear();
+    }
+
+    private void 创建模型整体片段(Vector3 当前中心, Bounds 当前包围盒, Vector3 移动方向, float speed, Material material)
+    {
+        if (最大片段数 <= 0)
+        {
+            return;
+        }
+
+        Vector3 sideDirection = 取整体侧向(移动方向);
+        Vector3 direction = 移动方向.sqrMagnitude > 0.000001f ? 移动方向.normalized : transform.forward;
+        float length = speed * 生成间隔 * 速度长度倍率;
+        Vector3 上一中心 = 当前中心 - direction * length;
+        float width = Mathf.Max(当前包围盒.size.x, 当前包围盒.size.y, 当前包围盒.size.z) * 整体宽度倍率;
+        Vector3 halfSide = sideDirection * (width * 0.5f);
+        创建片段(
+            上一中心 - halfSide,
+            上一中心 + halfSide,
+            当前中心 - halfSide,
+            当前中心 + halfSide,
+            material);
     }
 
     private void 创建片段(Vector3 上一刀柄, Vector3 上一刀尖, Vector3 当前刀柄, Vector3 当前刀尖, Material material)
@@ -224,6 +304,23 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         片段列表.Add(segment);
     }
 
+    private Vector3 取整体侧向(Vector3 移动方向)
+    {
+        Vector3 direction = 移动方向.sqrMagnitude > 0.000001f ? 移动方向.normalized : transform.forward;
+        Vector3 side = Vector3.Cross(direction, transform.forward);
+        if (side.sqrMagnitude <= 0.000001f)
+        {
+            side = Vector3.Cross(direction, transform.up);
+        }
+
+        if (side.sqrMagnitude <= 0.000001f)
+        {
+            side = transform.right;
+        }
+
+        return side.normalized;
+    }
+
     private void 更新片段(float deltaTime)
     {
         for (int i = 片段列表.Count - 1; i >= 0; i--)
@@ -271,7 +368,7 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         segment.渲染器.SetPropertyBlock(参数块);
     }
 
-    private bool 检查绑定()
+    private bool 检查绑定点()
     {
         if (刀柄点 != null && 刀尖点 != null)
         {
@@ -286,6 +383,28 @@ public sealed class 武器火焰实体拖尾控制器 : MonoBehaviour
         }
 
         return false;
+    }
+
+    private MeshRenderer 取目标模型渲染器()
+    {
+        if (目标模型渲染器 == null)
+        {
+            目标模型渲染器 = GetComponent<MeshRenderer>();
+        }
+
+        if (目标模型渲染器 != null)
+        {
+            缺少模型渲染器已警告 = false;
+            return 目标模型渲染器;
+        }
+
+        if (!缺少模型渲染器已警告)
+        {
+            Debug.LogWarning($"[武器火焰实体拖尾] {name} 使用模型整体生成，但缺少 MeshRenderer，无法生成实体拖尾。", this);
+            缺少模型渲染器已警告 = true;
+        }
+
+        return null;
     }
 
     private Material 取拖尾材质()
