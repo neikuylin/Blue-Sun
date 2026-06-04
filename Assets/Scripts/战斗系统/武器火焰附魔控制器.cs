@@ -9,8 +9,7 @@ using UnityEditor;
 [AddComponentMenu("特效/武器火焰附魔控制器")]
 public sealed class 武器火焰附魔控制器 : MonoBehaviour
 {
-    private const string 默认火焰材质路径 = "武器火焰附魔模型材质";
-    private const string 默认火星粒子材质路径 = "武器火星粒子材质";
+    private const string 全局配置路径 = "武器火焰附魔全局配置";
     private const string 火星粒子物体名 = "火焰附魔火星粒子";
 
     private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
@@ -29,6 +28,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private static readonly int FlickerSpeedId = Shader.PropertyToID("_FlickerSpeed");
     private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
     private static readonly int GlossinessId = Shader.PropertyToID("_Glossiness");
+    private static readonly int SparkCoreColorId = Shader.PropertyToID("_CoreColor");
+    private static readonly int SparkGlowColorId = Shader.PropertyToID("_GlowColor");
+    private static readonly int SparkZTestId = Shader.PropertyToID("_ZTest");
 
     [SerializeField] private bool 启用附魔 = true;
     [SerializeField] private Material 火焰材质;
@@ -46,36 +48,43 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float 闪烁强度 = 0.22f;
     [SerializeField, Range(0f, 12f)] private float 闪烁速度 = 4f;
     [SerializeField] private bool 启用火星粒子 = true;
+    [SerializeField] private bool 火星无视深度 = true;
     [SerializeField] private Material 火星粒子材质;
     [SerializeField, Range(0f, 80f)] private float 火星数量 = 10f;
     [SerializeField, Range(0.001f, 0.2f)] private float 火星大小 = 0.035f;
     [SerializeField, Range(0f, 5f)] private float 火星上升速度 = 1.2f;
     [SerializeField, Range(0f, 2f)] private float 火星左右扰动 = 0.35f;
     [SerializeField, Range(0.05f, 3f)] private float 火星生命周期 = 0.8f;
+    [SerializeField] private Color 火星圆点颜色 = new Color(1f, 0.86f, 0.24f, 1f);
+    [SerializeField] private Color 火星外发光颜色 = new Color(1f, 0.22f, 0.04f, 0.55f);
     [SerializeField] private Color 火星起始颜色 = new Color(1f, 0.72f, 0.18f, 1f);
     [SerializeField] private Color 火星结束颜色 = new Color(1f, 0.12f, 0.02f, 0f);
     [SerializeField, Range(0.05f, 2f)] private float 火星发射范围倍率 = 0.75f;
     [SerializeField, HideInInspector] private Material[] 原始材质列表;
 
+    private 武器火焰附魔全局配置 全局配置缓存;
     private MeshRenderer meshRenderer;
     private MeshFilter meshFilter;
     private MaterialPropertyBlock propertyBlock;
+    private MaterialPropertyBlock 火星粒子参数块;
     private ParticleSystem 火星粒子系统;
     private ParticleSystemRenderer 火星粒子渲染器;
+    private Material 火星粒子运行时材质;
+    private Material 火星粒子运行时来源材质;
 
 #if UNITY_EDITOR
     private double 上次编辑器预览时间;
 #endif
 
-    public bool 当前启用附魔 => 启用附魔;
-    public Material 当前火焰材质 => 火焰材质;
+    public bool 当前启用附魔 => 取全局配置() != null && 取全局配置().启用附魔;
+    public Material 当前火焰材质 => 取全局配置() != null ? 取全局配置().火焰材质 : null;
     public Material[] 当前原始材质列表 => 原始材质列表;
+    public 武器火焰附魔全局配置 当前全局配置 => 取全局配置();
 
     private void Reset()
     {
         取组件和参数块();
         记录原始材质列表();
-        加载默认火焰材质();
         应用附魔设置();
     }
 
@@ -104,20 +113,6 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
     private void OnValidate()
     {
-        火焰强度 = Mathf.Clamp(火焰强度, 0f, 4f);
-        火焰速度 = Mathf.Clamp(火焰速度, 0f, 10f);
-        火焰密度 = Mathf.Clamp(火焰密度, 0.1f, 40f);
-        原图保留强度 = Mathf.Clamp01(原图保留强度);
-        外扩火焰范围 = Mathf.Clamp(外扩火焰范围, 0f, 8f);
-        外扩火焰强度 = Mathf.Clamp(外扩火焰强度, 0f, 4f);
-        闪烁强度 = Mathf.Clamp01(闪烁强度);
-        闪烁速度 = Mathf.Clamp(闪烁速度, 0f, 12f);
-        火星数量 = Mathf.Clamp(火星数量, 0f, 80f);
-        火星大小 = Mathf.Clamp(火星大小, 0.001f, 0.2f);
-        火星上升速度 = Mathf.Clamp(火星上升速度, 0f, 5f);
-        火星左右扰动 = Mathf.Clamp(火星左右扰动, 0f, 2f);
-        火星生命周期 = Mathf.Clamp(火星生命周期, 0.05f, 3f);
-        火星发射范围倍率 = Mathf.Clamp(火星发射范围倍率, 0.05f, 2f);
         应用附魔设置();
     }
 
@@ -131,7 +126,14 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        if (!启用附魔)
+        武器火焰附魔全局配置 config = 取全局配置();
+        if (config == null)
+        {
+            Debug.LogWarning($"[武器火焰附魔] {name} 找不到 Resources/{全局配置路径}，无法应用火焰附魔。", this);
+            return;
+        }
+
+        if (!config.启用附魔)
         {
             还原原始材质();
             停止火星粒子();
@@ -139,31 +141,30 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         }
 
         记录原始材质列表();
-        加载默认火焰材质();
-        if (火焰材质 == null)
+        if (config.火焰材质 == null)
         {
-            Debug.LogWarning($"[武器火焰附魔] {name} 没有指定火焰材质，无法应用火焰附魔。", this);
+            Debug.LogWarning($"[武器火焰附魔] 全局配置没有指定火焰材质，无法应用火焰附魔。", this);
             return;
         }
 
-        应用火焰材质到全部材质槽();
+        应用火焰材质到全部材质槽(config.火焰材质);
         meshRenderer.GetPropertyBlock(propertyBlock);
         写入原始材质参数(propertyBlock);
-        propertyBlock.SetColor(ColorId, 颜色);
-        propertyBlock.SetColor(DarkFireColorId, 暗部火焰颜色);
-        propertyBlock.SetColor(MainFireColorId, 主火焰颜色);
-        propertyBlock.SetColor(CoreFireColorId, 核心火焰颜色);
-        propertyBlock.SetFloat(FireIntensityId, 火焰强度);
-        propertyBlock.SetFloat(FireSpeedId, 火焰速度);
-        propertyBlock.SetFloat(FireScaleId, 火焰密度);
-        propertyBlock.SetVector(FlowDirectionId, 取标准化流动方向());
-        propertyBlock.SetFloat(OriginalKeepId, 原图保留强度);
-        propertyBlock.SetFloat(OuterFireRangeId, 外扩火焰范围);
-        propertyBlock.SetFloat(OuterFireIntensityId, 外扩火焰强度);
-        propertyBlock.SetFloat(FlickerStrengthId, 闪烁强度);
-        propertyBlock.SetFloat(FlickerSpeedId, 闪烁速度);
+        propertyBlock.SetColor(ColorId, config.颜色);
+        propertyBlock.SetColor(DarkFireColorId, config.暗部火焰颜色);
+        propertyBlock.SetColor(MainFireColorId, config.主火焰颜色);
+        propertyBlock.SetColor(CoreFireColorId, config.核心火焰颜色);
+        propertyBlock.SetFloat(FireIntensityId, config.火焰强度);
+        propertyBlock.SetFloat(FireSpeedId, config.火焰速度);
+        propertyBlock.SetFloat(FireScaleId, config.火焰密度);
+        propertyBlock.SetVector(FlowDirectionId, 取标准化流动方向(config.流动方向));
+        propertyBlock.SetFloat(OriginalKeepId, config.原图保留强度);
+        propertyBlock.SetFloat(OuterFireRangeId, config.外扩火焰范围);
+        propertyBlock.SetFloat(OuterFireIntensityId, config.外扩火焰强度);
+        propertyBlock.SetFloat(FlickerStrengthId, config.闪烁强度);
+        propertyBlock.SetFloat(FlickerSpeedId, config.闪烁速度);
         meshRenderer.SetPropertyBlock(propertyBlock);
-        应用火星粒子设置();
+        应用火星粒子设置(config);
     }
 
     [ContextMenu("还原武器原始材质")]
@@ -199,7 +200,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        if (火焰材质 != null && 全部材质都是火焰材质(currentMaterials))
+        武器火焰附魔全局配置 config = 取全局配置();
+        Material fireMaterial = config != null ? config.火焰材质 : 火焰材质;
+        if (fireMaterial != null && 全部材质都是火焰材质(currentMaterials, fireMaterial))
         {
             return;
         }
@@ -207,7 +210,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         原始材质列表 = currentMaterials;
     }
 
-    private bool 全部材质都是火焰材质(Material[] materials)
+    private bool 全部材质都是火焰材质(Material[] materials, Material fireMaterial)
     {
         if (materials == null || materials.Length == 0)
         {
@@ -216,7 +219,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
         for (int i = 0; i < materials.Length; i++)
         {
-            if (materials[i] != 火焰材质)
+            if (materials[i] != fireMaterial)
             {
                 return false;
             }
@@ -225,19 +228,19 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         return true;
     }
 
-    private void 应用火焰材质到全部材质槽()
+    private void 应用火焰材质到全部材质槽(Material fireMaterial)
     {
         Material[] currentMaterials = meshRenderer.sharedMaterials;
         if (currentMaterials == null || currentMaterials.Length == 0)
         {
-            meshRenderer.sharedMaterial = 火焰材质;
+            meshRenderer.sharedMaterial = fireMaterial;
             return;
         }
 
         Material[] fireMaterials = new Material[currentMaterials.Length];
         for (int i = 0; i < fireMaterials.Length; i++)
         {
-            fireMaterials[i] = 火焰材质;
+            fireMaterials[i] = fireMaterial;
         }
 
         meshRenderer.sharedMaterials = fireMaterials;
@@ -289,19 +292,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         return null;
     }
 
-    private void 加载默认火焰材质()
+    private void 应用火星粒子设置(武器火焰附魔全局配置 config)
     {
-        if (火焰材质 != null)
-        {
-            return;
-        }
-
-        火焰材质 = Resources.Load<Material>(默认火焰材质路径);
-    }
-
-    private void 应用火星粒子设置()
-    {
-        if (!启用火星粒子)
+        if (!config.启用火星粒子)
         {
             停止火星粒子();
             return;
@@ -323,23 +316,23 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         main.loop = true;
         main.playOnAwake = false;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.startLifetime = 火星生命周期;
-        main.startSize = 火星大小;
+        main.startLifetime = config.火星生命周期;
+        main.startSize = config.火星大小;
         main.startSpeed = 0f;
-        main.startColor = new ParticleSystem.MinMaxGradient(火星起始颜色, 火星结束颜色);
-        main.maxParticles = Mathf.Max(8, Mathf.CeilToInt(火星数量 * 火星生命周期 * 3f));
+        main.startColor = new ParticleSystem.MinMaxGradient(config.火星起始颜色, config.火星结束颜色);
+        main.maxParticles = Mathf.Max(8, Mathf.CeilToInt(config.火星数量 * config.火星生命周期 * 3f));
         main.gravityModifier = 0f;
         main.scalingMode = ParticleSystemScalingMode.Hierarchy;
 
         ParticleSystem.EmissionModule emission = 火星粒子系统.emission;
         emission.enabled = true;
-        emission.rateOverTime = 火星数量;
+        emission.rateOverTime = config.火星数量;
 
         ParticleSystem.ShapeModule shape = 火星粒子系统.shape;
         shape.enabled = true;
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.position = Vector3.zero;
-        Vector3 shapeScale = localBounds.size * 火星发射范围倍率;
+        Vector3 shapeScale = localBounds.size * config.火星发射范围倍率;
         shapeScale.x = Mathf.Max(shapeScale.x, 0.01f);
         shapeScale.y = Mathf.Max(shapeScale.y, 0.01f);
         shapeScale.z = Mathf.Max(shapeScale.z, 0.01f);
@@ -348,13 +341,13 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         ParticleSystem.VelocityOverLifetimeModule velocity = 火星粒子系统.velocityOverLifetime;
         velocity.enabled = true;
         velocity.space = ParticleSystemSimulationSpace.World;
-        velocity.x = new ParticleSystem.MinMaxCurve(-火星左右扰动, 火星左右扰动);
-        velocity.y = new ParticleSystem.MinMaxCurve(火星上升速度 * 0.35f, 火星上升速度 * 0.9f);
-        velocity.z = new ParticleSystem.MinMaxCurve(-火星左右扰动, 火星左右扰动);
+        velocity.x = new ParticleSystem.MinMaxCurve(-config.火星左右扰动, config.火星左右扰动);
+        velocity.y = new ParticleSystem.MinMaxCurve(config.火星上升速度 * 0.35f, config.火星上升速度 * 0.9f);
+        velocity.z = new ParticleSystem.MinMaxCurve(-config.火星左右扰动, config.火星左右扰动);
 
         ParticleSystem.NoiseModule noise = 火星粒子系统.noise;
         noise.enabled = true;
-        noise.strength = 火星左右扰动;
+        noise.strength = config.火星左右扰动;
         noise.frequency = 1.6f;
         noise.scrollSpeed = 0.45f;
         noise.damping = true;
@@ -365,13 +358,13 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(火星起始颜色, 0f),
-                new GradientColorKey(火星结束颜色, 1f)
+                new GradientColorKey(config.火星起始颜色, 0f),
+                new GradientColorKey(config.火星结束颜色, 1f)
             },
             new[]
             {
-                new GradientAlphaKey(火星起始颜色.a, 0f),
-                new GradientAlphaKey(火星结束颜色.a, 1f)
+                new GradientAlphaKey(config.火星起始颜色.a, 0f),
+                new GradientAlphaKey(config.火星结束颜色.a, 1f)
             });
         colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
 
@@ -386,9 +379,10 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         {
             火星粒子渲染器.renderMode = ParticleSystemRenderMode.Billboard;
             火星粒子渲染器.sortingOrder = 0;
-            火星粒子渲染器.sharedMaterial = 取火星粒子材质();
+            火星粒子渲染器.sharedMaterial = 取火星粒子运行时材质(config);
             火星粒子渲染器.minParticleSize = 0f;
             火星粒子渲染器.maxParticleSize = 0.5f;
+            写入火星粒子材质参数();
         }
 
         if (!火星粒子系统.isPlaying)
@@ -449,21 +443,66 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         return new Bounds(localCenter, localSize);
     }
 
-    private Material 取火星粒子材质()
+    private Material 取火星粒子材质(武器火焰附魔全局配置 config)
     {
-        if (火星粒子材质 != null)
+        if (config.火星粒子材质 != null)
         {
-            return 火星粒子材质;
+            return config.火星粒子材质;
         }
 
-        火星粒子材质 = Resources.Load<Material>(默认火星粒子材质路径);
-        if (火星粒子材质 == null)
+        Debug.LogWarning($"[武器火焰附魔] 全局配置没有指定火星粒子材质，火星粒子不可见。", this);
+        return null;
+    }
+
+    private Material 取火星粒子运行时材质(武器火焰附魔全局配置 config)
+    {
+        Material sourceMaterial = 取火星粒子材质(config);
+        if (sourceMaterial == null)
         {
-            Debug.LogWarning($"[武器火焰附魔] {name} 找不到 Resources/{默认火星粒子材质路径}，火星粒子不可见。", this);
             return null;
         }
 
-        return 火星粒子材质;
+        if (火星粒子运行时材质 == null || 火星粒子运行时来源材质 != sourceMaterial)
+        {
+            火星粒子运行时材质 = new Material(sourceMaterial)
+            {
+                name = $"{sourceMaterial.name}_运行时",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            火星粒子运行时来源材质 = sourceMaterial;
+        }
+
+        火星粒子运行时材质.renderQueue = config.火星无视深度 ? 3100 : 3000;
+        if (火星粒子运行时材质.HasProperty(SparkZTestId))
+        {
+            火星粒子运行时材质.SetFloat(SparkZTestId, config.火星无视深度 ? 8f : 4f);
+        }
+
+        return 火星粒子运行时材质;
+    }
+
+    private void 写入火星粒子材质参数()
+    {
+        if (火星粒子渲染器 == null)
+        {
+            return;
+        }
+
+        if (火星粒子参数块 == null)
+        {
+            火星粒子参数块 = new MaterialPropertyBlock();
+        }
+
+        火星粒子渲染器.GetPropertyBlock(火星粒子参数块);
+        武器火焰附魔全局配置 config = 取全局配置();
+        if (config == null)
+        {
+            return;
+        }
+
+        火星粒子参数块.SetColor(SparkCoreColorId, config.火星圆点颜色);
+        火星粒子参数块.SetColor(SparkGlowColorId, config.火星外发光颜色);
+        火星粒子渲染器.SetPropertyBlock(火星粒子参数块);
     }
 
 #if UNITY_EDITOR
@@ -474,7 +513,8 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             return;
         }
 
-        if (!启用附魔 || !启用火星粒子)
+        武器火焰附魔全局配置 config = 取全局配置();
+        if (config == null || !config.启用附魔 || !config.启用火星粒子)
         {
             return;
         }
@@ -487,7 +527,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
         if (火星粒子系统 == null)
         {
-            应用火星粒子设置();
+            应用火星粒子设置(config);
         }
 
         if (火星粒子系统 == null)
@@ -509,9 +549,9 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     }
 #endif
 
-    private Vector4 取标准化流动方向()
+    private Vector4 取标准化流动方向(Vector2 sourceDirection)
     {
-        Vector2 direction = 流动方向;
+        Vector2 direction = sourceDirection;
         if (direction.sqrMagnitude <= 0.0001f)
         {
             direction = Vector2.up;
@@ -519,6 +559,16 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 
         direction.Normalize();
         return new Vector4(direction.x, direction.y, 0f, 0f);
+    }
+
+    private 武器火焰附魔全局配置 取全局配置()
+    {
+        if (全局配置缓存 == null)
+        {
+            全局配置缓存 = Resources.Load<武器火焰附魔全局配置>(全局配置路径);
+        }
+
+        return 全局配置缓存;
     }
 
     private void 取组件和参数块()

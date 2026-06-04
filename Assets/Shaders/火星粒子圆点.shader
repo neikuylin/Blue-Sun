@@ -8,13 +8,14 @@ Shader "项目/特效/火星粒子圆点"
         _GlowRadius ("外发光半径", Range(0.05, 0.8)) = 0.48
         _GlowSoftness ("外发光柔和度", Range(0.01, 1)) = 0.55
         _Intensity ("亮度", Range(0, 4)) = 1.4
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("深度测试", Float) = 8
     }
 
     SubShader
     {
         Tags
         {
-            "Queue" = "Transparent"
+            "Queue" = "Transparent+100"
             "IgnoreProjector" = "True"
             "RenderType" = "Transparent"
         }
@@ -22,6 +23,7 @@ Shader "项目/特效/火星粒子圆点"
         Cull Off
         Lighting Off
         ZWrite Off
+        ZTest [_ZTest]
         Blend SrcAlpha One
 
         Pass

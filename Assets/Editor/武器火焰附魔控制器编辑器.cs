@@ -4,115 +4,41 @@ using UnityEngine;
 [CustomEditor(typeof(武器火焰附魔控制器))]
 public sealed class 武器火焰附魔控制器编辑器 : Editor
 {
-    private SerializedProperty 启用附魔;
-    private SerializedProperty 火焰材质;
-    private SerializedProperty 颜色;
-    private SerializedProperty 暗部火焰颜色;
-    private SerializedProperty 主火焰颜色;
-    private SerializedProperty 核心火焰颜色;
-    private SerializedProperty 火焰强度;
-    private SerializedProperty 火焰速度;
-    private SerializedProperty 火焰密度;
-    private SerializedProperty 流动方向;
-    private SerializedProperty 原图保留强度;
-    private SerializedProperty 外扩火焰范围;
-    private SerializedProperty 外扩火焰强度;
-    private SerializedProperty 闪烁强度;
-    private SerializedProperty 闪烁速度;
-    private SerializedProperty 启用火星粒子;
-    private SerializedProperty 火星粒子材质;
-    private SerializedProperty 火星数量;
-    private SerializedProperty 火星大小;
-    private SerializedProperty 火星上升速度;
-    private SerializedProperty 火星左右扰动;
-    private SerializedProperty 火星生命周期;
-    private SerializedProperty 火星起始颜色;
-    private SerializedProperty 火星结束颜色;
-    private SerializedProperty 火星发射范围倍率;
+    private const string 全局配置路径 = "武器火焰附魔全局配置";
 
-    private void OnEnable()
-    {
-        启用附魔 = serializedObject.FindProperty("启用附魔");
-        火焰材质 = serializedObject.FindProperty("火焰材质");
-        颜色 = serializedObject.FindProperty("颜色");
-        暗部火焰颜色 = serializedObject.FindProperty("暗部火焰颜色");
-        主火焰颜色 = serializedObject.FindProperty("主火焰颜色");
-        核心火焰颜色 = serializedObject.FindProperty("核心火焰颜色");
-        火焰强度 = serializedObject.FindProperty("火焰强度");
-        火焰速度 = serializedObject.FindProperty("火焰速度");
-        火焰密度 = serializedObject.FindProperty("火焰密度");
-        流动方向 = serializedObject.FindProperty("流动方向");
-        原图保留强度 = serializedObject.FindProperty("原图保留强度");
-        外扩火焰范围 = serializedObject.FindProperty("外扩火焰范围");
-        外扩火焰强度 = serializedObject.FindProperty("外扩火焰强度");
-        闪烁强度 = serializedObject.FindProperty("闪烁强度");
-        闪烁速度 = serializedObject.FindProperty("闪烁速度");
-        启用火星粒子 = serializedObject.FindProperty("启用火星粒子");
-        火星粒子材质 = serializedObject.FindProperty("火星粒子材质");
-        火星数量 = serializedObject.FindProperty("火星数量");
-        火星大小 = serializedObject.FindProperty("火星大小");
-        火星上升速度 = serializedObject.FindProperty("火星上升速度");
-        火星左右扰动 = serializedObject.FindProperty("火星左右扰动");
-        火星生命周期 = serializedObject.FindProperty("火星生命周期");
-        火星起始颜色 = serializedObject.FindProperty("火星起始颜色");
-        火星结束颜色 = serializedObject.FindProperty("火星结束颜色");
-        火星发射范围倍率 = serializedObject.FindProperty("火星发射范围倍率");
-    }
+    private SerializedObject 全局配置序列化对象;
 
     public override void OnInspectorGUI()
     {
-        serializedObject.Update();
-
         武器火焰附魔控制器 controller = target as 武器火焰附魔控制器;
         DrawStatus(controller);
 
-        EditorGUI.BeginChangeCheck();
-        EditorGUILayout.LabelField("开关与材质", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(启用附魔, new GUIContent("启用附魔"));
-        EditorGUILayout.PropertyField(火焰材质, new GUIContent("火焰材质", "为空时会尝试读取 Resources/武器火焰附魔模型材质。"));
-
-        EditorGUILayout.Space(6f);
-        EditorGUILayout.LabelField("火焰颜色", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(颜色, new GUIContent("Sprite颜色"));
-        EditorGUILayout.PropertyField(暗部火焰颜色, new GUIContent("暗部火焰颜色"));
-        EditorGUILayout.PropertyField(主火焰颜色, new GUIContent("主火焰颜色"));
-        EditorGUILayout.PropertyField(核心火焰颜色, new GUIContent("核心火焰颜色"));
-
-        EditorGUILayout.Space(6f);
-        EditorGUILayout.LabelField("火焰流动", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(火焰强度, new GUIContent("火焰强度"));
-        EditorGUILayout.PropertyField(火焰速度, new GUIContent("火焰速度"));
-        EditorGUILayout.PropertyField(火焰密度, new GUIContent("火焰密度"));
-        EditorGUILayout.PropertyField(流动方向, new GUIContent("流动方向", "以模型UV方向为基准，(0,1)通常表示沿UV纵向流动。"));
-        EditorGUILayout.PropertyField(原图保留强度, new GUIContent("原图保留强度", "越高越能看清武器原图，越低越像被火焰吞掉。"));
-
-        EditorGUILayout.Space(6f);
-        EditorGUILayout.LabelField("外扩包围火焰", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(外扩火焰范围, new GUIContent("外扩火焰范围", "3D模型会按法线向外扩一层轮廓火焰。"));
-        EditorGUILayout.PropertyField(外扩火焰强度, new GUIContent("外扩火焰强度"));
-        EditorGUILayout.PropertyField(闪烁强度, new GUIContent("闪烁强度"));
-        EditorGUILayout.PropertyField(闪烁速度, new GUIContent("闪烁速度"));
-
-        EditorGUILayout.Space(6f);
-        EditorGUILayout.LabelField("上飘火星粒子", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(启用火星粒子, new GUIContent("启用火星粒子"));
-        if (启用火星粒子.boolValue)
+        武器火焰附魔全局配置 config = controller != null ? controller.当前全局配置 : null;
+        if (config == null)
         {
-            EditorGUILayout.PropertyField(火星粒子材质, new GUIContent("火星粒子材质", "可选。为空时脚本会读取 Resources/武器火星粒子材质。"));
-            EditorGUILayout.PropertyField(火星数量, new GUIContent("火星数量", "每秒发射的火星数量。"));
-            EditorGUILayout.PropertyField(火星大小, new GUIContent("火星大小"));
-            EditorGUILayout.PropertyField(火星上升速度, new GUIContent("火星上升速度"));
-            EditorGUILayout.PropertyField(火星左右扰动, new GUIContent("火星左右扰动", "控制火星在X/Z方向被空气扰动的幅度。"));
-            EditorGUILayout.PropertyField(火星生命周期, new GUIContent("火星生命周期"));
-            EditorGUILayout.PropertyField(火星起始颜色, new GUIContent("火星起始颜色"));
-            EditorGUILayout.PropertyField(火星结束颜色, new GUIContent("火星结束颜色"));
-            EditorGUILayout.PropertyField(火星发射范围倍率, new GUIContent("火星发射范围倍率", "基于3D模型本体包围盒的发射范围。"));
+            EditorGUILayout.HelpBox($"找不到 Resources/{全局配置路径}。所有武器火焰附魔都不会生效。", MessageType.Error);
+            return;
         }
 
+        if (全局配置序列化对象 == null || 全局配置序列化对象.targetObject != config)
+        {
+            全局配置序列化对象 = new SerializedObject(config);
+        }
+
+        全局配置序列化对象.Update();
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("全项目共用配置", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("这里编辑的是全局配置。所有挂了武器火焰附魔控制器的武器都会读取同一份参数。", MessageType.Info);
+
+        EditorGUI.BeginChangeCheck();
+        DrawGlobalConfigFields();
         bool changed = EditorGUI.EndChangeCheck();
-        serializedObject.ApplyModifiedProperties();
+
+        全局配置序列化对象.ApplyModifiedProperties();
         if (changed)
         {
+            EditorUtility.SetDirty(config);
             ApplySelectedControllers();
         }
 
@@ -131,6 +57,67 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         }
     }
 
+    private void DrawGlobalConfigFields()
+    {
+        EditorGUILayout.LabelField("开关与材质", EditorStyles.boldLabel);
+        DrawProperty("启用附魔", "启用附魔");
+        DrawProperty("火焰材质", "火焰材质");
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("火焰颜色", EditorStyles.boldLabel);
+        DrawProperty("颜色", "模型颜色");
+        DrawProperty("暗部火焰颜色", "暗部火焰颜色");
+        DrawProperty("主火焰颜色", "主火焰颜色");
+        DrawProperty("核心火焰颜色", "核心火焰颜色");
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("火焰流动", EditorStyles.boldLabel);
+        DrawProperty("火焰强度", "火焰强度");
+        DrawProperty("火焰速度", "火焰速度");
+        DrawProperty("火焰密度", "火焰密度");
+        DrawProperty("流动方向", "流动方向");
+        DrawProperty("原图保留强度", "原图保留强度");
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("外扩包围火焰", EditorStyles.boldLabel);
+        DrawProperty("外扩火焰范围", "外扩火焰范围");
+        DrawProperty("外扩火焰强度", "外扩火焰强度");
+        DrawProperty("闪烁强度", "闪烁强度");
+        DrawProperty("闪烁速度", "闪烁速度");
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("上飘火星粒子", EditorStyles.boldLabel);
+        DrawProperty("启用火星粒子", "启用火星粒子");
+        SerializedProperty enableSpark = 全局配置序列化对象.FindProperty("启用火星粒子");
+        if (enableSpark != null && enableSpark.boolValue)
+        {
+            DrawProperty("火星无视深度", "火星无视深度");
+            DrawProperty("火星粒子材质", "火星粒子材质");
+            DrawProperty("火星数量", "火星数量");
+            DrawProperty("火星大小", "火星大小");
+            DrawProperty("火星上升速度", "火星上升速度");
+            DrawProperty("火星左右扰动", "火星左右扰动");
+            DrawProperty("火星生命周期", "火星生命周期");
+            DrawProperty("火星圆点颜色", "火星圆点颜色");
+            DrawProperty("火星外发光颜色", "火星外发光颜色");
+            DrawProperty("火星起始颜色", "生命周期起始叠色");
+            DrawProperty("火星结束颜色", "生命周期结束叠色");
+            DrawProperty("火星发射范围倍率", "火星发射范围倍率");
+        }
+    }
+
+    private void DrawProperty(string propertyName, string label)
+    {
+        SerializedProperty property = 全局配置序列化对象.FindProperty(propertyName);
+        if (property == null)
+        {
+            EditorGUILayout.HelpBox($"全局配置缺少字段：{propertyName}", MessageType.Error);
+            return;
+        }
+
+        EditorGUILayout.PropertyField(property, new GUIContent(label));
+    }
+
     private static void DrawStatus(武器火焰附魔控制器 controller)
     {
         if (controller == null)
@@ -143,11 +130,6 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
         {
             EditorGUILayout.HelpBox("这个对象缺少 MeshRenderer，无法应用3D武器火焰附魔。请挂到真正带模型渲染器的武器物体上。", MessageType.Error);
             return;
-        }
-
-        if (controller.当前火焰材质 == null)
-        {
-            EditorGUILayout.HelpBox("没有指定火焰材质。为空时脚本会尝试读取 Resources/武器火焰附魔模型材质。", MessageType.Info);
         }
 
         Material[] originalMaterials = controller.当前原始材质列表;
