@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b75ed25db594447aa237b7b188e6e6d, type: 3}
   m_Name: "\u6B66\u5668\u706B\u7130\u9644\u9B54\u5168\u5C40\u914D\u7F6E"
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   "\u542F\u7528\u9644\u9B54": 1
   "\u706B\u7130\u6750\u8D28": {fileID: 2100000, guid: fde8bce011c346b7b5f7d77d03f02f2c, type: 2}
   "\u989C\u8272": {r: 1, g: 1, b: 1, a: 1}
@@ -28,15 +28,15 @@ MonoBehaviour:
   "\u95EA\u70C1\u5F3A\u5EA6": 0.22
   "\u95EA\u70C1\u901F\u5EA6": 4
   "\u542F\u7528\u706B\u661F\u7C92\u5B50": 1
-  "\u706B\u661F\u65E0\u89C6\u6DF1\u5EA6": 1
+  "\u706B\u661F\u65E0\u89C6\u6DF1\u5EA6": 0
   "\u706B\u661F\u7C92\u5B50\u6750\u8D28": {fileID: 2100000, guid: 96a3ad9ac18c43b3a6a67b031711aada, type: 2}
-  "\u706B\u661F\u6570\u91CF": 10
-  "\u706B\u661F\u5927\u5C0F": 0.035
+  "\u706B\u661F\u6570\u91CF": 23.8
+  "\u706B\u661F\u5927\u5C0F": 0.177
   "\u706B\u661F\u4E0A\u5347\u901F\u5EA6": 1.2
   "\u706B\u661F\u5DE6\u53F3\u6270\u52A8": 0.35
   "\u706B\u661F\u751F\u547D\u5468\u671F": 0.8
-  "\u706B\u661F\u5706\u70B9\u989C\u8272": {r: 1, g: 0.86, b: 0.24, a: 1}
+  "\u706B\u661F\u5706\u70B9\u989C\u8272": {r: 1, g: 0.814433, b: 0, a: 1}
   "\u706B\u661F\u5916\u53D1\u5149\u989C\u8272": {r: 1, g: 0.22, b: 0.04, a: 0.55}
-  "\u706B\u661F\u8D77\u59CB\u989C\u8272": {r: 1, g: 0.72, b: 0.18, a: 1}
+  "\u706B\u661F\u8D77\u59CB\u989C\u8272": {r: 1, g: 0.9817343, b: 0.013207495, a: 1}
   "\u706B\u661F\u7ED3\u675F\u989C\u8272": {r: 1, g: 0.12, b: 0.02, a: 0}
   "\u706B\u661F\u53D1\u5C04\u8303\u56F4\u500D\u7387": 0.75
