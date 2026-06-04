@@ -466,7 +466,7 @@ MonoBehaviour:
     damageMultiplier: 1
     attributeMultiplier: 0
     fixedDamage: 0
-    hitRateModifier: 0
+    hitRateModifier: 100
     damageType: 0
     actionPointCost: 2
     manaCost: 2
