@@ -110,8 +110,8 @@ MonoBehaviour:
   "\u6697\u90E8\u706B\u7130\u989C\u8272": {r: 0.75, g: 0.08, b: 0.02, a: 1}
   "\u4E3B\u706B\u7130\u989C\u8272": {r: 1, g: 0.32, b: 0.04, a: 1}
   "\u6838\u5FC3\u706B\u7130\u989C\u8272": {r: 1, g: 0.9, b: 0.28, a: 1}
-  "\u706B\u7130\u5F3A\u5EA6": 1.61
-  "\u706B\u7130\u901F\u5EA6": 2.4
+  "\u706B\u7130\u5F3A\u5EA6": 2.34
+  "\u706B\u7130\u901F\u5EA6": 3.42
   "\u706B\u7130\u5BC6\u5EA6": 11
   "\u6D41\u52A8\u65B9\u5411": {x: 0, y: 1}
   "\u539F\u56FE\u4FDD\u7559\u5F3A\u5EA6": 0.72
@@ -120,12 +120,15 @@ MonoBehaviour:
   "\u95EA\u70C1\u5F3A\u5EA6": 0.265
   "\u95EA\u70C1\u901F\u5EA6": 4
   "\u542F\u7528\u706B\u661F\u7C92\u5B50": 1
+  "\u706B\u661F\u65E0\u89C6\u6DF1\u5EA6": 0
   "\u706B\u661F\u7C92\u5B50\u6750\u8D28": {fileID: 2100000, guid: 96a3ad9ac18c43b3a6a67b031711aada, type: 2}
-  "\u706B\u661F\u6570\u91CF": 10
-  "\u706B\u661F\u5927\u5C0F": 0.086
+  "\u706B\u661F\u6570\u91CF": 34.9
+  "\u706B\u661F\u5927\u5C0F": 0.182
   "\u706B\u661F\u4E0A\u5347\u901F\u5EA6": 1.2
   "\u706B\u661F\u5DE6\u53F3\u6270\u52A8": 0.35
   "\u706B\u661F\u751F\u547D\u5468\u671F": 0.8
+  "\u706B\u661F\u5706\u70B9\u989C\u8272": {r: 1, g: 0.98485535, b: 0.7150943, a: 1}
+  "\u706B\u661F\u5916\u53D1\u5149\u989C\u8272": {r: 1, g: 0.66573846, b: 0.088679194, a: 0.55}
   "\u706B\u661F\u8D77\u59CB\u989C\u8272": {r: 1, g: 0.72887063, b: 0.20188677, a: 1}
   "\u706B\u661F\u7ED3\u675F\u989C\u8272": {r: 1, g: 0.6199307, b: 0.073584795, a: 0}
   "\u706B\u661F\u53D1\u5C04\u8303\u56F4\u500D\u7387": 0.75
@@ -418,7 +421,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.086
+      scalar: 0.182
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -735,7 +738,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 24
+    maxNumParticles: 84
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -1001,7 +1004,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 34.9
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -4922,7 +4925,7 @@ ParticleSystemRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 96a3ad9ac18c43b3a6a67b031711aada, type: 2}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
