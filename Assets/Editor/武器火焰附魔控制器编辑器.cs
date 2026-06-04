@@ -8,6 +8,11 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
 
     private SerializedObject 全局配置序列化对象;
 
+    private void OnEnable()
+    {
+        ApplySelectedControllers();
+    }
+
     public override void OnInspectorGUI()
     {
         武器火焰附魔控制器 controller = target as 武器火焰附魔控制器;
@@ -103,6 +108,28 @@ public sealed class 武器火焰附魔控制器编辑器 : Editor
             DrawProperty("火星起始颜色", "生命周期起始叠色");
             DrawProperty("火星结束颜色", "生命周期结束叠色");
             DrawProperty("火星发射范围倍率", "火星发射范围倍率");
+        }
+
+        EditorGUILayout.Space(6f);
+        EditorGUILayout.LabelField("Trail火焰拖尾", EditorStyles.boldLabel);
+        DrawProperty("启用Trail火焰拖尾", "启用Trail火焰拖尾");
+        SerializedProperty enableTrail = 全局配置序列化对象.FindProperty("启用Trail火焰拖尾");
+        if (enableTrail != null && enableTrail.boolValue)
+        {
+            DrawProperty("Trail无视深度", "Trail无视深度");
+            DrawProperty("Trail拖尾材质", "Trail拖尾材质");
+            DrawProperty("Trail整体长轴倍率", "整体长轴倍率");
+            DrawProperty("Trail持续时间", "持续时间");
+            DrawProperty("Trail触发速度阈值", "触发速度阈值");
+            DrawProperty("Trail最小顶点距离", "最小顶点距离");
+            DrawProperty("Trail末端宽度倍率", "末端宽度倍率");
+            DrawProperty("Trail低速宽度收缩", "低速宽度收缩");
+            DrawProperty("Trail外侧颜色", "外侧颜色");
+            DrawProperty("Trail内侧颜色", "内侧颜色");
+            DrawProperty("Trail边缘柔和", "边缘柔和");
+            DrawProperty("Trail火焰噪声密度", "火焰噪声密度");
+            DrawProperty("Trail火焰破碎强度", "火焰破碎强度");
+            DrawProperty("Trail亮度", "亮度");
         }
     }
 

@@ -11,6 +11,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 {
     private const string 全局配置路径 = "武器火焰附魔全局配置";
     private const string 火星粒子物体名 = "火焰附魔火星粒子";
+    private const string Trail物体名 = "火焰附魔Trail拖尾";
 
     private static readonly int MainTexId = Shader.PropertyToID("_MainTex");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -31,35 +32,14 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private static readonly int SparkCoreColorId = Shader.PropertyToID("_CoreColor");
     private static readonly int SparkGlowColorId = Shader.PropertyToID("_GlowColor");
     private static readonly int SparkZTestId = Shader.PropertyToID("_ZTest");
+    private static readonly int TrailColorAId = Shader.PropertyToID("_ColorA");
+    private static readonly int TrailColorBId = Shader.PropertyToID("_ColorB");
+    private static readonly int TrailSoftnessId = Shader.PropertyToID("_Softness");
+    private static readonly int TrailNoiseScaleId = Shader.PropertyToID("_NoiseScale");
+    private static readonly int TrailNoiseStrengthId = Shader.PropertyToID("_NoiseStrength");
+    private static readonly int TrailIntensityId = Shader.PropertyToID("_Intensity");
+    private static readonly int TrailZTestId = Shader.PropertyToID("_ZTest");
 
-    [SerializeField] private bool 启用附魔 = true;
-    [SerializeField] private Material 火焰材质;
-    [SerializeField] private Color 颜色 = Color.white;
-    [SerializeField] private Color 暗部火焰颜色 = new Color(0.75f, 0.08f, 0.02f, 1f);
-    [SerializeField] private Color 主火焰颜色 = new Color(1f, 0.32f, 0.04f, 1f);
-    [SerializeField] private Color 核心火焰颜色 = new Color(1f, 0.9f, 0.28f, 1f);
-    [SerializeField, Range(0f, 4f)] private float 火焰强度 = 1.15f;
-    [SerializeField, Range(0f, 10f)] private float 火焰速度 = 2.4f;
-    [SerializeField, Range(0.1f, 40f)] private float 火焰密度 = 11f;
-    [SerializeField] private Vector2 流动方向 = Vector2.up;
-    [SerializeField, Range(0f, 1f)] private float 原图保留强度 = 0.72f;
-    [SerializeField, Range(0f, 8f)] private float 外扩火焰范围 = 2f;
-    [SerializeField, Range(0f, 4f)] private float 外扩火焰强度 = 1.3f;
-    [SerializeField, Range(0f, 1f)] private float 闪烁强度 = 0.22f;
-    [SerializeField, Range(0f, 12f)] private float 闪烁速度 = 4f;
-    [SerializeField] private bool 启用火星粒子 = true;
-    [SerializeField] private bool 火星无视深度 = true;
-    [SerializeField] private Material 火星粒子材质;
-    [SerializeField, Range(0f, 80f)] private float 火星数量 = 10f;
-    [SerializeField, Range(0.001f, 0.2f)] private float 火星大小 = 0.035f;
-    [SerializeField, Range(0f, 5f)] private float 火星上升速度 = 1.2f;
-    [SerializeField, Range(0f, 2f)] private float 火星左右扰动 = 0.35f;
-    [SerializeField, Range(0.05f, 3f)] private float 火星生命周期 = 0.8f;
-    [SerializeField] private Color 火星圆点颜色 = new Color(1f, 0.86f, 0.24f, 1f);
-    [SerializeField] private Color 火星外发光颜色 = new Color(1f, 0.22f, 0.04f, 0.55f);
-    [SerializeField] private Color 火星起始颜色 = new Color(1f, 0.72f, 0.18f, 1f);
-    [SerializeField] private Color 火星结束颜色 = new Color(1f, 0.12f, 0.02f, 0f);
-    [SerializeField, Range(0.05f, 2f)] private float 火星发射范围倍率 = 0.75f;
     [SerializeField, HideInInspector] private Material[] 原始材质列表;
 
     private 武器火焰附魔全局配置 全局配置缓存;
@@ -71,9 +51,18 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     private ParticleSystemRenderer 火星粒子渲染器;
     private Material 火星粒子运行时材质;
     private Material 火星粒子运行时来源材质;
+    private TrailRenderer trailRenderer;
+    private Transform trailTransform;
+    private Material trail运行时材质;
+    private Material trail运行时来源材质;
+    private MaterialPropertyBlock trail参数块;
+    private Vector3 trail上次位置;
+    private bool trail已采样;
+    private bool trail缺少材质已警告;
 
 #if UNITY_EDITOR
     private double 上次编辑器预览时间;
+    private bool 已请求编辑器延迟应用;
 #endif
 
     public bool 当前启用附魔 => 取全局配置() != null && 取全局配置().启用附魔;
@@ -81,9 +70,89 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
     public Material[] 当前原始材质列表 => 原始材质列表;
     public 武器火焰附魔全局配置 当前全局配置 => 取全局配置();
 
+#if UNITY_EDITOR
+    private void 请求编辑器延迟应用()
+    {
+        if (已请求编辑器延迟应用)
+        {
+            return;
+        }
+
+        已请求编辑器延迟应用 = true;
+        EditorApplication.delayCall += 编辑器延迟应用;
+    }
+
+    private void 编辑器延迟应用()
+    {
+        已请求编辑器延迟应用 = false;
+        if (this == null || Application.isPlaying)
+        {
+            return;
+        }
+
+        确保编辑状态特效子物体();
+        应用附魔设置();
+    }
+
+    private void 确保编辑状态特效子物体()
+    {
+        if (Application.isPlaying)
+        {
+            return;
+        }
+
+        Transform spark = 取或创建编辑状态子物体(火星粒子物体名);
+        if (spark != null)
+        {
+            确保编辑状态组件<ParticleSystem>(spark);
+        }
+
+        Transform trail = 取或创建编辑状态子物体(Trail物体名);
+        if (trail != null)
+        {
+            确保编辑状态组件<TrailRenderer>(trail);
+        }
+    }
+
+    private Transform 取或创建编辑状态子物体(string childName)
+    {
+        Transform child = transform.Find(childName);
+        if (child != null)
+        {
+            return child;
+        }
+
+        GameObject childObject = new GameObject(childName);
+        Undo.RegisterCreatedObjectUndo(childObject, $"创建{childName}");
+        childObject.transform.SetParent(transform, false);
+        childObject.transform.localPosition = Vector3.zero;
+        childObject.transform.localRotation = Quaternion.identity;
+        childObject.transform.localScale = Vector3.one;
+        EditorUtility.SetDirty(gameObject);
+        EditorUtility.SetDirty(childObject);
+        return childObject.transform;
+    }
+
+    private static T 确保编辑状态组件<T>(Transform child) where T : Component
+    {
+        T component = child.GetComponent<T>();
+        if (component != null)
+        {
+            return component;
+        }
+
+        component = Undo.AddComponent<T>(child.gameObject);
+        EditorUtility.SetDirty(child.gameObject);
+        return component;
+    }
+#endif
+
     private void Reset()
     {
         取组件和参数块();
+#if UNITY_EDITOR
+        确保编辑状态特效子物体();
+#endif
         记录原始材质列表();
         应用附魔设置();
     }
@@ -96,6 +165,8 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
             上次编辑器预览时间 = EditorApplication.timeSinceStartup;
             EditorApplication.update -= 编辑器预览更新;
             EditorApplication.update += 编辑器预览更新;
+            请求编辑器延迟应用();
+            return;
         }
 #endif
 
@@ -109,17 +180,40 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
 #endif
 
         还原原始材质();
+        清空Trail拖尾();
     }
 
     private void OnValidate()
     {
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            请求编辑器延迟应用();
+            return;
+        }
+#endif
+
         应用附魔设置();
+    }
+
+    private void Update()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        更新Trail火焰拖尾();
     }
 
     [ContextMenu("应用武器火焰附魔")]
     public void 应用附魔设置()
     {
         取组件和参数块();
+#if UNITY_EDITOR
+        确保编辑状态特效子物体();
+#endif
+
         if (meshRenderer == null)
         {
             Debug.LogWarning($"[武器火焰附魔] {name} 缺少 MeshRenderer，无法应用3D武器火焰附魔。", this);
@@ -136,7 +230,8 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         if (!config.启用附魔)
         {
             还原原始材质();
-            停止火星粒子();
+            设置火星粒子子物体启用(false);
+            设置Trail子物体启用(false);
             return;
         }
 
@@ -165,6 +260,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         propertyBlock.SetFloat(FlickerSpeedId, config.闪烁速度);
         meshRenderer.SetPropertyBlock(propertyBlock);
         应用火星粒子设置(config);
+        应用Trail拖尾设置(config);
     }
 
     [ContextMenu("还原武器原始材质")]
@@ -185,6 +281,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         }
 
         停止火星粒子();
+        停止Trail拖尾();
     }
 
     private void 记录原始材质列表()
@@ -201,7 +298,7 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         }
 
         武器火焰附魔全局配置 config = 取全局配置();
-        Material fireMaterial = config != null ? config.火焰材质 : 火焰材质;
+        Material fireMaterial = config != null ? config.火焰材质 : null;
         if (fireMaterial != null && 全部材质都是火焰材质(currentMaterials, fireMaterial))
         {
             return;
@@ -297,10 +394,12 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         if (!config.启用火星粒子)
         {
             停止火星粒子();
+            设置火星粒子子物体启用(false);
             return;
         }
 
-        取或创建火星粒子系统();
+        设置火星粒子子物体启用(true);
+        取火星粒子系统();
         if (火星粒子系统 == null)
         {
             return;
@@ -408,22 +507,309 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         }
     }
 
-    private void 取或创建火星粒子系统()
+    private void 设置火星粒子子物体启用(bool enabled)
     {
-        if (火星粒子系统 == null)
+        Transform child = transform.Find(火星粒子物体名);
+        if (child != null && child.gameObject.activeSelf != enabled)
         {
-            Transform child = transform.Find(火星粒子物体名);
-            if (child != null)
+            child.gameObject.SetActive(enabled);
+        }
+    }
+
+    private void 更新Trail火焰拖尾()
+    {
+        武器火焰附魔全局配置 config = 取全局配置();
+        if (config == null || !config.启用附魔 || !config.启用Trail火焰拖尾)
+        {
+            停止Trail拖尾();
+            return;
+        }
+
+        取组件和参数块();
+        if (meshRenderer == null)
+        {
+            停止Trail拖尾();
+            return;
+        }
+
+        取TrailRenderer();
+        if (trailRenderer == null || trailTransform == null)
+        {
+            return;
+        }
+
+        Bounds bounds = meshRenderer.bounds;
+        Vector3 position = trailTransform.position;
+        float speed = 计算Trail速度(position);
+        更新Trail宽度(config, 取模型最长轴长度(bounds) * config.Trail整体长轴倍率, speed);
+    }
+
+    private void 应用Trail拖尾设置(武器火焰附魔全局配置 config)
+    {
+        if (!config.启用Trail火焰拖尾)
+        {
+            停止Trail拖尾();
+            设置Trail子物体启用(false);
+            return;
+        }
+
+        设置Trail子物体启用(true);
+        Material trailMaterial = 取Trail运行时材质(config);
+        if (trailMaterial == null)
+        {
+            停止Trail拖尾();
+            return;
+        }
+
+        取TrailRenderer();
+        if (trailRenderer == null)
+        {
+            return;
+        }
+
+        配置TrailRenderer(trailMaterial);
+        if (!Application.isPlaying)
+        {
+            trailRenderer.emitting = false;
+            trailRenderer.Clear();
+        }
+    }
+
+    private void 更新Trail宽度(武器火焰附魔全局配置 config, float baseWidth, float speed)
+    {
+        float speed01 = config.Trail触发速度阈值 <= 0f ? 1f : Mathf.Clamp01(speed / Mathf.Max(config.Trail触发速度阈值 * 4f, 0.0001f));
+        float widthScale = Mathf.Lerp(config.Trail低速宽度收缩, 1f, speed01);
+        trailRenderer.widthMultiplier = Mathf.Max(0.001f, baseWidth * widthScale);
+        设置Trail宽度曲线(config);
+        写入Trail材质参数(config);
+        trailRenderer.emitting = speed >= config.Trail触发速度阈值;
+    }
+
+    private float 计算Trail速度(Vector3 position)
+    {
+        if (!trail已采样)
+        {
+            trail上次位置 = position;
+            trail已采样 = true;
+            return 0f;
+        }
+
+        float speed = Vector3.Distance(trail上次位置, position) / Mathf.Max(Time.deltaTime, 0.0001f);
+        trail上次位置 = position;
+        return speed;
+    }
+
+    private void 取TrailRenderer()
+    {
+        if (trailRenderer == null || trailTransform == null)
+        {
+            Transform existing = transform.Find(Trail物体名);
+            if (existing != null)
             {
-                火星粒子系统 = child.GetComponent<ParticleSystem>();
+                trailTransform = existing;
+                trailRenderer = existing.GetComponent<TrailRenderer>();
             }
         }
 
+        if (trailTransform == null)
+        {
+            Debug.LogWarning($"[武器火焰附魔] {name} 缺少子物体：{Trail物体名}。请在编辑状态重新应用武器火焰附魔控制器。", this);
+            return;
+        }
+
+        if (trailRenderer == null)
+        {
+            Debug.LogWarning($"[武器火焰附魔] {name} 的 {Trail物体名} 缺少 TrailRenderer。请在编辑状态重新应用武器火焰附魔控制器。", trailTransform);
+        }
+    }
+
+    private void 配置TrailRenderer(Material material)
+    {
+        if (trailRenderer == null)
+        {
+            return;
+        }
+
+        武器火焰附魔全局配置 config = 取全局配置();
+        if (config == null)
+        {
+            return;
+        }
+
+        trailRenderer.sharedMaterial = material;
+        trailRenderer.time = config.Trail持续时间;
+        trailRenderer.minVertexDistance = config.Trail最小顶点距离;
+        trailRenderer.numCornerVertices = 3;
+        trailRenderer.numCapVertices = 2;
+        trailRenderer.autodestruct = false;
+        trailRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        trailRenderer.receiveShadows = false;
+        trailRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        trailRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        trailRenderer.textureMode = LineTextureMode.Stretch;
+        trailRenderer.alignment = LineAlignment.TransformZ;
+        trailRenderer.colorGradient = 创建Trail颜色渐变();
+    }
+
+    private void 设置Trail宽度曲线(武器火焰附魔全局配置 config)
+    {
+        if (trailRenderer == null)
+        {
+            return;
+        }
+
+        trailRenderer.widthCurve = new AnimationCurve(
+            new Keyframe(0f, config.Trail末端宽度倍率),
+            new Keyframe(0.2f, 1f),
+            new Keyframe(1f, 0f));
+    }
+
+    private void 停止Trail拖尾()
+    {
+        if (trailRenderer != null)
+        {
+            trailRenderer.emitting = false;
+        }
+
+        trail已采样 = false;
+    }
+
+    private void 设置Trail子物体启用(bool enabled)
+    {
+        Transform child = transform.Find(Trail物体名);
+        if (child != null && child.gameObject.activeSelf != enabled)
+        {
+            child.gameObject.SetActive(enabled);
+        }
+    }
+
+    private void 清空Trail拖尾()
+    {
+        if (trailRenderer != null)
+        {
+            trailRenderer.Clear();
+        }
+
+        if (trail运行时材质 != null)
+        {
+            销毁对象(trail运行时材质);
+            trail运行时材质 = null;
+            trail运行时来源材质 = null;
+        }
+
+        trail已采样 = false;
+    }
+
+    private Material 取Trail运行时材质(武器火焰附魔全局配置 config)
+    {
+        if (config.Trail拖尾材质 == null)
+        {
+            if (!trail缺少材质已警告)
+            {
+                Debug.LogWarning($"[武器火焰附魔] 全局配置没有指定Trail拖尾材质，Trail火焰拖尾不可见。", this);
+                trail缺少材质已警告 = true;
+            }
+
+            return null;
+        }
+
+        trail缺少材质已警告 = false;
+        if (trail运行时材质 == null || trail运行时来源材质 != config.Trail拖尾材质)
+        {
+            if (trail运行时材质 != null)
+            {
+                销毁对象(trail运行时材质);
+            }
+
+            trail运行时材质 = new Material(config.Trail拖尾材质)
+            {
+                name = $"{config.Trail拖尾材质.name}_Trail运行时",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            trail运行时来源材质 = config.Trail拖尾材质;
+        }
+
+        trail运行时材质.renderQueue = config.Trail无视深度 ? 3120 : 3000;
+        if (trail运行时材质.HasProperty(TrailZTestId))
+        {
+            trail运行时材质.SetFloat(TrailZTestId, config.Trail无视深度 ? 8f : 4f);
+        }
+
+        return trail运行时材质;
+    }
+
+    private void 写入Trail材质参数(武器火焰附魔全局配置 config)
+    {
+        if (trailRenderer == null)
+        {
+            return;
+        }
+
+        if (trail参数块 == null)
+        {
+            trail参数块 = new MaterialPropertyBlock();
+        }
+
+        trailRenderer.GetPropertyBlock(trail参数块);
+        trail参数块.SetColor(TrailColorAId, config.Trail外侧颜色);
+        trail参数块.SetColor(TrailColorBId, config.Trail内侧颜色);
+        trail参数块.SetFloat(TrailSoftnessId, config.Trail边缘柔和);
+        trail参数块.SetFloat(TrailNoiseScaleId, config.Trail火焰噪声密度);
+        trail参数块.SetFloat(TrailNoiseStrengthId, config.Trail火焰破碎强度);
+        trail参数块.SetFloat(TrailIntensityId, config.Trail亮度);
+        trailRenderer.SetPropertyBlock(trail参数块);
+    }
+
+    private static Gradient 创建Trail颜色渐变()
+    {
+        Gradient gradient = new Gradient();
+        gradient.SetKeys(
+            new[]
+            {
+                new GradientColorKey(Color.white, 0f),
+                new GradientColorKey(Color.white, 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(0.7f, 0.55f),
+                new GradientAlphaKey(0f, 1f)
+            });
+        return gradient;
+    }
+
+    private float 取模型最长轴长度(Bounds worldBounds)
+    {
+        if (meshFilter == null || meshFilter.sharedMesh == null)
+        {
+            return Mathf.Max(worldBounds.size.x, worldBounds.size.y, worldBounds.size.z);
+        }
+
+        Vector3 localSize = meshFilter.sharedMesh.bounds.size;
+        Vector3 lossyScale = transform.lossyScale;
+        float x = Mathf.Abs(localSize.x * lossyScale.x);
+        float y = Mathf.Abs(localSize.y * lossyScale.y);
+        float z = Mathf.Abs(localSize.z * lossyScale.z);
+        return Mathf.Max(x, y, z);
+    }
+
+    private void 取火星粒子系统()
+    {
+        Transform child = transform.Find(火星粒子物体名);
+        if (child == null)
+        {
+            Debug.LogWarning($"[武器火焰附魔] {name} 缺少子物体：{火星粒子物体名}。请在编辑状态重新应用武器火焰附魔控制器。", this);
+            火星粒子系统 = null;
+            火星粒子渲染器 = null;
+            return;
+        }
+
+        火星粒子系统 = child.GetComponent<ParticleSystem>();
         if (火星粒子系统 == null)
         {
-            GameObject particleObject = new GameObject(火星粒子物体名);
-            particleObject.transform.SetParent(transform, false);
-            火星粒子系统 = particleObject.AddComponent<ParticleSystem>();
+            Debug.LogWarning($"[武器火焰附魔] {name} 的 {火星粒子物体名} 缺少 ParticleSystem。请在编辑状态重新应用武器火焰附魔控制器。", child);
+            火星粒子渲染器 = null;
+            return;
         }
 
         火星粒子渲染器 = 火星粒子系统.GetComponent<ParticleSystemRenderer>();
@@ -586,6 +972,23 @@ public sealed class 武器火焰附魔控制器 : MonoBehaviour
         if (propertyBlock == null)
         {
             propertyBlock = new MaterialPropertyBlock();
+        }
+    }
+
+    private static void 销毁对象(Object target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+        }
+        else
+        {
+            DestroyImmediate(target);
         }
     }
 }

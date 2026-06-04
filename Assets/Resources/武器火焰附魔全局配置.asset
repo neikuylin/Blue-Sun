@@ -40,3 +40,18 @@ MonoBehaviour:
   "\u706B\u661F\u8D77\u59CB\u989C\u8272": {r: 1, g: 0.9817343, b: 0.013207495, a: 1}
   "\u706B\u661F\u7ED3\u675F\u989C\u8272": {r: 1, g: 0.12, b: 0.02, a: 0}
   "\u706B\u661F\u53D1\u5C04\u8303\u56F4\u500D\u7387": 0.75
+  "\u542F\u7528Trail\u706B\u7130\u62D6\u5C3E": 1
+  "Trail\u65E0\u89C6\u6DF1\u5EA6": 0
+  "Trail\u62D6\u5C3E\u6750\u8D28": {fileID: 2100000, guid: f02ca9c5d94f4c35a8ab8f7c3a9e6a4b, type: 2}
+  "Trail\u6574\u4F53\u957F\u8F74\u500D\u7387": 0.71
+  "Trail\u6301\u7EED\u65F6\u95F4": 0.268
+  "Trail\u89E6\u53D1\u901F\u5EA6\u9608\u503C": 15.2
+  "Trail\u6700\u5C0F\u9876\u70B9\u8DDD\u79BB": 0.814
+  "Trail\u672B\u7AEF\u5BBD\u5EA6\u500D\u7387": 1
+  "Trail\u4F4E\u901F\u5BBD\u5EA6\u6536\u7F29": 0
+  "Trail\u5916\u4FA7\u989C\u8272": {r: 1, g: 0.16, b: 0.02, a: 0.75}
+  "Trail\u5185\u4FA7\u989C\u8272": {r: 1, g: 0.82, b: 0.18, a: 0.95}
+  "Trail\u8FB9\u7F18\u67D4\u548C": 0.01
+  "Trail\u706B\u7130\u566A\u58F0\u5BC6\u5EA6": 6.6
+  "Trail\u706B\u7130\u7834\u788E\u5F3A\u5EA6": 0.162
+  "Trail\u4EAE\u5EA6": 1.03
