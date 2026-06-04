@@ -40,6 +40,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2299418498432869647}
     m_Modifications:
+    - target: {fileID: 1012390205003956450, guid: 224707c65d4f44045a70b05a83ef4fbd, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 4f806674a3ed4555af9400471eebd993, type: 2}
+    - target: {fileID: 1449416288824724309, guid: 224707c65d4f44045a70b05a83ef4fbd, type: 3}
+      propertyPath: lightingMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1449416288824724309, guid: 224707c65d4f44045a70b05a83ef4fbd, type: 3}
+      propertyPath: replaceMaterial
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6235713858634987467, guid: 224707c65d4f44045a70b05a83ef4fbd, type: 3}
       propertyPath: m_Name
       value: "\u65A9\u51FB\u7279\u6548"
