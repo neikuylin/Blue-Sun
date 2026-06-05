@@ -104,6 +104,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     if (GUILayout.Button("上移", GUILayout.Width(60f)))
                     {
                         SwapOwnedSlots(entry, i, i - 1);
+                        SaveDatabase(database);
                         GUIUtility.ExitGUI();
                     }
 
@@ -111,6 +112,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     if (GUILayout.Button("下移", GUILayout.Width(60f)))
                     {
                         SwapOwnedSlots(entry, i, i + 1);
+                        SaveDatabase(database);
                         GUIUtility.ExitGUI();
                     }
 
@@ -118,6 +120,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                     if (GUILayout.Button("删除", GUILayout.Width(60f)))
                     {
                         RemoveWarehouseSlotAt(entry, i);
+                        SaveDatabase(database);
                         GUIUtility.ExitGUI();
                     }
                     GUI.enabled = true;
@@ -137,6 +140,7 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
                 {
                     entry.warehouseSkillIds.Add(newSkillId);
                     entry.warehouseSkillWeights.Add(0);
+                    SaveDatabase(database);
                 }
 
                 newOwnedSkillOptionIndex = 0;
@@ -496,6 +500,17 @@ public sealed class CharacterSkillLoadoutEditorWindow : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         return asset;
+    }
+
+    private static void SaveDatabase(CharacterSkillLoadoutDatabase targetDatabase)
+    {
+        if (targetDatabase == null)
+        {
+            return;
+        }
+
+        EditorUtility.SetDirty(targetDatabase);
+        AssetDatabase.SaveAssets();
     }
 
     private static List<string> CollectCharacterIds()
