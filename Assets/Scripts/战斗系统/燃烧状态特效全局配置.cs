@@ -34,6 +34,15 @@ public sealed class 燃烧状态特效全局配置 : ScriptableObject
     public float 上飘速度 = 0.35f;
     public float 表面散布厚度 = 0.015f;
 
+    [Header("呼吸光源")]
+    public bool 启用呼吸光源 = true;
+    public Color 光源颜色 = new Color(1f, 0.45f, 0.08f, 1f);
+    public float 光源最小强度 = 0.35f;
+    public float 光源最大强度 = 0.8f;
+    public float 光源范围 = 2.2f;
+    public float 光源呼吸速度 = 2f;
+    public Vector3 光源本地偏移 = new Vector3(0f, 1f, 0f);
+
     public static 燃烧状态特效全局配置 LoadDefault()
     {
         return Resources.Load<燃烧状态特效全局配置>(DefaultResourcePath);
@@ -55,5 +64,9 @@ public sealed class 燃烧状态特效全局配置 : ScriptableObject
         火焰生命周期 = Mathf.Max(0.0001f, 火焰生命周期);
         上飘速度 = Mathf.Max(0f, 上飘速度);
         表面散布厚度 = Mathf.Max(0f, 表面散布厚度);
+        光源最小强度 = Mathf.Max(0f, 光源最小强度);
+        光源最大强度 = Mathf.Max(光源最小强度, 光源最大强度);
+        光源范围 = Mathf.Max(0f, 光源范围);
+        光源呼吸速度 = Mathf.Max(0f, 光源呼吸速度);
     }
 }

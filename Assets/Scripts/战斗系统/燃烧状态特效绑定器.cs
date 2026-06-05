@@ -1,18 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteAlways]
 [DisallowMultipleComponent]
 [AddComponentMenu("特效/燃烧状态特效绑定器")]
 public sealed class 燃烧状态特效绑定器 : MonoBehaviour
 {
     private const string ParticleObjectName = "燃烧状态粒子";
+    private const string BreathLightObjectName = "燃烧状态呼吸光源";
 
     private readonly List<ParticleSystem> 粒子系统列表 = new List<ParticleSystem>();
     private readonly List<ParticleSystemRenderer> 粒子渲染器列表 = new List<ParticleSystemRenderer>();
     private readonly List<SkinnedMeshRenderer> 蒙皮网格列表 = new List<SkinnedMeshRenderer>();
     private 燃烧状态特效全局配置 当前配置;
+    private Light 呼吸光源;
 
     private void OnEnable()
+    {
+        刷新特效预览();
+    }
+
+    public void 刷新特效预览()
     {
         当前配置 = 燃烧状态特效全局配置.LoadDefault();
         if (当前配置 == null)
@@ -24,7 +32,14 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         绑定角色蒙皮网格();
         确保粒子系统();
         应用粒子参数();
+        确保呼吸光源();
+        应用呼吸光源参数();
         播放粒子();
+    }
+
+    private void Update()
+    {
+        更新呼吸光源();
     }
 
     private void OnDisable()
@@ -37,6 +52,11 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
                 particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
         }
+
+        if (呼吸光源 != null)
+        {
+            呼吸光源.enabled = false;
+        }
     }
 
     private void OnValidate()
@@ -45,7 +65,51 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         {
             当前配置 = 燃烧状态特效全局配置.LoadDefault();
             应用粒子参数();
+            应用呼吸光源参数();
         }
+    }
+
+    private void 确保呼吸光源()
+    {
+        Transform existing = transform.Find(BreathLightObjectName);
+        if (existing == null)
+        {
+            GameObject lightObject = new GameObject(BreathLightObjectName);
+            lightObject.transform.SetParent(transform, false);
+            existing = lightObject.transform;
+        }
+
+        呼吸光源 = existing.GetComponent<Light>();
+        if (呼吸光源 == null)
+        {
+            呼吸光源 = existing.gameObject.AddComponent<Light>();
+        }
+    }
+
+    private void 应用呼吸光源参数()
+    {
+        if (当前配置 == null || 呼吸光源 == null)
+        {
+            return;
+        }
+
+        呼吸光源.type = LightType.Point;
+        呼吸光源.color = 当前配置.光源颜色;
+        呼吸光源.range = 当前配置.光源范围;
+        呼吸光源.intensity = (当前配置.光源最小强度 + 当前配置.光源最大强度) * 0.5f;
+        呼吸光源.transform.localPosition = 当前配置.光源本地偏移;
+        呼吸光源.enabled = 当前配置.启用呼吸光源;
+    }
+
+    private void 更新呼吸光源()
+    {
+        if (当前配置 == null || 呼吸光源 == null || !当前配置.启用呼吸光源)
+        {
+            return;
+        }
+
+        float t = (Mathf.Sin(Time.time * 当前配置.光源呼吸速度) + 1f) * 0.5f;
+        呼吸光源.intensity = Mathf.Lerp(当前配置.光源最小强度, 当前配置.光源最大强度, t);
     }
 
     private void 确保粒子系统()
@@ -238,6 +302,10 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             }
 
             particleSystem.Play(true);
+            if (!Application.isPlaying)
+            {
+                particleSystem.Simulate(当前配置 != null ? 当前配置.火焰生命周期 * 0.5f : 0.3f, true, false, true);
+            }
         }
     }
 }
