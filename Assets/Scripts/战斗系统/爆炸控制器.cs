@@ -7,6 +7,7 @@ public sealed class 爆炸控制器 : MonoBehaviour
     [Header("生命周期")]
     [SerializeField] private float 爆炸持续时间 = 1f;
     [SerializeField] private float 光源衰减时间 = 1f;
+    [SerializeField] private float 爆炸大小 = 1f;
 
     [Header("光源衰减")]
     [SerializeField] private Light[] 衰减光源列表;
@@ -16,9 +17,11 @@ public sealed class 爆炸控制器 : MonoBehaviour
     private float[] 初始光源强度列表;
     private float[] 初始光源范围列表;
     private ParticleSystem[] 粒子系统列表;
+    private Vector3 初始缩放;
 
     private void Awake()
     {
+        初始缩放 = transform.localScale;
         读取粒子系统();
         记录初始光源参数();
     }
@@ -27,6 +30,7 @@ public sealed class 爆炸控制器 : MonoBehaviour
     {
         已播放时间 = 0f;
         读取粒子系统();
+        应用爆炸大小();
         应用爆炸持续时间();
         记录初始光源参数();
         应用光源衰减(1f);
@@ -73,6 +77,12 @@ public sealed class 爆炸控制器 : MonoBehaviour
     private void 读取粒子系统()
     {
         粒子系统列表 = GetComponentsInChildren<ParticleSystem>(true);
+    }
+
+    private void 应用爆炸大小()
+    {
+        float scale = Mathf.Max(0.0001f, 爆炸大小);
+        transform.localScale = 初始缩放 * scale;
     }
 
     private void 应用爆炸持续时间()
