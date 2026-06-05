@@ -4,35 +4,31 @@ using UnityEngine;
 [CustomEditor(typeof(燃烧状态特效绑定器))]
 public sealed class 燃烧状态特效绑定器编辑器 : Editor
 {
+    private const string SettingsAssetPath = "Assets/Resources/燃烧状态特效全局配置.asset";
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
         EditorGUILayout.LabelField("燃烧状态特效", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("挂到角色子物体后，会读取父级 BattleUnit 的 SkinnedMeshRenderer，并从角色模型表面发射小而散的火焰粒子。", MessageType.Info);
+        EditorGUILayout.HelpBox("直接挂到角色根物体。脚本会读取当前物体和子物体里的 SkinnedMeshRenderer，并从角色模型表面发射小而散的火焰粒子。参数统一读取 Resources/燃烧状态特效全局配置。", MessageType.Info);
 
-        DrawProperty("火焰材质", "火焰材质");
-        DrawProperty("火焰数量", "每秒火焰数量");
-        DrawProperty("最大粒子数", "最大粒子数");
-        DrawProperty("火焰大小", "火焰大小");
-        DrawProperty("火焰大小浮动", "火焰大小浮动");
-        DrawProperty("火焰生命周期", "火焰生命周期");
-        DrawProperty("上飘速度", "上飘速度");
-        DrawProperty("表面散布厚度", "表面散布厚度");
-        DrawProperty("火焰颜色", "火焰颜色");
-
-        serializedObject.ApplyModifiedProperties();
-    }
-
-    private void DrawProperty(string propertyName, string label)
-    {
-        SerializedProperty property = serializedObject.FindProperty(propertyName);
-        if (property == null)
+        燃烧状态特效全局配置 settings = AssetDatabase.LoadAssetAtPath<燃烧状态特效全局配置>(SettingsAssetPath);
+        using (new EditorGUI.DisabledScope(true))
         {
-            EditorGUILayout.HelpBox($"缺少字段：{propertyName}", MessageType.Error);
-            return;
+            EditorGUILayout.ObjectField("全局配置", settings, typeof(燃烧状态特效全局配置), false);
         }
 
-        EditorGUILayout.PropertyField(property, new GUIContent(label));
+        if (settings == null)
+        {
+            EditorGUILayout.HelpBox("缺少全局配置：Assets/Resources/燃烧状态特效全局配置.asset", MessageType.Warning);
+        }
+        else if (GUILayout.Button("选中全局配置", GUILayout.Width(120f)))
+        {
+            Selection.activeObject = settings;
+            EditorGUIUtility.PingObject(settings);
+        }
+
+        serializedObject.ApplyModifiedProperties();
     }
 }

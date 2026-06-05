@@ -44,12 +44,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d0d5b39a3554a9f9c2d4e2a9ac60f2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  "\u706B\u7130\u6750\u8D28": {fileID: 2100000, guid: bb7a6323c4ed486481e2f830d7c34e51, type: 2}
-  "\u706B\u7130\u6570\u91CF": 28
-  "\u6700\u5927\u7C92\u5B50\u6570": 120
-  "\u706B\u7130\u5927\u5C0F": 0.12
-  "\u706B\u7130\u5927\u5C0F\u6D6E\u52A8": 0.05
-  "\u706B\u7130\u751F\u547D\u5468\u671F": 0.65
-  "\u4E0A\u98D8\u901F\u5EA6": 0.35
-  "\u8868\u9762\u6563\u5E03\u539A\u5EA6": 0.015
-  "\u706B\u7130\u989C\u8272": {r: 1, g: 0.38, b: 0.08, a: 0.72}

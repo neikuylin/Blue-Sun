@@ -5,24 +5,22 @@ using UnityEngine;
 [AddComponentMenu("特效/燃烧状态特效绑定器")]
 public sealed class 燃烧状态特效绑定器 : MonoBehaviour
 {
-    [SerializeField] private Material 火焰材质;
-    [SerializeField] private int 火焰数量 = 28;
-    [SerializeField] private int 最大粒子数 = 120;
-    [SerializeField] private float 火焰大小 = 0.12f;
-    [SerializeField] private float 火焰大小浮动 = 0.05f;
-    [SerializeField] private float 火焰生命周期 = 0.65f;
-    [SerializeField] private float 上飘速度 = 0.35f;
-    [SerializeField] private float 表面散布厚度 = 0.015f;
-    [SerializeField] private Color 火焰颜色 = new Color(1f, 0.38f, 0.08f, 0.72f);
-
     private const string ParticleObjectName = "燃烧状态粒子";
 
     private readonly List<ParticleSystem> 粒子系统列表 = new List<ParticleSystem>();
     private readonly List<ParticleSystemRenderer> 粒子渲染器列表 = new List<ParticleSystemRenderer>();
     private readonly List<SkinnedMeshRenderer> 蒙皮网格列表 = new List<SkinnedMeshRenderer>();
+    private 燃烧状态特效全局配置 当前配置;
 
     private void OnEnable()
     {
+        当前配置 = 燃烧状态特效全局配置.LoadDefault();
+        if (当前配置 == null)
+        {
+            Debug.LogWarning($"[燃烧状态特效] {name} 找不到 Resources/燃烧状态特效全局配置。", this);
+            return;
+        }
+
         绑定角色蒙皮网格();
         确保粒子系统();
         应用粒子参数();
@@ -43,16 +41,9 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
 
     private void OnValidate()
     {
-        火焰数量 = Mathf.Max(0, 火焰数量);
-        最大粒子数 = Mathf.Max(1, 最大粒子数);
-        火焰大小 = Mathf.Max(0.0001f, 火焰大小);
-        火焰大小浮动 = Mathf.Max(0f, 火焰大小浮动);
-        火焰生命周期 = Mathf.Max(0.0001f, 火焰生命周期);
-        上飘速度 = Mathf.Max(0f, 上飘速度);
-        表面散布厚度 = Mathf.Max(0f, 表面散布厚度);
-
-        if (粒子系统列表.Count > 0)
+        if (Application.isPlaying && 粒子系统列表.Count > 0)
         {
+            当前配置 = 燃烧状态特效全局配置.LoadDefault();
             应用粒子参数();
         }
     }
@@ -91,18 +82,11 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
     private void 绑定角色蒙皮网格()
     {
         蒙皮网格列表.Clear();
-        BattleUnit unit = GetComponentInParent<BattleUnit>();
-        if (unit == null)
-        {
-            Debug.LogWarning($"[燃烧状态特效] {name} 找不到父级 BattleUnit，无法绑定角色表面燃烧。", this);
-            return;
-        }
-
-        SkinnedMeshRenderer[] renderers = unit.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        SkinnedMeshRenderer[] renderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
         收集蒙皮网格(renderers, 蒙皮网格列表);
         if (蒙皮网格列表.Count == 0)
         {
-            Debug.LogWarning($"[燃烧状态特效] {unit.unitName} 没有可用 SkinnedMeshRenderer，无法从角色表面发射燃烧粒子。", unit);
+            Debug.LogWarning($"[燃烧状态特效] {name} 的当前物体和子物体没有可用 SkinnedMeshRenderer，无法从角色表面发射燃烧粒子。", this);
         }
     }
 
@@ -125,14 +109,19 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
 
     private void 应用粒子参数()
     {
+        if (当前配置 == null)
+        {
+            return;
+        }
+
         int count = Mathf.Min(粒子系统列表.Count, 蒙皮网格列表.Count);
         if (count == 0)
         {
             return;
         }
 
-        int ratePerRenderer = Mathf.Max(1, Mathf.CeilToInt(火焰数量 / (float)count));
-        int maxParticlesPerRenderer = Mathf.Max(1, Mathf.CeilToInt(最大粒子数 / (float)count));
+        int ratePerRenderer = Mathf.Max(1, Mathf.CeilToInt(当前配置.火焰数量 / (float)count));
+        int maxParticlesPerRenderer = Mathf.Max(1, Mathf.CeilToInt(当前配置.最大粒子数 / (float)count));
         for (int i = 0; i < count; i++)
         {
             应用单个粒子参数(粒子系统列表[i], i < 粒子渲染器列表.Count ? 粒子渲染器列表[i] : null, 蒙皮网格列表[i], ratePerRenderer, maxParticlesPerRenderer);
@@ -157,12 +146,12 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         main.duration = 1f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.maxParticles = maxParticles;
-        main.startLifetime = 火焰生命周期;
-        main.startSpeed = 上飘速度;
+        main.startLifetime = 当前配置.火焰生命周期;
+        main.startSpeed = 当前配置.上飘速度;
         main.startSize = new ParticleSystem.MinMaxCurve(
-            Mathf.Max(0.0001f, 火焰大小 - 火焰大小浮动),
-            火焰大小 + 火焰大小浮动);
-        main.startColor = 火焰颜色;
+            Mathf.Max(0.0001f, 当前配置.火焰大小 - 当前配置.火焰大小浮动),
+            当前配置.火焰大小 + 当前配置.火焰大小浮动);
+        main.startColor = 当前配置.火焰颜色;
         main.gravityModifier = -0.08f;
 
         ParticleSystem.EmissionModule emission = particleSystem.emission;
@@ -174,7 +163,7 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         shape.shapeType = ParticleSystemShapeType.SkinnedMeshRenderer;
         shape.skinnedMeshRenderer = skinnedMeshRenderer;
         shape.radiusThickness = 1f;
-        shape.randomPositionAmount = 表面散布厚度;
+        shape.randomPositionAmount = 当前配置.表面散布厚度;
 
         ParticleSystem.NoiseModule noise = particleSystem.noise;
         noise.enabled = true;
@@ -193,7 +182,7 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             },
             new[]
             {
-                new GradientAlphaKey(火焰颜色.a, 0f),
+                new GradientAlphaKey(当前配置.火焰颜色.a, 0f),
                 new GradientAlphaKey(0f, 1f)
             });
         colorOverLifetime.color = gradient;
@@ -204,9 +193,9 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             particleRenderer.sortMode = ParticleSystemSortMode.Distance;
             particleRenderer.sortingOrder = 1;
             particleRenderer.maxParticleSize = 0.35f;
-            if (火焰材质 != null)
+            if (当前配置.火焰材质 != null)
             {
-                particleRenderer.sharedMaterial = 火焰材质;
+                particleRenderer.sharedMaterial = 当前配置.火焰材质;
             }
         }
     }
