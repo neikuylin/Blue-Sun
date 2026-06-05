@@ -123,7 +123,7 @@ MonoBehaviour:
   hitReactionOverrides:
   - enabled: 1
     weaponCategory: 0
-    stateName: 
+    stateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
@@ -177,6 +177,12 @@ MonoBehaviour:
   - enabled: 1
     weaponCategory: 3
     stateName: "\u95EA\u907F\u52A8\u753B"
+    sound: {fileID: 0}
+    soundPrefab: {fileID: 0}
+    compensateMotion: 0
+  - enabled: 1
+    weaponCategory: 4
+    stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0

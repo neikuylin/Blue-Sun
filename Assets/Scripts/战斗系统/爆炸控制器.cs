@@ -92,7 +92,13 @@ public sealed class 爆炸控制器 : MonoBehaviour
             }
 
             ParticleSystem.MainModule main = particleSystem.main;
+            bool shouldPlay = particleSystem.isPlaying || main.playOnAwake;
+            particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
             main.duration = duration;
+            if (shouldPlay)
+            {
+                particleSystem.Play(false);
+            }
         }
     }
 
