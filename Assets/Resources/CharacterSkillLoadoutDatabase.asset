@@ -80,3 +80,8 @@ MonoBehaviour:
     memorizedSkillWeights: 
     warehouseSkillIds: []
     warehouseSkillWeights: 
+  - characterId: "\u5965\u624E"
+    memorizedSkillIds: []
+    memorizedSkillWeights: 
+    warehouseSkillIds: []
+    warehouseSkillWeights: 

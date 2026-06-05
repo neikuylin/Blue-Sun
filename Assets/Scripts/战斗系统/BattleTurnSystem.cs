@@ -2431,7 +2431,7 @@ public class BattleTurnSystem : MonoBehaviour
                         unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                         ShouldCompensateGlobalMotionForState),
-                    target => PlaySkillHitReaction(target, skill),
+                    (target, damageResult) => PlaySkillHitReaction(target, skill, damageResult),
                     HandleUnitDefeat,
                     uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                     skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -2473,7 +2473,7 @@ public class BattleTurnSystem : MonoBehaviour
                         unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                         ShouldCompensateGlobalMotionForState),
-                    target => PlaySkillHitReaction(target, skill),
+                    (target, damageResult) => PlaySkillHitReaction(target, skill, damageResult),
                     HandleUnitDefeat,
                     uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                     skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -2629,7 +2629,7 @@ public class BattleTurnSystem : MonoBehaviour
                         unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                         ShouldCompensateGlobalMotionForState),
-                    target => PlaySkillHitReaction(target, skillEntry),
+                    (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                     HandleUnitDefeat,
                     uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                     skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -2671,7 +2671,7 @@ public class BattleTurnSystem : MonoBehaviour
                         unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                         unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                         ShouldCompensateGlobalMotionForState),
-                    target => PlaySkillHitReaction(target, skillEntry),
+                    (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                     HandleUnitDefeat,
                     uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                     skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -3114,7 +3114,7 @@ public class BattleTurnSystem : MonoBehaviour
                     unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                     ShouldCompensateGlobalMotionForState),
-                target => PlaySkillHitReaction(target, skillEntry),
+                (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                 HandleUnitDefeat,
                 uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                 skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -3156,7 +3156,7 @@ public class BattleTurnSystem : MonoBehaviour
                     unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                     ShouldCompensateGlobalMotionForState),
-                target => PlaySkillHitReaction(target, skillEntry),
+                (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                 HandleUnitDefeat,
                 uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                 skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -3237,7 +3237,7 @@ public class BattleTurnSystem : MonoBehaviour
                     unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                     ShouldCompensateGlobalMotionForState),
-                target => PlaySkillHitReaction(target, skillEntry),
+                (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                 HandleUnitDefeat,
                 uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                 skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -3279,7 +3279,7 @@ public class BattleTurnSystem : MonoBehaviour
                     unit => unit != null ? unit.GetDodgeAnimationStateName(ResolveDodgeStateName(unit)) : ResolveDodgeStateName(unit),
                     unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
                     ShouldCompensateGlobalMotionForState),
-                target => PlaySkillHitReaction(target, skillEntry),
+                (target, damageResult) => PlaySkillHitReaction(target, skillEntry, damageResult),
                 HandleUnitDefeat,
                 uiUnit => battleInfoTextService != null ? battleInfoTextService.解析单位名(uiUnit, richText: true) : string.Empty,
                 skillEntry => battleInfoTextService != null ? battleInfoTextService.解析技能名(skillEntry) : string.Empty,
@@ -4099,7 +4099,7 @@ public class BattleTurnSystem : MonoBehaviour
         return BattleAnimationSettingsResolver.ResolveDodgeSoundPrefab(ResolveAnimationCharacterId(unit));
     }
 
-    private void PlaySkillHitReaction(BattleUnit target, BattleSkillDatabase.SkillEntry skill)
+    private void PlaySkillHitReaction(BattleUnit target, BattleSkillDatabase.SkillEntry skill, CombatDamageResult damageResult)
     {
         skillPresentationService?.播放受击反应(
             target,
@@ -4109,7 +4109,7 @@ public class BattleTurnSystem : MonoBehaviour
             unit => unit != null ? unit.GetHitReactionAnimationStateName(ResolveHitReactionStateName(unit)) : ResolveHitReactionStateName(unit),
             unit => unit != null ? unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)) : ResolveIdleStateName(unit),
             ShouldCompensateGlobalMotionForState);
-        BattleHitEffectUtility.TryPlaySkillHitEffect(target, skill, battleCamera);
+        BattleHitEffectUtility.TryPlaySkillHitEffect(target, skill, battleCamera, damageResult);
     }
 
     private void RefreshModeMusic()

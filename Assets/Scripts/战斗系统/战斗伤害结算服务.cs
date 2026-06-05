@@ -56,7 +56,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat)
     {
         if (caster == null || target == null || skill == null)
@@ -86,7 +86,7 @@ internal sealed class 战斗伤害结算服务
             return;
         }
 
-        playHitReaction?.Invoke(target);
+        playHitReaction?.Invoke(target, damageResult);
         target.ApplyDamage(damageResult.appliedDamage);
         applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
         showDamagePopup?.Invoke(target, damageResult);
@@ -107,7 +107,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat,
         Func<BattleUnit, string> resolveBattleInfoUnitName,
         Func<BattleSkillDatabase.SkillEntry, string> resolveBattleInfoSkillName,
@@ -157,7 +157,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat)
     {
         if (caster == null || skill == null)
@@ -203,7 +203,7 @@ internal sealed class 战斗伤害结算服务
                 continue;
             }
 
-            playHitReaction?.Invoke(unit);
+            playHitReaction?.Invoke(unit, damageResult);
             unit.ApplyDamage(damageResult.appliedDamage);
             applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
             showDamagePopup?.Invoke(unit, damageResult);
@@ -226,7 +226,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat,
         Func<BattleUnit, string> resolveBattleInfoUnitName,
         Func<BattleSkillDatabase.SkillEntry, string> resolveBattleInfoSkillName,
@@ -278,7 +278,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat,
         Func<BattleUnit, string> resolveBattleInfoUnitName,
         Func<BattleSkillDatabase.SkillEntry, string> resolveBattleInfoSkillName,
@@ -314,7 +314,7 @@ internal sealed class 战斗伤害结算服务
             return $"{casterName}对{targetName}使用了{skillName}";
         }
 
-        playHitReaction?.Invoke(target);
+        playHitReaction?.Invoke(target, damageResult);
         target.ApplyDamage(damageResult.appliedDamage);
         applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
         showDamagePopup?.Invoke(target, damageResult);
@@ -343,7 +343,7 @@ internal sealed class 战斗伤害结算服务
         Action<BattleUnit, BattleSkillDatabase.SkillEntry> showZeroDamagePopup,
         Action<BattleUnit, CombatDamageResult> showDamagePopup,
         Action<BattleUnit> playDodgeReaction,
-        Action<BattleUnit> playHitReaction,
+        Action<BattleUnit, CombatDamageResult> playHitReaction,
         Action<BattleUnit> handleUnitDefeat,
         Func<BattleUnit, string> resolveBattleInfoUnitName,
         Func<BattleSkillDatabase.SkillEntry, string> resolveBattleInfoSkillName,
@@ -398,7 +398,7 @@ internal sealed class 战斗伤害结算服务
                 continue;
             }
 
-            playHitReaction?.Invoke(unit);
+            playHitReaction?.Invoke(unit, damageResult);
             unit.ApplyDamage(damageResult.appliedDamage);
             applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
             showDamagePopup?.Invoke(unit, damageResult);

@@ -6,9 +6,11 @@ using UnityEngine;
 public sealed class 技能特效编辑器 : EditorWindow
 {
     private const string SkillAssetPath = "Assets/Resources/BattleSkillDatabase.asset";
+    private const string CombatArtHitEffectConfigPath = "Assets/Resources/战技受击特效配置.asset";
 
     private Vector2 scroll;
     private SerializedObject skillDatabaseObject;
+    private SerializedObject combatArtHitEffectConfigObject;
     private static readonly Dictionary<string, bool> SkillFoldouts = new Dictionary<string, bool>();
     private static readonly Dictionary<string, bool> WeaponHitSoundFoldouts = new Dictionary<string, bool>();
 
@@ -37,6 +39,7 @@ public sealed class 技能特效编辑器 : EditorWindow
 
         EditorGUILayout.LabelField("技能特效", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox("这里集中配置技能受击表现、飞行弹道、判定时间，以及按武器分流里的受击音效。动作、角度、技能音效仍在“技能动作栏”。", MessageType.Info);
+        DrawCombatArtHitEffectConfig();
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
         skillDatabaseObject.Update();
@@ -78,23 +81,82 @@ public sealed class 技能特效编辑器 : EditorWindow
             }
 
             EditorGUILayout.LabelField("分组", ResolveGroupLabel(groupProperty != null ? groupProperty.enumValueIndex : 0));
-            DrawBaseEffectFields(entry);
+            DrawBaseEffectFields(entry, groupProperty);
             DrawWeaponHitSoundFields(entry, skillId, requiredWeaponCategoriesProperty);
         }
     }
 
-    private static void DrawBaseEffectFields(SerializedProperty entry)
+    private static void DrawBaseEffectFields(SerializedProperty entry, SerializedProperty groupProperty)
     {
         EditorGUILayout.Space(4f);
         EditorGUILayout.LabelField("技能本体特效", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("打击感"));
-        EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
+        if (groupProperty == null || groupProperty.enumValueIndex != (int)BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
+        }
+        else
+        {
+            EditorGUILayout.LabelField("受击特效", "战技使用上方统一受击特效配置");
+        }
         DrawProjectileFields(entry);
         if (!IsProjectileEnabled(entry))
         {
             DrawResolveFrameField(entry);
             DrawExtraHitResolveFrameFields(entry);
         }
+    }
+
+    private void DrawCombatArtHitEffectConfig()
+    {
+        战技受击特效配置 config = EnsureCombatArtHitEffectConfig();
+        if (config == null)
+        {
+            EditorGUILayout.HelpBox("战技受击特效配置创建失败。", MessageType.Error);
+            return;
+        }
+
+        if (combatArtHitEffectConfigObject == null || combatArtHitEffectConfigObject.targetObject != config)
+        {
+            combatArtHitEffectConfigObject = new SerializedObject(config);
+        }
+
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.LabelField("战技统一受击特效", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("战技会按本次实际伤害分量播放。只要本次命中包含对应属性伤害，就播放该属性特效；多个属性会一起播放。", MessageType.Info);
+
+            combatArtHitEffectConfigObject.Update();
+            EditorGUILayout.PropertyField(combatArtHitEffectConfigObject.FindProperty("物理受击特效"), new GUIContent("物理受击特效"));
+            EditorGUILayout.PropertyField(combatArtHitEffectConfigObject.FindProperty("火焰受击特效"), new GUIContent("火焰受击特效"));
+            EditorGUILayout.PropertyField(combatArtHitEffectConfigObject.FindProperty("腐败受击特效"), new GUIContent("腐败受击特效"));
+            EditorGUILayout.PropertyField(combatArtHitEffectConfigObject.FindProperty("寒冷受击特效"), new GUIContent("寒冷受击特效"));
+            if (combatArtHitEffectConfigObject.ApplyModifiedProperties())
+            {
+                EditorUtility.SetDirty(config);
+                AssetDatabase.SaveAssets();
+            }
+        }
+    }
+
+    private static 战技受击特效配置 EnsureCombatArtHitEffectConfig()
+    {
+        战技受击特效配置 config = AssetDatabase.LoadAssetAtPath<战技受击特效配置>(CombatArtHitEffectConfigPath);
+        if (config != null)
+        {
+            return config;
+        }
+
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        config = CreateInstance<战技受击特效配置>();
+        AssetDatabase.CreateAsset(config, CombatArtHitEffectConfigPath);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        return config;
     }
 
     private static void DrawProjectileFields(SerializedProperty entry)

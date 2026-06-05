@@ -4,9 +4,9 @@ internal static class BattleHitEffectUtility
 {
     private const float DefaultDestroyDelaySeconds = 5f;
 
-    public static void TryPlaySkillHitEffect(BattleUnit target, BattleSkillDatabase.SkillEntry skill, Camera battleCamera)
+    public static void TryPlaySkillHitEffect(BattleUnit target, BattleSkillDatabase.SkillEntry skill, Camera battleCamera, CombatDamageResult damageResult)
     {
-        if (target == null || skill == null || skill.hitEffectPrefab == null)
+        if (target == null || skill == null)
         {
             return;
         }
@@ -17,7 +17,85 @@ internal static class BattleHitEffectUtility
             return;
         }
 
-        GameObject instance = Object.Instantiate(skill.hitEffectPrefab, mountPoint, false);
+        if (skill.group == BattleSkillDatabase.SkillGroup.CombatArt)
+        {
+            PlayCombatArtHitEffects(mountPoint, battleCamera, damageResult);
+            return;
+        }
+
+        if (skill.group == BattleSkillDatabase.SkillGroup.Spell)
+        {
+            PlayHitEffectPrefab(skill.hitEffectPrefab, mountPoint, battleCamera);
+        }
+    }
+
+    private static void PlayCombatArtHitEffects(Transform mountPoint, Camera battleCamera, CombatDamageResult damageResult)
+    {
+        if (mountPoint == null || damageResult == null || damageResult.components == null || damageResult.components.Count == 0)
+        {
+            return;
+        }
+
+        战技受击特效配置 config = 战技受击特效配置.LoadDefault();
+        if (config == null)
+        {
+            return;
+        }
+
+        bool playedPhysical = false;
+        bool playedFire = false;
+        bool playedCorruption = false;
+        bool playedCold = false;
+        for (int i = 0; i < damageResult.components.Count; i++)
+        {
+            DamageComponent component = damageResult.components[i];
+            if (component.amount <= 0f)
+            {
+                continue;
+            }
+
+            switch (component.attributeType)
+            {
+                case DamageAttributeType.Fire:
+                    if (!playedFire)
+                    {
+                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Fire), mountPoint, battleCamera);
+                        playedFire = true;
+                    }
+                    break;
+                case DamageAttributeType.Corruption:
+                    if (!playedCorruption)
+                    {
+                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Corruption), mountPoint, battleCamera);
+                        playedCorruption = true;
+                    }
+                    break;
+                case DamageAttributeType.Cold:
+                    if (!playedCold)
+                    {
+                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Cold), mountPoint, battleCamera);
+                        playedCold = true;
+                    }
+                    break;
+                default:
+                    if (!playedPhysical)
+                    {
+                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Physical), mountPoint, battleCamera);
+                        playedPhysical = true;
+                    }
+                    break;
+            }
+        }
+    }
+
+    private static void PlayHitEffectPrefab(GameObject prefab, Transform mountPoint, Camera battleCamera)
+    {
+        if (prefab == null || mountPoint == null)
+        {
+            return;
+        }
+
+        GameObject instance = Object.Instantiate(prefab, mountPoint, false);
         if (instance == null)
         {
             return;
