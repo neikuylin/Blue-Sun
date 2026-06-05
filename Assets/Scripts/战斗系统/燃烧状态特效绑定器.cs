@@ -156,7 +156,7 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         main.startSize = new ParticleSystem.MinMaxCurve(
             Mathf.Max(0.0001f, 当前配置.火焰大小 - 当前配置.火焰大小浮动),
             当前配置.火焰大小 + 当前配置.火焰大小浮动);
-        main.startColor = 当前配置.火焰颜色;
+        main.startColor = new Color(1f, 1f, 1f, 当前配置.火焰颜色.a);
         main.gravityModifier = -0.08f;
 
         ParticleSystem.EmissionModule emission = particleSystem.emission;
