@@ -1,5 +1,4 @@
 ﻿using UnityEditor;
-using UnityEditor.Animations;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -159,17 +158,9 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("description"), new GUIContent("\u6280\u80fd\u63cf\u8ff0"));
                 BattleSkillDatabase.SkillGroup currentGroup = (BattleSkillDatabase.SkillGroup)group.enumValueIndex;
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("enableHitFeel"), new GUIContent("\u6253\u51fb\u611f"));
                 DrawCountField(entry.FindPropertyRelative("castCount"), "施法次数");
                 DrawCountField(entry.FindPropertyRelative("hitCount"), "命中次数");
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("icon"), new GUIContent("\u6280\u80fd\u56fe\u6807"));
-                EditorGUILayout.PropertyField(entry.FindPropertyRelative("hitEffectPrefab"), new GUIContent("受击特效预制体"));
-                DrawProjectileFields(entry);
-                if (!IsProjectileEnabled(entry))
-                {
-                    DrawResolveFrameField(entry);
-                    DrawExtraHitResolveFrameFields(entry);
-                }
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("noDamage"), new GUIContent("\u65e0\u4f24\u5bb3"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.Spell)
                 {
@@ -310,37 +301,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
-    }
-
-    private static void DrawProjectileFields(SerializedProperty entry)
-    {
-        SerializedProperty useProjectile = entry.FindPropertyRelative("useProjectile");
-        SerializedProperty projectilePrefab = entry.FindPropertyRelative("projectilePrefab");
-        SerializedProperty projectileStartFrame = entry.FindPropertyRelative("projectileStartFrame");
-        if (useProjectile == null || projectilePrefab == null || projectileStartFrame == null)
-        {
-            return;
-        }
-
-        useProjectile.boolValue = EditorGUILayout.Toggle("启用飞行弹道", useProjectile.boolValue);
-        if (useProjectile.boolValue)
-        {
-            EditorGUI.indentLevel++;
-            EditorGUILayout.PropertyField(projectilePrefab, new GUIContent("飞行物体预制体"));
-            projectileStartFrame.intValue = Mathf.Max(0, EditorGUILayout.IntField("飞行开始时间", Mathf.Max(0, projectileStartFrame.intValue)));
-            DrawExtraProjectileStartFrameFields(entry);
-            EditorGUI.indentLevel--;
-        }
-        else
-        {
-            projectilePrefab.objectReferenceValue = null;
-        }
-    }
-
-    private static bool IsProjectileEnabled(SerializedProperty entry)
-    {
-        SerializedProperty useProjectile = entry.FindPropertyRelative("useProjectile");
-        return useProjectile != null && useProjectile.boolValue;
     }
 
     private bool GetFoldoutState(string key)
@@ -703,83 +663,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         property.intValue = Mathf.Max(1, EditorGUILayout.IntField(label, Mathf.Max(1, property.intValue)));
     }
 
-    private static void DrawExtraHitResolveFrameFields(SerializedProperty entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        SerializedProperty hitCountProperty = entry.FindPropertyRelative("hitCount");
-        SerializedProperty extraHitResolveFramesProperty = entry.FindPropertyRelative("extraHitResolveFrames");
-        if (hitCountProperty == null || extraHitResolveFramesProperty == null)
-        {
-            return;
-        }
-
-        int requiredCount = Mathf.Max(0, Mathf.Max(1, hitCountProperty.intValue) - 1);
-        while (extraHitResolveFramesProperty.arraySize < requiredCount)
-        {
-            int index = extraHitResolveFramesProperty.arraySize;
-            extraHitResolveFramesProperty.InsertArrayElementAtIndex(index);
-            extraHitResolveFramesProperty.GetArrayElementAtIndex(index).intValue = 0;
-        }
-
-        while (extraHitResolveFramesProperty.arraySize > requiredCount)
-        {
-            extraHitResolveFramesProperty.DeleteArrayElementAtIndex(extraHitResolveFramesProperty.arraySize - 1);
-        }
-
-        for (int i = 0; i < requiredCount; i++)
-        {
-            SerializedProperty frameProperty = extraHitResolveFramesProperty.GetArrayElementAtIndex(i);
-            if (frameProperty == null)
-            {
-                continue;
-            }
-
-            frameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField($"第{i + 2}下判定时间", Mathf.Max(0, frameProperty.intValue)));
-        }
-    }
-
-    private static void DrawExtraProjectileStartFrameFields(SerializedProperty entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        SerializedProperty hitCountProperty = entry.FindPropertyRelative("hitCount");
-        SerializedProperty extraProjectileStartFramesProperty = entry.FindPropertyRelative("extraProjectileStartFrames");
-        if (hitCountProperty == null || extraProjectileStartFramesProperty == null)
-        {
-            return;
-        }
-
-        int requiredCount = Mathf.Max(0, Mathf.Max(1, hitCountProperty.intValue) - 1);
-        while (extraProjectileStartFramesProperty.arraySize < requiredCount)
-        {
-            extraProjectileStartFramesProperty.InsertArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize);
-            extraProjectileStartFramesProperty.GetArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize - 1).intValue = 0;
-        }
-
-        while (extraProjectileStartFramesProperty.arraySize > requiredCount)
-        {
-            extraProjectileStartFramesProperty.DeleteArrayElementAtIndex(extraProjectileStartFramesProperty.arraySize - 1);
-        }
-
-        for (int i = 0; i < requiredCount; i++)
-        {
-            SerializedProperty frameProperty = extraProjectileStartFramesProperty.GetArrayElementAtIndex(i);
-            if (frameProperty == null)
-            {
-                continue;
-            }
-
-            frameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField($"第{i + 2}发飞行开始时间", Mathf.Max(0, frameProperty.intValue)));
-        }
-    }
-
     private static void DrawNormalAttackExtraRuleHint(SerializedProperty skillIdProperty)
     {
         if (skillIdProperty == null ||
@@ -796,78 +679,5 @@ public sealed class BattleSkillEditorWindow : EditorWindow
             MessageType.Info);
     }
 
-    private static void DrawResolveFrameField(SerializedProperty entry)
-    {
-        if (entry == null)
-        {
-            return;
-        }
-
-        SerializedProperty resolveFrameProperty = entry.FindPropertyRelative("resolveFrame");
-        if (resolveFrameProperty == null)
-        {
-            return;
-        }
-
-        resolveFrameProperty.intValue = Mathf.Max(0, EditorGUILayout.IntField("判定时间", Mathf.Max(0, resolveFrameProperty.intValue)));
-        EditorGUILayout.LabelField("说明", "技能动作已改为武器分流，当前不再从本体动作自动推导总帧数");
-    }
-
-    private static AnimationClip FindActionClipByStateName(string stateName)
-    {
-        if (string.IsNullOrWhiteSpace(stateName))
-        {
-            return null;
-        }
-
-        BattleCharacterBindingDatabase bindingDatabase = BattleCharacterBindingDatabase.LoadDefault();
-        if (bindingDatabase == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < bindingDatabase.Entries.Count; i++)
-        {
-            BattleCharacterBindingDatabase.BindingEntry binding = bindingDatabase.Entries[i];
-            AnimatorController controller = binding != null ? binding.animatorController as AnimatorController : null;
-            if (controller == null || controller.layers == null)
-            {
-                continue;
-            }
-
-            for (int layerIndex = 0; layerIndex < controller.layers.Length; layerIndex++)
-            {
-                AnimatorStateMachine stateMachine = controller.layers[layerIndex].stateMachine;
-                if (stateMachine == null)
-                {
-                    continue;
-                }
-
-                ChildAnimatorState[] states = stateMachine.states;
-                for (int stateIndex = 0; stateIndex < states.Length; stateIndex++)
-                {
-                    AnimatorState state = states[stateIndex].state;
-                    if (state == null || !string.Equals(state.name, stateName, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    return state.motion as AnimationClip;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static int ResolveClipFrameCount(AnimationClip clip)
-    {
-        if (clip == null)
-        {
-            return 0;
-        }
-
-        return Mathf.Max(1, Mathf.RoundToInt(clip.length * clip.frameRate));
-    }
 }
 

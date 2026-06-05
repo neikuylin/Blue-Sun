@@ -64,7 +64,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
         }
 
         SerializedProperty skillIdProperty = entry.FindPropertyRelative("skillId");
-        SerializedProperty enableHitFeelProperty = entry.FindPropertyRelative("enableHitFeel");
         SerializedProperty groupProperty = entry.FindPropertyRelative("group");
         SerializedProperty requiredWeaponCategoriesProperty = entry.FindPropertyRelative("requiredWeaponCategories");
 
@@ -75,11 +74,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
         {
             EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(skillId) ? "（未命名技能）" : skillId, EditorStyles.boldLabel);
             EditorGUILayout.LabelField("分组", groupLabel);
-
-            if (enableHitFeelProperty != null)
-            {
-                enableHitFeelProperty.boolValue = EditorGUILayout.Toggle("打击感", enableHitFeelProperty.boolValue);
-            }
 
             DrawWeaponOverrides(entry, skillId, requiredWeaponCategoriesProperty, actionOptions);
         }
@@ -197,8 +191,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
         SerializedProperty postUseYawOffsetProperty = entry.FindPropertyRelative("postUseYawOffset");
         SerializedProperty actionSoundProperty = entry.FindPropertyRelative("actionSound");
         SerializedProperty actionSoundPrefabProperty = entry.FindPropertyRelative("actionSoundPrefab");
-        SerializedProperty hitSoundProperty = entry.FindPropertyRelative("hitSound");
-        SerializedProperty hitSoundPrefabProperty = entry.FindPropertyRelative("hitSoundPrefab");
         SerializedProperty soundDelayFrameProperty = entry.FindPropertyRelative("soundDelayFrame");
         SerializedProperty compensateActionMotionProperty = entry.FindPropertyRelative("compensateActionMotion");
 
@@ -261,16 +253,6 @@ public sealed class SkillActionBindingWindow : EditorWindow
             if (actionSoundPrefabProperty != null)
             {
                 EditorGUILayout.PropertyField(actionSoundPrefabProperty, new GUIContent("技能音效预制体"));
-            }
-
-            if (hitSoundProperty != null)
-            {
-                EditorGUILayout.PropertyField(hitSoundProperty, new GUIContent("受击音效"));
-            }
-
-            if (hitSoundPrefabProperty != null)
-            {
-                EditorGUILayout.PropertyField(hitSoundPrefabProperty, new GUIContent("受击音效预制体"));
             }
 
             if (soundDelayFrameProperty != null)
