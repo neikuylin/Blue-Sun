@@ -11,6 +11,12 @@ public sealed class 燃烧状态特效全局配置 : ScriptableObject
     public Color 火焰颜色 = new Color(1f, 0.38f, 0.08f, 0.72f);
     public Color 中心颜色 = new Color(1f, 0.92f, 0.6f, 1f);
     public Color 外围颜色 = new Color(1f, 0.15f, 0.02f, 1f);
+    public Color 爆发颜色 = new Color(1f, 0.92f, 0.6f, 1f);
+    public Color 过渡颜色 = new Color(1f, 0.75f, 0f, 1f);
+    public Color 末尾颜色 = new Color(1f, 0f, 0f, 1f);
+    public Color 消失颜色 = Color.black;
+    public float 过渡颜色时间 = 0.24f;
+    public float 末尾颜色时间 = 0.56f;
     public float 结束透明度 = 0f;
     public float 火焰大小 = 0.12f;
     public float 火焰大小浮动 = 0.05f;
@@ -37,6 +43,8 @@ public sealed class 燃烧状态特效全局配置 : ScriptableObject
     {
         火焰数量 = Mathf.Max(0, 火焰数量);
         最大粒子数 = Mathf.Max(1, 最大粒子数);
+        过渡颜色时间 = Mathf.Clamp01(过渡颜色时间);
+        末尾颜色时间 = Mathf.Clamp(末尾颜色时间, 过渡颜色时间, 1f);
         结束透明度 = Mathf.Clamp01(结束透明度);
         火焰大小 = Mathf.Max(0.0001f, 火焰大小);
         火焰大小浮动 = Mathf.Max(0f, 火焰大小浮动);

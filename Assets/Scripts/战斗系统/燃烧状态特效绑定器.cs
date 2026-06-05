@@ -182,8 +182,10 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(当前配置.中心颜色, 0f),
-                new GradientColorKey(当前配置.外围颜色, 1f)
+                new GradientColorKey(当前配置.爆发颜色, 0f),
+                new GradientColorKey(当前配置.过渡颜色, 当前配置.过渡颜色时间),
+                new GradientColorKey(当前配置.末尾颜色, 当前配置.末尾颜色时间),
+                new GradientColorKey(当前配置.消失颜色, 1f)
             },
             new[]
             {
