@@ -140,6 +140,11 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             return;
         }
 
+        if (particleSystem.isPlaying)
+        {
+            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
         ParticleSystem.MainModule main = particleSystem.main;
         main.loop = true;
         main.playOnAwake = true;
@@ -177,22 +182,42 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(new Color(1f, 0.52f, 0.08f), 0f),
-                new GradientColorKey(new Color(1f, 0.12f, 0.02f), 1f)
+                new GradientColorKey(当前配置.中心颜色, 0f),
+                new GradientColorKey(当前配置.外围颜色, 1f)
             },
             new[]
             {
                 new GradientAlphaKey(当前配置.火焰颜色.a, 0f),
-                new GradientAlphaKey(0f, 1f)
+                new GradientAlphaKey(当前配置.结束透明度, 1f)
             });
         colorOverLifetime.color = gradient;
 
+        ParticleSystem.TextureSheetAnimationModule textureSheetAnimation = particleSystem.textureSheetAnimation;
+        textureSheetAnimation.enabled = true;
+        textureSheetAnimation.mode = ParticleSystemAnimationMode.Grid;
+        textureSheetAnimation.numTilesX = Mathf.Max(1, 当前配置.贴图横向格数);
+        textureSheetAnimation.numTilesY = Mathf.Max(1, 当前配置.贴图纵向格数);
+        textureSheetAnimation.animation = ParticleSystemAnimationType.WholeSheet;
+        textureSheetAnimation.useRandomRow = false;
+        textureSheetAnimation.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0f, 1f, 0.9999f));
+        textureSheetAnimation.startFrame = new ParticleSystem.MinMaxCurve(0f);
+        textureSheetAnimation.cycleCount = Mathf.Max(1, 当前配置.贴图动画循环次数);
+        textureSheetAnimation.fps = Mathf.Max(1, 当前配置.贴图动画帧率);
+
         if (particleRenderer != null)
         {
-            particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+            if (当前配置.粒子网格 == null)
+            {
+                Debug.LogWarning($"[燃烧状态特效] {name} 的全局配置没有绑定粒子网格，Mesh 粒子无法显示。", this);
+                return;
+            }
+
+            particleRenderer.renderMode = ParticleSystemRenderMode.Mesh;
+            particleRenderer.mesh = 当前配置.粒子网格;
             particleRenderer.sortMode = ParticleSystemSortMode.Distance;
             particleRenderer.sortingOrder = 1;
             particleRenderer.maxParticleSize = 0.35f;
+            particleRenderer.lengthScale = 2f;
             if (当前配置.火焰材质 != null)
             {
                 particleRenderer.sharedMaterial = 当前配置.火焰材质;
