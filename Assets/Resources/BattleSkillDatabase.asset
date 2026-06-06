@@ -488,7 +488,7 @@ MonoBehaviour:
   - skillId: "\u70B9\u71C3"
     skillSource: 
     description: "\u70B9\u71C3\u5468\u56F4\u89D2\u8272"
-    hitEffectPrefab: {fileID: 0}
+    hitEffectPrefab: {fileID: 7807918891874290601, guid: b156e27e5191488fbc2d927a88bbdc52, type: 3}
     useProjectile: 0
     projectilePrefab: {fileID: 0}
     projectileStartFrame: 0
