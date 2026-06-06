@@ -281,9 +281,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15fabb4ed3fff83489bc860d6545baa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: "Assembly-CSharp::\u6B66\u5668\u7279\u6548\u72B6\u6001\u6865\u63A5\u5668"
-  "\u6548\u679C\u9A71\u52A8\u7279\u6548\u5217\u8868":
-  - "\u6548\u679CID": "\u706B\u7130\u9644\u9B54"
-    "\u7279\u6548\u811A\u672C": {fileID: 1776870507740999785}
 --- !u!1 &8666520025450344722
 GameObject:
   m_ObjectHideFlags: 0

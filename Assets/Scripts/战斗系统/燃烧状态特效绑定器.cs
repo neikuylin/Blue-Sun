@@ -32,15 +32,6 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour, 效果特效开
     {
         if (特效启用 == 启用)
         {
-            if (启用)
-            {
-                刷新特效预览();
-            }
-            else
-            {
-                停止并隐藏特效();
-            }
-
             return;
         }
 
