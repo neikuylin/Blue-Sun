@@ -20,7 +20,7 @@
 
 ## 项目结构速览
 
-这是一个 Unity 项目，项目根目录为 `C:\Users\neikuy\Desktop\Project-A`。
+这是一个 Unity 项目，项目根目录为 `C:\Users\neikuy\Desktop\Blue Sun`。
 
 - `Assets/Scenes`：Unity 场景文件。
 - `Assets/Scripts`：主要 C# 脚本。
