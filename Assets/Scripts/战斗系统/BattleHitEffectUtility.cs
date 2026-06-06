@@ -19,7 +19,16 @@ internal static class BattleHitEffectUtility
 
         if (skill.group == BattleSkillDatabase.SkillGroup.CombatArt)
         {
-            PlayCombatArtHitEffects(mountPoint, battleCamera, damageResult);
+            if (damageResult == null || damageResult.components == null || damageResult.components.Count == 0)
+            {
+                PlayCombatArtHitEffectBySkillDamageType(mountPoint, battleCamera, skill);
+                return;
+            }
+
+            if (!PlayCombatArtHitEffects(mountPoint, battleCamera, damageResult))
+            {
+                PlayCombatArtHitEffectBySkillDamageType(mountPoint, battleCamera, skill);
+            }
             return;
         }
 
@@ -29,19 +38,20 @@ internal static class BattleHitEffectUtility
         }
     }
 
-    private static void PlayCombatArtHitEffects(Transform mountPoint, Camera battleCamera, CombatDamageResult damageResult)
+    private static bool PlayCombatArtHitEffects(Transform mountPoint, Camera battleCamera, CombatDamageResult damageResult)
     {
         if (mountPoint == null || damageResult == null || damageResult.components == null || damageResult.components.Count == 0)
         {
-            return;
+            return false;
         }
 
         战技受击特效配置 config = 战技受击特效配置.LoadDefault();
         if (config == null)
         {
-            return;
+            return false;
         }
 
+        bool playedAny = false;
         bool playedPhysical = false;
         bool playedFire = false;
         bool playedCorruption = false;
@@ -59,46 +69,79 @@ internal static class BattleHitEffectUtility
                 case DamageAttributeType.Fire:
                     if (!playedFire)
                     {
-                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Fire), mountPoint, battleCamera);
+                        playedAny |= PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Fire), mountPoint, battleCamera);
                         playedFire = true;
                     }
                     break;
                 case DamageAttributeType.Corruption:
                     if (!playedCorruption)
                     {
-                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Corruption), mountPoint, battleCamera);
+                        playedAny |= PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Corruption), mountPoint, battleCamera);
                         playedCorruption = true;
                     }
                     break;
                 case DamageAttributeType.Cold:
                     if (!playedCold)
                     {
-                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Cold), mountPoint, battleCamera);
+                        playedAny |= PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Cold), mountPoint, battleCamera);
                         playedCold = true;
                     }
                     break;
                 default:
                     if (!playedPhysical)
                     {
-                        PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Physical), mountPoint, battleCamera);
+                        playedAny |= PlayHitEffectPrefab(config.解析受击特效(DamageAttributeType.Physical), mountPoint, battleCamera);
                         playedPhysical = true;
                     }
                     break;
             }
         }
+
+        return playedAny;
     }
 
-    private static void PlayHitEffectPrefab(GameObject prefab, Transform mountPoint, Camera battleCamera)
+    private static void PlayCombatArtHitEffectBySkillDamageType(Transform mountPoint, Camera battleCamera, BattleSkillDatabase.SkillEntry skill)
+    {
+        if (mountPoint == null || skill == null)
+        {
+            return;
+        }
+
+        战技受击特效配置 config = 战技受击特效配置.LoadDefault();
+        if (config == null)
+        {
+            return;
+        }
+
+        PlayHitEffectPrefab(config.解析受击特效(转换技能伤害类型(skill.damageType)), mountPoint, battleCamera);
+    }
+
+    private static DamageAttributeType 转换技能伤害类型(BattleSkillDatabase.DamageType damageType)
+    {
+        switch (damageType)
+        {
+            case BattleSkillDatabase.DamageType.Fire:
+                return DamageAttributeType.Fire;
+            case BattleSkillDatabase.DamageType.Corruption:
+                return DamageAttributeType.Corruption;
+            case BattleSkillDatabase.DamageType.Cold:
+                return DamageAttributeType.Cold;
+            default:
+                return DamageAttributeType.Physical;
+        }
+    }
+
+    private static bool PlayHitEffectPrefab(GameObject prefab, Transform mountPoint, Camera battleCamera)
     {
         if (prefab == null || mountPoint == null)
         {
-            return;
+            return false;
         }
 
         GameObject instance = Object.Instantiate(prefab, mountPoint, false);
         if (instance == null)
         {
-            return;
+            return false;
         }
 
         ApplyMountedEffectScaleCompensation(instance.transform, mountPoint);
@@ -112,6 +155,7 @@ internal static class BattleHitEffectUtility
             instance.transform.localRotation = Quaternion.identity;
         }
         Object.Destroy(instance, ResolveDestroyDelay(instance));
+        return true;
     }
 
     private static Transform FindAvatarChestMountPoint(BattleUnit target)

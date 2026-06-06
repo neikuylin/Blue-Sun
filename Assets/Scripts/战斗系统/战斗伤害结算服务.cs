@@ -81,6 +81,7 @@ internal sealed class 战斗伤害结算服务
             : null;
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
+            playHitReaction?.Invoke(target, damageResult);
             applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
             showZeroDamagePopup?.Invoke(target, skill);
             return;
@@ -198,6 +199,7 @@ internal sealed class 战斗伤害结算服务
                 : null;
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
+                playHitReaction?.Invoke(unit, damageResult);
                 applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
                 showZeroDamagePopup?.Invoke(unit, skill);
                 continue;
@@ -309,6 +311,7 @@ internal sealed class 战斗伤害结算服务
             : null;
         if (damageResult == null || damageResult.appliedDamage <= 0)
         {
+            playHitReaction?.Invoke(target, damageResult);
             applyAttachedEffectsToUnit?.Invoke(caster, target, skill);
             showZeroDamagePopup?.Invoke(target, skill);
             return $"{casterName}对{targetName}使用了{skillName}";
@@ -392,6 +395,7 @@ internal sealed class 战斗伤害结算服务
                 : null;
             if (damageResult == null || damageResult.appliedDamage <= 0)
             {
+                playHitReaction?.Invoke(unit, damageResult);
                 applyAttachedEffectsToUnit?.Invoke(caster, unit, skill);
                 showZeroDamagePopup?.Invoke(unit, skill);
                 hitTargets.Add($"{unitName}获得了效果");
