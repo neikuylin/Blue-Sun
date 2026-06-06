@@ -4,7 +4,7 @@ using UnityEngine;
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [AddComponentMenu("特效/燃烧状态特效绑定器")]
-public sealed class 燃烧状态特效绑定器 : MonoBehaviour
+public sealed class 燃烧状态特效绑定器 : MonoBehaviour, 效果特效开关接口
 {
     private const string ParticleObjectName = "燃烧状态粒子";
     private const string BreathLightObjectName = "燃烧状态呼吸光源";
@@ -14,14 +14,55 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
     private readonly List<SkinnedMeshRenderer> 蒙皮网格列表 = new List<SkinnedMeshRenderer>();
     private 燃烧状态特效全局配置 当前配置;
     private Light 呼吸光源;
+    private bool 特效启用;
 
     private void OnEnable()
     {
-        刷新特效预览();
+        if (特效启用)
+        {
+            刷新特效预览();
+        }
+        else
+        {
+            停止并隐藏特效();
+        }
+    }
+
+    public void 设置效果特效启用(bool 启用)
+    {
+        if (特效启用 == 启用)
+        {
+            if (启用)
+            {
+                刷新特效预览();
+            }
+            else
+            {
+                停止并隐藏特效();
+            }
+
+            return;
+        }
+
+        特效启用 = 启用;
+        if (特效启用)
+        {
+            刷新特效预览();
+        }
+        else
+        {
+            停止并隐藏特效();
+        }
     }
 
     public void 刷新特效预览()
     {
+        if (!特效启用)
+        {
+            停止并隐藏特效();
+            return;
+        }
+
         当前配置 = 燃烧状态特效全局配置.LoadDefault();
         if (当前配置 == null)
         {
@@ -39,10 +80,20 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
 
     private void Update()
     {
+        if (!特效启用)
+        {
+            return;
+        }
+
         更新呼吸光源();
     }
 
     private void OnDisable()
+    {
+        停止并隐藏特效();
+    }
+
+    private void 停止并隐藏特效()
     {
         for (int i = 0; i < 粒子系统列表.Count; i++)
         {
@@ -53,9 +104,21 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             }
         }
 
+        停止并隐藏现有粒子子物体();
+
         if (呼吸光源 != null)
         {
             呼吸光源.enabled = false;
+        }
+
+        Transform lightTransform = transform.Find(BreathLightObjectName);
+        if (lightTransform != null)
+        {
+            Light existingLight = lightTransform.GetComponent<Light>();
+            if (existingLight != null)
+            {
+                existingLight.enabled = false;
+            }
         }
     }
 
@@ -64,8 +127,15 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         if (Application.isPlaying && 粒子系统列表.Count > 0)
         {
             当前配置 = 燃烧状态特效全局配置.LoadDefault();
-            应用粒子参数();
-            应用呼吸光源参数();
+            if (特效启用)
+            {
+                应用粒子参数();
+                应用呼吸光源参数();
+            }
+            else
+            {
+                停止并隐藏特效();
+            }
         }
     }
 
@@ -84,6 +154,8 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         {
             呼吸光源 = existing.gameObject.AddComponent<Light>();
         }
+
+        existing.gameObject.SetActive(特效启用);
     }
 
     private void 应用呼吸光源参数()
@@ -98,7 +170,7 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
         呼吸光源.range = 当前配置.光源范围;
         呼吸光源.intensity = (当前配置.光源最小强度 + 当前配置.光源最大强度) * 0.5f;
         呼吸光源.transform.localPosition = 当前配置.光源本地偏移;
-        呼吸光源.enabled = 当前配置.启用呼吸光源;
+        呼吸光源.enabled = 特效启用 && 当前配置.启用呼吸光源;
     }
 
     private void 更新呼吸光源()
@@ -126,6 +198,8 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
                 existing = particleObject.transform;
             }
 
+            existing.gameObject.SetActive(特效启用);
+
             ParticleSystem particleSystem = existing.GetComponent<ParticleSystem>();
             if (particleSystem == null)
             {
@@ -137,6 +211,8 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             {
                 particleRenderer = existing.gameObject.AddComponent<ParticleSystemRenderer>();
             }
+
+            particleRenderer.enabled = 特效启用;
 
             粒子系统列表.Add(particleSystem);
             粒子渲染器列表.Add(particleRenderer);
@@ -204,14 +280,11 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             return;
         }
 
-        if (particleSystem.isPlaying)
-        {
-            particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        }
+        particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         ParticleSystem.MainModule main = particleSystem.main;
         main.loop = true;
-        main.playOnAwake = true;
+        main.playOnAwake = false;
         main.duration = 1f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.maxParticles = maxParticles;
@@ -282,6 +355,7 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
             particleRenderer.mesh = 当前配置.粒子网格;
             particleRenderer.sortMode = ParticleSystemSortMode.Distance;
             particleRenderer.sortingOrder = 1;
+            particleRenderer.enabled = 特效启用;
             particleRenderer.maxParticleSize = 0.35f;
             particleRenderer.lengthScale = 2f;
             if (当前配置.火焰材质 != null)
@@ -301,11 +375,36 @@ public sealed class 燃烧状态特效绑定器 : MonoBehaviour
                 continue;
             }
 
+            particleSystem.gameObject.SetActive(true);
             particleSystem.Play(true);
-            if (!Application.isPlaying)
+        }
+    }
+
+    private void 停止并隐藏现有粒子子物体()
+    {
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            Transform child = transform.GetChild(i);
+            if (child == null || !child.name.StartsWith(ParticleObjectName))
             {
-                particleSystem.Simulate(当前配置 != null ? 当前配置.火焰生命周期 * 0.5f : 0.3f, true, false, true);
+                continue;
             }
+
+            ParticleSystem particleSystem = child.GetComponent<ParticleSystem>();
+            if (particleSystem != null)
+            {
+                ParticleSystem.MainModule main = particleSystem.main;
+                main.playOnAwake = false;
+                particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            ParticleSystemRenderer particleRenderer = child.GetComponent<ParticleSystemRenderer>();
+            if (particleRenderer != null)
+            {
+                particleRenderer.enabled = false;
+            }
+
+            child.gameObject.SetActive(false);
         }
     }
 }

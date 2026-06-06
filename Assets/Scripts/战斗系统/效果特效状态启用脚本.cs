@@ -3,8 +3,8 @@ using UnityEngine;
 
 [ExecuteAlways]
 [DisallowMultipleComponent]
-[AddComponentMenu("特效/武器特效状态桥接器")]
-public sealed class 武器特效状态桥接器 : MonoBehaviour
+[AddComponentMenu("特效/效果特效状态启用脚本")]
+public sealed class 效果特效状态启用脚本 : MonoBehaviour
 {
     private BattleUnit 所属单位;
     private bool 已警告缺少单位;
@@ -13,16 +13,16 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
     private void OnEnable()
     {
         解析所属单位();
-        刷新武器特效状态();
+        刷新效果特效状态();
     }
 
     private void Update()
     {
-        刷新武器特效状态();
+        刷新效果特效状态();
     }
 
-    [ContextMenu("刷新武器特效状态")]
-    public void 刷新武器特效状态()
+    [ContextMenu("刷新效果特效状态")]
+    public void 刷新效果特效状态()
     {
         if (!Application.isPlaying && !gameObject.scene.IsValid())
         {
@@ -34,7 +34,7 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
         {
             if (!已警告缺少全局配置)
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 找不到 Resources/{效果特效全局配置.DefaultResourcePath}，无法读取武器特效绑定。", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 找不到 Resources/{效果特效全局配置.DefaultResourcePath}，无法读取模型特效绑定。", this);
                 已警告缺少全局配置 = true;
             }
 
@@ -42,12 +42,12 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
         }
 
         已警告缺少全局配置 = false;
-        if (config.武器特效绑定 == null)
+        if (config.模型特效绑定 == null)
         {
             return;
         }
 
-        确保武器特效组件(config);
+        确保模型特效组件(config);
 
         if (所属单位 == null && !存在预览启用(config))
         {
@@ -58,17 +58,18 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
         {
             if (!已警告缺少单位)
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 找不到父级 BattleUnit，无法读取角色身上的效果。", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 找不到父级 BattleUnit，无法读取角色身上的效果。", this);
                 已警告缺少单位 = true;
             }
-
-            return;
+        }
+        else
+        {
+            已警告缺少单位 = false;
         }
 
-        已警告缺少单位 = false;
-        for (int i = 0; i < config.武器特效绑定.Count; i++)
+        for (int i = 0; i < config.模型特效绑定.Count; i++)
         {
-            效果特效全局配置.效果特效绑定条目 entry = config.武器特效绑定[i];
+            效果特效全局配置.效果特效绑定条目 entry = config.模型特效绑定[i];
             if (entry == null)
             {
                 continue;
@@ -76,26 +77,32 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(entry.效果ID))
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 第{i + 1}条没有配置效果ID。", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条没有配置效果ID。", this);
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(entry.特效脚本类型名))
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 第{i + 1}条没有配置特效脚本。", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条没有配置特效脚本。", this);
                 continue;
             }
 
             Type effectType = 解析特效脚本类型(entry.特效脚本类型名);
             if (effectType == null)
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 第{i + 1}条找不到特效脚本类型：{entry.特效脚本类型名}", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条找不到特效脚本类型：{entry.特效脚本类型名}", this);
                 continue;
             }
 
             if (!typeof(MonoBehaviour).IsAssignableFrom(effectType))
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 第{i + 1}条绑定的类型不是 MonoBehaviour：{effectType.Name}", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条绑定的类型不是 MonoBehaviour：{effectType.Name}", this);
+                continue;
+            }
+
+            if (!typeof(效果特效开关接口).IsAssignableFrom(effectType))
+            {
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条绑定的脚本没有实现“效果特效开关接口”：{effectType.Name}", this);
                 continue;
             }
 
@@ -105,27 +112,28 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
                 continue;
             }
 
-            武器特效开关接口 effectSwitch = effectComponent as 武器特效开关接口;
+            effectComponent.enabled = true;
+            效果特效开关接口 effectSwitch = effectComponent as 效果特效开关接口;
             if (effectSwitch == null)
             {
-                Debug.LogWarning($"[武器特效状态桥接器] {name} 第{i + 1}条绑定的脚本没有实现“武器特效开关接口”：{effectType.Name}", this);
+                Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{i + 1}条绑定的脚本没有实现“效果特效开关接口”：{effectType.Name}", this);
                 continue;
             }
 
-            effectSwitch.设置武器特效启用(entry.预览启用 || 单位拥有持续效果(所属单位, entry.效果ID));
+            effectSwitch.设置效果特效启用(entry.预览启用 || 单位拥有持续效果(所属单位, entry.效果ID));
         }
     }
 
     private void OnValidate()
     {
-        刷新武器特效状态();
+        刷新效果特效状态();
     }
 
-    private void 确保武器特效组件(效果特效全局配置 config)
+    private void 确保模型特效组件(效果特效全局配置 config)
     {
-        for (int i = 0; i < config.武器特效绑定.Count; i++)
+        for (int i = 0; i < config.模型特效绑定.Count; i++)
         {
-            效果特效全局配置.效果特效绑定条目 entry = config.武器特效绑定[i];
+            效果特效全局配置.效果特效绑定条目 entry = config.模型特效绑定[i];
             if (entry == null || string.IsNullOrWhiteSpace(entry.特效脚本类型名))
             {
                 continue;
@@ -138,24 +146,25 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
             }
 
             MonoBehaviour effectComponent = 获取或添加特效组件(effectType, i);
-            武器特效开关接口 effectSwitch = effectComponent as 武器特效开关接口;
+            效果特效开关接口 effectSwitch = effectComponent as 效果特效开关接口;
             if (effectSwitch != null && 所属单位 == null)
             {
-                effectSwitch.设置武器特效启用(entry.预览启用);
+                effectComponent.enabled = true;
+                effectSwitch.设置效果特效启用(entry.预览启用);
             }
         }
     }
 
     private static bool 存在预览启用(效果特效全局配置 config)
     {
-        if (config == null || config.武器特效绑定 == null)
+        if (config == null || config.模型特效绑定 == null)
         {
             return false;
         }
 
-        for (int i = 0; i < config.武器特效绑定.Count; i++)
+        for (int i = 0; i < config.模型特效绑定.Count; i++)
         {
-            效果特效全局配置.效果特效绑定条目 entry = config.武器特效绑定[i];
+            效果特效全局配置.效果特效绑定条目 entry = config.模型特效绑定[i];
             if (entry != null && entry.预览启用)
             {
                 return true;
@@ -177,7 +186,7 @@ public sealed class 武器特效状态桥接器 : MonoBehaviour
         MonoBehaviour addedBehaviour = added as MonoBehaviour;
         if (addedBehaviour == null)
         {
-            Debug.LogWarning($"[武器特效状态桥接器] {name} 第{entryIndex + 1}条无法添加特效脚本：{effectType.Name}", this);
+            Debug.LogWarning($"[效果特效状态启用脚本] {name} 第{entryIndex + 1}条无法添加特效脚本：{effectType.Name}", this);
         }
 
         return addedBehaviour;
