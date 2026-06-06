@@ -130,6 +130,19 @@ public class BattleUnit : MonoBehaviour
 
     public bool IsMoving { get; private set; }
 
+    private void Awake()
+    {
+        确保效果特效状态启用脚本();
+    }
+
+    private void 确保效果特效状态启用脚本()
+    {
+        if (GetComponent<效果特效状态启用脚本>() == null)
+        {
+            gameObject.AddComponent<效果特效状态启用脚本>();
+        }
+    }
+
     public Vector3 GetOcclusionRevealAnchorWorldPosition()
     {
         return useAutoVisualAnchor ? GetVisualAnchorWorldPosition() : transform.position;
