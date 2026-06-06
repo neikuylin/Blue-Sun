@@ -116,7 +116,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public float axisAngle = 180f;
         public Vector2Int effectSize = new Vector2Int(3, 3);
         public List<AttachedEffectEntry> attachedEffects = new List<AttachedEffectEntry>();
-        public List<string> attachedEffectIds = new List<string>();
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
         public List<WeaponScopedActionOverride> weaponActionOverrides = new List<WeaponScopedActionOverride>();
 
@@ -261,34 +260,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
             return false;
         }
 
-        public void EnsureAttachedEffectsMigrated()
-        {
-            if ((attachedEffects != null && attachedEffects.Count > 0) || attachedEffectIds == null || attachedEffectIds.Count == 0)
-            {
-                return;
-            }
-
-            if (attachedEffects == null)
-            {
-                attachedEffects = new List<AttachedEffectEntry>();
-            }
-
-            for (int i = 0; i < attachedEffectIds.Count; i++)
-            {
-                string effectId = attachedEffectIds[i];
-                if (string.IsNullOrWhiteSpace(effectId))
-                {
-                    continue;
-                }
-
-                attachedEffects.Add(new AttachedEffectEntry
-                {
-                    effectId = effectId,
-                    durationTurns = 1,
-                    applyChancePercent = 100
-                });
-            }
-        }
     }
 
     [SerializeField] private List<SkillEntry> entries = new List<SkillEntry>();
@@ -325,8 +296,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
                 continue;
             }
 
-            entry.EnsureAttachedEffectsMigrated();
-
             if (string.Equals(entry.skillId, skillId, StringComparison.Ordinal))
             {
                 return entry;
@@ -344,7 +313,6 @@ public sealed class BattleSkillDatabase : ScriptableObject
             SkillEntry entry = entries[i];
             if (entry != null && entry.group == group)
             {
-                entry.EnsureAttachedEffectsMigrated();
                 result.Add(entry);
             }
         }

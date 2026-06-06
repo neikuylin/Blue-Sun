@@ -74,7 +74,6 @@ public sealed class BattleUnitFactory
             }
 
             BattleUnit unit = EnsureBattleUnit(unitObject);
-            unit.ConfigureAnimationBindings(binding);
             unit.moveRange = 4;
             unit.attackRange = 1;
             unit.attackDamage = 5;
@@ -135,7 +134,6 @@ public sealed class BattleUnitFactory
             enemyObject.name = enemyEntry.enemyId + "_" + i;
 
             BattleUnit unit = EnsureBattleUnit(enemyObject);
-            unit.ConfigureAnimationBindings(binding);
             unit.attackRange = 1;
             unit.attackDamage = 2;
             unit.footprintSize = 3;

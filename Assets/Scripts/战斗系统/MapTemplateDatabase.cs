@@ -32,7 +32,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
         public string encounterPresetId = string.Empty;
         public string battleGridTemplateId = string.Empty;
         public List<MapConnectionEntry> connections = new List<MapConnectionEntry>();
-        public List<string> nextNodeIds = new List<string>();
     }
 
     [Serializable]
@@ -151,11 +150,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
             return;
         }
 
-        if (node.nextNodeIds == null)
-        {
-            node.nextNodeIds = new List<string>();
-        }
-
         if (node.connections == null)
         {
             node.connections = new List<MapConnectionEntry>();
@@ -169,24 +163,6 @@ public sealed class MapTemplateDatabase : ScriptableObject
         if (string.IsNullOrWhiteSpace(node.displayName))
         {
             node.displayName = node.nodeId;
-        }
-
-        if (node.connections.Count == 0 && node.nextNodeIds.Count > 0)
-        {
-            for (int i = 0; i < node.nextNodeIds.Count; i++)
-            {
-                string targetNodeId = node.nextNodeIds[i];
-                if (string.IsNullOrWhiteSpace(targetNodeId))
-                {
-                    continue;
-                }
-
-                node.connections.Add(new MapConnectionEntry
-                {
-                    targetNodeId = targetNodeId,
-                    direction = ConnectionDirection.East
-                });
-            }
         }
     }
 

@@ -47,7 +47,6 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 3, y: 3}
     attachedEffects: []
-    attachedEffectIds: []
     requiredWeaponCategories: 
     weaponActionOverrides:
     - enabled: 1
@@ -159,7 +158,6 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 1, y: 1}
     attachedEffects: []
-    attachedEffectIds: []
     requiredWeaponCategories: 0100000002000000
     weaponActionOverrides:
     - enabled: 1
@@ -226,7 +224,6 @@ MonoBehaviour:
     axisAngle: 240
     effectSize: {x: 3, y: 3}
     attachedEffects: []
-    attachedEffectIds: []
     requiredWeaponCategories: 0100000002000000
     weaponActionOverrides:
     - enabled: 1
@@ -293,7 +290,6 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 1, y: 1}
     attachedEffects: []
-    attachedEffectIds: []
     requiredWeaponCategories: 03000000
     weaponActionOverrides:
     - enabled: 1
@@ -348,8 +344,6 @@ MonoBehaviour:
     - effectId: "\u71C3\u70E7"
       durationTurns: 2
       applyChancePercent: 30
-    attachedEffectIds:
-    - "\u71C3\u70E7"
     requiredWeaponCategories: 
     weaponActionOverrides: []
   - skillId: "\u96C6\u4E2D"
@@ -389,8 +383,6 @@ MonoBehaviour:
     - effectId: "\u96C6\u4E2D"
       durationTurns: 2
       applyChancePercent: 100
-    attachedEffectIds:
-    - "\u96C6\u4E2D"
     requiredWeaponCategories: 
     weaponActionOverrides: []
   - skillId: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
@@ -427,7 +419,6 @@ MonoBehaviour:
     axisAngle: 180
     effectSize: {x: 1, y: 1}
     attachedEffects: []
-    attachedEffectIds: []
     requiredWeaponCategories: 01000000
     weaponActionOverrides:
     - enabled: 1
@@ -482,7 +473,6 @@ MonoBehaviour:
     - effectId: "\u706B\u7130\u9644\u9B54"
       durationTurns: 2
       applyChancePercent: 100
-    attachedEffectIds: []
     requiredWeaponCategories: 
     weaponActionOverrides: []
   - skillId: "\u70B9\u71C3"
@@ -522,6 +512,5 @@ MonoBehaviour:
     - effectId: "\u71C3\u70E7"
       durationTurns: 2
       applyChancePercent: 100
-    attachedEffectIds: []
     requiredWeaponCategories: 
     weaponActionOverrides: []

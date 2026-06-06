@@ -202,9 +202,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("cooldownTurns"), new GUIContent("\u51b7\u5374\u65f6\u95f4\uff08\u56de\u5408\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("manaCost"), new GUIContent("\u9b54\u6cd5\u6d88\u8017\uff08MP\uff09"));
                 EditorGUILayout.PropertyField(entry.FindPropertyRelative("actionPointCost"), new GUIContent("\u884c\u52a8\u529b\u6d88\u8017\uff08AP\uff09"));
-                DrawAttachedEffects(
-                    entry.FindPropertyRelative("attachedEffects"),
-                    entry.FindPropertyRelative("attachedEffectIds"));
+                DrawAttachedEffects(entry.FindPropertyRelative("attachedEffects"));
                 if (currentGroup == BattleSkillDatabase.SkillGroup.CombatArt)
                 {
                     DrawRequiredWeaponCategories(entry.FindPropertyRelative("requiredWeaponCategories"));
@@ -298,7 +296,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         entry.FindPropertyRelative("axisAngle").floatValue = 180f;
         entry.FindPropertyRelative("effectSize").vector2IntValue = new Vector2Int(1, 1);
         entry.FindPropertyRelative("attachedEffects").ClearArray();
-        entry.FindPropertyRelative("attachedEffectIds").ClearArray();
         entry.FindPropertyRelative("requiredWeaponCategories").ClearArray();
         entry.FindPropertyRelative("weaponActionOverrides").ClearArray();
     }
@@ -329,7 +326,7 @@ public sealed class BattleSkillEditorWindow : EditorWindow
         return string.IsNullOrWhiteSpace(skillId) ? $"未命名技能 {index + 1}" : skillId;
     }
 
-    private static void DrawAttachedEffects(SerializedProperty attachedEffectsProperty, SerializedProperty legacyAttachedEffectIdsProperty)
+    private static void DrawAttachedEffects(SerializedProperty attachedEffectsProperty)
     {
         if (attachedEffectsProperty == null)
         {
@@ -338,7 +335,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
 
         EffectDatabase effectDatabase = EffectDatabase.LoadDefault();
         List<EffectDatabase.EffectEntry> effectEntries = GetValidEffectEntries(effectDatabase);
-        MigrateLegacyAttachedEffects(attachedEffectsProperty, legacyAttachedEffectIdsProperty);
 
         EditorGUILayout.Space(2f);
         EditorGUILayout.LabelField("附加效果");
@@ -413,30 +409,6 @@ public sealed class BattleSkillEditorWindow : EditorWindow
                     }
                 }
             }
-        }
-    }
-
-    private static void MigrateLegacyAttachedEffects(SerializedProperty attachedEffectsProperty, SerializedProperty legacyAttachedEffectIdsProperty)
-    {
-        if (attachedEffectsProperty == null || legacyAttachedEffectIdsProperty == null || attachedEffectsProperty.arraySize > 0 || legacyAttachedEffectIdsProperty.arraySize == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < legacyAttachedEffectIdsProperty.arraySize; i++)
-        {
-            SerializedProperty legacyEffectIdProperty = legacyAttachedEffectIdsProperty.GetArrayElementAtIndex(i);
-            string effectId = legacyEffectIdProperty != null ? legacyEffectIdProperty.stringValue : string.Empty;
-            if (string.IsNullOrWhiteSpace(effectId))
-            {
-                continue;
-            }
-
-            int index = attachedEffectsProperty.arraySize;
-            attachedEffectsProperty.InsertArrayElementAtIndex(index);
-            SerializedProperty attachedEffectProperty = attachedEffectsProperty.GetArrayElementAtIndex(index);
-            attachedEffectProperty.FindPropertyRelative("effectId").stringValue = effectId;
-            attachedEffectProperty.FindPropertyRelative("durationTurns").intValue = 1;
         }
     }
 

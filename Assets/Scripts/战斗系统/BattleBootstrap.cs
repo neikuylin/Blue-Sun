@@ -68,9 +68,6 @@ public class BattleBootstrap : MonoBehaviour
     [Header("Grid")]
     public float gridCellSize = 1f;
 
-    [Header("Legacy Cleanup")]
-    public List<string> legacyRootNamesToDisable = new List<string>();
-
     [Header("Board")]
     public float boardDistance = 18f;
     public Vector3 boardOffset = new Vector3(0f, -2f, 0f);
@@ -314,7 +311,6 @@ public class BattleBootstrap : MonoBehaviour
 
         ResolveReferences();
         CleanupRuntimeObjects();
-        HideLegacySceneCharacters();
         SetupBattleCamera(mainCamera);
         AlignDungeonBoardToCamera(mainCamera);
 
@@ -1781,27 +1777,6 @@ public class BattleBootstrap : MonoBehaviour
         else
         {
             DestroyImmediate(runtimeRoot.gameObject);
-        }
-    }
-
-    private void HideLegacySceneCharacters()
-    {
-        if (legacyRootNamesToDisable == null || legacyRootNamesToDisable.Count == 0)
-        {
-            return;
-        }
-
-        HashSet<string> namesToDisable = new HashSet<string>(legacyRootNamesToDisable);
-        Transform[] transforms = FindObjectsOfType<Transform>(true);
-        for (int i = 0; i < transforms.Length; i++)
-        {
-            Transform target = transforms[i];
-            if (target == null || !namesToDisable.Contains(target.name))
-            {
-                continue;
-            }
-
-            target.gameObject.SetActive(false);
         }
     }
 

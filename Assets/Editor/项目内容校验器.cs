@@ -314,11 +314,6 @@ public sealed class 项目内容校验器 : EditorWindow
                 AddError($"BattleSkillDatabase 存在重复技能ID：{id}");
             }
 
-            if (entry.cooldownTurns > 0)
-            {
-                AddWarning($"技能 '{id}' 配置了 cooldownTurns={entry.cooldownTurns}，但当前运行时尚未实现技能冷却。");
-            }
-
             if (entry.attachedEffects == null)
             {
                 AddWarning($"技能 '{id}' attachedEffects 列表为空引用。");
@@ -340,22 +335,6 @@ public sealed class 项目内容校验器 : EditorWindow
                 }
             }
 
-            if (entry.attachedEffectIds != null)
-            {
-                for (int e = 0; e < entry.attachedEffectIds.Count; e++)
-                {
-                    string effectId = NormalizeId(entry.attachedEffectIds[e]);
-                    if (string.IsNullOrEmpty(effectId))
-                    {
-                        continue;
-                    }
-
-                    if (effectDatabase != null && effectDatabase.FindEntry(effectId) == null)
-                    {
-                        AddError($"技能 '{id}' 的旧效果列表引用了不存在的效果ID：{effectId}");
-                    }
-                }
-            }
         }
     }
 

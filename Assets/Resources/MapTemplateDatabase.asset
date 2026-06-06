@@ -26,7 +26,6 @@ MonoBehaviour:
       connections:
       - targetNodeId: node_1
         direction: 2
-      nextNodeIds: []
     - nodeId: node_1
       displayName: node_1
       position: {x: 654.8, y: 158.4}
@@ -40,7 +39,6 @@ MonoBehaviour:
         direction: 0
       - targetNodeId: "\u5165\u53E3"
         direction: 1
-      nextNodeIds: []
     - nodeId: node_2
       displayName: node_2
       position: {x: 490.60004, y: 274.60004}
@@ -50,7 +48,6 @@ MonoBehaviour:
       connections:
       - targetNodeId: node_1
         direction: 0
-      nextNodeIds: []
     - nodeId: "\u5165\u53E3"
       displayName: "\u5165\u53E3"
       position: {x: 785.59985, y: 265.19995}
@@ -60,4 +57,3 @@ MonoBehaviour:
       connections:
       - targetNodeId: node_1
         direction: 3
-      nextNodeIds: []

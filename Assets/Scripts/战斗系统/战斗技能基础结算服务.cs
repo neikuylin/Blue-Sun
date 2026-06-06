@@ -155,7 +155,6 @@ internal sealed class 战斗技能基础结算服务
             return;
         }
 
-        skill.EnsureAttachedEffectsMigrated();
         if (skill.attachedEffects == null || skill.attachedEffects.Count == 0)
         {
             return;

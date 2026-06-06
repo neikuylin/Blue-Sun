@@ -59,13 +59,6 @@ public class BattleUnit : MonoBehaviour
     public bool useAutoVisualAnchor = true;
     public float moveSpeed = 8f;
 
-    [Header("Animation Bindings")]
-    [SerializeField] private string idleStateName = string.Empty;
-    [SerializeField] private string enterBattleStateName = string.Empty;
-    [SerializeField] private string moveStateName = string.Empty;
-    [SerializeField] private string hitReactionStateName = string.Empty;
-    [SerializeField] private string dodgeStateName = string.Empty;
-
     [Header("Runtime")]
     public int currentHealth;
     public int currentMana;
@@ -153,38 +146,29 @@ public class BattleUnit : MonoBehaviour
         return useAutoVisualAnchor ? GetVisualBoundsCenterWorldPosition() : transform.position;
     }
 
-    public void ConfigureAnimationBindings(BattleCharacterBindingDatabase.BindingEntry binding)
-    {
-        idleStateName = string.Empty;
-        enterBattleStateName = string.Empty;
-        moveStateName = string.Empty;
-        hitReactionStateName = string.Empty;
-        dodgeStateName = string.Empty;
-    }
-
     public string GetIdleAnimationStateName(string fallback = "")
     {
-        return string.IsNullOrWhiteSpace(idleStateName) ? fallback : idleStateName;
+        return fallback;
     }
 
     public string GetEnterBattleAnimationStateName(string fallback = "")
     {
-        return string.IsNullOrWhiteSpace(enterBattleStateName) ? fallback : enterBattleStateName;
+        return fallback;
     }
 
     public string GetMoveAnimationStateName(string fallback = "")
     {
-        return string.IsNullOrWhiteSpace(moveStateName) ? fallback : moveStateName;
+        return fallback;
     }
 
     public string GetHitReactionAnimationStateName(string fallback = "")
     {
-        return string.IsNullOrWhiteSpace(hitReactionStateName) ? fallback : hitReactionStateName;
+        return fallback;
     }
 
     public string GetDodgeAnimationStateName(string fallback = "")
     {
-        return string.IsNullOrWhiteSpace(dodgeStateName) ? fallback : dodgeStateName;
+        return fallback;
     }
 
     public void Setup(string assignedCharacterId, BattleTeam assignedTeam, string assignedName, Vector2Int startCell)

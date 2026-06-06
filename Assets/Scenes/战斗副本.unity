@@ -2568,9 +2568,6 @@ MonoBehaviour:
   playerPlaceholderColor: {r: 0.15873085, g: 0.8207547, b: 0.33842304, a: 1}
   enemyPlaceholderColor: {r: 0.85, g: 0.25, b: 0.2, a: 1}
   gridCellSize: 1
-  legacyRootNamesToDisable:
-  - "\u7231\u4E3D\u4E1Droot"
-  - "\u7D22\u62C9\u5A1Croot"
   boardDistance: 18
   boardOffset: {x: 0, y: -2, z: 0}
   cameraSize: 8
