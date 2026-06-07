@@ -32,11 +32,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
     private static readonly Vector4[] OcclusionShadowRevealCenters = new Vector4[MaxRevealCount];
-    private static readonly Vector4[] CombinedOcclusionShadowRevealCenters = new Vector4[MaxRevealCount];
     private static readonly List<BattleUnit> CachedUnits = new List<BattleUnit>();
-    private static readonly Dictionary<Sprite角色遮挡挖空控制器, OcclusionShadowContribution> OcclusionShadowContributions =
-        new Dictionary<Sprite角色遮挡挖空控制器, OcclusionShadowContribution>();
-    private static readonly List<Sprite角色遮挡挖空控制器> InvalidContributionOwners = new List<Sprite角色遮挡挖空控制器>();
+    private static readonly List<int> RemovedOcclusionShadowSourceIds = new List<int>();
     private static SpriteOcclusionRevealSettings cachedSettings;
     private static float nextUnitRefreshTime;
 
@@ -52,14 +49,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private Renderer[] cachedRenderers;
     private MaterialPropertyBlock propertyBlock;
-
-    private sealed class OcclusionShadowContribution
-    {
-        public readonly Vector4[] Centers = new Vector4[MaxRevealCount];
-        public int Count;
-        public float RadiusPixels;
-        public float SoftnessPixels;
-    }
+    private readonly HashSet<int> activeOcclusionShadowSourceIds = new HashSet<int>();
 
     private void OnEnable()
     {
@@ -70,7 +60,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private void OnDisable()
     {
         ClearReveal();
-        RemoveOcclusionShadowContribution();
+        ClearOcclusionShadowContributions();
     }
 
     private void OnValidate()
@@ -90,7 +80,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         Renderer[] renderers = ResolveRenderers();
         if (renderers.Length == 0)
         {
-            RemoveOcclusionShadowContribution();
+            ClearOcclusionShadowContributions();
             return;
         }
 
@@ -99,7 +89,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         if (settings == null || !settings.RevealEnabled || cameraToUse == null)
         {
             ClearReveal();
-            RemoveOcclusionShadowContribution();
+            ClearOcclusionShadowContributions();
             return;
         }
 
@@ -109,8 +99,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.RadiusWorld);
         float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.SoftnessWorld);
         ApplyReveal(cameraToUse, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
-        int shadowRevealCount = BuildOcclusionShadowRevealCenters(cameraToUse, renderers, revealCount);
-        UpdateOcclusionShadowContribution(shadowRevealCount, revealRadiusPixels, revealSoftnessPixels);
+        UpdateOcclusionShadowContributions(cameraToUse, renderers, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
     }
 
     public void 开启无视高低3D都挖空()
@@ -265,46 +254,33 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         }
     }
 
-    private int BuildOcclusionShadowRevealCenters(Camera cameraToUse, Renderer[] renderers, int revealCount)
+    private int BuildOcclusionShadowRevealCenters(Camera cameraToUse, Renderer renderer, int revealCount)
     {
-        if (cameraToUse == null || renderers == null || revealCount <= 0)
+        if (cameraToUse == null || renderer == null || revealCount <= 0)
         {
             ClearOcclusionShadowRevealCenters();
             return 0;
         }
 
         int writeIndex = 0;
-        for (int i = 0; i < renderers.Length && writeIndex < MaxRevealCount; i++)
+        int depthMode = ResolveRevealDepthMode(renderer, revealRegardlessOfRenderLevel);
+        if (depthMode == RevealDepthModeDisabled)
         {
-            Renderer renderer = renderers[i];
-            if (renderer == null)
+            ClearOcclusionShadowRevealCenters();
+            return 0;
+        }
+
+        float anchorDepthKey = ResolveAnchorDepthKey(cameraToUse, renderer);
+        for (int j = 0; j < revealCount && writeIndex < MaxRevealCount; j++)
+        {
+            Vector4 revealCenter = RevealCenters[j];
+            if (!DoesRevealCenterAffectRenderer(depthMode, anchorDepthKey, revealCenter))
             {
                 continue;
             }
 
-            int depthMode = ResolveRevealDepthMode(renderer, revealRegardlessOfRenderLevel);
-            if (depthMode == RevealDepthModeDisabled)
-            {
-                continue;
-            }
-
-            float anchorDepthKey = ResolveAnchorDepthKey(cameraToUse, renderer);
-            for (int j = 0; j < revealCount && writeIndex < MaxRevealCount; j++)
-            {
-                Vector4 revealCenter = RevealCenters[j];
-                if (!DoesRevealCenterAffectRenderer(depthMode, anchorDepthKey, revealCenter))
-                {
-                    continue;
-                }
-
-                if (ContainsRevealCenter(OcclusionShadowRevealCenters, writeIndex, revealCenter))
-                {
-                    continue;
-                }
-
-                OcclusionShadowRevealCenters[writeIndex] = revealCenter;
-                writeIndex++;
-            }
+            OcclusionShadowRevealCenters[writeIndex] = revealCenter;
+            writeIndex++;
         }
 
         for (int i = writeIndex; i < MaxRevealCount; i++)
@@ -351,101 +327,72 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         }
     }
 
-    private void UpdateOcclusionShadowContribution(int revealCount, float revealRadiusPixels, float revealSoftnessPixels)
+    private void UpdateOcclusionShadowContributions(
+        Camera cameraToUse,
+        Renderer[] renderers,
+        int revealCount,
+        float revealRadiusPixels,
+        float revealSoftnessPixels,
+        SpriteOcclusionRevealSettings settings)
     {
-        if (revealCount <= 0)
+        RemovedOcclusionShadowSourceIds.Clear();
+        foreach (int sourceId in activeOcclusionShadowSourceIds)
         {
-            RemoveOcclusionShadowContribution();
-            return;
+            RemovedOcclusionShadowSourceIds.Add(sourceId);
         }
 
-        if (!OcclusionShadowContributions.TryGetValue(this, out OcclusionShadowContribution contribution))
+        if (renderers != null && revealCount > 0)
         {
-            contribution = new OcclusionShadowContribution();
-            OcclusionShadowContributions[this] = contribution;
-        }
-
-        contribution.Count = Mathf.Clamp(revealCount, 0, MaxRevealCount);
-        contribution.RadiusPixels = revealRadiusPixels;
-        contribution.SoftnessPixels = revealSoftnessPixels;
-        for (int i = 0; i < contribution.Count; i++)
-        {
-            contribution.Centers[i] = OcclusionShadowRevealCenters[i];
-        }
-
-        for (int i = contribution.Count; i < MaxRevealCount; i++)
-        {
-            contribution.Centers[i] = Vector4.zero;
-        }
-
-        ApplyCombinedOcclusionShadowContribution();
-    }
-
-    private void RemoveOcclusionShadowContribution()
-    {
-        if (OcclusionShadowContributions.Remove(this))
-        {
-            ApplyCombinedOcclusionShadowContribution();
-        }
-        else if (OcclusionShadowContributions.Count == 0)
-        {
-            BattleGrid.ClearOcclusionOccupiedCellShadow();
-        }
-    }
-
-    private static void ApplyCombinedOcclusionShadowContribution()
-    {
-        InvalidContributionOwners.Clear();
-        int writeIndex = 0;
-        float radiusPixels = 0f;
-        float softnessPixels = 0f;
-
-        foreach (KeyValuePair<Sprite角色遮挡挖空控制器, OcclusionShadowContribution> pair in OcclusionShadowContributions)
-        {
-            if (pair.Key == null || pair.Value == null || pair.Value.Count <= 0)
+            for (int i = 0; i < renderers.Length; i++)
             {
-                InvalidContributionOwners.Add(pair.Key);
-                continue;
-            }
-
-            OcclusionShadowContribution contribution = pair.Value;
-            radiusPixels = Mathf.Max(radiusPixels, contribution.RadiusPixels);
-            softnessPixels = Mathf.Max(softnessPixels, contribution.SoftnessPixels);
-
-            for (int i = 0; i < contribution.Count && writeIndex < MaxRevealCount; i++)
-            {
-                Vector4 revealCenter = contribution.Centers[i];
-                if (ContainsRevealCenter(CombinedOcclusionShadowRevealCenters, writeIndex, revealCenter))
+                SpriteRenderer spriteRenderer = renderers[i] as SpriteRenderer;
+                if (spriteRenderer == null || spriteRenderer.sprite == null)
                 {
                     continue;
                 }
 
-                CombinedOcclusionShadowRevealCenters[writeIndex] = revealCenter;
-                writeIndex++;
+                int sourceId = spriteRenderer.GetInstanceID();
+                int shadowRevealCount = BuildOcclusionShadowRevealCenters(cameraToUse, spriteRenderer, revealCount);
+                if (shadowRevealCount <= 0)
+                {
+                    continue;
+                }
+
+                BattleGrid.ApplyOcclusionOccupiedCellShadowForSprite(
+                    sourceId,
+                    shadowRevealCount,
+                    revealRadiusPixels,
+                    revealSoftnessPixels,
+                    OcclusionShadowRevealCenters,
+                    spriteRenderer,
+                    settings);
+                activeOcclusionShadowSourceIds.Add(sourceId);
+                RemovedOcclusionShadowSourceIds.Remove(sourceId);
             }
         }
 
-        for (int i = 0; i < InvalidContributionOwners.Count; i++)
+        for (int i = 0; i < RemovedOcclusionShadowSourceIds.Count; i++)
         {
-            OcclusionShadowContributions.Remove(InvalidContributionOwners[i]);
+            int sourceId = RemovedOcclusionShadowSourceIds[i];
+            BattleGrid.ClearOcclusionOccupiedCellShadow(sourceId);
+            activeOcclusionShadowSourceIds.Remove(sourceId);
+        }
+    }
+
+    private void ClearOcclusionShadowContributions()
+    {
+        RemovedOcclusionShadowSourceIds.Clear();
+        foreach (int sourceId in activeOcclusionShadowSourceIds)
+        {
+            RemovedOcclusionShadowSourceIds.Add(sourceId);
         }
 
-        for (int i = writeIndex; i < MaxRevealCount; i++)
+        for (int i = 0; i < RemovedOcclusionShadowSourceIds.Count; i++)
         {
-            CombinedOcclusionShadowRevealCenters[i] = Vector4.zero;
+            BattleGrid.ClearOcclusionOccupiedCellShadow(RemovedOcclusionShadowSourceIds[i]);
         }
 
-        if (writeIndex <= 0)
-        {
-            BattleGrid.ClearOcclusionOccupiedCellShadow();
-            return;
-        }
-
-        BattleGrid.ApplyOcclusionOccupiedCellShadow(
-            writeIndex,
-            radiusPixels,
-            softnessPixels,
-            CombinedOcclusionShadowRevealCenters);
+        activeOcclusionShadowSourceIds.Clear();
     }
 
     private static float ResolveAnchorDepthKey(Camera cameraToUse, Renderer renderer)

@@ -64,6 +64,8 @@ public class BattleGrid : MonoBehaviour
     private MeshFilter occlusionOccupiedCellShadowFilter;
     private MeshRenderer occlusionOccupiedCellShadowRenderer;
     private Material occlusionOccupiedCellShadowMaterial;
+    private readonly Dictionary<int, OcclusionOccupiedCellShadowSource> occlusionOccupiedCellShadowSources =
+        new Dictionary<int, OcclusionOccupiedCellShadowSource>();
 
     private static BattleGrid activeGrid;
     private static readonly int RevealEnabledId = Shader.PropertyToID("_OcclusionRevealEnabled");
@@ -71,6 +73,17 @@ public class BattleGrid : MonoBehaviour
     private static readonly int RevealRadiusPixelsId = Shader.PropertyToID("_OcclusionRevealRadiusPixels");
     private static readonly int RevealSoftnessPixelsId = Shader.PropertyToID("_OcclusionRevealSoftnessPixels");
     private static readonly int RevealCentersId = Shader.PropertyToID("_OcclusionRevealCenters");
+    private static readonly int ReferenceMaskTexId = Shader.PropertyToID("_ReferenceMaskTex");
+    private static readonly int ReferenceMaskWorldToLocalId = Shader.PropertyToID("_ReferenceMaskWorldToLocal");
+    private static readonly int ReferenceMaskBoundsId = Shader.PropertyToID("_ReferenceMaskBounds");
+    private static readonly int ReferenceMaskUvRectId = Shader.PropertyToID("_ReferenceMaskUvRect");
+    private static readonly int ReferenceMaskFlipId = Shader.PropertyToID("_ReferenceMaskFlip");
+    private static readonly int ReferenceMaskAlphaCutoffId = Shader.PropertyToID("_ReferenceMaskAlphaCutoff");
+    private static readonly int DissolveNoiseScaleId = Shader.PropertyToID("_DissolveNoiseScale");
+    private static readonly int DissolveStrengthId = Shader.PropertyToID("_DissolveStrength");
+    private static readonly int DissolveEdgeWidthId = Shader.PropertyToID("_DissolveEdgeWidth");
+    private static readonly int DissolveScrollSpeedId = Shader.PropertyToID("_DissolveScrollSpeed");
+    private static readonly int DissolveSmoothEdgesId = Shader.PropertyToID("_DissolveSmoothEdges");
 
     private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.12f);
     private Color reachableOutlineColor = new Color(0.20f, 0.70f, 1.00f, 0.57f);
@@ -141,6 +154,7 @@ public class BattleGrid : MonoBehaviour
         occlusionOccupiedCellShadowFilter = null;
         occlusionOccupiedCellShadowRenderer = null;
         DestroyOcclusionOccupiedCellShadowMaterial();
+        DestroyOcclusionOccupiedCellShadowSources();
         BuildOcclusionOccupiedCellShadow();
 
         highlightLayerOrder = 0;
@@ -1146,6 +1160,41 @@ public class BattleGrid : MonoBehaviour
         }
 
         activeGrid.ApplyOcclusionOccupiedCellShadowInstance(0, 0f, 0f, null);
+        activeGrid.ClearOcclusionOccupiedCellShadowSources();
+    }
+
+    public static void ApplyOcclusionOccupiedCellShadowForSprite(
+        int sourceId,
+        int revealCount,
+        float revealRadiusPixels,
+        float revealSoftnessPixels,
+        Vector4[] revealCenters,
+        SpriteRenderer sourceRenderer,
+        SpriteOcclusionRevealSettings revealSettings)
+    {
+        if (activeGrid == null)
+        {
+            return;
+        }
+
+        activeGrid.ApplyOcclusionOccupiedCellShadowForSpriteInstance(
+            sourceId,
+            revealCount,
+            revealRadiusPixels,
+            revealSoftnessPixels,
+            revealCenters,
+            sourceRenderer,
+            revealSettings);
+    }
+
+    public static void ClearOcclusionOccupiedCellShadow(int sourceId)
+    {
+        if (activeGrid == null)
+        {
+            return;
+        }
+
+        activeGrid.ClearOcclusionOccupiedCellShadowSource(sourceId);
     }
 
     private void BuildOcclusionOccupiedCellShadow()
@@ -1260,6 +1309,214 @@ public class BattleGrid : MonoBehaviour
         }
 
         occlusionOccupiedCellShadowMaterial = null;
+    }
+
+    private void ApplyOcclusionOccupiedCellShadowForSpriteInstance(
+        int sourceId,
+        int revealCount,
+        float revealRadiusPixels,
+        float revealSoftnessPixels,
+        Vector4[] revealCenters,
+        SpriteRenderer sourceRenderer,
+        SpriteOcclusionRevealSettings revealSettings)
+    {
+        if (sourceId == 0 || sourceRenderer == null || sourceRenderer.sprite == null || propBlockedCells.Count == 0)
+        {
+            ClearOcclusionOccupiedCellShadowSource(sourceId);
+            return;
+        }
+
+        EnsureVisualRoots();
+        OcclusionOccupiedCellShadowSource source = EnsureOcclusionOccupiedCellShadowSource(sourceId);
+        if (source == null || source.Filter == null || source.Renderer == null || source.Material == null)
+        {
+            return;
+        }
+
+        source.Filter.sharedMesh = BuildFillMesh(propBlockedCells, overlayY + 0.001f);
+        source.Renderer.sortingOrder = OcclusionOccupiedCellShadowSortingOrder;
+        source.Renderer.sharedMaterial = source.Material;
+        ApplyOcclusionOccupiedCellShadowMaterial(
+            source.Material,
+            revealCount,
+            revealRadiusPixels,
+            revealSoftnessPixels,
+            revealCenters);
+        ApplyReferenceSpriteMask(source.Material, sourceRenderer);
+        ApplyDissolveSettings(source.Material, revealSettings);
+        source.Renderer.enabled = revealCount > 0;
+    }
+
+    private OcclusionOccupiedCellShadowSource EnsureOcclusionOccupiedCellShadowSource(int sourceId)
+    {
+        if (sourceId == 0)
+        {
+            return null;
+        }
+
+        if (occlusionOccupiedCellShadowSources.TryGetValue(sourceId, out OcclusionOccupiedCellShadowSource source) &&
+            source != null &&
+            source.Object != null &&
+            source.Filter != null &&
+            source.Renderer != null &&
+            source.Material != null)
+        {
+            return source;
+        }
+
+        Shader shader = Shader.Find(OcclusionOccupiedCellShadowShaderName);
+        if (shader == null)
+        {
+            Debug.LogError($"BattleGrid：找不到 Shader '{OcclusionOccupiedCellShadowShaderName}'，无法显示挖空内占用格黑底。", this);
+            return null;
+        }
+
+        GameObject sourceObject = new GameObject("OcclusionOccupiedCellShadow_" + sourceId);
+        sourceObject.transform.SetParent(occlusionShadowRoot, false);
+        source = new OcclusionOccupiedCellShadowSource
+        {
+            Object = sourceObject,
+            Filter = sourceObject.AddComponent<MeshFilter>(),
+            Renderer = sourceObject.AddComponent<MeshRenderer>(),
+            Material = new Material(shader)
+            {
+                name = "挖空内占用格黑底材质_" + sourceId,
+                hideFlags = HideFlags.HideAndDontSave
+            }
+        };
+
+        occlusionOccupiedCellShadowSources[sourceId] = source;
+        return source;
+    }
+
+    private static void ApplyOcclusionOccupiedCellShadowMaterial(
+        Material material,
+        int revealCount,
+        float revealRadiusPixels,
+        float revealSoftnessPixels,
+        Vector4[] revealCenters)
+    {
+        if (material == null)
+        {
+            return;
+        }
+
+        int clampedCount = Mathf.Clamp(revealCount, 0, OcclusionRevealMax);
+        material.SetInt(RevealEnabledId, clampedCount > 0 ? 1 : 0);
+        material.SetInt(RevealCountId, clampedCount);
+        material.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
+        material.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
+        if (revealCenters != null)
+        {
+            material.SetVectorArray(RevealCentersId, revealCenters);
+        }
+    }
+
+    private static void ApplyReferenceSpriteMask(Material material, SpriteRenderer sourceRenderer)
+    {
+        if (material == null || sourceRenderer == null || sourceRenderer.sprite == null)
+        {
+            return;
+        }
+
+        Sprite sourceSprite = sourceRenderer.sprite;
+        Rect sourceRect = sourceSprite.rect;
+        Texture2D sourceTexture = sourceSprite.texture;
+        Bounds sourceBounds = sourceSprite.bounds;
+        Vector4 uvRect = new Vector4(
+            sourceRect.x / sourceTexture.width,
+            sourceRect.y / sourceTexture.height,
+            sourceRect.width / sourceTexture.width,
+            sourceRect.height / sourceTexture.height);
+        Vector4 bounds = new Vector4(
+            sourceBounds.min.x,
+            sourceBounds.min.y,
+            sourceBounds.size.x,
+            sourceBounds.size.y);
+        Vector4 flip = new Vector4(sourceRenderer.flipX ? 1f : 0f, sourceRenderer.flipY ? 1f : 0f, 0f, 0f);
+
+        material.SetTexture(ReferenceMaskTexId, sourceTexture);
+        material.SetMatrix(ReferenceMaskWorldToLocalId, sourceRenderer.transform.worldToLocalMatrix);
+        material.SetVector(ReferenceMaskBoundsId, bounds);
+        material.SetVector(ReferenceMaskUvRectId, uvRect);
+        material.SetVector(ReferenceMaskFlipId, flip);
+        material.SetFloat(ReferenceMaskAlphaCutoffId, 0.01f);
+    }
+
+    private static void ApplyDissolveSettings(Material material, SpriteOcclusionRevealSettings revealSettings)
+    {
+        if (material == null || revealSettings == null)
+        {
+            return;
+        }
+
+        material.SetFloat(DissolveNoiseScaleId, revealSettings.DissolveNoiseScale);
+        material.SetFloat(DissolveStrengthId, revealSettings.DissolveStrength);
+        material.SetFloat(DissolveEdgeWidthId, revealSettings.DissolveEdgeWidth);
+        material.SetFloat(DissolveScrollSpeedId, revealSettings.DissolveScrollSpeed);
+        material.SetInt(DissolveSmoothEdgesId, revealSettings.DissolveSmoothEdges ? 1 : 0);
+    }
+
+    private void ClearOcclusionOccupiedCellShadowSources()
+    {
+        List<int> keys = new List<int>(occlusionOccupiedCellShadowSources.Keys);
+        for (int i = 0; i < keys.Count; i++)
+        {
+            ClearOcclusionOccupiedCellShadowSource(keys[i]);
+        }
+    }
+
+    private void ClearOcclusionOccupiedCellShadowSource(int sourceId)
+    {
+        if (sourceId == 0 || !occlusionOccupiedCellShadowSources.TryGetValue(sourceId, out OcclusionOccupiedCellShadowSource source))
+        {
+            return;
+        }
+
+        DestroyOcclusionOccupiedCellShadowSource(source);
+        occlusionOccupiedCellShadowSources.Remove(sourceId);
+    }
+
+    private void DestroyOcclusionOccupiedCellShadowSources()
+    {
+        foreach (KeyValuePair<int, OcclusionOccupiedCellShadowSource> pair in occlusionOccupiedCellShadowSources)
+        {
+            DestroyOcclusionOccupiedCellShadowSource(pair.Value);
+        }
+
+        occlusionOccupiedCellShadowSources.Clear();
+    }
+
+    private static void DestroyOcclusionOccupiedCellShadowSource(OcclusionOccupiedCellShadowSource source)
+    {
+        if (source == null)
+        {
+            return;
+        }
+
+        if (source.Material != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(source.Material);
+            }
+            else
+            {
+                DestroyImmediate(source.Material);
+            }
+        }
+
+        if (source.Object != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(source.Object);
+            }
+            else
+            {
+                DestroyImmediate(source.Object);
+            }
+        }
     }
 
     private void CreateOverlay(HashSet<Vector2Int> cells, Color color, string name)
@@ -2401,6 +2658,14 @@ public sealed class BattleGridOcclusionAnchor : MonoBehaviour
             int relativeOffset = rendererSortingOffsets.TryGetValue(renderer, out int offset) ? offset : 0;
             renderer.sortingOrder = baseSortingOrder + relativeOffset;
         }
+    }
+
+    private sealed class OcclusionOccupiedCellShadowSource
+    {
+        public GameObject Object;
+        public MeshFilter Filter;
+        public MeshRenderer Renderer;
+        public Material Material;
     }
 
     public static bool ShouldUseGridOcclusion(Renderer renderer)
