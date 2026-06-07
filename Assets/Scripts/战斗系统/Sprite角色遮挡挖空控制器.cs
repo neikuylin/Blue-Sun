@@ -31,7 +31,12 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
 
     private static readonly Vector4[] RevealCenters = new Vector4[MaxRevealCount];
+    private static readonly Vector4[] OcclusionShadowRevealCenters = new Vector4[MaxRevealCount];
+    private static readonly Vector4[] CombinedOcclusionShadowRevealCenters = new Vector4[MaxRevealCount];
     private static readonly List<BattleUnit> CachedUnits = new List<BattleUnit>();
+    private static readonly Dictionary<Sprite角色遮挡挖空控制器, OcclusionShadowContribution> OcclusionShadowContributions =
+        new Dictionary<Sprite角色遮挡挖空控制器, OcclusionShadowContribution>();
+    private static readonly List<Sprite角色遮挡挖空控制器> InvalidContributionOwners = new List<Sprite角色遮挡挖空控制器>();
     private static SpriteOcclusionRevealSettings cachedSettings;
     private static float nextUnitRefreshTime;
 
@@ -48,6 +53,14 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private Renderer[] cachedRenderers;
     private MaterialPropertyBlock propertyBlock;
 
+    private sealed class OcclusionShadowContribution
+    {
+        public readonly Vector4[] Centers = new Vector4[MaxRevealCount];
+        public int Count;
+        public float RadiusPixels;
+        public float SoftnessPixels;
+    }
+
     private void OnEnable()
     {
         CacheRenderers();
@@ -57,6 +70,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private void OnDisable()
     {
         ClearReveal();
+        RemoveOcclusionShadowContribution();
     }
 
     private void OnValidate()
@@ -76,6 +90,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         Renderer[] renderers = ResolveRenderers();
         if (renderers.Length == 0)
         {
+            RemoveOcclusionShadowContribution();
             return;
         }
 
@@ -84,7 +99,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         if (settings == null || !settings.RevealEnabled || cameraToUse == null)
         {
             ClearReveal();
-            BattleGrid.ClearOcclusionOccupiedCellShadow();
+            RemoveOcclusionShadowContribution();
             return;
         }
 
@@ -94,7 +109,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         float revealRadiusPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.RadiusWorld);
         float revealSoftnessPixels = WorldLengthToScreenPixels(cameraToUse, revealDepth, settings.SoftnessWorld);
         ApplyReveal(cameraToUse, revealCount, revealRadiusPixels, revealSoftnessPixels, settings);
-        BattleGrid.ApplyOcclusionOccupiedCellShadow(revealCount, revealRadiusPixels, revealSoftnessPixels, RevealCenters);
+        int shadowRevealCount = BuildOcclusionShadowRevealCenters(cameraToUse, renderers, revealCount);
+        UpdateOcclusionShadowContribution(shadowRevealCount, revealRadiusPixels, revealSoftnessPixels);
     }
 
     public void 开启无视高低3D都挖空()
@@ -247,6 +263,189 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetVectorArray(RevealCentersId, RevealCenters);
             renderer.SetPropertyBlock(block);
         }
+    }
+
+    private int BuildOcclusionShadowRevealCenters(Camera cameraToUse, Renderer[] renderers, int revealCount)
+    {
+        if (cameraToUse == null || renderers == null || revealCount <= 0)
+        {
+            ClearOcclusionShadowRevealCenters();
+            return 0;
+        }
+
+        int writeIndex = 0;
+        for (int i = 0; i < renderers.Length && writeIndex < MaxRevealCount; i++)
+        {
+            Renderer renderer = renderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            int depthMode = ResolveRevealDepthMode(renderer, revealRegardlessOfRenderLevel);
+            if (depthMode == RevealDepthModeDisabled)
+            {
+                continue;
+            }
+
+            float anchorDepthKey = ResolveAnchorDepthKey(cameraToUse, renderer);
+            for (int j = 0; j < revealCount && writeIndex < MaxRevealCount; j++)
+            {
+                Vector4 revealCenter = RevealCenters[j];
+                if (!DoesRevealCenterAffectRenderer(depthMode, anchorDepthKey, revealCenter))
+                {
+                    continue;
+                }
+
+                if (ContainsRevealCenter(OcclusionShadowRevealCenters, writeIndex, revealCenter))
+                {
+                    continue;
+                }
+
+                OcclusionShadowRevealCenters[writeIndex] = revealCenter;
+                writeIndex++;
+            }
+        }
+
+        for (int i = writeIndex; i < MaxRevealCount; i++)
+        {
+            OcclusionShadowRevealCenters[i] = Vector4.zero;
+        }
+
+        return writeIndex;
+    }
+
+    private static bool DoesRevealCenterAffectRenderer(int depthMode, float anchorDepthKey, Vector4 revealCenter)
+    {
+        if (depthMode == RevealDepthModeAlways)
+        {
+            return true;
+        }
+
+        if (depthMode == RevealDepthModeDepthTest || depthMode == RevealDepthModeGridDepthTest)
+        {
+            return anchorDepthKey <= revealCenter.w;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsRevealCenter(Vector4[] centers, int count, Vector4 revealCenter)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (centers[i] == revealCenter)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void ClearOcclusionShadowRevealCenters()
+    {
+        for (int i = 0; i < MaxRevealCount; i++)
+        {
+            OcclusionShadowRevealCenters[i] = Vector4.zero;
+        }
+    }
+
+    private void UpdateOcclusionShadowContribution(int revealCount, float revealRadiusPixels, float revealSoftnessPixels)
+    {
+        if (revealCount <= 0)
+        {
+            RemoveOcclusionShadowContribution();
+            return;
+        }
+
+        if (!OcclusionShadowContributions.TryGetValue(this, out OcclusionShadowContribution contribution))
+        {
+            contribution = new OcclusionShadowContribution();
+            OcclusionShadowContributions[this] = contribution;
+        }
+
+        contribution.Count = Mathf.Clamp(revealCount, 0, MaxRevealCount);
+        contribution.RadiusPixels = revealRadiusPixels;
+        contribution.SoftnessPixels = revealSoftnessPixels;
+        for (int i = 0; i < contribution.Count; i++)
+        {
+            contribution.Centers[i] = OcclusionShadowRevealCenters[i];
+        }
+
+        for (int i = contribution.Count; i < MaxRevealCount; i++)
+        {
+            contribution.Centers[i] = Vector4.zero;
+        }
+
+        ApplyCombinedOcclusionShadowContribution();
+    }
+
+    private void RemoveOcclusionShadowContribution()
+    {
+        if (OcclusionShadowContributions.Remove(this))
+        {
+            ApplyCombinedOcclusionShadowContribution();
+        }
+        else if (OcclusionShadowContributions.Count == 0)
+        {
+            BattleGrid.ClearOcclusionOccupiedCellShadow();
+        }
+    }
+
+    private static void ApplyCombinedOcclusionShadowContribution()
+    {
+        InvalidContributionOwners.Clear();
+        int writeIndex = 0;
+        float radiusPixels = 0f;
+        float softnessPixels = 0f;
+
+        foreach (KeyValuePair<Sprite角色遮挡挖空控制器, OcclusionShadowContribution> pair in OcclusionShadowContributions)
+        {
+            if (pair.Key == null || pair.Value == null || pair.Value.Count <= 0)
+            {
+                InvalidContributionOwners.Add(pair.Key);
+                continue;
+            }
+
+            OcclusionShadowContribution contribution = pair.Value;
+            radiusPixels = Mathf.Max(radiusPixels, contribution.RadiusPixels);
+            softnessPixels = Mathf.Max(softnessPixels, contribution.SoftnessPixels);
+
+            for (int i = 0; i < contribution.Count && writeIndex < MaxRevealCount; i++)
+            {
+                Vector4 revealCenter = contribution.Centers[i];
+                if (ContainsRevealCenter(CombinedOcclusionShadowRevealCenters, writeIndex, revealCenter))
+                {
+                    continue;
+                }
+
+                CombinedOcclusionShadowRevealCenters[writeIndex] = revealCenter;
+                writeIndex++;
+            }
+        }
+
+        for (int i = 0; i < InvalidContributionOwners.Count; i++)
+        {
+            OcclusionShadowContributions.Remove(InvalidContributionOwners[i]);
+        }
+
+        for (int i = writeIndex; i < MaxRevealCount; i++)
+        {
+            CombinedOcclusionShadowRevealCenters[i] = Vector4.zero;
+        }
+
+        if (writeIndex <= 0)
+        {
+            BattleGrid.ClearOcclusionOccupiedCellShadow();
+            return;
+        }
+
+        BattleGrid.ApplyOcclusionOccupiedCellShadow(
+            writeIndex,
+            radiusPixels,
+            softnessPixels,
+            CombinedOcclusionShadowRevealCenters);
     }
 
     private static float ResolveAnchorDepthKey(Camera cameraToUse, Renderer renderer)

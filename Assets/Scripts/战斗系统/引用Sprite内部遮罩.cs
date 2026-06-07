@@ -71,6 +71,8 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
     private SpriteMask runtimeMask;
     private MaterialPropertyBlock materialPropertyBlock;
 
+    public bool 使用脚下格子判定遮挡 => 渲染层级 == 引用遮罩渲染层级.不决定;
+
     private void OnEnable()
     {
         Apply();

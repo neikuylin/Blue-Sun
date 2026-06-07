@@ -2274,9 +2274,6 @@ public class BattleGrid : MonoBehaviour
 [DisallowMultipleComponent]
 public sealed class BattleGridOcclusionAnchor : MonoBehaviour
 {
-    private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
-    private const int ZTestAlways = 8;
-
     [Header("遮挡锚点")]
     [InspectorName("锚点格子")]
     [SerializeField] private Vector2Int anchorCell;
@@ -2403,7 +2400,6 @@ public sealed class BattleGridOcclusionAnchor : MonoBehaviour
 
             int relativeOffset = rendererSortingOffsets.TryGetValue(renderer, out int offset) ? offset : 0;
             renderer.sortingOrder = baseSortingOrder + relativeOffset;
-            ForceRendererZTestAlways(renderer);
         }
     }
 
@@ -2415,26 +2411,12 @@ public sealed class BattleGridOcclusionAnchor : MonoBehaviour
         }
 
         渲染层级应用器 layerApplier = renderer.GetComponentInParent<渲染层级应用器>();
-        return layerApplier != null && layerApplier.使用脚下格子判定遮挡;
-    }
-
-    private static void ForceRendererZTestAlways(Renderer renderer)
-    {
-        if (!Application.isPlaying || renderer == null)
+        if (layerApplier != null && layerApplier.使用脚下格子判定遮挡)
         {
-            return;
+            return true;
         }
 
-        Material[] materials = renderer.materials;
-        for (int i = 0; i < materials.Length; i++)
-        {
-            Material material = materials[i];
-            if (material != null && material.HasProperty(ZTestId))
-            {
-                material.SetFloat(ZTestId, ZTestAlways);
-            }
-        }
-
-        renderer.materials = materials;
+        引用Sprite内部遮罩 referenceMask = renderer.GetComponentInParent<引用Sprite内部遮罩>();
+        return referenceMask != null && referenceMask.使用脚下格子判定遮挡;
     }
 }
