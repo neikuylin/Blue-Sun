@@ -137,6 +137,14 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
+    private sealed class OcclusionOccupiedCellShadowSource
+    {
+        public GameObject Object;
+        public MeshFilter Filter;
+        public MeshRenderer Renderer;
+        public Material Material;
+    }
+
     public void BuildVisuals()
     {
         EnsureVisualRoots();
@@ -2660,13 +2668,6 @@ public sealed class BattleGridOcclusionAnchor : MonoBehaviour
         }
     }
 
-    private sealed class OcclusionOccupiedCellShadowSource
-    {
-        public GameObject Object;
-        public MeshFilter Filter;
-        public MeshRenderer Renderer;
-        public Material Material;
-    }
 
     public static bool ShouldUseGridOcclusion(Renderer renderer)
     {
