@@ -398,6 +398,12 @@ public class BattleGrid : MonoBehaviour
 
     public void RegisterUnit(BattleUnit unit)
     {
+        if (unit == null)
+        {
+            return;
+        }
+
+        unit.SetOwningGrid(this);
         SetOccupancy(unit, unit.currentCell, true);
     }
 
@@ -501,7 +507,13 @@ public class BattleGrid : MonoBehaviour
 
     public void RemoveUnit(BattleUnit unit)
     {
+        if (unit == null)
+        {
+            return;
+        }
+
         SetOccupancy(unit, unit.currentCell, false);
+        unit.SetOwningGrid(null);
     }
 
     public BattleUnit GetUnitAt(Vector2Int cell)

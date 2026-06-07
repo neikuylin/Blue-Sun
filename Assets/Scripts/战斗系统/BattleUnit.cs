@@ -83,6 +83,7 @@ public class BattleUnit : MonoBehaviour
     private Transform animationCompensationTarget;
     private Vector3 animationCompensationLocalPosition;
     private Vector3 animationCompensationWorldPosition;
+    private BattleGrid owningGrid;
     private readonly List<ActiveEffectState> activeEffects = new List<ActiveEffectState>();
 
     public bool IsAlive
@@ -138,7 +139,7 @@ public class BattleUnit : MonoBehaviour
 
     public Vector3 GetOcclusionRevealAnchorWorldPosition()
     {
-        return useAutoVisualAnchor ? GetVisualAnchorWorldPosition() : transform.position;
+        return owningGrid != null ? owningGrid.GetWorldPosition(currentCell) : GetOcclusionRevealFallbackAnchorWorldPosition();
     }
 
     public Vector3 GetOcclusionRevealCenterWorldPosition()
@@ -185,6 +186,11 @@ public class BattleUnit : MonoBehaviour
             anchorOffset = useAutoVisualAnchor ? transform.position - GetVisualAnchorWorldPosition() : Vector3.zero;
             initialized = true;
         }
+    }
+
+    public void SetOwningGrid(BattleGrid grid)
+    {
+        owningGrid = grid;
     }
 
     public void ApplyStats(CharacterStatDatabase.StatEntry statEntry)
@@ -1133,6 +1139,11 @@ public class BattleUnit : MonoBehaviour
         }
 
         return new Vector3(combinedBounds.center.x, combinedBounds.min.y, combinedBounds.center.z);
+    }
+
+    private Vector3 GetOcclusionRevealFallbackAnchorWorldPosition()
+    {
+        return useAutoVisualAnchor ? GetVisualAnchorWorldPosition() : transform.position;
     }
 
     private Vector3 GetVisualBoundsCenterWorldPosition()
