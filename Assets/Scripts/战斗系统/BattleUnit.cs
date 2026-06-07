@@ -10,6 +10,7 @@ public enum BattleTeam
 
 public class BattleUnit : MonoBehaviour
 {
+    private const int GridOcclusionTransparentQueue = 3000;
     public sealed class ActiveEffectState
     {
         public string effectId = string.Empty;
@@ -71,6 +72,8 @@ public class BattleUnit : MonoBehaviour
     private Coroutine timedAnimationRoutine;
     private Renderer[] cachedRenderers;
     private Color[] originalRendererColors;
+    private Renderer[] gridOcclusionRenderers;
+    private readonly Dictionary<Renderer, int> gridOcclusionSortingOffsets = new Dictionary<Renderer, int>();
     private Renderer[] outlineRenderers;
     private Material[] outlineMaterials;
     private bool hasLockOutlineState;
@@ -1096,6 +1099,7 @@ public class BattleUnit : MonoBehaviour
     private void LateUpdate()
     {
         ApplyAnimationPositionCompensation();
+        ApplyGridOcclusionRendererSorting();
     }
 
     private void ApplyAnimationPositionCompensation()
@@ -1200,6 +1204,102 @@ public class BattleUnit : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void ApplyGridOcclusionRendererSorting()
+    {
+        if (owningGrid == null)
+        {
+            return;
+        }
+
+        Camera cameraToUse = Camera.main;
+        float depthKey = GetOcclusionDepthKey(cameraToUse);
+        int baseSortingOrder = BattleGrid.ResolveOcclusionSortingOrder(depthKey);
+
+        if (gridOcclusionRenderers == null || gridOcclusionRenderers.Length == 0)
+        {
+            CacheGridOcclusionRenderers();
+        }
+
+        for (int i = 0; i < gridOcclusionRenderers.Length; i++)
+        {
+            Renderer renderer = gridOcclusionRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            int relativeOffset = gridOcclusionSortingOffsets.TryGetValue(renderer, out int offset) ? offset : 0;
+            renderer.sortingOrder = baseSortingOrder + relativeOffset;
+            EnsureRendererUsesGridOcclusionQueue(renderer);
+        }
+    }
+
+    private void CacheGridOcclusionRenderers()
+    {
+        Renderer[] allRenderers = GetComponentsInChildren<Renderer>(true);
+        List<Renderer> validRenderers = new List<Renderer>();
+        for (int i = 0; i < allRenderers.Length; i++)
+        {
+            Renderer renderer = allRenderers[i];
+            if (!ShouldUseRendererForGridOcclusion(renderer))
+            {
+                continue;
+            }
+
+            validRenderers.Add(renderer);
+        }
+
+        gridOcclusionRenderers = validRenderers.ToArray();
+        gridOcclusionSortingOffsets.Clear();
+        if (gridOcclusionRenderers.Length == 0)
+        {
+            return;
+        }
+
+        int baseSortingOrder = gridOcclusionRenderers[0] != null ? gridOcclusionRenderers[0].sortingOrder : 0;
+        for (int i = 0; i < gridOcclusionRenderers.Length; i++)
+        {
+            Renderer renderer = gridOcclusionRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            gridOcclusionSortingOffsets[renderer] = renderer.sortingOrder - baseSortingOrder;
+            EnsureRendererUsesGridOcclusionQueue(renderer);
+        }
+    }
+
+    private static bool ShouldUseRendererForGridOcclusion(Renderer renderer)
+    {
+        return renderer is MeshRenderer || renderer is SkinnedMeshRenderer;
+    }
+
+    private static void EnsureRendererUsesGridOcclusionQueue(Renderer renderer)
+    {
+        if (!Application.isPlaying || renderer == null)
+        {
+            return;
+        }
+
+        Material[] materials = renderer.materials;
+        for (int i = 0; i < materials.Length; i++)
+        {
+            Material material = materials[i];
+            if (material == null)
+            {
+                continue;
+            }
+
+            if (material.renderQueue < GridOcclusionTransparentQueue)
+            {
+                material.renderQueue = GridOcclusionTransparentQueue;
+            }
+        }
+
+        renderer.materials = materials;
     }
 
     private void CacheRenderers()
