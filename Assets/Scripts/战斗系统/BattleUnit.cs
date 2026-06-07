@@ -22,6 +22,7 @@ public class BattleUnit : MonoBehaviour
     }
 
     private const string OutlineObjectPrefix = "__Outline_";
+    private const string OutlineMaskObjectPrefix = "__OutlineMask_";
     private static readonly Color DefaultOutlineColor = Color.black;
     private const float DefaultOutlineWidth = 0.025f;
 
@@ -1274,6 +1275,11 @@ public class BattleUnit : MonoBehaviour
 
     private static bool ShouldUseRendererForGridOcclusion(Renderer renderer)
     {
+        if (renderer == null)
+        {
+            return false;
+        }
+
         return renderer is MeshRenderer || renderer is SkinnedMeshRenderer;
     }
 
@@ -1293,13 +1299,37 @@ public class BattleUnit : MonoBehaviour
                 continue;
             }
 
-            if (material.renderQueue < GridOcclusionTransparentQueue)
+            int targetQueue = ResolveGridOcclusionRenderQueue(renderer, material.renderQueue);
+            if (material.renderQueue < targetQueue)
             {
-                material.renderQueue = GridOcclusionTransparentQueue;
+                material.renderQueue = targetQueue;
             }
         }
 
         renderer.materials = materials;
+    }
+
+    private static int ResolveGridOcclusionRenderQueue(Renderer renderer, int currentRenderQueue)
+    {
+        if (renderer == null)
+        {
+            return GridOcclusionTransparentQueue;
+        }
+
+        string rendererName = renderer.name;
+        if (!string.IsNullOrEmpty(rendererName) &&
+            rendererName.StartsWith(OutlineObjectPrefix, System.StringComparison.Ordinal))
+        {
+            return GridOcclusionTransparentQueue + 2;
+        }
+
+        if (!string.IsNullOrEmpty(rendererName) &&
+            rendererName.StartsWith(OutlineMaskObjectPrefix, System.StringComparison.Ordinal))
+        {
+            return GridOcclusionTransparentQueue + 1;
+        }
+
+        return Mathf.Max(GridOcclusionTransparentQueue, currentRenderQueue);
     }
 
     private void CacheRenderers()
