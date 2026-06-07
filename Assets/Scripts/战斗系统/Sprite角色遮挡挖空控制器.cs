@@ -14,13 +14,14 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     private const int RevealDepthModeDisabled = 0;
     private const int RevealDepthModeAlways = 1;
     private const int RevealDepthModeDepthTest = 2;
+    private const int RevealDepthModeGridDepthTest = 3;
 
     private static readonly int RevealEnabledId = Shader.PropertyToID("_OcclusionRevealEnabled");
     private static readonly int RevealCountId = Shader.PropertyToID("_OcclusionRevealCount");
     private static readonly int RevealRadiusPixelsId = Shader.PropertyToID("_OcclusionRevealRadiusPixels");
     private static readonly int RevealSoftnessPixelsId = Shader.PropertyToID("_OcclusionRevealSoftnessPixels");
     private static readonly int RevealCentersId = Shader.PropertyToID("_OcclusionRevealCenters");
-    private static readonly int RevealAnchorScreenYId = Shader.PropertyToID("_OcclusionRevealAnchorScreenY");
+    private static readonly int RevealAnchorDepthKeyId = Shader.PropertyToID("_OcclusionRevealAnchorDepthKey");
     private static readonly int RevealDepthModeId = Shader.PropertyToID("_OcclusionRevealDepthMode");
     private static readonly int DissolveNoiseScaleId = Shader.PropertyToID("_DissolveNoiseScale");
     private static readonly int DissolveStrengthId = Shader.PropertyToID("_DissolveStrength");
@@ -237,7 +238,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
-            block.SetFloat(RevealAnchorScreenYId, ResolveAnchorDepthKey(cameraToUse, renderer));
+            block.SetFloat(RevealAnchorDepthKeyId, ResolveAnchorDepthKey(cameraToUse, renderer));
             block.SetFloat(DissolveNoiseScaleId, settings.DissolveNoiseScale);
             block.SetFloat(DissolveStrengthId, settings.DissolveStrength);
             block.SetFloat(DissolveEdgeWidthId, settings.DissolveEdgeWidth);
@@ -303,7 +304,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
     {
         if (BattleGridOcclusionAnchor.ShouldUseGridOcclusion(renderer))
         {
-            return RevealDepthModeDepthTest;
+            return RevealDepthModeGridDepthTest;
         }
 
         Material material = renderer.sharedMaterial;

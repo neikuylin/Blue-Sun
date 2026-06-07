@@ -74,7 +74,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
-            float _OcclusionRevealAnchorScreenY;
+            float _OcclusionRevealAnchorDepthKey;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
             float _DissolveNoiseScale;
             float _DissolveStrength;
@@ -173,7 +173,12 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
-                    if (_OcclusionRevealDepthMode == 2 && _OcclusionRevealAnchorScreenY > _OcclusionRevealCenters[i].w)
+                    if (_OcclusionRevealDepthMode == 2 && _OcclusionRevealAnchorDepthKey > _OcclusionRevealCenters[i].w)
+                    {
+                        continue;
+                    }
+
+                    if (_OcclusionRevealDepthMode == 3 && _OcclusionRevealAnchorDepthKey > _OcclusionRevealCenters[i].w)
                     {
                         continue;
                     }
@@ -246,7 +251,7 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
             int _OcclusionRevealDepthMode;
             float _OcclusionRevealRadiusPixels;
             float _OcclusionRevealSoftnessPixels;
-            float _OcclusionRevealAnchorScreenY;
+            float _OcclusionRevealAnchorDepthKey;
             float4 _OcclusionRevealCenters[OCCLUSION_REVEAL_MAX];
             float _DissolveNoiseScale;
             float _DissolveStrength;
@@ -347,7 +352,12 @@ Shader "项目/渲染/渲染层级受光不写深度Sprite"
                     }
 
                     float2 center = _OcclusionRevealCenters[i].xy;
-                    if (_OcclusionRevealDepthMode == 2 && _OcclusionRevealAnchorScreenY > _OcclusionRevealCenters[i].w)
+                    if (_OcclusionRevealDepthMode == 2 && _OcclusionRevealAnchorDepthKey > _OcclusionRevealCenters[i].w)
+                    {
+                        continue;
+                    }
+
+                    if (_OcclusionRevealDepthMode == 3 && _OcclusionRevealAnchorDepthKey > _OcclusionRevealCenters[i].w)
                     {
                         continue;
                     }
