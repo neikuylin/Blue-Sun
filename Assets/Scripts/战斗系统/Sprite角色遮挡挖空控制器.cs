@@ -167,8 +167,8 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
                 continue;
             }
 
-            Vector3 anchorScreenPosition = cameraToUse.WorldToScreenPoint(unit.GetOcclusionRevealAnchorWorldPosition());
-            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, screenPosition.z, anchorScreenPosition.y);
+            float anchorDepthKey = unit.GetOcclusionDepthKey(cameraToUse);
+            RevealCenters[writeIndex] = new Vector4(screenPosition.x, screenPosition.y, screenPosition.z, anchorDepthKey);
             writeIndex++;
         }
 
@@ -237,7 +237,7 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
             block.SetInt(RevealDepthModeId, depthMode);
             block.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
             block.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
-            block.SetFloat(RevealAnchorScreenYId, ResolveAnchorScreenY(cameraToUse, renderer));
+            block.SetFloat(RevealAnchorScreenYId, ResolveAnchorDepthKey(cameraToUse, renderer));
             block.SetFloat(DissolveNoiseScaleId, settings.DissolveNoiseScale);
             block.SetFloat(DissolveStrengthId, settings.DissolveStrength);
             block.SetFloat(DissolveEdgeWidthId, settings.DissolveEdgeWidth);
@@ -248,11 +248,19 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         }
     }
 
-    private static float ResolveAnchorScreenY(Camera cameraToUse, Renderer renderer)
+    private static float ResolveAnchorDepthKey(Camera cameraToUse, Renderer renderer)
     {
         if (cameraToUse == null || renderer == null)
         {
             return 0f;
+        }
+
+        BattleGridOcclusionAnchor gridAnchor = renderer.GetComponentInParent<BattleGridOcclusionAnchor>();
+        if (BattleGridOcclusionAnchor.ShouldUseGridOcclusion(renderer) &&
+            gridAnchor != null &&
+            gridAnchor.TryGetDepthKey(cameraToUse, out float depthKey))
+        {
+            return depthKey;
         }
 
         Vector3 anchorWorldPosition = renderer.transform.position;
@@ -293,6 +301,11 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
 
     private static int ResolveRevealDepthMode(Renderer renderer, bool revealRegardlessOfRenderLevel)
     {
+        if (BattleGridOcclusionAnchor.ShouldUseGridOcclusion(renderer))
+        {
+            return RevealDepthModeDepthTest;
+        }
+
         Material material = renderer.sharedMaterial;
         if (material == null)
         {

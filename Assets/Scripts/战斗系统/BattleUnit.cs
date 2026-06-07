@@ -139,7 +139,28 @@ public class BattleUnit : MonoBehaviour
 
     public Vector3 GetOcclusionRevealAnchorWorldPosition()
     {
-        return owningGrid != null ? owningGrid.GetWorldPosition(currentCell) : GetOcclusionRevealFallbackAnchorWorldPosition();
+        return owningGrid != null ? owningGrid.GetWorldPosition(GetOcclusionAnchorCell()) : GetOcclusionRevealFallbackAnchorWorldPosition();
+    }
+
+    public float GetOcclusionDepthKey(Camera cameraToUse)
+    {
+        return owningGrid != null
+            ? owningGrid.GetOcclusionDepthKey(GetOcclusionAnchorCell(), cameraToUse)
+            : (cameraToUse != null ? cameraToUse.WorldToScreenPoint(GetOcclusionRevealFallbackAnchorWorldPosition()).y : 0f);
+    }
+
+    private Vector2Int GetOcclusionAnchorCell()
+    {
+        if (owningGrid != null && IsMoving)
+        {
+            Vector2Int movingCell = owningGrid.WorldToCell(transform.position);
+            if (owningGrid.IsInside(movingCell))
+            {
+                return movingCell;
+            }
+        }
+
+        return currentCell;
     }
 
     public Vector3 GetOcclusionRevealCenterWorldPosition()

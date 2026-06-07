@@ -326,8 +326,8 @@ public class BattleBootstrap : MonoBehaviour
         }
         else
         {
-            CreateRoomContent(runtimeRoot);
             grid = CreateGrid(runtimeRoot);
+            CreateRoomContent(runtimeRoot, grid);
             units = CreateUnits(grid, runtimeRoot);
         }
 
@@ -337,6 +337,7 @@ public class BattleBootstrap : MonoBehaviour
             return;
         }
 
+        ConfigureExistingPropOcclusionAnchors(runtimeRoot, grid);
         ConfigureCurrentRoomDoorExitCells(grid);
         RefreshBattleCameraBounds(mainCamera);
 
@@ -403,7 +404,7 @@ public class BattleBootstrap : MonoBehaviour
         return runtimeRoot.transform;
     }
 
-    private void CreateRoomContent(Transform runtimeRoot)
+    private void CreateRoomContent(Transform runtimeRoot, BattleGrid grid)
     {
         if (runtimeRoot == null)
         {
@@ -419,7 +420,7 @@ public class BattleBootstrap : MonoBehaviour
         GameObject contentRoot = new GameObject(RoomContentRootName);
         contentRoot.transform.SetParent(runtimeRoot, false);
         战斗格子沙盘辅助 floorSandbox = CreateFloorVisuals(gridTemplate, contentRoot.transform);
-        CreatePropVisuals(gridTemplate, contentRoot.transform, floorSandbox);
+        CreatePropVisuals(gridTemplate, contentRoot.transform, floorSandbox, grid);
         CreateWallVisuals(gridTemplate, contentRoot.transform, floorSandbox);
         CreateRoomPetalParticles(gridTemplate, contentRoot.transform, floorSandbox);
     }
@@ -475,7 +476,8 @@ public class BattleBootstrap : MonoBehaviour
     private void CreatePropVisuals(
         格子模板数据库.格子模板条目 gridTemplate,
         Transform contentRoot,
-        战斗格子沙盘辅助 floorSandbox)
+        战斗格子沙盘辅助 floorSandbox,
+        BattleGrid grid)
     {
         if (gridTemplate == null || contentRoot == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
         {
@@ -498,7 +500,63 @@ public class BattleBootstrap : MonoBehaviour
                 instance.transform,
                 GetFloorAlignedCellPosition(cell, floorSandbox) + prop.localOffset,
                 prop.alignToBattleCamera);
+            ConfigurePropOcclusionAnchor(instance, grid, cell);
             ConfigurePropTrigger(instance, prop);
+        }
+    }
+
+    private static void ConfigurePropOcclusionAnchor(GameObject instance, BattleGrid grid, Vector2Int anchorCell)
+    {
+        if (instance == null)
+        {
+            return;
+        }
+
+        BattleGridOcclusionAnchor anchor = instance.GetComponent<BattleGridOcclusionAnchor>();
+        if (anchor == null)
+        {
+            anchor = instance.AddComponent<BattleGridOcclusionAnchor>();
+        }
+
+        anchor.Initialize(grid, anchorCell);
+    }
+
+    private void ConfigureExistingPropOcclusionAnchors(Transform runtimeRoot, BattleGrid grid)
+    {
+        if (runtimeRoot == null || grid == null)
+        {
+            return;
+        }
+
+        格子模板数据库.格子模板条目 gridTemplate = ResolveCurrentGridTemplate();
+        if (gridTemplate == null || gridTemplate.propVisuals == null || gridTemplate.propVisuals.Count == 0)
+        {
+            return;
+        }
+
+        Transform propsRoot = runtimeRoot.Find($"{RoomContentRootName}/Props");
+        if (propsRoot == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < gridTemplate.propVisuals.Count; i++)
+        {
+            格子模板数据库.PropVisualEntry prop = gridTemplate.propVisuals[i];
+            if (prop == null)
+            {
+                continue;
+            }
+
+            Vector2Int cell = prop.anchorCell.ToVector2Int();
+            string propName = string.IsNullOrWhiteSpace(prop.propName) ? $"Prop_{cell.x}_{cell.y}" : prop.propName.Trim();
+            Transform propTransform = propsRoot.Find(propName);
+            if (propTransform == null)
+            {
+                continue;
+            }
+
+            ConfigurePropOcclusionAnchor(propTransform.gameObject, grid, cell);
         }
     }
 

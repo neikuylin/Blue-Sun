@@ -77,6 +77,8 @@ public class BattleGrid : MonoBehaviour
     private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.26f);
     private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.30f);
 
+    public static BattleGrid ActiveGrid => activeGrid;
+
     private void OnEnable()
     {
         activeGrid = this;
@@ -161,6 +163,17 @@ public class BattleGrid : MonoBehaviour
     public Vector3 GetWorldPosition(Vector2Int cell, float y = 0f)
     {
         return new Vector3(cell.x * cellSize, y, cell.y * cellSize);
+    }
+
+    public float GetOcclusionDepthKey(Vector2Int cell, Camera cameraToUse)
+    {
+        int stride = Mathf.Max(1, width);
+        return cell.y * stride + cell.x;
+    }
+
+    public static int ResolveOcclusionSortingOrder(float depthKey, int sortingOrderOffset = 0)
+    {
+        return sortingOrderOffset - Mathf.RoundToInt(depthKey);
     }
 
     public Vector2Int WorldToCell(Vector3 worldPosition)
@@ -2254,5 +2267,174 @@ public class BattleGrid : MonoBehaviour
                 Object.DestroyImmediate(child);
             }
         }
+    }
+}
+
+[ExecuteAlways]
+[DisallowMultipleComponent]
+public sealed class BattleGridOcclusionAnchor : MonoBehaviour
+{
+    private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
+    private const int ZTestAlways = 8;
+
+    [Header("遮挡锚点")]
+    [InspectorName("锚点格子")]
+    [SerializeField] private Vector2Int anchorCell;
+    [InspectorName("自动应用渲染顺序")]
+    [SerializeField] private bool applyRendererSorting = true;
+    [InspectorName("渲染顺序偏移")]
+    [SerializeField] private int sortingOrderOffset;
+    [InspectorName("包含未激活子物体")]
+    [SerializeField] private bool includeInactiveChildren = true;
+
+    private BattleGrid grid;
+    private Renderer[] cachedRenderers;
+    private bool initializedAtRuntime;
+    private readonly Dictionary<Renderer, int> rendererSortingOffsets = new Dictionary<Renderer, int>();
+
+    public Vector2Int AnchorCell => anchorCell;
+
+    private void OnEnable()
+    {
+        if (Application.isPlaying && !initializedAtRuntime)
+        {
+            return;
+        }
+
+        CacheRenderers();
+        ApplyRendererSorting();
+    }
+
+    private void OnValidate()
+    {
+        CacheRenderers();
+        ApplyRendererSorting();
+    }
+
+    private void LateUpdate()
+    {
+        ApplyRendererSorting();
+    }
+
+    public void Initialize(BattleGrid owningGrid, Vector2Int cell, bool shouldApplyRendererSorting = true, int orderOffset = 0)
+    {
+        grid = owningGrid;
+        anchorCell = cell;
+        applyRendererSorting = shouldApplyRendererSorting;
+        sortingOrderOffset = orderOffset;
+        initializedAtRuntime = true;
+        CacheRenderers();
+        ApplyRendererSorting();
+    }
+
+    public bool TryGetDepthKey(Camera cameraToUse, out float depthKey)
+    {
+        BattleGrid gridToUse = grid != null ? grid : BattleGrid.ActiveGrid;
+        if (gridToUse != null)
+        {
+            depthKey = gridToUse.GetOcclusionDepthKey(anchorCell, cameraToUse);
+            return true;
+        }
+
+        if (cameraToUse != null)
+        {
+            depthKey = cameraToUse.WorldToScreenPoint(transform.position).y;
+            return true;
+        }
+
+        depthKey = 0f;
+        return false;
+    }
+
+    private void CacheRenderers()
+    {
+        cachedRenderers = GetComponentsInChildren<Renderer>(includeInactiveChildren);
+        rendererSortingOffsets.Clear();
+
+        if (cachedRenderers == null || cachedRenderers.Length == 0)
+        {
+            return;
+        }
+
+        int baseSortingOrder = cachedRenderers[0] != null ? cachedRenderers[0].sortingOrder : 0;
+        for (int i = 0; i < cachedRenderers.Length; i++)
+        {
+            Renderer renderer = cachedRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            rendererSortingOffsets[renderer] = renderer.sortingOrder - baseSortingOrder;
+        }
+    }
+
+    private void ApplyRendererSorting()
+    {
+        if (!applyRendererSorting)
+        {
+            return;
+        }
+
+        Camera cameraToUse = Camera.main;
+        if (!TryGetDepthKey(cameraToUse, out float depthKey))
+        {
+            return;
+        }
+
+        if (cachedRenderers == null || cachedRenderers.Length == 0)
+        {
+            CacheRenderers();
+        }
+
+        int baseSortingOrder = BattleGrid.ResolveOcclusionSortingOrder(depthKey, sortingOrderOffset);
+        for (int i = 0; i < cachedRenderers.Length; i++)
+        {
+            Renderer renderer = cachedRenderers[i];
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            if (!ShouldUseGridOcclusion(renderer))
+            {
+                continue;
+            }
+
+            int relativeOffset = rendererSortingOffsets.TryGetValue(renderer, out int offset) ? offset : 0;
+            renderer.sortingOrder = baseSortingOrder + relativeOffset;
+            ForceRendererZTestAlways(renderer);
+        }
+    }
+
+    public static bool ShouldUseGridOcclusion(Renderer renderer)
+    {
+        if (renderer == null)
+        {
+            return false;
+        }
+
+        渲染层级应用器 layerApplier = renderer.GetComponentInParent<渲染层级应用器>();
+        return layerApplier != null && layerApplier.使用脚下格子判定遮挡;
+    }
+
+    private static void ForceRendererZTestAlways(Renderer renderer)
+    {
+        if (!Application.isPlaying || renderer == null)
+        {
+            return;
+        }
+
+        Material[] materials = renderer.materials;
+        for (int i = 0; i < materials.Length; i++)
+        {
+            Material material = materials[i];
+            if (material != null && material.HasProperty(ZTestId))
+            {
+                material.SetFloat(ZTestId, ZTestAlways);
+            }
+        }
+
+        renderer.materials = materials;
     }
 }

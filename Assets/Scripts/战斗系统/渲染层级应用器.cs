@@ -79,6 +79,8 @@ public sealed class 渲染层级应用器 : MonoBehaviour
         }
     }
 
+    public bool 使用脚下格子判定遮挡 => mode == 渲染层级模式.不决定;
+
     [ContextMenu("应用渲染层级")]
     public void Apply()
     {
