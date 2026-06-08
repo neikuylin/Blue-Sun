@@ -7,6 +7,10 @@ using UnityEngine;
 public sealed class 引用Sprite内部遮罩 : MonoBehaviour
 {
     private const string MaskObjectName = "自动生成_引用Sprite遮罩";
+    private const string UndecidedReferenceMaskMaterialResourcePath = "引用Sprite遮罩_不决定受光不写深度Sprite材质";
+    private const string Above3DReferenceMaskMaterialResourcePath = "引用Sprite遮罩_高于3D受光不写深度Sprite材质";
+    private const string Below3DReferenceMaskMaterialResourcePath = "引用Sprite遮罩_低于3D受光不写深度Sprite材质";
+    private const string ReferenceMaskShaderName = "项目/渲染/受光不写深度引用Sprite遮罩";
 
     private enum 遮罩显示区域
     {
@@ -70,6 +74,7 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
 
     private SpriteMask runtimeMask;
     private MaterialPropertyBlock materialPropertyBlock;
+    private Material fallbackReferenceMaskMaterial;
 
     public bool 使用脚下格子判定遮挡 => 渲染层级 == 引用遮罩渲染层级.不决定;
 
@@ -86,6 +91,11 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
     private void LateUpdate()
     {
         Apply();
+    }
+
+    private void OnDestroy()
+    {
+        DestroyFallbackReferenceMaskMaterial();
     }
 
     [ContextMenu("应用引用Sprite内部遮罩")]
@@ -263,17 +273,34 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
     {
         if (引用遮罩材质 != null)
         {
+            DestroyFallbackReferenceMaskMaterial();
             return 引用遮罩材质;
         }
 
         Material layerMaterial = Resources.Load<Material>(GetReferenceMaskMaterialResourceName());
         if (layerMaterial != null)
         {
+            DestroyFallbackReferenceMaskMaterial();
             return layerMaterial;
         }
 
-        Shader shader = Shader.Find("项目/渲染/受光不写深度引用Sprite遮罩");
-        return shader != null ? new Material(shader) { name = "引用Sprite内部遮罩_运行时材质" } : null;
+        if (fallbackReferenceMaskMaterial != null)
+        {
+            return fallbackReferenceMaskMaterial;
+        }
+
+        Shader shader = Shader.Find(ReferenceMaskShaderName);
+        if (shader == null)
+        {
+            return null;
+        }
+
+        fallbackReferenceMaskMaterial = new Material(shader)
+        {
+            name = "引用Sprite内部遮罩_运行时材质",
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        return fallbackReferenceMaskMaterial;
     }
 
     private string GetReferenceMaskMaterialResourceName()
@@ -281,12 +308,31 @@ public sealed class 引用Sprite内部遮罩 : MonoBehaviour
         switch (渲染层级)
         {
             case 引用遮罩渲染层级.高于3D:
-                return "引用Sprite遮罩_高于3D受光不写深度Sprite材质";
+                return Above3DReferenceMaskMaterialResourcePath;
             case 引用遮罩渲染层级.低于3D:
-                return "引用Sprite遮罩_低于3D受光不写深度Sprite材质";
+                return Below3DReferenceMaskMaterialResourcePath;
             default:
-                return "引用Sprite遮罩_不决定受光不写深度Sprite材质";
+                return UndecidedReferenceMaskMaterialResourcePath;
         }
+    }
+
+    private void DestroyFallbackReferenceMaskMaterial()
+    {
+        if (fallbackReferenceMaskMaterial == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(fallbackReferenceMaskMaterial);
+        }
+        else
+        {
+            DestroyImmediate(fallbackReferenceMaskMaterial);
+        }
+
+        fallbackReferenceMaskMaterial = null;
     }
 
     private void ApplyMaskSortingRange(SpriteMask mask, SpriteRenderer[] targets)

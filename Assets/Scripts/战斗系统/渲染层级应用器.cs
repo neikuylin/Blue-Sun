@@ -101,70 +101,36 @@ public sealed class 渲染层级应用器 : MonoBehaviour
     {
         if (lightingMode == 光照模式.不受光)
         {
-            return ResolveUnlitMaterial();
+            switch (mode)
+            {
+                case 渲染层级模式.不决定:
+                    return LoadMaterial(ref unlitUndecidedMaterial, UnlitUndecidedMaterialResourcePath);
+                case 渲染层级模式.高于3D:
+                    return LoadMaterial(ref unlitAbove3DMaterial, UnlitAbove3DMaterialResourcePath);
+                default:
+                    return LoadMaterial(ref unlitBelow3DMaterial, UnlitBelow3DMaterialResourcePath);
+            }
         }
 
-        return ResolveLitMaterial();
+        switch (mode)
+        {
+            case 渲染层级模式.不决定:
+                return LoadMaterial(ref undecidedMaterial, UndecidedMaterialResourcePath);
+            case 渲染层级模式.高于3D:
+                return LoadMaterial(ref above3DMaterial, Above3DMaterialResourcePath);
+            default:
+                return LoadMaterial(ref below3DMaterial, Below3DMaterialResourcePath);
+        }
     }
 
-    private Material ResolveLitMaterial()
+    private static Material LoadMaterial(ref Material material, string resourcePath)
     {
-        if (mode == 渲染层级模式.不决定)
+        if (material == null)
         {
-            if (undecidedMaterial == null)
-            {
-                undecidedMaterial = Resources.Load<Material>(UndecidedMaterialResourcePath);
-            }
-
-            return undecidedMaterial;
+            material = Resources.Load<Material>(resourcePath);
         }
 
-        if (mode == 渲染层级模式.高于3D)
-        {
-            if (above3DMaterial == null)
-            {
-                above3DMaterial = Resources.Load<Material>(Above3DMaterialResourcePath);
-            }
-
-            return above3DMaterial;
-        }
-
-        if (below3DMaterial == null)
-        {
-            below3DMaterial = Resources.Load<Material>(Below3DMaterialResourcePath);
-        }
-
-        return below3DMaterial;
-    }
-
-    private Material ResolveUnlitMaterial()
-    {
-        if (mode == 渲染层级模式.不决定)
-        {
-            if (unlitUndecidedMaterial == null)
-            {
-                unlitUndecidedMaterial = Resources.Load<Material>(UnlitUndecidedMaterialResourcePath);
-            }
-
-            return unlitUndecidedMaterial;
-        }
-
-        if (mode == 渲染层级模式.高于3D)
-        {
-            if (unlitAbove3DMaterial == null)
-            {
-                unlitAbove3DMaterial = Resources.Load<Material>(UnlitAbove3DMaterialResourcePath);
-            }
-
-            return unlitAbove3DMaterial;
-        }
-
-        if (unlitBelow3DMaterial == null)
-        {
-            unlitBelow3DMaterial = Resources.Load<Material>(UnlitBelow3DMaterialResourcePath);
-        }
-
-        return unlitBelow3DMaterial;
+        return material;
     }
 
     private void ApplyToSpriteRenderers(Material targetMaterial)

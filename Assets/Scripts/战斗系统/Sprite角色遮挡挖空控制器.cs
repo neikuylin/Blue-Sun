@@ -306,19 +306,6 @@ public sealed class Sprite角色遮挡挖空控制器 : MonoBehaviour
         return false;
     }
 
-    private static bool ContainsRevealCenter(Vector4[] centers, int count, Vector4 revealCenter)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            if (centers[i] == revealCenter)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static void ClearOcclusionShadowRevealCenters()
     {
         for (int i = 0; i < MaxRevealCount; i++)

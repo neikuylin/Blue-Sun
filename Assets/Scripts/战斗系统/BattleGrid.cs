@@ -60,10 +60,7 @@ public class BattleGrid : MonoBehaviour
     private readonly List<LineRenderer> hoverOutlineRenderers = new List<LineRenderer>();
     private HashSet<Vector2Int> hoverOverlayCells;
     private readonly HashSet<Vector2Int> propBlockedCells = new HashSet<Vector2Int>();
-    private GameObject occlusionOccupiedCellShadowObject;
-    private MeshFilter occlusionOccupiedCellShadowFilter;
-    private MeshRenderer occlusionOccupiedCellShadowRenderer;
-    private Material occlusionOccupiedCellShadowMaterial;
+    private Mesh occlusionOccupiedCellShadowMesh;
     private readonly Dictionary<int, OcclusionOccupiedCellShadowSource> occlusionOccupiedCellShadowSources =
         new Dictionary<int, OcclusionOccupiedCellShadowSource>();
 
@@ -103,6 +100,12 @@ public class BattleGrid : MonoBehaviour
         {
             activeGrid = null;
         }
+    }
+
+    private void OnDestroy()
+    {
+        DestroyOcclusionOccupiedCellShadowSources();
+        DestroyOcclusionOccupiedCellShadowMesh();
     }
 
     private struct Edge
@@ -158,12 +161,8 @@ public class BattleGrid : MonoBehaviour
         fillMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
         lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
         gridOutlineMaterialTemplate = Resources.Load<Material>(Below3DNoDepthSpriteMaterialResourcePath);
-        occlusionOccupiedCellShadowObject = null;
-        occlusionOccupiedCellShadowFilter = null;
-        occlusionOccupiedCellShadowRenderer = null;
-        DestroyOcclusionOccupiedCellShadowMaterial();
         DestroyOcclusionOccupiedCellShadowSources();
-        BuildOcclusionOccupiedCellShadow();
+        RebuildOcclusionOccupiedCellShadowMesh();
 
         highlightLayerOrder = 0;
         skillPreviewLayerOrder = 0;
@@ -335,7 +334,7 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
-        BuildOcclusionOccupiedCellShadow();
+        RebuildOcclusionOccupiedCellShadowMesh();
     }
 
     public bool TryGetDoorExitDefaultTargetCell(
@@ -1150,27 +1149,6 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    public static void ApplyOcclusionOccupiedCellShadow(int revealCount, float revealRadiusPixels, float revealSoftnessPixels, Vector4[] revealCenters)
-    {
-        if (activeGrid == null)
-        {
-            return;
-        }
-
-        activeGrid.ApplyOcclusionOccupiedCellShadowInstance(revealCount, revealRadiusPixels, revealSoftnessPixels, revealCenters);
-    }
-
-    public static void ClearOcclusionOccupiedCellShadow()
-    {
-        if (activeGrid == null)
-        {
-            return;
-        }
-
-        activeGrid.ApplyOcclusionOccupiedCellShadowInstance(0, 0f, 0f, null);
-        activeGrid.ClearOcclusionOccupiedCellShadowSources();
-    }
-
     public static void ApplyOcclusionOccupiedCellShadowForSprite(
         int sourceId,
         int revealCount,
@@ -1205,118 +1183,70 @@ public class BattleGrid : MonoBehaviour
         activeGrid.ClearOcclusionOccupiedCellShadowSource(sourceId);
     }
 
-    private void BuildOcclusionOccupiedCellShadow()
+    private Mesh ResolveOcclusionOccupiedCellShadowMesh()
     {
         if (propBlockedCells.Count == 0)
         {
-            DestroyOcclusionOccupiedCellShadowObject();
+            return null;
+        }
+
+        if (occlusionOccupiedCellShadowMesh == null)
+        {
+            RebuildOcclusionOccupiedCellShadowMesh();
+        }
+
+        return occlusionOccupiedCellShadowMesh;
+    }
+
+    private void RebuildOcclusionOccupiedCellShadowMesh()
+    {
+        DestroyOcclusionOccupiedCellShadowMesh();
+        if (propBlockedCells.Count == 0)
+        {
+            ClearOcclusionOccupiedCellShadowSources();
             return;
         }
 
-        EnsureVisualRoots();
-        if (occlusionOccupiedCellShadowObject == null)
-        {
-            occlusionOccupiedCellShadowObject = new GameObject("OcclusionOccupiedCellShadow");
-            occlusionOccupiedCellShadowObject.transform.SetParent(occlusionShadowRoot, false);
-            occlusionOccupiedCellShadowFilter = occlusionOccupiedCellShadowObject.AddComponent<MeshFilter>();
-            occlusionOccupiedCellShadowRenderer = occlusionOccupiedCellShadowObject.AddComponent<MeshRenderer>();
-            occlusionOccupiedCellShadowRenderer.sortingOrder = OcclusionOccupiedCellShadowSortingOrder;
-        }
+        occlusionOccupiedCellShadowMesh = BuildFillMesh(propBlockedCells, overlayY + 0.001f);
+        occlusionOccupiedCellShadowMesh.name = "OcclusionOccupiedCellShadowMesh";
+        occlusionOccupiedCellShadowMesh.hideFlags = HideFlags.HideAndDontSave;
 
-        if (occlusionOccupiedCellShadowFilter == null)
+        foreach (KeyValuePair<int, OcclusionOccupiedCellShadowSource> pair in occlusionOccupiedCellShadowSources)
         {
-            occlusionOccupiedCellShadowFilter = occlusionOccupiedCellShadowObject.GetComponent<MeshFilter>();
-        }
-
-        if (occlusionOccupiedCellShadowRenderer == null)
-        {
-            occlusionOccupiedCellShadowRenderer = occlusionOccupiedCellShadowObject.GetComponent<MeshRenderer>();
-        }
-
-        occlusionOccupiedCellShadowFilter.sharedMesh = BuildFillMesh(propBlockedCells, overlayY + 0.001f);
-        occlusionOccupiedCellShadowRenderer.sharedMaterial = ResolveOcclusionOccupiedCellShadowMaterial();
-        ApplyOcclusionOccupiedCellShadowInstance(0, 0f, 0f, null);
-    }
-
-    private Material ResolveOcclusionOccupiedCellShadowMaterial()
-    {
-        Shader shader = Shader.Find(OcclusionOccupiedCellShadowShaderName);
-        if (shader == null)
-        {
-            Debug.LogError($"BattleGrid：找不到 Shader '{OcclusionOccupiedCellShadowShaderName}'，无法显示挖空内占用格黑底。", this);
-            return fillMaterialTemplate;
-        }
-
-        if (occlusionOccupiedCellShadowMaterial == null || occlusionOccupiedCellShadowMaterial.shader != shader)
-        {
-            DestroyOcclusionOccupiedCellShadowMaterial();
-            occlusionOccupiedCellShadowMaterial = new Material(shader)
+            OcclusionOccupiedCellShadowSource source = pair.Value;
+            if (source != null && source.Filter != null)
             {
-                name = "挖空内占用格黑底材质"
-            };
-            occlusionOccupiedCellShadowMaterial.hideFlags = HideFlags.HideAndDontSave;
-        }
-
-        return occlusionOccupiedCellShadowMaterial;
-    }
-
-    private void ApplyOcclusionOccupiedCellShadowInstance(int revealCount, float revealRadiusPixels, float revealSoftnessPixels, Vector4[] revealCenters)
-    {
-        if (occlusionOccupiedCellShadowRenderer == null || occlusionOccupiedCellShadowRenderer.sharedMaterial == null)
-        {
-            return;
-        }
-
-        Material material = occlusionOccupiedCellShadowRenderer.sharedMaterial;
-        int clampedCount = Mathf.Clamp(revealCount, 0, OcclusionRevealMax);
-        material.SetInt(RevealEnabledId, clampedCount > 0 ? 1 : 0);
-        material.SetInt(RevealCountId, clampedCount);
-        material.SetFloat(RevealRadiusPixelsId, Mathf.Max(0f, revealRadiusPixels));
-        material.SetFloat(RevealSoftnessPixelsId, Mathf.Max(0f, revealSoftnessPixels));
-        if (revealCenters != null)
-        {
-            material.SetVectorArray(RevealCentersId, revealCenters);
-        }
-
-        occlusionOccupiedCellShadowRenderer.enabled = clampedCount > 0 && propBlockedCells.Count > 0;
-    }
-
-    private void DestroyOcclusionOccupiedCellShadowObject()
-    {
-        if (occlusionOccupiedCellShadowObject != null)
-        {
-            if (Application.isPlaying)
-            {
-                Destroy(occlusionOccupiedCellShadowObject);
-            }
-            else
-            {
-                DestroyImmediate(occlusionOccupiedCellShadowObject);
+                source.Filter.sharedMesh = occlusionOccupiedCellShadowMesh;
             }
         }
-
-        occlusionOccupiedCellShadowObject = null;
-        occlusionOccupiedCellShadowFilter = null;
-        occlusionOccupiedCellShadowRenderer = null;
     }
 
-    private void DestroyOcclusionOccupiedCellShadowMaterial()
+    private void DestroyOcclusionOccupiedCellShadowMesh()
     {
-        if (occlusionOccupiedCellShadowMaterial == null)
+        if (occlusionOccupiedCellShadowMesh == null)
         {
             return;
+        }
+
+        foreach (KeyValuePair<int, OcclusionOccupiedCellShadowSource> pair in occlusionOccupiedCellShadowSources)
+        {
+            OcclusionOccupiedCellShadowSource source = pair.Value;
+            if (source != null && source.Filter != null && source.Filter.sharedMesh == occlusionOccupiedCellShadowMesh)
+            {
+                source.Filter.sharedMesh = null;
+            }
         }
 
         if (Application.isPlaying)
         {
-            Destroy(occlusionOccupiedCellShadowMaterial);
+            Destroy(occlusionOccupiedCellShadowMesh);
         }
         else
         {
-            DestroyImmediate(occlusionOccupiedCellShadowMaterial);
+            DestroyImmediate(occlusionOccupiedCellShadowMesh);
         }
 
-        occlusionOccupiedCellShadowMaterial = null;
+        occlusionOccupiedCellShadowMesh = null;
     }
 
     private void ApplyOcclusionOccupiedCellShadowForSpriteInstance(
@@ -1341,7 +1271,14 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        source.Filter.sharedMesh = BuildFillMesh(propBlockedCells, overlayY + 0.001f);
+        Mesh shadowMesh = ResolveOcclusionOccupiedCellShadowMesh();
+        if (shadowMesh == null)
+        {
+            ClearOcclusionOccupiedCellShadowSource(sourceId);
+            return;
+        }
+
+        source.Filter.sharedMesh = shadowMesh;
         source.Renderer.sortingOrder = OcclusionOccupiedCellShadowSortingOrder;
         source.Renderer.sharedMaterial = source.Material;
         ApplyOcclusionOccupiedCellShadowMaterial(
