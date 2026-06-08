@@ -12,56 +12,99 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7a3ec2a2ba19094b99f270b59df1ad6, type: 3}
   m_Name: EventDatabase
   m_EditorClassIdentifier: 
+  categories:
+  - categoryId: "\u8425\u5730\u89D2\u8272"
+    displayName: "\u8425\u5730\u89D2\u8272"
+  - categoryId: "\u53EF\u9009\u961F\u53CB"
+    displayName: "\u53EF\u9009\u961F\u53CB"
+  - categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    displayName: "\u80CC\u5305\u7B49\u7EA7"
+  - categoryId: "\u6218\u6597\u5185\u5BB9"
+    displayName: "\u6218\u6597\u5185\u5BB9"
+  - categoryId: "\u5267\u60C5"
+    displayName: "\u5267\u60C5"
   entries:
   - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u7D22\u62C9\u5A1C"
     displayName: "\u89E3\u9501\u7D22\u62C9\u5A1C"
+    categoryId: "\u53EF\u9009\u961F\u53CB"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u5E93\u9C81\u65AF"
     displayName: "\u89E3\u9501\u5E93\u9C81\u65AF"
+    categoryId: "\u53EF\u9009\u961F\u53CB"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u53EF\u9009\u961F\u53CB\uFF1A\u745F\u838E"
     displayName: "\u89E3\u9501\u745F\u838E"
+    categoryId: "\u53EF\u9009\u961F\u53CB"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u80CC\u5305lv1"
     displayName: "\u89E3\u950114\u4E2A\u683C\u5B50"
+    categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u80CC\u5305lv2"
     displayName: "\u89E3\u950121\u4E2A\u683C\u5B50"
+    categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    boundStoryId: 
     enabled: 0
     description: 
   - eventId: "\u80CC\u5305lv3"
     displayName: "\u89E3\u950128\u4E2A\u683C\u5B50"
+    categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    boundStoryId: 
     enabled: 0
     description: 
   - eventId: "\u80CC\u5305lv4"
     displayName: 35
+    categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    boundStoryId: 
     enabled: 0
     description: 
   - eventId: "\u80CC\u5305lv5"
     displayName: 42
+    categoryId: "\u80CC\u5305\u7B49\u7EA7"
+    boundStoryId: 
     enabled: 0
     description: 
   - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u7D22\u62C9\u5A1C"
     displayName: "\u8425\u5730\u89D2\u8272\u7D22\u62C9\u5A1C"
+    categoryId: "\u8425\u5730\u89D2\u8272"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u5E93\u9C81\u65AF"
     displayName: "\u8425\u5730\u89D2\u8272\u5E93\u9C81\u65AF"
+    categoryId: "\u8425\u5730\u89D2\u8272"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u8425\u5730\u89D2\u8272\uFF1A\u745F\u838E"
     displayName: "\u8425\u5730\u89D2\u8272\u745F\u838E"
+    categoryId: "\u8425\u5730\u89D2\u8272"
+    boundStoryId: 
     enabled: 1
     description: 
   - eventId: "\u6E05\u7A7A\u623F\u95F4"
     displayName: "\u6E05\u7A7A\u623F\u95F4"
+    categoryId: "\u6218\u6597\u5185\u5BB9"
+    boundStoryId: 
     enabled: 0
     description: "\u95E8\u6309\u94AE\u53EF\u9009"
   - eventId: "\u6E05\u7A7A\u526F\u672C"
     displayName: "\u6E05\u7A7A\u526F\u672C"
+    categoryId: "\u6218\u6597\u5185\u5BB9"
+    boundStoryId: 
     enabled: 0
     description: "\u5F39\u51FA\u56DE\u57CE\u56FE\u6807"
+  - eventId: "\u51FA\u751F\u5267\u60C5"
+    displayName: "\u51FA\u751F\u5267\u60C5"
+    categoryId: "\u5267\u60C5"
+    boundStoryId: "\u51FA\u751F\u5267\u60C5"
+    enabled: 1
+    description: "\u796D\u7940\u623F\u5267\u60C5\t"

@@ -16,6 +16,8 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private string 新剧情ID = string.Empty;
     private string 新备注 = string.Empty;
     private 剧情数据库.剧情步骤类型 新步骤类型 = 剧情数据库.剧情步骤类型.播放对话;
+    private string 正在拖动步骤列表路径 = string.Empty;
+    private int 正在拖动步骤索引 = -1;
 
     [MenuItem("Tools/剧情/剧情编辑器")]
     private static void 打开()
@@ -64,6 +66,8 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         {
             EditorUtility.SetDirty(数据库);
         }
+
+        处理步骤拖动结束();
     }
 
     private void 绘制新增面板(剧情数据库 数据库)
@@ -209,20 +213,10 @@ public sealed class 剧情编辑器窗口 : EditorWindow
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            bool 新展开状态;
-            using (new EditorGUILayout.HorizontalScope())
+            bool 新展开状态 = 绘制步骤标题行(步骤列表属性, 索引, 步骤键, 步骤类型属性, 已展开, out bool 需要退出);
+            if (需要退出)
             {
-                string 标题 = $"步骤 {索引 + 1}：{取得步骤类型名字(步骤类型属性)}";
-                新展开状态 = EditorGUILayout.Foldout(已展开, 标题, true);
-                设置展开状态(步骤展开状态, 步骤键, 新展开状态);
-
-                if (GUILayout.Button("删除", GUILayout.Width(72f)))
-                {
-                    步骤列表属性.DeleteArrayElementAtIndex(索引);
-                    数据库对象.ApplyModifiedProperties();
-                    保存数据库((剧情数据库)数据库对象.targetObject);
-                    return true;
-                }
+                return true;
             }
 
             if (!新展开状态)
@@ -244,6 +238,154 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         }
 
         return false;
+    }
+
+    private bool 绘制步骤标题行(
+        SerializedProperty 步骤列表属性,
+        int 索引,
+        string 步骤键,
+        SerializedProperty 步骤类型属性,
+        bool 已展开,
+        out bool 需要退出)
+    {
+        需要退出 = false;
+        Rect 行矩形 = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+        const float 拖动宽度 = 24f;
+        const float 按钮宽度 = 48f;
+        const float 删除宽度 = 52f;
+        const float 间距 = 4f;
+
+        Rect 拖动矩形 = new Rect(行矩形.x, 行矩形.y, 拖动宽度, 行矩形.height);
+        Rect 删除矩形 = new Rect(行矩形.xMax - 删除宽度, 行矩形.y, 删除宽度, 行矩形.height);
+        Rect 下移矩形 = new Rect(删除矩形.x - 间距 - 按钮宽度, 行矩形.y, 按钮宽度, 行矩形.height);
+        Rect 上移矩形 = new Rect(下移矩形.x - 间距 - 按钮宽度, 行矩形.y, 按钮宽度, 行矩形.height);
+        Rect 折叠矩形 = new Rect(
+            拖动矩形.xMax + 间距,
+            行矩形.y,
+            Mathf.Max(40f, 上移矩形.x - 拖动矩形.xMax - 间距 * 2f),
+            行矩形.height);
+
+        EditorGUIUtility.AddCursorRect(拖动矩形, MouseCursor.Pan);
+        GUI.Label(拖动矩形, "拖", EditorStyles.miniButton);
+        处理步骤拖动输入(步骤列表属性, 索引, 拖动矩形, 行矩形, out 需要退出);
+        if (需要退出)
+        {
+            return 已展开;
+        }
+
+        string 标题 = $"步骤 {索引 + 1}：{取得步骤类型名字(步骤类型属性)}";
+        bool 新展开状态 = EditorGUI.Foldout(折叠矩形, 已展开, 标题, true);
+        设置展开状态(步骤展开状态, 步骤键, 新展开状态);
+
+        using (new EditorGUI.DisabledScope(索引 <= 0))
+        {
+            if (GUI.Button(上移矩形, "上移"))
+            {
+                移动步骤(步骤列表属性, 索引, 索引 - 1);
+                需要退出 = true;
+                return 新展开状态;
+            }
+        }
+
+        using (new EditorGUI.DisabledScope(索引 >= 步骤列表属性.arraySize - 1))
+        {
+            if (GUI.Button(下移矩形, "下移"))
+            {
+                移动步骤(步骤列表属性, 索引, 索引 + 1);
+                需要退出 = true;
+                return 新展开状态;
+            }
+        }
+
+        if (GUI.Button(删除矩形, "删除"))
+        {
+            删除步骤(步骤列表属性, 索引);
+            需要退出 = true;
+            return 新展开状态;
+        }
+
+        return 新展开状态;
+    }
+
+    private void 处理步骤拖动输入(
+        SerializedProperty 步骤列表属性,
+        int 索引,
+        Rect 拖动矩形,
+        Rect 行矩形,
+        out bool 需要退出)
+    {
+        需要退出 = false;
+        Event 当前事件 = Event.current;
+        if (当前事件 == null)
+        {
+            return;
+        }
+
+        string 列表路径 = 步骤列表属性.propertyPath;
+        if (当前事件.type == EventType.MouseDown && 当前事件.button == 0 && 拖动矩形.Contains(当前事件.mousePosition))
+        {
+            正在拖动步骤列表路径 = 列表路径;
+            正在拖动步骤索引 = 索引;
+            当前事件.Use();
+            return;
+        }
+
+        bool 正在拖动当前列表 = 正在拖动步骤索引 >= 0 &&
+            string.Equals(正在拖动步骤列表路径, 列表路径, System.StringComparison.Ordinal);
+        if (!正在拖动当前列表)
+        {
+            return;
+        }
+
+        if (当前事件.type == EventType.MouseDrag && 行矩形.Contains(当前事件.mousePosition) && 正在拖动步骤索引 != 索引)
+        {
+            移动步骤(步骤列表属性, 正在拖动步骤索引, 索引);
+            正在拖动步骤索引 = 索引;
+            当前事件.Use();
+            需要退出 = true;
+        }
+    }
+
+    private void 移动步骤(SerializedProperty 步骤列表属性, int 原索引, int 新索引)
+    {
+        if (步骤列表属性 == null ||
+            原索引 < 0 ||
+            原索引 >= 步骤列表属性.arraySize ||
+            新索引 < 0 ||
+            新索引 >= 步骤列表属性.arraySize ||
+            原索引 == 新索引)
+        {
+            return;
+        }
+
+        Undo.RecordObject(数据库对象.targetObject, "移动剧情步骤");
+        步骤列表属性.MoveArrayElement(原索引, 新索引);
+        数据库对象.ApplyModifiedProperties();
+        保存数据库((剧情数据库)数据库对象.targetObject);
+        Repaint();
+    }
+
+    private void 删除步骤(SerializedProperty 步骤列表属性, int 索引)
+    {
+        Undo.RecordObject(数据库对象.targetObject, "删除剧情步骤");
+        步骤列表属性.DeleteArrayElementAtIndex(索引);
+        数据库对象.ApplyModifiedProperties();
+        保存数据库((剧情数据库)数据库对象.targetObject);
+    }
+
+    private void 处理步骤拖动结束()
+    {
+        Event 当前事件 = Event.current;
+        if (当前事件 == null)
+        {
+            return;
+        }
+
+        if (当前事件.type == EventType.MouseUp || 当前事件.rawType == EventType.MouseUp)
+        {
+            正在拖动步骤列表路径 = string.Empty;
+            正在拖动步骤索引 = -1;
+        }
     }
 
     private void 绘制步骤字段(SerializedProperty 步骤属性)

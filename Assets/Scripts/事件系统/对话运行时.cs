@@ -77,6 +77,11 @@ public sealed class 对话运行时 : MonoBehaviour
         instance?.TryTriggerDialogueEvent(对话事件ID);
     }
 
+    public static bool 播放对话组(string 对话组ID)
+    {
+        return instance != null && instance.TryShowDialogueGroup(对话组ID);
+    }
+
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         EnsureDialogueVoiceAudioSource();
@@ -165,6 +170,34 @@ public sealed class 对话运行时 : MonoBehaviour
         当前对话组 = groupEntry;
         当前对话索引 = 0;
         ShowCurrentDialogueEntry();
+    }
+
+    private bool TryShowDialogueGroup(string dialogueGroupId)
+    {
+        if (string.IsNullOrWhiteSpace(dialogueGroupId))
+        {
+            Debug.LogError("对话运行时: 对话组ID为空。");
+            return false;
+        }
+
+        DialogueGroupDatabase groupDatabase = DialogueGroupDatabase.LoadDefault();
+        if (groupDatabase == null)
+        {
+            Debug.LogError("对话运行时: 缺少 DialogueGroupDatabase。");
+            return false;
+        }
+
+        DialogueGroupDatabase.DialogueGroupEntry groupEntry = groupDatabase.FindEntry(dialogueGroupId.Trim());
+        if (groupEntry == null || groupEntry.contentIds == null || groupEntry.contentIds.Count == 0)
+        {
+            Debug.LogError($"对话运行时: 找不到对话组 '{dialogueGroupId}'，或对话组没有内容。");
+            return false;
+        }
+
+        当前对话组 = groupEntry;
+        当前对话索引 = 0;
+        ShowCurrentDialogueEntry();
+        return true;
     }
 
     private void ShowOnMainBinding(主视角对话绑定 binding, string roleName, DialogueContentDatabase.DialogueContentEntry contentEntry)

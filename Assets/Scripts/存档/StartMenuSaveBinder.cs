@@ -61,7 +61,7 @@ public sealed class StartMenuSaveBinder : MonoBehaviour
 
         SetButtonText(startButton, "开始游戏");
         startButton.onClick = new Button.ButtonClickedEvent();
-        startButton.onClick.AddListener(SaveGameService.StartNewGame);
+        startButton.onClick.AddListener(开始游戏按钮点击);
 
         continueButton = FindButtonByName(ContinueButtonName);
         if (continueButton == null)
@@ -86,7 +86,7 @@ public sealed class StartMenuSaveBinder : MonoBehaviour
     {
         if (startButton != null)
         {
-            startButton.onClick.RemoveListener(SaveGameService.StartNewGame);
+            startButton.onClick.RemoveListener(开始游戏按钮点击);
         }
 
         if (continueButton != null)
@@ -96,6 +96,15 @@ public sealed class StartMenuSaveBinder : MonoBehaviour
 
         startButton = null;
         continueButton = null;
+    }
+
+    private static void 开始游戏按钮点击()
+    {
+        SaveGameService.ResetRuntimeToDefaults();
+        if (!事件剧情硬编码规则.尝试从开始按钮播放出生剧情())
+        {
+            Debug.LogWarning("开始界面：开始游戏按钮没有触发出生剧情。请检查出生剧情事件是否勾选，以及是否绑定了剧情。");
+        }
     }
 
     private static Button FindButtonByName(string buttonName)

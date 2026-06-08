@@ -17,9 +17,11 @@ public sealed class EventEditorWindow : EditorWindow
     private Vector2 scroll;
     private string newEventId = string.Empty;
     private string newEventName = string.Empty;
-    private bool showCampCharacterEvents = true;
-    private bool showOptionalTeammateEvents = true;
-    private bool showBackpackLevelEvents = true;
+    private string newEventCategoryId = EventDatabase.BackpackLevelCategoryId;
+    private string newCategoryId = string.Empty;
+    private string newCategoryName = string.Empty;
+    private bool showCategoryPanel = true;
+    private readonly Dictionary<string, bool> categoryFoldouts = new Dictionary<string, bool>();
     private SerializedObject databaseObject;
 
     [MenuItem("Tools/事件/事件编辑器")]
@@ -45,6 +47,11 @@ public sealed class EventEditorWindow : EditorWindow
             databaseObject = new SerializedObject(database);
         }
 
+        if (database.EnsureCategoryList())
+        {
+            EditorUtility.SetDirty(database);
+        }
+
         databaseObject.Update();
 
         EditorGUILayout.LabelField("事件编辑器", EditorStyles.boldLabel);
@@ -63,23 +70,170 @@ public sealed class EventEditorWindow : EditorWindow
         }
 
         EditorGUILayout.Space(8f);
-        DrawAddPanel(database);
+        SerializedProperty categoriesProperty = databaseObject.FindProperty("categories");
+        SerializedProperty entriesProperty = databaseObject.FindProperty("entries");
+        DrawCategoryPanel(database, categoriesProperty, entriesProperty);
+        EditorGUILayout.Space(8f);
+        DrawAddPanel(database, categoriesProperty);
         EditorGUILayout.Space(8f);
 
-        SerializedProperty entriesProperty = databaseObject.FindProperty("entries");
         scroll = EditorGUILayout.BeginScrollView(scroll);
-        DrawGroupedEntries(entriesProperty);
+        DrawGroupedEntries(categoriesProperty, entriesProperty);
         EditorGUILayout.EndScrollView();
 
         databaseObject.ApplyModifiedProperties();
         ApplyCampCharacterVisibilityInEditor(database);
     }
 
-    private void DrawAddPanel(EventDatabase database)
+    private void DrawCategoryPanel(EventDatabase database, SerializedProperty categoriesProperty, SerializedProperty entriesProperty)
+    {
+        int categoryCount = categoriesProperty != null ? categoriesProperty.arraySize : 0;
+        showCategoryPanel = EditorGUILayout.Foldout(showCategoryPanel, $"事件分类 ({categoryCount})", true);
+        if (!showCategoryPanel)
+        {
+            return;
+        }
+
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                newCategoryId = EditorGUILayout.TextField("新分类ID", newCategoryId);
+                newCategoryName = EditorGUILayout.TextField("显示名字", newCategoryName);
+                using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(newCategoryId)))
+                {
+                    if (GUILayout.Button("新增分类", GUILayout.Width(90f)))
+                    {
+                        AddCategory(database, categoriesProperty, newCategoryId.Trim(), newCategoryName.Trim());
+                        newCategoryId = string.Empty;
+                        newCategoryName = string.Empty;
+                    }
+                }
+            }
+
+            if (categoriesProperty == null || categoriesProperty.arraySize <= 0)
+            {
+                EditorGUILayout.HelpBox("还没有事件分类。", MessageType.Info);
+                return;
+            }
+
+            for (int i = 0; i < categoriesProperty.arraySize; i++)
+            {
+                SerializedProperty categoryProperty = categoriesProperty.GetArrayElementAtIndex(i);
+                DrawCategoryRow(database, categoriesProperty, entriesProperty, categoryProperty, i);
+            }
+        }
+    }
+
+    private void DrawCategoryRow(
+        EventDatabase database,
+        SerializedProperty categoriesProperty,
+        SerializedProperty entriesProperty,
+        SerializedProperty categoryProperty,
+        int index)
+    {
+        SerializedProperty idProperty = categoryProperty.FindPropertyRelative("categoryId");
+        SerializedProperty nameProperty = categoryProperty.FindPropertyRelative("displayName");
+        string oldCategoryId = idProperty != null ? idProperty.stringValue : string.Empty;
+        int eventCount = CountEntriesInCategory(entriesProperty, oldCategoryId);
+        string categoryId = idProperty != null ? idProperty.stringValue : string.Empty;
+
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField($"分类 {index + 1}", GUILayout.Width(58f));
+
+                if (idProperty != null)
+                {
+                    EditorGUI.BeginChangeCheck();
+                    string newId = EditorGUILayout.TextField(idProperty.stringValue);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        string resolvedId = newId.Trim();
+                        if (!string.IsNullOrWhiteSpace(resolvedId) && !CategoryIdExists(categoriesProperty, resolvedId, index))
+                        {
+                            Undo.RecordObject(database, "修改事件分类ID");
+                            idProperty.stringValue = resolvedId;
+                            RenameEntryCategory(entriesProperty, oldCategoryId, resolvedId);
+                            categoryId = resolvedId;
+                        }
+                    }
+                }
+
+                if (nameProperty != null)
+                {
+                    EditorGUILayout.PropertyField(nameProperty, GUIContent.none);
+                }
+
+                EditorGUILayout.LabelField($"{eventCount} 个事件", GUILayout.Width(72f));
+                using (new EditorGUI.DisabledScope(eventCount > 0))
+                {
+                    if (GUILayout.Button("删除", GUILayout.Width(56f)))
+                    {
+                        Undo.RecordObject(database, "删除事件分类");
+                        categoriesProperty.DeleteArrayElementAtIndex(index);
+                        GUIUtility.ExitGUI();
+                    }
+                }
+            }
+
+            DrawStoryCategoryHint(entriesProperty, categoryId);
+        }
+    }
+
+    private static string DrawStoryPopup(string label, string currentStoryId)
+    {
+        剧情数据库 storyDatabase = 剧情数据库.加载默认数据库();
+        List<string> ids = new List<string> { string.Empty };
+        List<string> names = new List<string> { "不绑定" };
+        if (storyDatabase != null)
+        {
+            List<剧情数据库.剧情条目> entries = storyDatabase.取得剧情列表();
+            for (int i = 0; i < entries.Count; i++)
+            {
+                剧情数据库.剧情条目 entry = entries[i];
+                if (entry == null || string.IsNullOrWhiteSpace(entry.剧情ID))
+                {
+                    continue;
+                }
+
+                ids.Add(entry.剧情ID);
+                names.Add(entry.剧情ID);
+            }
+        }
+
+        int currentIndex = ids.FindIndex(id => string.Equals(id, currentStoryId, StringComparison.Ordinal));
+        if (currentIndex < 0)
+        {
+            currentIndex = 0;
+        }
+
+        int nextIndex = EditorGUILayout.Popup(label, currentIndex, names.ToArray());
+        return ids[Mathf.Clamp(nextIndex, 0, ids.Count - 1)];
+    }
+
+    private static void DrawStoryCategoryHint(SerializedProperty entriesProperty, string categoryId)
+    {
+        if (!string.Equals(categoryId, EventDatabase.StoryCategoryId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (FindEntryById(entriesProperty, 事件剧情硬编码规则.出生剧情事件ID) != null)
+        {
+            EditorGUILayout.HelpBox(
+                "剧情大类中的每个事件都可以单独绑定一个剧情。硬编码触发目前只检查“出生剧情”这个事件。",
+                MessageType.Info);
+        }
+    }
+
+    private void DrawAddPanel(EventDatabase database, SerializedProperty categoriesProperty)
     {
         EditorGUILayout.LabelField("新增事件", EditorStyles.boldLabel);
         newEventId = EditorGUILayout.TextField("事件ID", newEventId);
         newEventName = EditorGUILayout.TextField("事件名字", newEventName);
+        newEventCategoryId = DrawCategoryPopup("事件分类", newEventCategoryId, categoriesProperty);
 
         using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(newEventId)))
         {
@@ -92,6 +246,11 @@ public sealed class EventEditorWindow : EditorWindow
                     entry.displayName = newEventName.Trim();
                 }
 
+                if (entry != null)
+                {
+                    entry.categoryId = ResolveCategoryForNewEvent(newEventCategoryId, newEventId);
+                }
+
                 newEventId = string.Empty;
                 newEventName = string.Empty;
                 EditorUtility.SetDirty(database);
@@ -99,53 +258,62 @@ public sealed class EventEditorWindow : EditorWindow
         }
     }
 
-    private void DrawGroupedEntries(SerializedProperty entriesProperty)
+    private void DrawGroupedEntries(SerializedProperty categoriesProperty, SerializedProperty entriesProperty)
     {
-        List<int> campCharacterIndices = new List<int>();
-        List<int> optionalTeammateIndices = new List<int>();
-        List<int> otherIndices = new List<int>();
-
-        for (int i = 0; i < entriesProperty.arraySize; i++)
+        if (categoriesProperty == null)
         {
-            SerializedProperty entryProperty = entriesProperty.GetArrayElementAtIndex(i);
-            SerializedProperty idProperty = entryProperty?.FindPropertyRelative("eventId");
-            string eventId = idProperty != null ? idProperty.stringValue : string.Empty;
-            if (eventId.StartsWith(CampCharacterEventPrefix, StringComparison.Ordinal))
-            {
-                campCharacterIndices.Add(i);
-            }
-            else if (eventId.StartsWith(OptionalTeammateEventPrefix, StringComparison.Ordinal))
-            {
-                optionalTeammateIndices.Add(i);
-            }
-            else
-            {
-                otherIndices.Add(i);
-            }
+            DrawEntryGroup(entriesProperty, CollectEntriesForCategory(entriesProperty, string.Empty), null);
+            return;
         }
 
-        showCampCharacterEvents = EditorGUILayout.Foldout(showCampCharacterEvents, $"营地角色 ({campCharacterIndices.Count})", true);
-        if (showCampCharacterEvents)
+        HashSet<int> drawnIndices = new HashSet<int>();
+        for (int i = 0; i < categoriesProperty.arraySize; i++)
         {
-            DrawEntryGroup(entriesProperty, campCharacterIndices);
+            SerializedProperty categoryProperty = categoriesProperty.GetArrayElementAtIndex(i);
+            SerializedProperty idProperty = categoryProperty?.FindPropertyRelative("categoryId");
+            SerializedProperty nameProperty = categoryProperty?.FindPropertyRelative("displayName");
+            string categoryId = idProperty != null ? idProperty.stringValue : string.Empty;
+            if (string.IsNullOrWhiteSpace(categoryId))
+            {
+                continue;
+            }
+
+            List<int> indices = CollectEntriesForCategory(entriesProperty, categoryId);
+            for (int entryIndex = 0; entryIndex < indices.Count; entryIndex++)
+            {
+                drawnIndices.Add(indices[entryIndex]);
+            }
+
+            string displayName = nameProperty != null && !string.IsNullOrWhiteSpace(nameProperty.stringValue)
+                ? nameProperty.stringValue
+                : categoryId;
+            bool show = GetCategoryFoldout(categoryId);
+            show = EditorGUILayout.Foldout(show, $"{displayName} ({indices.Count})", true);
+            categoryFoldouts[categoryId] = show;
+            if (show)
+            {
+                DrawEntryGroup(entriesProperty, indices, categoriesProperty);
+            }
+
+            EditorGUILayout.Space(4f);
         }
 
-        EditorGUILayout.Space(4f);
-        showOptionalTeammateEvents = EditorGUILayout.Foldout(showOptionalTeammateEvents, $"可选队友 ({optionalTeammateIndices.Count})", true);
-        if (showOptionalTeammateEvents)
+        List<int> uncategorizedIndices = CollectUncategorizedEntries(entriesProperty, drawnIndices);
+        if (uncategorizedIndices.Count <= 0)
         {
-            DrawEntryGroup(entriesProperty, optionalTeammateIndices);
+            return;
         }
 
-        EditorGUILayout.Space(4f);
-        showBackpackLevelEvents = EditorGUILayout.Foldout(showBackpackLevelEvents, $"背包等级 ({otherIndices.Count})", true);
-        if (showBackpackLevelEvents)
+        bool showUncategorized = GetCategoryFoldout(string.Empty);
+        showUncategorized = EditorGUILayout.Foldout(showUncategorized, $"未分类 ({uncategorizedIndices.Count})", true);
+        categoryFoldouts[string.Empty] = showUncategorized;
+        if (showUncategorized)
         {
-            DrawEntryGroup(entriesProperty, otherIndices);
+            DrawEntryGroup(entriesProperty, uncategorizedIndices, categoriesProperty);
         }
     }
 
-    private void DrawEntryGroup(SerializedProperty entriesProperty, List<int> indices)
+    private void DrawEntryGroup(SerializedProperty entriesProperty, List<int> indices, SerializedProperty categoriesProperty)
     {
         for (int i = 0; i < indices.Count; i++)
         {
@@ -155,14 +323,14 @@ public sealed class EventEditorWindow : EditorWindow
                 continue;
             }
 
-            if (DrawEntry(entriesProperty, index))
+            if (DrawEntry(entriesProperty, index, categoriesProperty))
             {
                 GUIUtility.ExitGUI();
             }
         }
     }
 
-    private bool DrawEntry(SerializedProperty entriesProperty, int index)
+    private bool DrawEntry(SerializedProperty entriesProperty, int index, SerializedProperty categoriesProperty)
     {
         SerializedProperty entryProperty = entriesProperty.GetArrayElementAtIndex(index);
         if (entryProperty == null)
@@ -172,6 +340,8 @@ public sealed class EventEditorWindow : EditorWindow
 
         SerializedProperty idProperty = entryProperty.FindPropertyRelative("eventId");
         SerializedProperty nameProperty = entryProperty.FindPropertyRelative("displayName");
+        SerializedProperty categoryProperty = entryProperty.FindPropertyRelative("categoryId");
+        SerializedProperty boundStoryIdProperty = entryProperty.FindPropertyRelative("boundStoryId");
         SerializedProperty enabledProperty = entryProperty.FindPropertyRelative("enabled");
         SerializedProperty descriptionProperty = entryProperty.FindPropertyRelative("description");
 
@@ -210,6 +380,19 @@ public sealed class EventEditorWindow : EditorWindow
                 EditorGUILayout.PropertyField(nameProperty, new GUIContent("事件名字"));
             }
 
+            if (categoryProperty != null)
+            {
+                categoryProperty.stringValue = DrawCategoryPopup("事件分类", categoryProperty.stringValue, categoriesProperty);
+            }
+
+            if (categoryProperty != null &&
+                boundStoryIdProperty != null &&
+                string.Equals(categoryProperty.stringValue, EventDatabase.StoryCategoryId, StringComparison.Ordinal))
+            {
+                boundStoryIdProperty.stringValue = DrawStoryPopup("绑定剧情", boundStoryIdProperty.stringValue);
+                DrawHardcodedStoryRuleHint(idProperty != null ? idProperty.stringValue : string.Empty, boundStoryIdProperty.stringValue);
+            }
+
             if (descriptionProperty != null)
             {
                 EditorGUILayout.PropertyField(descriptionProperty, new GUIContent("描述"));
@@ -217,6 +400,191 @@ public sealed class EventEditorWindow : EditorWindow
         }
 
         return false;
+    }
+
+    private static void DrawHardcodedStoryRuleHint(string eventId, string boundStoryId)
+    {
+        if (!string.Equals(eventId, 事件剧情硬编码规则.出生剧情事件ID, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string storyText = string.IsNullOrWhiteSpace(boundStoryId) ? "未绑定剧情" : boundStoryId;
+        EditorGUILayout.HelpBox(
+            $"硬编码逻辑：点击开始界面的“开始游戏”按钮时，如果事件“{事件剧情硬编码规则.出生剧情事件ID}”当前是勾选状态，就播放这个事件自己绑定的剧情；播放请求发出后，不修改事件“{事件剧情硬编码规则.出生剧情事件ID}”的勾选状态。当前绑定剧情：{storyText}。",
+            MessageType.Info);
+        EditorGUILayout.HelpBox(
+            "出生剧情战斗入口硬编码数据：切换到战斗副本时，先登记剧情步骤里填写的地图模板和房间；如果当前剧情ID是“出生剧情”，就写入角色选择：玩家、库鲁斯；并给库鲁斯主手装备生成 itm_直剑。",
+            MessageType.Info);
+        EditorGUILayout.HelpBox(
+            "给之后检查用：这里的中文说明必须和代码里的硬编码触发逻辑保持一致；如果改了代码条件，也必须同步改这段中文说明。",
+            MessageType.Warning);
+    }
+
+    private static void AddCategory(EventDatabase database, SerializedProperty categoriesProperty, string categoryId, string displayName)
+    {
+        if (database == null || categoriesProperty == null || string.IsNullOrWhiteSpace(categoryId))
+        {
+            return;
+        }
+
+        if (CategoryIdExists(categoriesProperty, categoryId, -1))
+        {
+            Debug.LogWarning($"事件编辑器: 分类ID '{categoryId}' 已存在。");
+            return;
+        }
+
+        Undo.RecordObject(database, "新增事件分类");
+        int index = categoriesProperty.arraySize;
+        categoriesProperty.InsertArrayElementAtIndex(index);
+        SerializedProperty categoryProperty = categoriesProperty.GetArrayElementAtIndex(index);
+        categoryProperty.FindPropertyRelative("categoryId").stringValue = categoryId;
+        categoryProperty.FindPropertyRelative("displayName").stringValue = string.IsNullOrWhiteSpace(displayName) ? categoryId : displayName;
+    }
+
+    private static string DrawCategoryPopup(string label, string currentCategoryId, SerializedProperty categoriesProperty)
+    {
+        List<string> ids = new List<string>();
+        List<string> names = new List<string>();
+        if (categoriesProperty != null)
+        {
+            for (int i = 0; i < categoriesProperty.arraySize; i++)
+            {
+                SerializedProperty categoryProperty = categoriesProperty.GetArrayElementAtIndex(i);
+                string id = categoryProperty.FindPropertyRelative("categoryId")?.stringValue ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                string displayName = categoryProperty.FindPropertyRelative("displayName")?.stringValue;
+                ids.Add(id);
+                names.Add(string.IsNullOrWhiteSpace(displayName) ? id : displayName);
+            }
+        }
+
+        if (ids.Count <= 0)
+        {
+            EditorGUILayout.TextField(label, currentCategoryId);
+            return currentCategoryId;
+        }
+
+        int currentIndex = ids.FindIndex(id => string.Equals(id, currentCategoryId, StringComparison.Ordinal));
+        if (currentIndex < 0)
+        {
+            currentIndex = 0;
+        }
+
+        int nextIndex = EditorGUILayout.Popup(label, currentIndex, names.ToArray());
+        return ids[Mathf.Clamp(nextIndex, 0, ids.Count - 1)];
+    }
+
+    private static string ResolveCategoryForNewEvent(string selectedCategoryId, string eventId)
+    {
+        if (!string.IsNullOrWhiteSpace(selectedCategoryId))
+        {
+            return selectedCategoryId;
+        }
+
+        return EventDatabase.ResolveDefaultCategoryId(eventId);
+    }
+
+    private bool GetCategoryFoldout(string categoryId)
+    {
+        if (categoryFoldouts.TryGetValue(categoryId ?? string.Empty, out bool value))
+        {
+            return value;
+        }
+
+        return true;
+    }
+
+    private static List<int> CollectEntriesForCategory(SerializedProperty entriesProperty, string categoryId)
+    {
+        List<int> indices = new List<int>();
+        if (entriesProperty == null)
+        {
+            return indices;
+        }
+
+        for (int i = 0; i < entriesProperty.arraySize; i++)
+        {
+            SerializedProperty entryProperty = entriesProperty.GetArrayElementAtIndex(i);
+            string entryCategoryId = entryProperty.FindPropertyRelative("categoryId")?.stringValue ?? string.Empty;
+            if (string.Equals(entryCategoryId, categoryId, StringComparison.Ordinal))
+            {
+                indices.Add(i);
+            }
+        }
+
+        return indices;
+    }
+
+    private static List<int> CollectUncategorizedEntries(SerializedProperty entriesProperty, HashSet<int> drawnIndices)
+    {
+        List<int> indices = new List<int>();
+        if (entriesProperty == null)
+        {
+            return indices;
+        }
+
+        for (int i = 0; i < entriesProperty.arraySize; i++)
+        {
+            if (!drawnIndices.Contains(i))
+            {
+                indices.Add(i);
+            }
+        }
+
+        return indices;
+    }
+
+    private static int CountEntriesInCategory(SerializedProperty entriesProperty, string categoryId)
+    {
+        return CollectEntriesForCategory(entriesProperty, categoryId).Count;
+    }
+
+    private static bool CategoryIdExists(SerializedProperty categoriesProperty, string categoryId, int ignoredIndex)
+    {
+        if (categoriesProperty == null || string.IsNullOrWhiteSpace(categoryId))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < categoriesProperty.arraySize; i++)
+        {
+            if (i == ignoredIndex)
+            {
+                continue;
+            }
+
+            SerializedProperty categoryProperty = categoriesProperty.GetArrayElementAtIndex(i);
+            string id = categoryProperty.FindPropertyRelative("categoryId")?.stringValue ?? string.Empty;
+            if (string.Equals(id, categoryId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void RenameEntryCategory(SerializedProperty entriesProperty, string oldCategoryId, string newCategoryId)
+    {
+        if (entriesProperty == null || string.IsNullOrWhiteSpace(oldCategoryId) || string.IsNullOrWhiteSpace(newCategoryId))
+        {
+            return;
+        }
+
+        for (int i = 0; i < entriesProperty.arraySize; i++)
+        {
+            SerializedProperty entryProperty = entriesProperty.GetArrayElementAtIndex(i);
+            SerializedProperty categoryProperty = entryProperty.FindPropertyRelative("categoryId");
+            if (categoryProperty != null && string.Equals(categoryProperty.stringValue, oldCategoryId, StringComparison.Ordinal))
+            {
+                categoryProperty.stringValue = newCategoryId;
+            }
+        }
     }
 
     private static void SyncLinkedOptionalTeammate(SerializedProperty entriesProperty, string eventId, bool enabled)
