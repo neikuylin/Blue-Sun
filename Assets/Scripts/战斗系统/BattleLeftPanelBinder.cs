@@ -519,7 +519,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         for (int i = 0; i < renderers.Length; i++)
         {
             Renderer renderer = renderers[i];
-            if (renderer == null || !renderer.enabled)
+            if (renderer == null || !renderer.enabled || !IsPreviewBoundsRenderer(renderer))
             {
                 continue;
             }
@@ -541,6 +541,11 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
         }
 
         return hasBounds;
+    }
+
+    private static bool IsPreviewBoundsRenderer(Renderer renderer)
+    {
+        return renderer is MeshRenderer || renderer is SkinnedMeshRenderer;
     }
 
     private BattleUnit FindBattleUnitByCharacterId(string characterId)
