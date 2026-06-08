@@ -248,7 +248,7 @@ public sealed class 剧情运行时 : MonoBehaviour
         Animator 动画器 = 单位.GetComponentInChildren<Animator>(true);
         if (动画器 == null)
         {
-            Debug.LogError($"剧情运行时：角色“{步骤.角色ID}”没有 Animator。");
+            Debug.LogError($"剧情运行时：角色“{节点.角色ID}”没有 Animator。");
             return;
         }
 

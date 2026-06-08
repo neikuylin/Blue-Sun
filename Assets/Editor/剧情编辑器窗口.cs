@@ -17,6 +17,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
 
     private readonly Dictionary<string, bool> 剧情展开状态 = new Dictionary<string, bool>();
     private bool 剧情管理展开状态 = true;
+    private bool 新增剧情展开状态 = false;
 
     private SerializedObject 数据库对象;
     private Vector2 滚动位置;
@@ -96,7 +97,12 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField("新增剧情", EditorStyles.boldLabel);
+            新增剧情展开状态 = EditorGUILayout.Foldout(新增剧情展开状态, "新增剧情", true);
+            if (!新增剧情展开状态)
+            {
+                return;
+            }
+
             新剧情ID = EditorGUILayout.TextField("剧情ID", 新剧情ID);
             EditorGUILayout.LabelField("备注");
             新备注 = EditorGUILayout.TextArea(新备注, GUILayout.MinHeight(44f));
