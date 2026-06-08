@@ -14,6 +14,17 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private const float 蓝图左侧栏宽度 = 220f;
     private const float 蓝图右侧栏宽度 = 340f;
     private const float 蓝图视图高度 = 520f;
+    private static readonly string[] 装备格子显示名列表 =
+    {
+        "0 主手",
+        "1 副手",
+        "2 头盔",
+        "3 胸甲",
+        "4 手套",
+        "5 鞋子",
+        "6 腿甲",
+        "7 饰品"
+    };
 
     private readonly Dictionary<string, bool> 剧情展开状态 = new Dictionary<string, bool>();
     private bool 剧情管理展开状态 = true;
@@ -22,6 +33,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private SerializedObject 数据库对象;
     private Vector2 滚动位置;
     private Vector2 蓝图滚动位置;
+    private Vector2 蓝图节点列表滚动位置;
     private Vector2 蓝图详情滚动位置;
     private string 新剧情ID = string.Empty;
     private string 新备注 = string.Empty;
@@ -33,7 +45,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private static void 打开()
     {
         剧情编辑器窗口 窗口 = GetWindow<剧情编辑器窗口>("剧情编辑器");
-        窗口.minSize = new Vector2(720f, 520f);
+        窗口.minSize = new Vector2(900f, 560f);
         窗口.Show();
         窗口.Focus();
     }
@@ -256,19 +268,74 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             EditorGUILayout.Space(10f);
             EditorGUILayout.LabelField("当前选中", EditorStyles.boldLabel);
             EditorGUILayout.SelectableLabel(string.IsNullOrWhiteSpace(选中蓝图节点ID) ? "未选中" : 选中蓝图节点ID, GUILayout.Height(34f));
+
+            EditorGUILayout.Space(10f);
+            绘制蓝图节点列表(节点列表属性);
         }
+    }
+
+    private void 绘制蓝图节点列表(SerializedProperty 节点列表属性)
+    {
+        EditorGUILayout.LabelField("节点列表", EditorStyles.boldLabel);
+        if (节点列表属性 == null || 节点列表属性.arraySize <= 0)
+        {
+            EditorGUILayout.HelpBox("当前剧情还没有节点。", MessageType.Info);
+            return;
+        }
+
+        蓝图节点列表滚动位置 = EditorGUILayout.BeginScrollView(蓝图节点列表滚动位置, GUILayout.ExpandHeight(true));
+        for (int i = 0; i < 节点列表属性.arraySize; i++)
+        {
+            SerializedProperty 节点属性 = 节点列表属性.GetArrayElementAtIndex(i);
+            SerializedProperty 节点ID属性 = 节点属性.FindPropertyRelative("节点ID");
+            SerializedProperty 节点类型属性 = 节点属性.FindPropertyRelative("节点类型");
+            string 节点ID = 读取字符串(节点ID属性);
+            string 标题 = string.IsNullOrWhiteSpace(节点ID)
+                ? $"未命名节点 {i + 1}"
+                : 节点ID;
+            bool 已选中 = string.Equals(选中蓝图节点ID, 节点ID, System.StringComparison.Ordinal);
+            GUIStyle 样式 = 已选中 ? EditorStyles.miniButtonMid : EditorStyles.miniButton;
+            if (GUILayout.Button($"{标题}  [{取得蓝图节点类型名字(节点类型属性)}]", 样式, GUILayout.Height(24f)))
+            {
+                选中蓝图节点ID = 节点ID;
+                定位蓝图节点(节点属性);
+                Repaint();
+            }
+        }
+
+        EditorGUILayout.EndScrollView();
+    }
+
+    private void 定位蓝图节点(SerializedProperty 节点属性)
+    {
+        if (节点属性 == null)
+        {
+            return;
+        }
+
+        SerializedProperty 位置属性 = 节点属性.FindPropertyRelative("位置");
+        Vector2 位置 = 位置属性 != null ? 位置属性.vector2Value : Vector2.zero;
+        蓝图滚动位置 = new Vector2(
+            Mathf.Clamp(位置.x - 160f, 0f, Mathf.Max(0f, 蓝图画布宽度 - 320f)),
+            Mathf.Clamp(位置.y - 120f, 0f, Mathf.Max(0f, 蓝图画布高度 - 240f)));
     }
 
     private void 绘制蓝图画布(SerializedProperty 节点列表属性, SerializedProperty 连线列表属性)
     {
-        Rect 可视区域 = GUILayoutUtility.GetRect(1f, 蓝图视图高度, GUILayout.ExpandWidth(true));
+        float 中间画布视口宽度 = Mathf.Max(220f, position.width - 蓝图左侧栏宽度 - 蓝图右侧栏宽度 - 56f);
+        Rect 可视区域 = GUILayoutUtility.GetRect(
+            中间画布视口宽度,
+            蓝图视图高度,
+            GUILayout.Width(中间画布视口宽度),
+            GUILayout.Height(蓝图视图高度));
         GUI.Box(可视区域, GUIContent.none);
-        蓝图滚动位置 = GUI.BeginScrollView(可视区域, 蓝图滚动位置, new Rect(0f, 0f, 蓝图画布宽度, 蓝图画布高度));
+
         Rect 画布矩形 = new Rect(0f, 0f, 蓝图画布宽度, 蓝图画布高度);
+        蓝图滚动位置 = GUI.BeginScrollView(可视区域, 蓝图滚动位置, 画布矩形, true, true);
         绘制蓝图网格(画布矩形);
         绘制蓝图连线(节点列表属性, 连线列表属性);
         绘制蓝图节点(节点列表属性, 连线列表属性);
-        GUI.EndScrollView();
+        GUI.EndScrollView(true);
     }
 
     private static void 绘制蓝图网格(Rect 画布矩形)
@@ -530,7 +597,10 @@ public sealed class 剧情编辑器窗口 : EditorWindow
 
         if (装备格子索引属性 != null)
         {
-            装备格子索引属性.intValue = EditorGUILayout.IntField("装备格子索引", 装备格子索引属性.intValue);
+            装备格子索引属性.intValue = EditorGUILayout.Popup(
+                "装备栏位",
+                Mathf.Clamp(装备格子索引属性.intValue, 0, 装备格子显示名列表.Length - 1),
+                装备格子显示名列表);
         }
     }
 
