@@ -12,7 +12,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
     private const string LeftPanelPreviewPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u89d2\u8272\u80cc\u666f\u6846\u5de6/\u6444\u50cf\u5934\u6355\u6349";
     private const string LeftPanelSkillPath = "Canvas/\u5f39\u7a97/\u5de6\u8fb9\u680f\u4f4d/\u6280\u80fd\u680f\u4f4d/\u6280\u80fd\u683c\u5b50\u533a\u57df";
     private const string PreviewImageName = "__ModelPreviewImage";
-    private const int PreviewLayer = 31;
+    private const string PreviewLayerName = "角色预览";
     private const int PreviewTextureSize = 1024;
     private const float PreviewOutlineWidth = 0.035f;
     private static readonly Color DisabledSkillColor = SkillUsabilityUtility.DisabledSkillColor;
@@ -384,7 +384,7 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             previewCamera.nearClipPlane = 0.01f;
             previewCamera.farClipPlane = 50f;
             previewCamera.enabled = true;
-            previewCamera.cullingMask = 1 << PreviewLayer;
+            previewCamera.cullingMask = TryResolvePreviewLayer(out int previewLayer) ? 1 << previewLayer : 0;
         }
 
         EnsurePreviewTexture();
@@ -596,6 +596,16 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
 
     private void StoreAndApplyPreviewLayer(Transform root)
     {
+        if (!TryResolvePreviewLayer(out int previewLayer))
+        {
+            return;
+        }
+
+        StoreAndApplyPreviewLayer(root, previewLayer);
+    }
+
+    private void StoreAndApplyPreviewLayer(Transform root, int previewLayer)
+    {
         if (root == null)
         {
             return;
@@ -606,11 +616,23 @@ public sealed class BattleLeftPanelBinder : MonoBehaviour
             previewOriginalLayers[root] = root.gameObject.layer;
         }
 
-        root.gameObject.layer = PreviewLayer;
+        root.gameObject.layer = previewLayer;
         for (int i = 0; i < root.childCount; i++)
         {
-            StoreAndApplyPreviewLayer(root.GetChild(i));
+            StoreAndApplyPreviewLayer(root.GetChild(i), previewLayer);
         }
+    }
+
+    private static bool TryResolvePreviewLayer(out int previewLayer)
+    {
+        previewLayer = LayerMask.NameToLayer(PreviewLayerName);
+        if (previewLayer >= 0)
+        {
+            return true;
+        }
+
+        Debug.LogError($"BattleLeftPanelBinder: 项目层级缺少“{PreviewLayerName}”，装备栏摄像头无法捕捉角色。");
+        return false;
     }
 
     private void RestorePreviewLayers()

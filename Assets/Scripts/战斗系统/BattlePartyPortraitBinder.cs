@@ -60,6 +60,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         RefreshPortraits(force: true);
         HookPortraitButtons();
         界面ID列表.清空当前ID();
+        界面刷新中心.请求当前角色切换刷新(界面ID列表.当前ID);
         SetEquipmentPanelVisible(false);
     }
 
@@ -72,6 +73,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
 
         instance.SetEquipmentPanelVisible(false);
         界面ID列表.清空当前ID();
+        界面刷新中心.请求当前角色切换刷新(界面ID列表.当前ID);
     }
 
     public static string GetDisplayedCharacterIdAtSlot(int slotIndex)
@@ -95,6 +97,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             equipmentPanelVisible = false;
             界面ID列表.清空当前ID();
+            界面刷新中心.请求当前角色切换刷新(界面ID列表.当前ID);
         }
 
         RefreshPortraits(force: false);
@@ -587,6 +590,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             SetEquipmentPanelVisible(false);
             界面ID列表.清空当前ID();
+            界面刷新中心.请求当前角色切换刷新(界面ID列表.当前ID);
             return;
         }
         bool isSameCharacter = string.Equals(
@@ -598,11 +602,13 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
         {
             SetEquipmentPanelVisible(false);
             界面ID列表.清空当前ID();
+            界面刷新中心.请求当前角色切换刷新(界面ID列表.当前ID);
             return;
         }
 
-        界面ID列表.设置当前ID(characterId);
         SetEquipmentPanelVisible(true);
+        界面ID列表.设置当前ID(characterId);
+        界面刷新中心.请求当前角色切换刷新(characterId);
     }
 
     private void SetEquipmentPanelVisible(bool visible)

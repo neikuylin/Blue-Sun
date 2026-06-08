@@ -87,6 +87,17 @@ public sealed class 界面刷新中心 : MonoBehaviour
         仓储界面刷新?.Invoke();
     }
 
+    public static void 请求当前角色切换刷新(string characterId)
+    {
+        string normalizedCharacterId = NormalizeCharacterId(characterId);
+        if (instance != null)
+        {
+            instance.lastCurrentCharacterId = normalizedCharacterId;
+        }
+
+        当前角色切换刷新?.Invoke(normalizedCharacterId);
+    }
+
     public static void 请求技能装配变更(string characterId)
     {
         技能装配变更?.Invoke(NormalizeCharacterId(characterId));
