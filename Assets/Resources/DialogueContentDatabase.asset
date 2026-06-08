@@ -29,7 +29,7 @@ MonoBehaviour:
     interactions:
     - buttonText: "\u67E5\u770B\u88C5\u5907"
       interactionType: 0
-      identifierId: 
+      identifierId: "\u88C5\u5907"
       targetDialogueGroupId: 
     - buttonText: "\u79BB\u5F00"
       interactionType: 2
