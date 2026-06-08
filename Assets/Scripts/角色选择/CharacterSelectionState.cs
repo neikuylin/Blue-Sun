@@ -248,12 +248,21 @@ public sealed class CharacterSelectionState : MonoBehaviour
 
     public static Sprite ResolvePortraitSprite(CharacterSlotView slot)
     {
-        return 角色选择槽位服务.解析立绘图片(slot);
+        角色头像ID源库.条目 entry = ResolvePortraitEntry(slot);
+        return entry != null ? entry.portraitSprite : null;
     }
 
     public static PortraitLayout ResolvePortraitLayout(CharacterSlotView slot)
     {
-        return 角色选择槽位服务.解析立绘布局(slot);
+        角色头像ID源库.条目 entry = ResolvePortraitEntry(slot);
+        return entry != null ? entry.portraitLayout.转为角色选择布局() : default(CharacterSelectionState.PortraitLayout);
+    }
+
+    private static 角色头像ID源库.条目 ResolvePortraitEntry(CharacterSlotView slot)
+    {
+        string characterId = ResolveCharacterId(slot);
+        角色头像ID源库 database = 角色头像ID源库.加载默认库();
+        return database != null ? database.查找(characterId) : null;
     }
 
     private static List<CharacterSlotView> OrderSlots(IEnumerable<CharacterSlotView> slots)

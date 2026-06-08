@@ -375,7 +375,7 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             startImageLayouts.Add(ReadLayout(movingImage.rectTransform));
             CharacterSelectionState.SlotSelection? selection = ResolveSlotSelection(orderedSelections, i);
             targetImageLayouts.Add(selection.HasValue
-                ? BuildPortraitImageLayout(selection.Value.portraitLayout, i)
+                ? BuildPortraitImageLayout(ResolvePortraitLayout(selection.Value), i)
                 : ReadLayout(movingImage.rectTransform));
         }
 
@@ -859,14 +859,32 @@ public sealed class BattlePartyPortraitBinder : MonoBehaviour
             return;
         }
 
-        Sprite portrait = selection.HasValue ? selection.Value.portraitSprite : null;
+        Sprite portrait = selection.HasValue ? ResolvePortraitSprite(selection.Value) : null;
         portraitSlot.sprite = portrait;
         portraitSlot.color = portrait != null ? Color.white : new Color(1f, 1f, 1f, 0f);
         portraitSlot.preserveAspect = true;
         if (selection.HasValue)
         {
-            ApplyPortraitLayout(portraitSlot.rectTransform, selection.Value.portraitLayout, slotIndex);
+            ApplyPortraitLayout(portraitSlot.rectTransform, ResolvePortraitLayout(selection.Value), slotIndex);
         }
+    }
+
+    private static Sprite ResolvePortraitSprite(CharacterSelectionState.SlotSelection selection)
+    {
+        角色头像ID源库.条目 entry = ResolvePortraitEntry(selection);
+        return entry != null ? entry.portraitSprite : null;
+    }
+
+    private static CharacterSelectionState.PortraitLayout ResolvePortraitLayout(CharacterSelectionState.SlotSelection selection)
+    {
+        角色头像ID源库.条目 entry = ResolvePortraitEntry(selection);
+        return entry != null ? entry.portraitLayout.转为角色选择布局() : default(CharacterSelectionState.PortraitLayout);
+    }
+
+    private static 角色头像ID源库.条目 ResolvePortraitEntry(CharacterSelectionState.SlotSelection selection)
+    {
+        角色头像ID源库 database = 角色头像ID源库.加载默认库();
+        return database != null ? database.查找(selection.characterId) : null;
     }
 
     private static void ApplyPortraitLayout(RectTransform target, CharacterSelectionState.PortraitLayout layout, int slotIndex)

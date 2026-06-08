@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a44b4ee3c79496daacbc7667b6a3b99, type: 3}
+  m_Name: "\u89D2\u8272\u5934\u50CFID\u6E90\u5E93"
+  m_EditorClassIdentifier: 
+  entries:
+  - characterId: "\u73A9\u5BB6"
+    portraitSprite: {fileID: 21300000, guid: 977bb13760f3f4a42a164148cd48621b, type: 3}
+    portraitLayout:
+      anchorMin: {x: 0.5, y: 0.5}
+      anchorMax: {x: 0.5, y: 0.5}
+      pivot: {x: 0.5, y: 0.5}
+      anchoredPosition: {x: 16.4, y: 16.4}
+      sizeDelta: {x: 184, y: 186}
+      localScale: {x: 1, y: 1, z: 1}
+  - characterId: "\u5E93\u9C81\u65AF"
+    portraitSprite: {fileID: 21300000, guid: 3718d43d6aeb0014fb8a4e6b069c10a0, type: 3}
+    portraitLayout:
+      anchorMin: {x: 0.5, y: 0.5}
+      anchorMax: {x: 0.5, y: 0.5}
+      pivot: {x: 0.5, y: 0.5}
+      anchoredPosition: {x: 5, y: 5}
+      sizeDelta: {x: 176, y: 162}
+      localScale: {x: 1, y: 1, z: 1}
+  - characterId: "\u7D22\u62C9\u5A1C"
+    portraitSprite: {fileID: 21300000, guid: 0c72fbc955ffc624ba245ca9477cdaa7, type: 3}
+    portraitLayout:
+      anchorMin: {x: 0.5, y: 0.5}
+      anchorMax: {x: 0.5, y: 0.5}
+      pivot: {x: 0.5, y: 0.5}
+      anchoredPosition: {x: 5, y: 5}
+      sizeDelta: {x: 138, y: 154}
+      localScale: {x: 1, y: 1, z: 1}
+  - characterId: "\u745F\u838E"
+    portraitSprite: {fileID: 21300000, guid: a5b1e9dba6f9d8249a406fbd765520a5, type: 3}
+    portraitLayout:
+      anchorMin: {x: 0.5, y: 0.5}
+      anchorMax: {x: 0.5, y: 0.5}
+      pivot: {x: 0.5, y: 0.5}
+      anchoredPosition: {x: 15, y: 5}
+      sizeDelta: {x: 206, y: 168}
+      localScale: {x: 1, y: 1, z: 1}
+  - characterId: "\u7231\u4E3D\u4E1D"
+    portraitSprite: {fileID: 21300000, guid: bf6c28faec82b8343a5e233baa137e8e, type: 3}
+    portraitLayout:
+      anchorMin: {x: 0.5, y: 0.5}
+      anchorMax: {x: 0.5, y: 0.5}
+      pivot: {x: 0.5, y: 0.5}
+      anchoredPosition: {x: 5, y: 5}
+      sizeDelta: {x: 189, y: 176}
+      localScale: {x: 1, y: 1, z: 1}
