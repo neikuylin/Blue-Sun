@@ -42,3 +42,11 @@ MonoBehaviour:
     content: "\u563F\u5C0F\u5B50\uFF0C\u8FD8\u6D3B\u7740\u4E48"
     voiceClip: {fileID: 0}
     interactions: []
+  - id: "\u51FA\u751F\u5267\u60C5\u5BF9\u8BDD1-2"
+    roleNameId: "\u5E93\u9C81\u65AF"
+    portraitPrefab: {fileID: 2706914755301022945, guid: f7a93a438b8ea8a4f937096804c12fad, type: 3}
+    viewSide: 1
+    content: "\u5E2E\u8001\u5934\u4E00\u4E2A\u5FD9\uFF0C\u62FF\u7740\uFF01\u89E3\u51B3\u4ED6\u4EEC
+      \uFF0C\u4F60\u80FD\u505A\u5230\u7684\u3002"
+    voiceClip: {fileID: 0}
+    interactions: []

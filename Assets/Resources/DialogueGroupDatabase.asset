@@ -17,3 +17,6 @@ MonoBehaviour:
     contentIds:
     - "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-1"
     - "\u7D22\u62C9\u5A1C\u70B9\u51FB\u5BF9\u8BDD1-2"
+  - id: "\u51FA\u751F\u5730\u5BF9\u8BDD1"
+    contentIds:
+    - "\u51FA\u751F\u5267\u60C5\u5BF9\u8BDD1-1"
