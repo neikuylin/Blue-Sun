@@ -22,6 +22,7 @@ public sealed class 对话运行时 : MonoBehaviour
     private DialogueGroupDatabase.DialogueGroupEntry 当前对话组;
     private int 当前对话索引 = -1;
     private 对话显示视角 当前显示视角 = 对话显示视角.无;
+    private Action 当前对话结束回调;
 
     private readonly List<对话事件服务.触发监听项> 事件触发监听项 = new List<对话事件服务.触发监听项>();
     private readonly Dictionary<string, bool> 上次事件状态 = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -82,6 +83,21 @@ public sealed class 对话运行时 : MonoBehaviour
         return instance != null && instance.TryShowDialogueGroup(对话组ID);
     }
 
+    public static bool 播放对话组并等待(string 对话组ID, Action 对话结束回调)
+    {
+        return instance != null && instance.TryShowDialogueGroup(对话组ID, 对话结束回调);
+    }
+
+    public static bool 播放对话内容(string 对话内容ID)
+    {
+        return instance != null && instance.TryShowDialogueContent(对话内容ID);
+    }
+
+    public static bool 播放对话内容并等待(string 对话内容ID, Action 对话结束回调)
+    {
+        return instance != null && instance.TryShowDialogueContent(对话内容ID, 对话结束回调);
+    }
+
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         EnsureDialogueVoiceAudioSource();
@@ -125,6 +141,7 @@ public sealed class 对话运行时 : MonoBehaviour
         当前对话组 = null;
         当前对话索引 = -1;
         当前显示视角 = 对话显示视角.无;
+        当前对话结束回调 = null;
         ClearGeneratedInteractionButtons();
     }
 
@@ -172,7 +189,7 @@ public sealed class 对话运行时 : MonoBehaviour
         ShowCurrentDialogueEntry();
     }
 
-    private bool TryShowDialogueGroup(string dialogueGroupId)
+    private bool TryShowDialogueGroup(string dialogueGroupId, Action onCompleted = null)
     {
         if (string.IsNullOrWhiteSpace(dialogueGroupId))
         {
@@ -196,6 +213,40 @@ public sealed class 对话运行时 : MonoBehaviour
 
         当前对话组 = groupEntry;
         当前对话索引 = 0;
+        当前对话结束回调 = onCompleted;
+        ShowCurrentDialogueEntry();
+        return true;
+    }
+
+    private bool TryShowDialogueContent(string dialogueContentId, Action onCompleted = null)
+    {
+        if (string.IsNullOrWhiteSpace(dialogueContentId))
+        {
+            Debug.LogError("对话运行时: 对话内容ID为空。");
+            return false;
+        }
+
+        DialogueContentDatabase contentDatabase = DialogueContentDatabase.LoadDefault();
+        if (contentDatabase == null)
+        {
+            Debug.LogError("对话运行时: 缺少 DialogueContentDatabase。");
+            return false;
+        }
+
+        DialogueContentDatabase.DialogueContentEntry contentEntry = contentDatabase.FindEntry(dialogueContentId.Trim());
+        if (contentEntry == null)
+        {
+            Debug.LogError($"对话运行时: 找不到对话内容 '{dialogueContentId}'。");
+            return false;
+        }
+
+        当前对话组 = new DialogueGroupDatabase.DialogueGroupEntry
+        {
+            id = "__剧情单句对话__",
+            contentIds = new List<string> { dialogueContentId.Trim() }
+        };
+        当前对话索引 = 0;
+        当前对话结束回调 = onCompleted;
         ShowCurrentDialogueEntry();
         return true;
     }
@@ -341,6 +392,9 @@ public sealed class 对话运行时 : MonoBehaviour
         当前对话组 = null;
         当前对话索引 = -1;
         隐藏屏幕火星特效();
+        Action 对话结束回调 = 当前对话结束回调;
+        当前对话结束回调 = null;
+        对话结束回调?.Invoke();
     }
 
     private void HideCurrentViews()

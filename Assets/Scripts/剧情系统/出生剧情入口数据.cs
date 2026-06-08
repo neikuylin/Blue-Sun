@@ -12,19 +12,19 @@ public static class 出生剧情入口数据
     private const int 装备槽数量 = 8;
     private const int 主手槽索引 = 6;
 
-    public static bool 尝试应用(剧情数据库.剧情条目 剧情, 剧情数据库.剧情步骤 步骤)
+    public static bool 尝试应用(剧情数据库.剧情条目 剧情, 剧情数据库.剧情蓝图节点 节点)
     {
-        if (剧情 == null || 步骤 == null)
+        if (剧情 == null || 节点 == null)
         {
             return false;
         }
 
-        if (步骤.目标类型 != 剧情数据库.场景目标类型.战斗副本)
+        if (节点.目标类型 != 剧情数据库.场景目标类型.战斗副本)
         {
             return false;
         }
 
-        登记战斗副本入口(步骤);
+        登记战斗副本入口(节点);
 
         if (!string.Equals(剧情.剧情ID, 剧情ID, StringComparison.Ordinal))
         {
@@ -36,15 +36,15 @@ public static class 出生剧情入口数据
         return true;
     }
 
-    public static void 登记战斗副本入口(剧情数据库.剧情步骤 步骤)
+    public static void 登记战斗副本入口(剧情数据库.剧情蓝图节点 节点)
     {
-        if (步骤 == null)
+        if (节点 == null)
         {
             return;
         }
 
-        副本选择状态.选择地图模板(步骤.地图模板ID);
-        BattleBootstrap.SetCurrentRoom(步骤.地图模板ID, 步骤.房间节点ID);
+        副本选择状态.选择地图模板(节点.地图模板ID);
+        BattleBootstrap.SetCurrentRoom(节点.地图模板ID, 节点.房间节点ID);
     }
 
     private static void 应用角色选择()
