@@ -127,6 +127,8 @@ Assets/字体包/**/*.eot
 Assets/字体包/**/*.eot.meta
 
 # Local source font binaries are managed outside git for this project.
+!Assets/字体包/思源宋体/
+!Assets/字体包/思源宋体/**
 
 # Unity 6 auto-created setting not used by this project.
 /ProjectSettings/MultiplayerManager.asset
