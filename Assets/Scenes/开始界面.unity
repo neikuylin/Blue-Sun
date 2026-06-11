@@ -422,7 +422,7 @@ MonoBehaviour:
   m_text: "\u5F00\u59CB\u6309\u94AE"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 798f01969f29a9144b0010f9e4aebf27, type: 2}
-  m_sharedMaterial: {fileID: -8497361823844819725, guid: 798f01969f29a9144b0010f9e4aebf27, type: 2}
+  m_sharedMaterial: {fileID: -5041818389170124794, guid: 798f01969f29a9144b0010f9e4aebf27, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
