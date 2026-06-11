@@ -105,7 +105,7 @@ Transform:
   m_GameObject: {fileID: 8744824923521610986}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -15.36, y: 18.24, z: 0}
+  m_LocalPosition: {x: -15.36, y: 17.53, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -158,7 +158,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -11000
+  m_SortingOrder: -10999
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: 188ecbc0061940240a4be108bb277342, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -184,7 +184,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: "Assembly-CSharp::\u6E32\u67D3\u5C42\u7EA7\u5E94\u7528\u5668"
   mode: 0
   lightingMode: 0
-  overwriteSortingOrder: 1
+  overwriteSortingOrder: 0
   sortingOrder: -11000
   replaceMaterial: 1
   below3DMaterial: {fileID: 2100000, guid: d7d67f9641124acf8d4534ac2e517734, type: 2}

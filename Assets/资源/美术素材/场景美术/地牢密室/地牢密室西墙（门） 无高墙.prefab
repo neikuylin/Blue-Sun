@@ -123,7 +123,7 @@ GameObject:
   - component: {fileID: 5352107903061591555}
   - component: {fileID: 5773587265288839638}
   m_Layer: 0
-  m_Name: "\u5730\u7262\u5BC6\u5BA4\u897F\u5899\uFF08\u95E8\uFF09"
+  m_Name: "\u5730\u7262\u5BC6\u5BA4\u897F\u5899\uFF08\u95E8\uFF09 \u65E0\u9AD8\u5899"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -527,7 +527,7 @@ Transform:
   m_GameObject: {fileID: 7864301501150557360}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -14.85, y: -5.61, z: 0}
+  m_LocalPosition: {x: -9.46, y: -9.87, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -582,7 +582,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: bb13df3dabc61d945b7179129d069f7e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9f693625792343f4db84e3e87fc075d9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

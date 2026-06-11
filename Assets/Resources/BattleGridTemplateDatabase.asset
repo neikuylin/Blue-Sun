@@ -1021,7 +1021,7 @@ MonoBehaviour:
         y: 10
     wallVisuals:
     - wallName: "\u897F\u5899\u95E8"
-      prefab: {fileID: 1928778994792063281, guid: e24929aa1c1249b438fa6259a8bba94e, type: 3}
+      prefab: {fileID: 1928778994792063281, guid: fe498d023d4fee64fb93fb7e35c30844, type: 3}
       cell:
         x: 0
         y: 0
@@ -1029,11 +1029,27 @@ MonoBehaviour:
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     - wallName: "\u5357\u5899"
-      prefab: {fileID: 1928778994792063281, guid: 745ccc7e44b877f4aa39e4231db3c869, type: 3}
+      prefab: {fileID: 1928778994792063281, guid: c3fa8b9655b9a0546a1bafbe54195cb3, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 1
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u5317\u5899"
+      prefab: {fileID: 1305869884712659244, guid: de8f4017e72904641b828d6eb13e2d4b, type: 3}
       cell:
         x: 0
         y: 0
       side: 3
+      localOffset: {x: 0, y: 0, z: 0}
+      alignToBattleCamera: 1
+    - wallName: "\u4E1C\u5899"
+      prefab: {fileID: 1861998478030710559, guid: c029e7dd8dac8294abf60b20ab96b855, type: 3}
+      cell:
+        x: 0
+        y: 0
+      side: 0
       localOffset: {x: 0, y: 0, z: 0}
       alignToBattleCamera: 1
     hasDefaultPlayerSpawn: 1
@@ -3364,12 +3380,12 @@ MonoBehaviour:
       cell:
         x: 11
         y: 21
-      encounterEnemyIndex: 0
+      encounterEnemyIndex: -1
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
         x: 14
         y: 21
-      encounterEnemyIndex: 1
+      encounterEnemyIndex: -1
     defaultFloorPrefab: {fileID: 9178832381914440453, guid: e44c261712a484448957766e2556b8e3, type: 3}
     alignFloorToBattleCamera: 1
     "\u82B1\u74E3\u7C92\u5B50\u9884\u5236\u4F53": {fileID: 8362068888821564721, guid: 17a07624249b6ab45afbfa2f06e9a025, type: 3}
