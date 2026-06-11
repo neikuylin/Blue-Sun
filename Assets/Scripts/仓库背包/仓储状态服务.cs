@@ -193,6 +193,7 @@ internal sealed class 仓储状态服务
         string resolvedCharacterId = 规范化角色ID(characterId);
         if (equipmentDataByCharacter.TryGetValue(resolvedCharacterId, out List<InventoryShortcutRuntimeBinder.ItemSlotData> data))
         {
+            迁移旧版玩家装备顺序(data, expectedEquipmentSlotCount, resolveItemEntry);
             return data;
         }
 
@@ -219,6 +220,85 @@ internal sealed class 仓储状态服务
         确保容量(data, expectedEquipmentSlotCount);
         equipmentDataByCharacter[resolvedCharacterId] = data;
         return data;
+    }
+
+    private static void 迁移旧版玩家装备顺序(
+        List<InventoryShortcutRuntimeBinder.ItemSlotData> data,
+        int expectedEquipmentSlotCount,
+        Func<string, ItemDatabase.ItemEntry> resolveItemEntry)
+    {
+        if (data == null ||
+            data.Count != 8 ||
+            expectedEquipmentSlotCount != 8 ||
+            resolveItemEntry == null)
+        {
+            return;
+        }
+
+        ItemDatabase.EquipmentSlotType[] currentOrder =
+        {
+            ItemDatabase.EquipmentSlotType.MainHand,
+            ItemDatabase.EquipmentSlotType.OffHand,
+            ItemDatabase.EquipmentSlotType.Helmet,
+            ItemDatabase.EquipmentSlotType.Armor,
+            ItemDatabase.EquipmentSlotType.Gloves,
+            ItemDatabase.EquipmentSlotType.Shoes,
+            ItemDatabase.EquipmentSlotType.LegArmor,
+            ItemDatabase.EquipmentSlotType.Accessory
+        };
+        ItemDatabase.EquipmentSlotType[] legacyOrder =
+        {
+            ItemDatabase.EquipmentSlotType.Helmet,
+            ItemDatabase.EquipmentSlotType.Armor,
+            ItemDatabase.EquipmentSlotType.Gloves,
+            ItemDatabase.EquipmentSlotType.Shoes,
+            ItemDatabase.EquipmentSlotType.LegArmor,
+            ItemDatabase.EquipmentSlotType.Accessory,
+            ItemDatabase.EquipmentSlotType.MainHand,
+            ItemDatabase.EquipmentSlotType.OffHand
+        };
+
+        int currentMatches = 0;
+        int legacyMatches = 0;
+        for (int i = 0; i < data.Count; i++)
+        {
+            InventoryShortcutRuntimeBinder.ItemSlotData slot = data[i];
+            if (slot.IsEmpty || slot.isFootprintExtension)
+            {
+                continue;
+            }
+
+            ItemDatabase.ItemEntry entry = resolveItemEntry(slot.itemId);
+            if (entry == null)
+            {
+                continue;
+            }
+
+            if (InventoryShortcutRuntimeBinder.IsEquipmentSlotCompatible(entry.equipmentSlot, currentOrder[i]))
+            {
+                currentMatches++;
+            }
+
+            if (InventoryShortcutRuntimeBinder.IsEquipmentSlotCompatible(entry.equipmentSlot, legacyOrder[i]))
+            {
+                legacyMatches++;
+            }
+        }
+
+        if (legacyMatches <= currentMatches)
+        {
+            return;
+        }
+
+        InventoryShortcutRuntimeBinder.ItemSlotData[] legacy = data.ToArray();
+        data[0] = legacy[6]; // 主手
+        data[1] = legacy[7]; // 副手
+        data[2] = legacy[0]; // 头盔
+        data[3] = legacy[1]; // 胸甲
+        data[4] = legacy[2]; // 手套
+        data[5] = legacy[3]; // 鞋子
+        data[6] = legacy[4]; // 腿甲
+        data[7] = legacy[5]; // 饰品
     }
 
     public List<InventoryShortcutRuntimeBinder.ItemSlotData> 获取当前角色装备数据(
@@ -334,10 +414,10 @@ internal sealed class 仓储状态服务
             return null;
         }
 
-        int slotCount = Mathf.Max(expectedEquipmentSlotCount, EnemyEquipmentDatabase.SlotCount);
+        int slotCount = Mathf.Max(expectedEquipmentSlotCount, EnemyEquipmentDatabase.RuntimeSlotCount);
         List<InventoryShortcutRuntimeBinder.ItemSlotData> result = new List<InventoryShortcutRuntimeBinder.ItemSlotData>(slotCount);
         确保容量(result, slotCount);
-        for (int i = 0; i < entry.itemIds.Count && i < result.Count; i++)
+        for (int i = 0; i < entry.itemIds.Count && i < EnemyEquipmentDatabase.SlotCount; i++)
         {
             string itemId = entry.itemIds[i];
             if (string.IsNullOrWhiteSpace(itemId))
@@ -351,13 +431,22 @@ internal sealed class 仓储状态服务
                 continue;
             }
 
-            result[i] = prepareItemSlotDataForStorage(new InventoryShortcutRuntimeBinder.ItemSlotData
+            int runtimeIndex = EnemyEquipmentDatabase.ResolveRuntimeSlotIndex(
+                i,
+                !result[0].IsEmpty,
+                !result[1].IsEmpty);
+            if (runtimeIndex < 0 || runtimeIndex >= result.Count)
+            {
+                continue;
+            }
+
+            result[runtimeIndex] = prepareItemSlotDataForStorage(new InventoryShortcutRuntimeBinder.ItemSlotData
             {
                 itemId = itemId,
                 icon = resolveDisplaySpriteFromPrefab != null ? resolveDisplaySpriteFromPrefab(itemEntry.prefab) : null,
                 count = 1,
                 maxStack = 1
-            }, $"敌人装备栏 {characterId}:{i}");
+            }, $"敌人装备栏 {characterId}:{runtimeIndex}");
         }
 
         boundEnemyEquipmentDataCache[characterId] = result;

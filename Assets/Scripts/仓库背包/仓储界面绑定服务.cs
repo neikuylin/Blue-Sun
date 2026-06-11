@@ -381,14 +381,14 @@ internal sealed class 仓储界面绑定服务
             return;
         }
 
+        AddEquipmentSlotWidget(target, binding.MainHandSlot, ItemDatabase.EquipmentSlotType.MainHand);
+        AddEquipmentSlotWidget(target, binding.OffHandSlot, ItemDatabase.EquipmentSlotType.OffHand);
         AddEquipmentSlotWidget(target, binding.HelmetSlot, ItemDatabase.EquipmentSlotType.Helmet);
         AddEquipmentSlotWidget(target, binding.ArmorSlot, ItemDatabase.EquipmentSlotType.Armor);
         AddEquipmentSlotWidget(target, binding.GlovesSlot, ItemDatabase.EquipmentSlotType.Gloves);
         AddEquipmentSlotWidget(target, binding.ShoesSlot, ItemDatabase.EquipmentSlotType.Shoes);
         AddEquipmentSlotWidget(target, binding.LegArmorSlot, ItemDatabase.EquipmentSlotType.LegArmor);
         AddEquipmentSlotWidget(target, binding.AccessorySlot, ItemDatabase.EquipmentSlotType.Accessory);
-        AddEquipmentSlotWidget(target, binding.MainHandSlot, ItemDatabase.EquipmentSlotType.MainHand);
-        AddEquipmentSlotWidget(target, binding.OffHandSlot, ItemDatabase.EquipmentSlotType.OffHand);
     }
 
     private static void AddEquipmentSlotWidget(List<InventoryShortcutRuntimeBinder.SlotWidget> target, RectTransform slotRoot, ItemDatabase.EquipmentSlotType slotType)

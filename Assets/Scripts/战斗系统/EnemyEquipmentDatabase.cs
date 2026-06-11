@@ -7,6 +7,7 @@ public sealed class EnemyEquipmentDatabase : ScriptableObject
 {
     public const string DefaultResourcePath = "EnemyEquipmentDatabase";
     public const int SlotCount = 9;
+    public const int RuntimeSlotCount = 8;
 
     public static readonly string[] SlotLabels =
     {
@@ -33,6 +34,42 @@ public sealed class EnemyEquipmentDatabase : ScriptableObject
         ItemDatabase.EquipmentSlotType.LegArmor,
         ItemDatabase.EquipmentSlotType.Accessory
     };
+
+    public static readonly ItemDatabase.EquipmentSlotType[] RuntimeSlotTypes =
+    {
+        ItemDatabase.EquipmentSlotType.MainHand,
+        ItemDatabase.EquipmentSlotType.OffHand,
+        ItemDatabase.EquipmentSlotType.Helmet,
+        ItemDatabase.EquipmentSlotType.Armor,
+        ItemDatabase.EquipmentSlotType.Gloves,
+        ItemDatabase.EquipmentSlotType.Shoes,
+        ItemDatabase.EquipmentSlotType.LegArmor,
+        ItemDatabase.EquipmentSlotType.Accessory
+    };
+
+    public static int ResolveRuntimeSlotIndex(int databaseSlotIndex, bool mainHandOccupied, bool offHandOccupied)
+    {
+        if (databaseSlotIndex < 0 || databaseSlotIndex >= SlotTypes.Length)
+        {
+            return -1;
+        }
+
+        ItemDatabase.EquipmentSlotType sourceType = SlotTypes[databaseSlotIndex];
+        if (sourceType == ItemDatabase.EquipmentSlotType.MainOrOffHand)
+        {
+            return !mainHandOccupied ? 0 : (!offHandOccupied ? 1 : -1);
+        }
+
+        for (int i = 0; i < RuntimeSlotTypes.Length; i++)
+        {
+            if (RuntimeSlotTypes[i] == sourceType)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     [Serializable]
     public sealed class EnemyEquipmentEntry

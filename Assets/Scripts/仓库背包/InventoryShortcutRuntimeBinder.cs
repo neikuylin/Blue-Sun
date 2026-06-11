@@ -712,8 +712,8 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 instance.equipmentSlots[index].equipmentSlotType == slotType;
         }
 
-        return index < EnemyEquipmentDatabase.SlotTypes.Length &&
-            EnemyEquipmentDatabase.SlotTypes[index] == slotType;
+        return index < EnemyEquipmentDatabase.RuntimeSlotTypes.Length &&
+            EnemyEquipmentDatabase.RuntimeSlotTypes[index] == slotType;
     }
 
     private static List<ItemSlotData> 获取敌人装备库装备数据(string characterId)
@@ -725,14 +725,14 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
             return null;
         }
 
-        int slotCount = Mathf.Max(entry.itemIds.Count, EnemyEquipmentDatabase.SlotCount);
+        int slotCount = EnemyEquipmentDatabase.RuntimeSlotCount;
         List<ItemSlotData> result = new List<ItemSlotData>(slotCount);
         for (int i = 0; i < slotCount; i++)
         {
             result.Add(default);
         }
 
-        for (int i = 0; i < entry.itemIds.Count && i < result.Count; i++)
+        for (int i = 0; i < entry.itemIds.Count && i < EnemyEquipmentDatabase.SlotCount; i++)
         {
             string itemId = entry.itemIds[i];
             if (string.IsNullOrWhiteSpace(itemId))
@@ -746,7 +746,16 @@ public class InventoryShortcutRuntimeBinder : MonoBehaviour
                 continue;
             }
 
-            result[i] = new ItemSlotData
+            int runtimeIndex = EnemyEquipmentDatabase.ResolveRuntimeSlotIndex(
+                i,
+                !result[0].IsEmpty,
+                !result[1].IsEmpty);
+            if (runtimeIndex < 0 || runtimeIndex >= result.Count)
+            {
+                continue;
+            }
+
+            result[runtimeIndex] = new ItemSlotData
             {
                 itemId = itemId,
                 count = 1,
