@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(开始剧情按钮))]
-public sealed class 开始剧情按钮编辑器 : Editor
+[CustomEditor(typeof(播放剧情按钮))]
+public sealed class 播放剧情按钮编辑器 : Editor
 {
     private SerializedProperty 剧情ID属性;
 
@@ -31,7 +31,7 @@ public sealed class 开始剧情按钮编辑器 : Editor
         }
 
         EditorGUILayout.HelpBox(
-            "把 Button 的 On Click 绑定到“开始剧情按钮 -> 开始新游戏并播放剧情”。",
+            "把 Button 的 On Click 绑定到“播放剧情按钮 -> 播放选择的剧情”。",
             MessageType.Info);
 
         serializedObject.ApplyModifiedProperties();

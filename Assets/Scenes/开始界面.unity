@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 108569046}
   - component: {fileID: 108569045}
   - component: {fileID: 108569044}
+  - component: {fileID: 108569048}
   m_Layer: 5
   m_Name: "\u5F00\u59CB\u6309\u94AE"
   m_TagString: Untagged
@@ -264,6 +265,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   "\u5267\u60C5ID": "\u51FA\u751F\u5267\u60C5"
+--- !u!114 &108569048
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 108569042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a391ba3631d84d7bad12427826badab0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &108569045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -308,9 +321,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 108569048}
+        m_TargetAssemblyTypeName: "\u5F00\u59CB\u65B0\u6E38\u620F\u6309\u94AE, Assembly-CSharp"
+        m_MethodName: "\u91CD\u7F6E\u4E3A\u65B0\u6E38\u620F"
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 108569044}
-        m_TargetAssemblyTypeName: "\u5F00\u59CB\u5267\u60C5\u6309\u94AE, Assembly-CSharp"
-        m_MethodName: "\u5F00\u59CB\u65B0\u6E38\u620F\u5E76\u64AD\u653E\u5267\u60C5"
+        m_TargetAssemblyTypeName: "\u64AD\u653E\u5267\u60C5\u6309\u94AE, Assembly-CSharp"
+        m_MethodName: "\u64AD\u653E\u9009\u62E9\u7684\u5267\u60C5"
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
