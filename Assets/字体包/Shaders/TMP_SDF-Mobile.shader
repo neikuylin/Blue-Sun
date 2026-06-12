@@ -161,7 +161,6 @@ SubShader {
 			fixed4 outlineColor = _OutlineColor;
 			outlineColor.a *= opacity;
 			outlineColor.rgb *= outlineColor.a;
-			outlineColor = lerp(faceColor, outlineColor, sqrt(min(1.0, (outline * 2))));
 
 			#if (UNDERLAY_ON | UNDERLAY_INNER)
 			layerScale /= 1 + ((_UnderlaySoftness * _ScaleRatioC) * layerScale);

@@ -60,11 +60,11 @@ public static class ProjectFontSwitcher
             SerifOutlinePath);
     }
 
-    [MenuItem("工具/字体/重建描边字体 _F12")]
+    [MenuItem("工具/字体/重建描边字体")]
     public static void RebuildOutlineFonts()
     {
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        string characters = CollectProjectCharacters();
+        string characters = CollectExistingOutlineCharacters();
         RebuildOutlineFont(
             SansSourcePath,
             SansOutlinePath,
@@ -78,6 +78,44 @@ public static class ProjectFontSwitcher
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         AssetDatabase.SaveAssets();
         Debug.Log("黑体和宋体描边字体已重建，并启用 Outline 功能。");
+    }
+
+    private static string CollectExistingOutlineCharacters()
+    {
+        HashSet<uint> unicodes = new HashSet<uint>();
+        CollectFontCharacters(SansOutlinePath, unicodes);
+        CollectFontCharacters(SerifOutlinePath, unicodes);
+
+        StringBuilder characters = new StringBuilder(unicodes.Count);
+        List<uint> ordered = new List<uint>(unicodes);
+        ordered.Sort();
+        foreach (uint unicode in ordered)
+        {
+            if (unicode <= char.MaxValue &&
+                !char.IsSurrogate((char)unicode))
+            {
+                characters.Append((char)unicode);
+            }
+        }
+
+        return characters.ToString();
+    }
+
+    private static void CollectFontCharacters(
+        string assetPath,
+        HashSet<uint> unicodes)
+    {
+        TMP_FontAsset fontAsset =
+            AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
+        if (fontAsset == null)
+        {
+            return;
+        }
+
+        foreach (TMP_Character character in fontAsset.characterTable)
+        {
+            unicodes.Add(character.unicode);
+        }
     }
 
     private static void SwitchFont(
