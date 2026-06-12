@@ -600,11 +600,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 207840770}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a1b2c3d4e5f6478899aabbccddeeff01, type: 3}
+  m_Script: {fileID: 11500000, guid: c7a86d15e4f24c49a75ad863cb395a11, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: "Assembly-CSharp::\u573A\u666F\u5207\u6362\u5668"
-  targetSceneName: "\u8425\u5730"
-  targetScene: {fileID: 102900000, guid: b65746176307a544d907ac970fab6eca, type: 3}
+  m_EditorClassIdentifier: "Assembly-CSharp::\u79BB\u5F00\u526F\u672C\u6309\u94AE"
+  "\u76EE\u6807\u573A\u666F\u540D": "\u8425\u5730"
+  "\u76EE\u6807\u573A\u666F": {fileID: 102900000, guid: b65746176307a544d907ac970fab6eca, type: 3}
 --- !u!114 &207840775
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -650,8 +650,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 207840774}
-        m_TargetAssemblyTypeName: "\u573A\u666F\u5207\u6362\u5668, Assembly-CSharp"
-        m_MethodName: "\u5207\u6362\u573A\u666F"
+        m_TargetAssemblyTypeName: "\u79BB\u5F00\u526F\u672C\u6309\u94AE, Assembly-CSharp"
+        m_MethodName: "\u79BB\u5F00\u526F\u672C"
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
