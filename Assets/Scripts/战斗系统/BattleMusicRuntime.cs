@@ -129,6 +129,7 @@ public sealed class BattleMusicRuntime : MonoBehaviour
         }
 
         source.playOnAwake = false;
+        source.priority = 200;
         source.spatialBlend = 0f;
         source.loop = true;
     }
