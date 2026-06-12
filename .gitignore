@@ -115,20 +115,6 @@ InitTestScene*.unity*
 .MemoryCaptures/
 Recordings/
 .vs/
-Assets/字体包/**/*.ttf
-Assets/字体包/**/*.ttf.meta
-Assets/字体包/**/*.otf
-Assets/字体包/**/*.otf.meta
-Assets/字体包/**/*.woff
-Assets/字体包/**/*.woff.meta
-Assets/字体包/**/*.woff2
-Assets/字体包/**/*.woff2.meta
-Assets/字体包/**/*.eot
-Assets/字体包/**/*.eot.meta
-
-# Track the single official Source Han Sans font used by this project.
-!Assets/字体包/思源黑体/
-!Assets/字体包/思源黑体/**
 
 # Unity 6 auto-created setting not used by this project.
 /ProjectSettings/MultiplayerManager.asset
