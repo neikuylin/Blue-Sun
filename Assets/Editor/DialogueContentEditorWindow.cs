@@ -330,6 +330,11 @@ public sealed class DialogueContentEditorWindow : EditorWindow
             options.AddRange(values);
         }
 
+        if (!string.IsNullOrWhiteSpace(currentValue) && !options.Contains(currentValue))
+        {
+            options.Add(currentValue);
+        }
+
         int currentIndex = 0;
         for (int i = 0; i < options.Count; i++)
         {
