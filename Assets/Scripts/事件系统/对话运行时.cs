@@ -707,6 +707,7 @@ public sealed class 对话运行时 : MonoBehaviour
         对话语音播放器.loop = false;
         对话语音播放器.priority = 0;
         对话语音播放器.spatialBlend = 0f;
+        AudioRouting.ApplyVoice(对话语音播放器);
     }
 
     private void PlayDialogueVoice(DialogueContentDatabase.DialogueContentEntry contentEntry)

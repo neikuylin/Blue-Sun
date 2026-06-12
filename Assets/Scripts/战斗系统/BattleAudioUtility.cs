@@ -136,6 +136,7 @@ public static class BattleAudioUtility
                     continue;
                 }
 
+                AudioRouting.ApplySkill(source);
                 source.volume *= Mathf.Clamp01(volume);
                 if (!source.isPlaying)
                 {
@@ -188,6 +189,7 @@ public static class BattleAudioUtility
                     continue;
                 }
 
+                AudioRouting.ApplySkill(source);
                 source.volume *= Mathf.Clamp01(volume);
                 if (!source.isPlaying)
                 {
@@ -242,6 +244,7 @@ public static class BattleAudioUtility
         source.volume = Mathf.Clamp01(volume);
         source.spatialBlend = 1f;
         source.playOnAwake = false;
+        AudioRouting.ApplySkill(source);
 
         PrepareRuntimeSoundInstance(instance);
         source.Play();

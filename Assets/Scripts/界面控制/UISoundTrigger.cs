@@ -62,6 +62,7 @@ public sealed class UISoundTrigger : MonoBehaviour, IPointerClickHandler, ISubmi
             fallbackAudioSource.playOnAwake = false;
             fallbackAudioSource.spatialBlend = 0f;
             fallbackAudioSource.loop = false;
+            AudioRouting.ApplyUi(fallbackAudioSource);
         }
 
         return fallbackAudioSource;

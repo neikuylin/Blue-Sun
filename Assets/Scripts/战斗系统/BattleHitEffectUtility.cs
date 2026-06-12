@@ -144,6 +144,12 @@ internal static class BattleHitEffectUtility
             return false;
         }
 
+        AudioSource[] audioSources = instance.GetComponentsInChildren<AudioSource>(true);
+        for (int i = 0; i < audioSources.Length; i++)
+        {
+            AudioRouting.ApplySkill(audioSources[i]);
+        }
+
         ApplyMountedEffectScaleCompensation(instance.transform, mountPoint);
         instance.transform.localPosition = Vector3.zero;
         if (battleCamera != null)

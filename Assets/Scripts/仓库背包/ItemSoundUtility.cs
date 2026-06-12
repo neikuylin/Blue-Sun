@@ -69,6 +69,7 @@ public static class ItemSoundUtility
         fallbackAudioSource.playOnAwake = false;
         fallbackAudioSource.spatialBlend = 0f;
         fallbackAudioSource.loop = false;
+        AudioRouting.ApplyUi(fallbackAudioSource);
         return fallbackAudioSource;
     }
 }

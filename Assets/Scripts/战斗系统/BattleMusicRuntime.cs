@@ -31,7 +31,7 @@ public sealed class BattleMusicRuntime : MonoBehaviour
 
         EnsureInstance().Play(
             nextClip,
-            Mathf.Clamp01(settings.volume),
+            Mathf.Clamp01(settings.volume) * AudioRouting.GetBgmScale(),
             Mathf.Max(0f, settings.fadeInSeconds),
             Mathf.Max(0f, settings.fadeOutSeconds));
     }
@@ -132,6 +132,7 @@ public sealed class BattleMusicRuntime : MonoBehaviour
         source.priority = 200;
         source.spatialBlend = 0f;
         source.loop = true;
+        AudioRouting.ApplyBgm(source);
     }
 
     private void Play(AudioClip nextClip, float targetVolume, float fadeInSeconds, float fadeOutSeconds)
