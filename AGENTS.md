@@ -42,3 +42,15 @@
 3. 检查、阅读、定位可以直接做。
 4. 需要改代码、资源或配置前，先说明作业逻辑，等用户同意。
 5. 再进行代码、资源或配置修改。
+
+## TMP 字体渲染已知问题
+
+### Unity 6.4 下 SDF 字体底部发虚
+
+- 表现：TextMeshPro 的 SDF 字体会在字形下方出现灰色软化或阴影，放大文字后相对减弱。即使 `Face Dilate`、`Outline Softness`、`Underlay` 均为零或关闭，问题仍然存在。
+- 影响范围：使用项目内 `Assets/字体包/Shaders/TMP_SDF-Mobile.shader` 的 SDF 字体。位图字体不受影响。
+- 已排除：字体源文件损坏、Atlas 图集烘焙错误、字体采样模式、采样点大小、Padding、Perspective Filter、MipMap、纹理压缩、Outline 和 Underlay 配置。
+- 验证结果：`SDFAA`、`SDF8`、`SDF16`、`SDF32` 模糊程度基本相同；导出的 Atlas Alpha 距离场正常且对称；改用屏幕导数计算后文字显示干净。
+- 根因：原 TMP Mobile SDF Shader 在顶点阶段通过投影矩阵、屏幕尺寸和 `TEXCOORD1.y` 估算 SDF 屏幕缩放。在当前 Unity 6.4 的 UI/Canvas 缩放链路下，该估算产生误差，导致距离场边缘被错误扩宽。
+- 正式修复：`Assets/字体包/Shaders/TMP_SDF-Mobile.shader` 已改为在像素阶段使用 `fwidth` 屏幕导数计算距离场缩放，并保留 Face、Outline 和 Underlay 功能。
+- 后续约束：不要通过继续提高采样尺寸、增加 Padding、重新下载字体、开启 Underlay 或调整 Face 参数来掩盖此问题。若更新或重新导入 TMP Essential Resources，必须检查该 Shader 是否被覆盖，并重新验证中文 SDF 字体与描边效果。

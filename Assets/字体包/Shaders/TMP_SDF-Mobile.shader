@@ -197,23 +197,42 @@ SubShader {
 		{
 			UNITY_SETUP_INSTANCE_ID(input);
 
-			half d = tex2D(_MainTex, input.texcoord0.xy).a * input.param.x;
-			half4 c = input.faceColor * saturate(d - input.param.w);
+			float atlasDistance = tex2D(_MainTex, input.texcoord0.xy).a;
+			float oldScale = max(abs(input.param.x), 0.0001);
+			float weight = 0.5 - (input.param.w + 0.5) / oldScale;
+			float outlineRatio = (input.param.z - input.param.w) / oldScale;
+
+			// Screen-space derivatives remain correct when Canvas scaling differs
+			// from the projection estimate used by the original TMP mobile shader.
+			float scale = rcp(max(fwidth(atlasDistance), 0.0001));
+			scale /= 1 + (_OutlineSoftness * _ScaleRatioA * scale);
+			float bias = (0.5 - weight) * scale - 0.5;
+			float outline = outlineRatio * scale;
+			float d = atlasDistance * scale;
+			half4 c = input.faceColor * saturate(d - bias);
 
 			#ifdef OUTLINE_ON
-			c = lerp(input.outlineColor, input.faceColor, saturate(d - input.param.z));
-			c *= saturate(d - input.param.y);
+			c = lerp(input.outlineColor, input.faceColor, saturate(d - bias - outline));
+			c *= saturate(d - bias + outline);
 			#endif
 
 			#if UNDERLAY_ON
-			d = tex2D(_MainTex, input.texcoord1.xy).a * input.underlayParam.x;
-			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * saturate(d - input.underlayParam.y) * (1 - c.a);
+			float underlayDistance = tex2D(_MainTex, input.texcoord1.xy).a;
+			float layerScale = rcp(max(fwidth(underlayDistance), 0.0001));
+			layerScale /= 1 + ((_UnderlaySoftness * _ScaleRatioC) * layerScale);
+			float layerBias = (.5 - weight) * layerScale - .5 - ((_UnderlayDilate * _ScaleRatioC) * .5 * layerScale);
+			d = underlayDistance * layerScale;
+			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * saturate(d - layerBias) * (1 - c.a);
 			#endif
 
 			#if UNDERLAY_INNER
-			half sd = saturate(d - input.param.z);
-			d = tex2D(_MainTex, input.texcoord1.xy).a * input.underlayParam.x;
-			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * (1 - saturate(d - input.underlayParam.y)) * sd * (1 - c.a);
+			half sd = saturate(d - bias - outline);
+			float underlayDistance = tex2D(_MainTex, input.texcoord1.xy).a;
+			float layerScale = rcp(max(fwidth(underlayDistance), 0.0001));
+			layerScale /= 1 + ((_UnderlaySoftness * _ScaleRatioC) * layerScale);
+			float layerBias = (.5 - weight) * layerScale - .5 - ((_UnderlayDilate * _ScaleRatioC) * .5 * layerScale);
+			d = underlayDistance * layerScale;
+			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * (1 - saturate(d - layerBias)) * sd * (1 - c.a);
 			#endif
 
 			// Alternative implementation to UnityGet2DClipping with support for softness.
