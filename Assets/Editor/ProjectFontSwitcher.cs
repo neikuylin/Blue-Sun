@@ -60,6 +60,26 @@ public static class ProjectFontSwitcher
             SerifOutlinePath);
     }
 
+    [MenuItem("工具/字体/重建描边字体 _F12")]
+    public static void RebuildOutlineFonts()
+    {
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        string characters = CollectProjectCharacters();
+        RebuildOutlineFont(
+            SansSourcePath,
+            SansOutlinePath,
+            "黑体描边",
+            characters);
+        RebuildOutlineFont(
+            SerifSourcePath,
+            SerifOutlinePath,
+            "宋体描边",
+            characters);
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        AssetDatabase.SaveAssets();
+        Debug.Log("黑体和宋体描边字体已重建，并启用 Outline 功能。");
+    }
+
     private static void SwitchFont(
         string targetName,
         string targetNormalPath,
@@ -163,7 +183,8 @@ public static class ProjectFontSwitcher
                 sourceFont,
                 normalPath,
                 familyName + "普通",
-                characters);
+                characters,
+                false);
         }
 
         if (needsOutline)
@@ -172,7 +193,40 @@ public static class ProjectFontSwitcher
                 sourceFont,
                 outlinePath,
                 familyName + "描边",
-                characters);
+                characters,
+                true);
+        }
+    }
+
+    private static void RebuildOutlineFont(
+        string sourcePath,
+        string targetPath,
+        string assetName,
+        string characters)
+    {
+        TMP_FontAsset previous =
+            AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(targetPath);
+        string temporaryPath =
+            FontFolder + "/__" + assetName + "重建.asset";
+        AssetDatabase.DeleteAsset(temporaryPath);
+
+        TMP_FontAsset rebuilt = CreateFontAsset(
+            LoadSourceFont(sourcePath),
+            temporaryPath,
+            assetName,
+            characters,
+            true);
+        if (previous != null)
+        {
+            ReplaceReferences(previous, rebuilt);
+            AssetDatabase.DeleteAsset(targetPath);
+        }
+
+        string error = AssetDatabase.MoveAsset(temporaryPath, targetPath);
+        if (!string.IsNullOrEmpty(error))
+        {
+            throw new InvalidOperationException(
+                $"替换描边字体失败：{targetPath}\n{error}");
         }
     }
 
@@ -201,14 +255,15 @@ public static class ProjectFontSwitcher
         Font sourceFont,
         string assetPath,
         string assetName,
-        string characters)
+        string characters,
+        bool outline)
     {
         FontEngine.InitializeFontEngine();
         TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(
             sourceFont,
             64,
-            2,
-            GlyphRenderMode.SMOOTH_HINTED,
+            outline ? 9 : 2,
+            outline ? GlyphRenderMode.SDFAA : GlyphRenderMode.SMOOTH_HINTED,
             4096,
             4096,
             AtlasPopulationMode.Dynamic,
@@ -237,6 +292,11 @@ public static class ProjectFontSwitcher
         }
 
         fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
+        if (outline)
+        {
+            ConfigureOutlineMaterial(fontAsset.material);
+        }
+
         SerializedObject serialized = new SerializedObject(fontAsset);
         SerializedProperty clearDynamic =
             serialized.FindProperty("m_ClearDynamicDataOnBuild");
@@ -249,6 +309,29 @@ public static class ProjectFontSwitcher
         EditorUtility.SetDirty(fontAsset);
         EditorUtility.SetDirty(fontAsset.material);
         return fontAsset;
+    }
+
+    private static void ConfigureOutlineMaterial(Material material)
+    {
+        Shader shader = Shader.Find("TextMeshPro/Mobile/Distance Field");
+        if (shader == null)
+        {
+            throw new InvalidOperationException(
+                "找不到 TextMeshPro Mobile SDF Shader。");
+        }
+
+        material.shader = shader;
+        material.EnableKeyword(ShaderUtilities.Keyword_Outline);
+        material.DisableKeyword(ShaderUtilities.Keyword_Underlay);
+        material.DisableKeyword("UNDERLAY_INNER");
+        material.SetColor(ShaderUtilities.ID_FaceColor, Color.white);
+        material.SetFloat(ShaderUtilities.ID_FaceDilate, 0f);
+        material.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        material.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.15f);
+        material.SetFloat(ShaderUtilities.ID_OutlineSoftness, 0f);
+        material.SetFloat(ShaderUtilities.ID_WeightNormal, 0f);
+        material.SetFloat(ShaderUtilities.ID_WeightBold, 0.5f);
+        EditorUtility.SetDirty(material);
     }
 
     private static string CollectProjectCharacters()
