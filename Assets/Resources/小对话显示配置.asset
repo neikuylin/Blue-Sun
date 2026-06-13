@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 718d508dba204a538e227cecb8b1467d, type: 3}
   m_Name: 小对话显示配置
   m_EditorClassIdentifier:
-  普通字体: {fileID: 11400000, guid: a4624ede7beeb514e90aa755daf9e55f, type: 2}
+  普通字体: {fileID: 11400000, guid: f00529673dee3be438d4ae27ec882c7f, type: 2}
