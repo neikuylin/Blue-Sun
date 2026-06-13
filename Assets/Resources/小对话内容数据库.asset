@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: "\u5C0F\u5BF9\u8BDD\u5185\u5BB9\u6570\u636E\u5E93"
   m_EditorClassIdentifier: 
   "\u5185\u5BB9\u5217\u8868":
-  - id: "\u51FA\u751F\u5267\u60C50-1"
+  - id: "\u5C0F\u51FA\u751F\u5267\u60C50-1"
     "\u5BF9\u8BDD\u89D2\u8272ID": "\uFF1F\uFF1F\uFF1F"
     "\u663E\u793A\u5F62\u5F0F": 0
     "\u8BF4\u8BDD\u8005\u6587\u672C": "\uFF1F\uFF1F\uFF1F"
     "\u5BF9\u8BDD\u6587\u672C": "\u563F\uFF0C\u5B69\u5B50\uFF0C\u9192\u9192"
     "\u914D\u97F3": {fileID: 8300000, guid: 1cda2cd6c81ad4148ad8ef6c57e293a0, type: 3}
+  - id: "\u5C0F\u51FA\u751F\u5267\u60C51-1"
+    "\u5BF9\u8BDD\u89D2\u8272ID": "\u5E93\u9C81\u65AF"
+    "\u663E\u793A\u5F62\u5F0F": 1
+    "\u8BF4\u8BDD\u8005\u6587\u672C": "\u5E93\u9C81\u65AF"
+    "\u5BF9\u8BDD\u6587\u672C": "\u8BB0\u5F97\u8FD9\u4E9B\u602A\u7269\u4E48\uFF1F"
+    "\u914D\u97F3": {fileID: 8300000, guid: 0bf8f9af9d2701f43b3048ef5bf9be16, type: 3}
