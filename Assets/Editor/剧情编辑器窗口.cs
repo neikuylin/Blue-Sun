@@ -40,6 +40,10 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private 剧情数据库.剧情蓝图节点类型 新蓝图节点类型 = 剧情数据库.剧情蓝图节点类型.播放一句对话;
     private string 选中蓝图节点ID = string.Empty;
     private string 连线来源节点ID = string.Empty;
+    private string 节点ID编辑缓存 = string.Empty;
+    private string 节点ID编辑来源 = string.Empty;
+    private string 节点ID保存提示 = string.Empty;
+    private MessageType 节点ID保存提示类型 = MessageType.None;
 
     [MenuItem("Tools/剧情/剧情编辑器")]
     private static void 打开()
@@ -471,14 +475,35 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             蓝图详情滚动位置 = EditorGUILayout.BeginScrollView(蓝图详情滚动位置);
             SerializedProperty 节点ID属性 = 节点属性.FindPropertyRelative("节点ID");
             SerializedProperty 节点类型属性 = 节点属性.FindPropertyRelative("节点类型");
-            string 旧节点ID = 节点ID属性.stringValue;
-            EditorGUILayout.PropertyField(节点ID属性, new GUIContent("节点ID"));
-            EditorGUILayout.PropertyField(节点类型属性, new GUIContent("节点类型"));
-            if (!string.Equals(旧节点ID, 节点ID属性.stringValue, System.StringComparison.Ordinal))
+            string 当前节点ID = 节点ID属性.stringValue;
+            if (!string.Equals(节点ID编辑来源, 当前节点ID, System.StringComparison.Ordinal))
             {
-                重命名蓝图节点引用(连线列表属性, 旧节点ID, 节点ID属性.stringValue);
-                选中蓝图节点ID = 节点ID属性.stringValue;
+                节点ID编辑来源 = 当前节点ID;
+                节点ID编辑缓存 = 当前节点ID;
+                节点ID保存提示 = string.Empty;
             }
+
+            节点ID编辑缓存 = EditorGUILayout.TextField("节点ID", 节点ID编辑缓存);
+            using (new EditorGUI.DisabledScope(
+                       string.Equals(节点ID编辑缓存, 当前节点ID, System.StringComparison.Ordinal)))
+            {
+                if (GUILayout.Button("保存节点ID", GUILayout.Height(24f)))
+                {
+                    保存蓝图节点ID(
+                        节点列表属性,
+                        连线列表属性,
+                        节点ID属性,
+                        当前节点ID,
+                        节点ID编辑缓存);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(节点ID保存提示))
+            {
+                EditorGUILayout.HelpBox(节点ID保存提示, 节点ID保存提示类型);
+            }
+
+            EditorGUILayout.PropertyField(节点类型属性, new GUIContent("节点类型"));
 
             绘制蓝图节点字段(节点列表属性, 连线列表属性, 节点属性, 节点类型属性);
 
@@ -501,9 +526,55 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             {
                 删除蓝图节点(节点列表属性, 连线列表属性, 选中蓝图节点ID);
                 选中蓝图节点ID = string.Empty;
+                节点ID编辑来源 = string.Empty;
+                节点ID编辑缓存 = string.Empty;
+                节点ID保存提示 = string.Empty;
                 GUIUtility.ExitGUI();
             }
         }
+    }
+
+    private void 保存蓝图节点ID(
+        SerializedProperty 节点列表属性,
+        SerializedProperty 连线列表属性,
+        SerializedProperty 节点ID属性,
+        string 旧节点ID,
+        string 输入节点ID)
+    {
+        string 新节点ID = string.IsNullOrWhiteSpace(输入节点ID) ? string.Empty : 输入节点ID.Trim();
+        if (string.IsNullOrWhiteSpace(新节点ID))
+        {
+            节点ID保存提示 = "节点ID不能为空。";
+            节点ID保存提示类型 = MessageType.Error;
+            return;
+        }
+
+        SerializedProperty 同名节点属性 = 查找蓝图节点属性(节点列表属性, 新节点ID);
+        if (同名节点属性 != null &&
+            !string.Equals(旧节点ID, 新节点ID, System.StringComparison.Ordinal))
+        {
+            节点ID保存提示 = $"节点ID“{新节点ID}”已存在，请使用其他ID。";
+            节点ID保存提示类型 = MessageType.Error;
+            return;
+        }
+
+        Undo.RecordObject(数据库对象.targetObject, "保存剧情蓝图节点ID");
+        节点ID属性.stringValue = 新节点ID;
+        重命名蓝图节点引用(连线列表属性, 旧节点ID, 新节点ID);
+
+        if (string.Equals(连线来源节点ID, 旧节点ID, System.StringComparison.Ordinal))
+        {
+            连线来源节点ID = 新节点ID;
+        }
+
+        选中蓝图节点ID = 新节点ID;
+        节点ID编辑来源 = 新节点ID;
+        节点ID编辑缓存 = 新节点ID;
+        节点ID保存提示 = "节点ID已保存，相关连线引用已同步更新。";
+        节点ID保存提示类型 = MessageType.Info;
+
+        数据库对象.ApplyModifiedProperties();
+        保存数据库((剧情数据库)数据库对象.targetObject);
     }
 
     private void 绘制播放对话字段(SerializedProperty 节点列表属性, SerializedProperty 连线列表属性, SerializedProperty 节点属性)
@@ -675,6 +746,12 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             case 剧情数据库.剧情蓝图节点类型.播放对话组:
                 绘制播放对话字段(节点列表属性, 连线列表属性, 节点属性);
                 break;
+            case 剧情数据库.剧情蓝图节点类型.播放一句小对话:
+                绘制播放一句小对话字段(节点属性);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.播放小对话组:
+                绘制播放小对话组字段(节点属性);
+                break;
             case 剧情数据库.剧情蓝图节点类型.设置事件:
                 绘制设置事件字段(节点属性);
                 break;
@@ -711,6 +788,24 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         if (对话内容ID属性 != null)
         {
             绘制ID选择或输入(对话内容ID属性, "对话内容ID", 读取对话内容ID列表());
+        }
+    }
+
+    private void 绘制播放一句小对话字段(SerializedProperty 节点属性)
+    {
+        SerializedProperty 小对话内容ID属性 = 节点属性.FindPropertyRelative("小对话内容ID");
+        if (小对话内容ID属性 != null)
+        {
+            绘制ID选择或输入(小对话内容ID属性, "小对话内容ID", 读取小对话内容ID列表());
+        }
+    }
+
+    private void 绘制播放小对话组字段(SerializedProperty 节点属性)
+    {
+        SerializedProperty 小对话组ID属性 = 节点属性.FindPropertyRelative("小对话组ID");
+        if (小对话组ID属性 != null)
+        {
+            绘制ID选择或输入(小对话组ID属性, "小对话组ID", 读取小对话组ID列表());
         }
     }
 
@@ -776,6 +871,8 @@ public sealed class 剧情编辑器窗口 : EditorWindow
 
         设置字符串值(节点属性.FindPropertyRelative("对话组ID"), string.Empty);
         设置字符串值(节点属性.FindPropertyRelative("对话内容ID"), string.Empty);
+        设置字符串值(节点属性.FindPropertyRelative("小对话组ID"), string.Empty);
+        设置字符串值(节点属性.FindPropertyRelative("小对话内容ID"), string.Empty);
         设置字符串值(节点属性.FindPropertyRelative("事件ID"), string.Empty);
         设置布尔值(节点属性.FindPropertyRelative("事件状态"), true);
         设置场景目标类型(节点属性.FindPropertyRelative("目标类型"), 剧情数据库.场景目标类型.普通场景);
@@ -1124,6 +1221,48 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         for (int i = 0; i < 数据库.Entries.Count; i++)
         {
             DialogueContentDatabase.DialogueContentEntry 条目 = 数据库.Entries[i];
+            if (条目 != null && !string.IsNullOrWhiteSpace(条目.id))
+            {
+                结果.Add(条目.id);
+            }
+        }
+
+        return 结果;
+    }
+
+    private static List<string> 读取小对话内容ID列表()
+    {
+        小对话内容数据库 数据库 = 小对话内容数据库.加载默认库();
+        List<string> 结果 = new List<string>();
+        if (数据库 == null || 数据库.获取内容列表 == null)
+        {
+            return 结果;
+        }
+
+        for (int i = 0; i < 数据库.获取内容列表.Count; i++)
+        {
+            小对话内容数据库.小对话内容 条目 = 数据库.获取内容列表[i];
+            if (条目 != null && !string.IsNullOrWhiteSpace(条目.id))
+            {
+                结果.Add(条目.id);
+            }
+        }
+
+        return 结果;
+    }
+
+    private static List<string> 读取小对话组ID列表()
+    {
+        小对话组数据库 数据库 = 小对话组数据库.加载默认库();
+        List<string> 结果 = new List<string>();
+        if (数据库 == null || 数据库.获取对话组列表 == null)
+        {
+            return 结果;
+        }
+
+        for (int i = 0; i < 数据库.获取对话组列表.Count; i++)
+        {
+            小对话组数据库.小对话组 条目 = 数据库.获取对话组列表[i];
             if (条目 != null && !string.IsNullOrWhiteSpace(条目.id))
             {
                 结果.Add(条目.id);

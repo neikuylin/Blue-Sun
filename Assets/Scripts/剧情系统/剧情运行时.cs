@@ -294,6 +294,12 @@ public sealed class 剧情运行时 : MonoBehaviour
                     yield return 播放对话组蓝图节点协程(节点);
                 }
                 break;
+            case 剧情数据库.剧情蓝图节点类型.播放一句小对话:
+                yield return 播放单句小对话蓝图节点协程(节点);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.播放小对话组:
+                yield return 播放小对话组蓝图节点协程(节点);
+                break;
             case 剧情数据库.剧情蓝图节点类型.设置事件:
                 设置事件节点(节点);
                 break;
@@ -344,6 +350,36 @@ public sealed class 剧情运行时 : MonoBehaviour
         if (!对话运行时.播放对话内容并等待(节点.对话内容ID, () => 已结束 = true))
         {
             Debug.LogWarning($"剧情运行时：播放对话内容失败：{节点.对话内容ID}");
+            yield break;
+        }
+
+        while (!已结束)
+        {
+            yield return null;
+        }
+    }
+
+    private IEnumerator 播放单句小对话蓝图节点协程(剧情数据库.剧情蓝图节点 节点)
+    {
+        bool 已结束 = false;
+        if (!小对话运行时.播放内容并等待(节点.小对话内容ID, () => 已结束 = true))
+        {
+            Debug.LogWarning($"剧情运行时：播放小对话内容失败：{节点.小对话内容ID}");
+            yield break;
+        }
+
+        while (!已结束)
+        {
+            yield return null;
+        }
+    }
+
+    private IEnumerator 播放小对话组蓝图节点协程(剧情数据库.剧情蓝图节点 节点)
+    {
+        bool 已结束 = false;
+        if (!小对话运行时.播放对话组并等待(节点.小对话组ID, () => 已结束 = true))
+        {
+            Debug.LogWarning($"剧情运行时：播放小对话组失败：{节点.小对话组ID}");
             yield break;
         }
 
@@ -501,7 +537,7 @@ public sealed class 剧情运行时 : MonoBehaviour
         DontDestroyOnLoad(画布物体);
         Canvas 画布 = 画布物体.GetComponent<Canvas>();
         画布.renderMode = RenderMode.ScreenSpaceOverlay;
-        画布.sortingOrder = 32767;
+        画布.sortingOrder = 29000;
 
         GameObject 黑幕物体 = new GameObject("剧情黑幕", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(CanvasGroup));
         黑幕物体.transform.SetParent(画布物体.transform, false);

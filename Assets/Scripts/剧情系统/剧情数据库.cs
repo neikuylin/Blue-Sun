@@ -25,7 +25,9 @@ public sealed class 剧情数据库 : ScriptableObject
         黑幕淡出,
         角色播放动画,
         等待,
-        汇合
+        汇合,
+        播放一句小对话,
+        播放小对话组
     }
 
     [Serializable]
@@ -36,6 +38,8 @@ public sealed class 剧情数据库 : ScriptableObject
         public Vector2 位置 = Vector2.zero;
         public string 对话组ID = string.Empty;
         public string 对话内容ID = string.Empty;
+        public string 小对话组ID = string.Empty;
+        public string 小对话内容ID = string.Empty;
         public string 事件ID = string.Empty;
         public bool 事件状态 = true;
         public 场景目标类型 目标类型 = 场景目标类型.普通场景;
