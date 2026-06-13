@@ -72,7 +72,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         数据库对象.Update();
 
         EditorGUILayout.LabelField("剧情编辑器", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("当前编辑剧情蓝图节点数据：播放对话、设置事件、切换场景、添加物品到装备栏、黑幕淡入淡出、角色播放动画。这里不会直接执行剧情。", MessageType.Info);
+        EditorGUILayout.HelpBox("当前编辑剧情蓝图节点数据：播放对话、设置事件、切换场景、添加物品到装备栏、黑幕淡入淡出、角色播放动画、播放已配置动作。这里不会直接执行剧情。", MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -770,6 +770,9 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             case 剧情数据库.剧情蓝图节点类型.角色播放动画:
                 绘制角色播放动画字段(节点属性);
                 break;
+            case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
+                绘制播放已配置动作字段(节点属性);
+                break;
             case 剧情数据库.剧情蓝图节点类型.等待:
                 绘制等待字段(节点属性);
                 break;
@@ -789,6 +792,45 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         {
             绘制ID选择或输入(对话内容ID属性, "对话内容ID", 读取对话内容ID列表());
         }
+    }
+
+    private void 绘制播放已配置动作字段(SerializedProperty 节点属性)
+    {
+        SerializedProperty 角色ID属性 = 节点属性.FindPropertyRelative("角色ID");
+        SerializedProperty 动作来源属性 = 节点属性.FindPropertyRelative("动作来源");
+        SerializedProperty 技能ID属性 = 节点属性.FindPropertyRelative("技能ID");
+        SerializedProperty 全局动作属性 = 节点属性.FindPropertyRelative("全局动作");
+
+        if (角色ID属性 != null)
+        {
+            绘制ID选择或输入(角色ID属性, "角色ID", 读取战斗角色ID列表());
+        }
+
+        if (动作来源属性 == null)
+        {
+            return;
+        }
+
+        EditorGUILayout.PropertyField(动作来源属性, new GUIContent("动作来源"));
+        剧情数据库.已配置动作来源 动作来源 =
+            (剧情数据库.已配置动作来源)动作来源属性.enumValueIndex;
+        if (动作来源 == 剧情数据库.已配置动作来源.技能动作栏)
+        {
+            if (技能ID属性 != null)
+            {
+                绘制ID选择或输入(技能ID属性, "技能ID", 读取技能ID列表());
+            }
+
+            EditorGUILayout.HelpBox("读取 Tools/技能/技能动作栏中该技能按角色当前武器配置的动画、音效、延迟帧和位移补偿。", MessageType.None);
+            return;
+        }
+
+        if (全局动作属性 != null)
+        {
+            EditorGUILayout.PropertyField(全局动作属性, new GUIContent("全局动作"));
+        }
+
+        EditorGUILayout.HelpBox("读取 Tools/技能/全局动作中按角色当前武器配置的动画、音效和位移补偿。", MessageType.None);
     }
 
     private void 绘制播放一句小对话字段(SerializedProperty 节点属性)
@@ -886,6 +928,19 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         设置浮点值(节点属性.FindPropertyRelative("目标不透明度"), 节点类型 == 剧情数据库.剧情蓝图节点类型.黑幕淡入 ? 1f : 0f);
         设置对象值(节点属性.FindPropertyRelative("动作控制器"), null);
         设置字符串值(节点属性.FindPropertyRelative("动画状态名"), string.Empty);
+        SerializedProperty 动作来源属性 = 节点属性.FindPropertyRelative("动作来源");
+        if (动作来源属性 != null)
+        {
+            动作来源属性.enumValueIndex = (int)剧情数据库.已配置动作来源.技能动作栏;
+        }
+
+        设置字符串值(节点属性.FindPropertyRelative("技能ID"), string.Empty);
+        SerializedProperty 全局动作属性 = 节点属性.FindPropertyRelative("全局动作");
+        if (全局动作属性 != null)
+        {
+            全局动作属性.enumValueIndex = (int)剧情数据库.全局动作类型.待机;
+        }
+
         设置字符串值(节点属性.FindPropertyRelative("节点备注"), string.Empty);
     }
 
@@ -1308,6 +1363,27 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             if (条目 != null && !string.IsNullOrWhiteSpace(条目.characterId))
             {
                 结果.Add(条目.characterId);
+            }
+        }
+
+        return 结果;
+    }
+
+    private static List<string> 读取技能ID列表()
+    {
+        BattleSkillDatabase 数据库 = BattleSkillDatabase.LoadDefault();
+        List<string> 结果 = new List<string>();
+        if (数据库 == null || 数据库.Entries == null)
+        {
+            return 结果;
+        }
+
+        for (int i = 0; i < 数据库.Entries.Count; i++)
+        {
+            BattleSkillDatabase.SkillEntry 条目 = 数据库.Entries[i];
+            if (条目 != null && !string.IsNullOrWhiteSpace(条目.skillId))
+            {
+                结果.Add(条目.skillId);
             }
         }
 

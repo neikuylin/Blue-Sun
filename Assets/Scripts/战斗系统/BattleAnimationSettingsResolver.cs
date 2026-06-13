@@ -8,6 +8,21 @@ public static class BattleAnimationSettingsResolver
         return ResolveStateName(characterId, settings => settings.idleOverrides);
     }
 
+    public static AudioClip ResolveIdleSound(string characterId)
+    {
+        return ResolveSound(characterId, settings => settings.idleOverrides);
+    }
+
+    public static GameObject ResolveIdleSoundPrefab(string characterId)
+    {
+        return ResolveSoundPrefab(characterId, settings => settings.idleOverrides);
+    }
+
+    public static bool ResolveIdleCompensateMotion(string characterId)
+    {
+        return ResolveCompensateMotion(characterId, settings => settings.idleOverrides);
+    }
+
     public static string ResolveEnterBattleStateName(string characterId)
     {
         return ResolveStateName(characterId, settings => settings.enterBattleOverrides);

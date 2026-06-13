@@ -256,6 +256,132 @@ public sealed class 剧情运行时 : MonoBehaviour
         单位.PlayAnimationState(节点.动画状态名.Trim());
     }
 
+    private IEnumerator 播放已配置动作节点协程(剧情数据库.剧情蓝图节点 节点)
+    {
+        if (string.IsNullOrWhiteSpace(节点.角色ID))
+        {
+            Debug.LogError("剧情运行时：播放已配置动作节点缺少角色ID。");
+            yield break;
+        }
+
+        BattleUnit 单位 = 查找战斗单位(节点.角色ID.Trim());
+        if (单位 == null)
+        {
+            Debug.LogError($"剧情运行时：找不到角色“{节点.角色ID}”对应的战斗单位。");
+            yield break;
+        }
+
+        string 动画状态名;
+        AudioClip 音效;
+        GameObject 音效预制体;
+        bool 位移补偿;
+        int 音效延迟帧 = 0;
+
+        if (节点.动作来源 == 剧情数据库.已配置动作来源.技能动作栏)
+        {
+            if (string.IsNullOrWhiteSpace(节点.技能ID))
+            {
+                Debug.LogError("剧情运行时：播放已配置动作节点缺少技能ID。");
+                yield break;
+            }
+
+            BattleSkillDatabase 技能数据库 = BattleSkillDatabase.LoadDefault();
+            BattleSkillDatabase.SkillEntry 技能 =
+                技能数据库 != null ? 技能数据库.FindEntry(节点.技能ID.Trim()) : null;
+            if (技能 == null)
+            {
+                Debug.LogError($"剧情运行时：找不到技能“{节点.技能ID}”。");
+                yield break;
+            }
+
+            战斗技能动作解析服务 解析服务 = new 战斗技能动作解析服务();
+            动画状态名 = 解析服务.解析动作状态名(技能, 单位);
+            音效 = 解析服务.解析动作音效(技能, 单位);
+            音效预制体 = 解析服务.解析动作音效预制体(技能, 单位);
+            位移补偿 = 解析服务.解析动作位移补偿(技能, 单位);
+            音效延迟帧 = 解析服务.解析音效延迟帧(技能, 单位);
+        }
+        else
+        {
+            解析全局动作(
+                节点.全局动作,
+                单位.characterId,
+                out 动画状态名,
+                out 音效,
+                out 音效预制体,
+                out 位移补偿);
+        }
+
+        if (string.IsNullOrWhiteSpace(动画状态名))
+        {
+            Debug.LogError($"剧情运行时：角色“{节点.角色ID}”的已配置动作没有可用动画。");
+            yield break;
+        }
+
+        单位.PlayAnimationState(动画状态名, 位移补偿);
+        if (音效延迟帧 > 0)
+        {
+            yield return new WaitForSeconds(音效延迟帧 / 60f);
+        }
+
+        BattleAudioUtility.PlayOnce(音效, 音效预制体, 单位, Camera.main);
+    }
+
+    private static void 解析全局动作(
+        剧情数据库.全局动作类型 动作类型,
+        string 角色ID,
+        out string 动画状态名,
+        out AudioClip 音效,
+        out GameObject 音效预制体,
+        out bool 位移补偿)
+    {
+        switch (动作类型)
+        {
+            case 剧情数据库.全局动作类型.进战:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveEnterBattleStateName(角色ID);
+                音效 = BattleAnimationSettingsResolver.ResolveEnterBattleSound(角色ID);
+                音效预制体 = BattleAnimationSettingsResolver.ResolveEnterBattleSoundPrefab(角色ID);
+                位移补偿 = BattleAnimationSettingsResolver.ResolveEnterBattleCompensateMotion(角色ID);
+                return;
+            case 剧情数据库.全局动作类型.退战:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveExitBattleStateName(角色ID);
+                音效 = BattleAnimationSettingsResolver.ResolveExitBattleSound(角色ID);
+                音效预制体 = BattleAnimationSettingsResolver.ResolveExitBattleSoundPrefab(角色ID);
+                位移补偿 = BattleAnimationSettingsResolver.ResolveExitBattleCompensateMotion(角色ID);
+                return;
+            case 剧情数据库.全局动作类型.受击:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveHitReactionStateName(角色ID);
+                音效 = BattleAnimationSettingsResolver.ResolveHitReactionSound(角色ID);
+                音效预制体 = BattleAnimationSettingsResolver.ResolveHitReactionSoundPrefab(角色ID);
+                位移补偿 = BattleAnimationSettingsResolver.ResolveHitReactionCompensateMotion(角色ID);
+                return;
+            case 剧情数据库.全局动作类型.闪避:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveDodgeStateName(角色ID);
+                音效 = BattleAnimationSettingsResolver.ResolveDodgeSound(角色ID);
+                音效预制体 = BattleAnimationSettingsResolver.ResolveDodgeSoundPrefab(角色ID);
+                位移补偿 = BattleAnimationSettingsResolver.ResolveDodgeCompensateMotion(角色ID);
+                return;
+            case 剧情数据库.全局动作类型.探索待机:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveExplorationIdleStateName();
+                音效 = BattleAnimationSettingsResolver.ResolveExplorationIdleSound();
+                音效预制体 = BattleAnimationSettingsResolver.ResolveExplorationIdleSoundPrefab();
+                位移补偿 = BattleAnimationSettingsResolver.ResolveExplorationIdleCompensateMotion();
+                return;
+            case 剧情数据库.全局动作类型.探索移动:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveExplorationMoveStateName();
+                音效 = BattleAnimationSettingsResolver.ResolveExplorationMoveSound();
+                音效预制体 = BattleAnimationSettingsResolver.ResolveExplorationMoveSoundPrefab();
+                位移补偿 = BattleAnimationSettingsResolver.ResolveExplorationMoveCompensateMotion();
+                return;
+            default:
+                动画状态名 = BattleAnimationSettingsResolver.ResolveIdleStateName(角色ID);
+                音效 = BattleAnimationSettingsResolver.ResolveIdleSound(角色ID);
+                音效预制体 = BattleAnimationSettingsResolver.ResolveIdleSoundPrefab(角色ID);
+                位移补偿 = BattleAnimationSettingsResolver.ResolveIdleCompensateMotion(角色ID);
+                return;
+        }
+    }
+
     private void 结束剧情()
     {
         当前剧情 = null;
@@ -317,6 +443,9 @@ public sealed class 剧情运行时 : MonoBehaviour
                 break;
             case 剧情数据库.剧情蓝图节点类型.角色播放动画:
                 角色播放动画节点(节点);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
+                yield return 播放已配置动作节点协程(节点);
                 break;
             case 剧情数据库.剧情蓝图节点类型.等待:
                 yield return new WaitForSecondsRealtime(Mathf.Max(0f, 节点.持续时间));

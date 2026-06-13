@@ -27,7 +27,25 @@ public sealed class 剧情数据库 : ScriptableObject
         等待,
         汇合,
         播放一句小对话,
-        播放小对话组
+        播放小对话组,
+        播放已配置动作
+    }
+
+    public enum 已配置动作来源
+    {
+        技能动作栏,
+        全局动作
+    }
+
+    public enum 全局动作类型
+    {
+        待机,
+        进战,
+        退战,
+        受击,
+        闪避,
+        探索待机,
+        探索移动
     }
 
     [Serializable]
@@ -53,6 +71,9 @@ public sealed class 剧情数据库 : ScriptableObject
         public float 目标不透明度 = 1f;
         public RuntimeAnimatorController 动作控制器;
         public string 动画状态名 = string.Empty;
+        public 已配置动作来源 动作来源 = 已配置动作来源.技能动作栏;
+        public string 技能ID = string.Empty;
+        public 全局动作类型 全局动作 = 全局动作类型.待机;
         [TextArea(2, 5)] public string 节点备注 = string.Empty;
     }
 
