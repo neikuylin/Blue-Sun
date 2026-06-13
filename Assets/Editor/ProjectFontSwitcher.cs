@@ -60,62 +60,48 @@ public static class ProjectFontSwitcher
             SerifOutlinePath);
     }
 
-    [MenuItem("工具/字体/重建描边字体")]
-    public static void RebuildOutlineFonts()
+    [MenuItem("工具/创建字体/烘培普通")]
+    public static void BakeNormalFonts()
     {
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        string characters = CollectExistingOutlineCharacters();
-        RebuildOutlineFont(
+        string characters = CollectProjectCharacters();
+        RebuildFont(
+            SansSourcePath,
+            SansNormalPath,
+            "黑体普通",
+            characters,
+            false);
+        RebuildFont(
+            SerifSourcePath,
+            SerifNormalPath,
+            "宋体普通",
+            characters,
+            false);
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        AssetDatabase.SaveAssets();
+        Debug.Log("黑体和宋体普通字体已按当前项目字符完成烘培。");
+    }
+
+    [MenuItem("工具/创建字体/烘培描边")]
+    public static void BakeOutlineFonts()
+    {
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        string characters = CollectProjectCharacters();
+        RebuildFont(
             SansSourcePath,
             SansOutlinePath,
             "黑体描边",
-            characters);
-        RebuildOutlineFont(
+            characters,
+            true);
+        RebuildFont(
             SerifSourcePath,
             SerifOutlinePath,
             "宋体描边",
-            characters);
+            characters,
+            true);
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         AssetDatabase.SaveAssets();
-        Debug.Log("黑体和宋体描边字体已重建，并启用 Outline 功能。");
-    }
-
-    private static string CollectExistingOutlineCharacters()
-    {
-        HashSet<uint> unicodes = new HashSet<uint>();
-        CollectFontCharacters(SansOutlinePath, unicodes);
-        CollectFontCharacters(SerifOutlinePath, unicodes);
-
-        StringBuilder characters = new StringBuilder(unicodes.Count);
-        List<uint> ordered = new List<uint>(unicodes);
-        ordered.Sort();
-        foreach (uint unicode in ordered)
-        {
-            if (unicode <= char.MaxValue &&
-                !char.IsSurrogate((char)unicode))
-            {
-                characters.Append((char)unicode);
-            }
-        }
-
-        return characters.ToString();
-    }
-
-    private static void CollectFontCharacters(
-        string assetPath,
-        HashSet<uint> unicodes)
-    {
-        TMP_FontAsset fontAsset =
-            AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
-        if (fontAsset == null)
-        {
-            return;
-        }
-
-        foreach (TMP_Character character in fontAsset.characterTable)
-        {
-            unicodes.Add(character.unicode);
-        }
+        Debug.Log("黑体和宋体描边字体已按当前项目字符完成烘培，并启用 Outline 功能。");
     }
 
     private static void SwitchFont(
@@ -236,11 +222,12 @@ public static class ProjectFontSwitcher
         }
     }
 
-    private static void RebuildOutlineFont(
+    private static void RebuildFont(
         string sourcePath,
         string targetPath,
         string assetName,
-        string characters)
+        string characters,
+        bool outline)
     {
         TMP_FontAsset previous =
             AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(targetPath);
@@ -253,7 +240,7 @@ public static class ProjectFontSwitcher
             temporaryPath,
             assetName,
             characters,
-            true);
+            outline);
         if (previous != null)
         {
             ReplaceReferences(previous, rebuilt);
@@ -264,7 +251,7 @@ public static class ProjectFontSwitcher
         if (!string.IsNullOrEmpty(error))
         {
             throw new InvalidOperationException(
-                $"替换描边字体失败：{targetPath}\n{error}");
+                $"替换字体失败：{targetPath}\n{error}");
         }
     }
 

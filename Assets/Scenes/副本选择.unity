@@ -1226,8 +1226,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u72E9\u730E"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 9002e3549a171cc4e88e5c52069d5fe2, type: 2}
-  m_sharedMaterial: {fileID: -9161902584791132312, guid: 9002e3549a171cc4e88e5c52069d5fe2, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 1e1434740354ee04d835b474b9bfc773, type: 2}
+  m_sharedMaterial: {fileID: -1143156175317918760, guid: 1e1434740354ee04d835b474b9bfc773, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
