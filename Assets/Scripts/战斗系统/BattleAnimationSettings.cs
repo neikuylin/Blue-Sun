@@ -49,6 +49,7 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public GameObject explorationMoveSoundPrefab;
     public bool explorationMoveCompensateMotion;
     public float idleYawOffset;
+    [Min(0.01f)] public float modelTurn90Duration = 0.3f;
 
     public static BattleAnimationSettings LoadDefault()
     {

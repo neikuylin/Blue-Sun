@@ -117,6 +117,12 @@ public static class BattleAnimationSettingsResolver
         return settings != null ? settings.idleYawOffset : 0f;
     }
 
+    public static float ResolveModelTurn90Duration()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? Mathf.Max(0.01f, settings.modelTurn90Duration) : 0.3f;
+    }
+
     public static string ResolveHitReactionStateName(string characterId)
     {
         return ResolveStateName(characterId, settings => settings.hitReactionOverrides);

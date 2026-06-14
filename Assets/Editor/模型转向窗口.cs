@@ -28,6 +28,7 @@ public sealed class 模型转向窗口 : EditorWindow
 
     private void OnEnable()
     {
+        转动九十度时间 = BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
         EditorApplication.hierarchyChanged += 刷新场景对象;
         EditorApplication.update += 更新平滑转向;
         刷新场景对象();
@@ -68,6 +69,7 @@ public sealed class 模型转向窗口 : EditorWindow
             EditorGUILayout.HelpBox(
                 "当前战场中没有已生成的角色模型。请先进入战斗并生成战场单位。",
                 MessageType.Warning);
+            绘制共享转向配置();
             return;
         }
 
@@ -103,13 +105,6 @@ public sealed class 模型转向窗口 : EditorWindow
                 EditorGUILayout.Vector3Field("当前世界旋转", 当前对象.transform.eulerAngles);
             }
 
-            float 朝向修正 = BattleAnimationSettingsResolver.ResolveIdleYawOffset();
-            EditorGUILayout.LabelField("项目朝向修正", $"{朝向修正:0.##}°");
-            转动九十度时间 = Mathf.Max(
-                0.01f,
-                EditorGUILayout.FloatField("转动 90° 时间（秒）", 转动九十度时间));
-            EditorGUILayout.LabelField("当前转向速度", $"{90f / 转动九十度时间:0.##}°/秒");
-
             EditorGUILayout.Space(8f);
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -139,6 +134,42 @@ public sealed class 模型转向窗口 : EditorWindow
                 }
             }
         }
+
+        绘制共享转向配置();
+    }
+
+    private void 绘制共享转向配置()
+    {
+        float 朝向修正 = BattleAnimationSettingsResolver.ResolveIdleYawOffset();
+        EditorGUILayout.Space(8f);
+        EditorGUILayout.LabelField("共享转向配置", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("项目朝向修正", $"{朝向修正:0.##}°");
+        EditorGUI.BeginChangeCheck();
+        float 新转动九十度时间 = Mathf.Max(
+            0.01f,
+            EditorGUILayout.DelayedFloatField("转动 90° 时间（秒）", 转动九十度时间));
+        if (EditorGUI.EndChangeCheck())
+        {
+            保存转向时间(新转动九十度时间);
+        }
+
+        EditorGUILayout.LabelField("当前转向速度", $"{90f / 转动九十度时间:0.##}°/秒");
+    }
+
+    private void 保存转向时间(float 新时间)
+    {
+        转动九十度时间 = Mathf.Max(0.01f, 新时间);
+        BattleAnimationSettings 设置 = BattleAnimationSettings.LoadDefault();
+        if (设置 == null)
+        {
+            Debug.LogError("模型转向：找不到 Resources/BattleAnimationSettings 配置。");
+            return;
+        }
+
+        Undo.RecordObject(设置, "修改模型转向速度");
+        设置.modelTurn90Duration = 转动九十度时间;
+        EditorUtility.SetDirty(设置);
+        AssetDatabase.SaveAssets();
     }
 
     private void 刷新场景对象()

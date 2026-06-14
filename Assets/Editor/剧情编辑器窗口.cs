@@ -613,6 +613,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
                 return new Color(0.42f, 0.25f, 0.58f, 1f);
             case 剧情数据库.剧情蓝图节点类型.角色播放动画:
             case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
+            case 剧情数据库.剧情蓝图节点类型.角色转向:
                 return new Color(0.58f, 0.22f, 0.24f, 1f);
             case 剧情数据库.剧情蓝图节点类型.等待:
                 return new Color(0.27f, 0.38f, 0.48f, 1f);
@@ -835,6 +836,26 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         }
     }
 
+    private void 绘制角色转向字段(SerializedProperty 节点属性)
+    {
+        SerializedProperty 角色ID属性 = 节点属性.FindPropertyRelative("角色ID");
+        SerializedProperty 朝向属性 = 节点属性.FindPropertyRelative("朝向");
+
+        if (角色ID属性 != null)
+        {
+            绘制ID选择或输入(角色ID属性, "角色ID", 读取战斗角色ID列表());
+        }
+
+        if (朝向属性 != null)
+        {
+            EditorGUILayout.PropertyField(朝向属性, new GUIContent("朝向"));
+        }
+
+        EditorGUILayout.HelpBox(
+            $"转速读取“工具/模型/模型转向”的共享配置：转动 90° {BattleAnimationSettingsResolver.ResolveModelTurn90Duration():0.###} 秒。",
+            MessageType.None);
+    }
+
     private void 绘制蓝图节点字段(SerializedProperty 节点列表属性, SerializedProperty 连线列表属性, SerializedProperty 节点属性, SerializedProperty 节点类型属性)
     {
         if (节点类型属性 == null || 节点属性 == null)
@@ -887,6 +908,9 @@ public sealed class 剧情编辑器窗口 : EditorWindow
                 break;
             case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
                 绘制播放已配置动作字段(节点属性);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.角色转向:
+                绘制角色转向字段(节点属性);
                 break;
             case 剧情数据库.剧情蓝图节点类型.等待:
                 绘制等待字段(节点属性);
@@ -1054,6 +1078,12 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         if (全局动作属性 != null)
         {
             全局动作属性.enumValueIndex = (int)剧情数据库.全局动作类型.待机;
+        }
+
+        SerializedProperty 朝向属性 = 节点属性.FindPropertyRelative("朝向");
+        if (朝向属性 != null)
+        {
+            朝向属性.enumValueIndex = (int)剧情数据库.模型朝向.北;
         }
 
         设置字符串值(节点属性.FindPropertyRelative("节点备注"), string.Empty);

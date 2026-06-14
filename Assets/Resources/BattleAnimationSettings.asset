@@ -195,3 +195,4 @@ MonoBehaviour:
   explorationMoveSoundPrefab: {fileID: 2428638727268532093, guid: 16182c7b8dc8b494682f80d220398bd1, type: 3}
   explorationMoveCompensateMotion: 0
   idleYawOffset: 45
+  modelTurn90Duration: 0.3

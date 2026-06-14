@@ -327,6 +327,57 @@ public sealed class 剧情运行时 : MonoBehaviour
         BattleAudioUtility.PlayOnce(音效, 音效预制体, 单位, Camera.main);
     }
 
+    private IEnumerator 角色转向节点协程(剧情数据库.剧情蓝图节点 节点)
+    {
+        if (string.IsNullOrWhiteSpace(节点.角色ID))
+        {
+            Debug.LogError("剧情运行时：角色转向节点缺少角色ID。");
+            yield break;
+        }
+
+        BattleUnit 单位 = 查找战斗单位(节点.角色ID.Trim());
+        if (单位 == null)
+        {
+            Debug.LogError($"剧情运行时：找不到角色“{节点.角色ID}”对应的战斗单位。");
+            yield break;
+        }
+
+        float 基础角度;
+        switch (节点.朝向)
+        {
+            case 剧情数据库.模型朝向.东:
+                基础角度 = 90f;
+                break;
+            case 剧情数据库.模型朝向.南:
+                基础角度 = 180f;
+                break;
+            case 剧情数据库.模型朝向.西:
+                基础角度 = 270f;
+                break;
+            default:
+                基础角度 = 0f;
+                break;
+        }
+
+        Vector3 目标欧拉角 = 单位.transform.eulerAngles;
+        目标欧拉角.y = Mathf.Repeat(
+            基础角度 + BattleAnimationSettingsResolver.ResolveIdleYawOffset(),
+            360f);
+        Quaternion 目标旋转 = Quaternion.Euler(目标欧拉角);
+        float 每秒角度 = 90f / BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
+
+        while (Quaternion.Angle(单位.transform.rotation, 目标旋转) > 0.01f)
+        {
+            单位.transform.rotation = Quaternion.RotateTowards(
+                单位.transform.rotation,
+                目标旋转,
+                每秒角度 * Time.unscaledDeltaTime);
+            yield return null;
+        }
+
+        单位.transform.rotation = 目标旋转;
+    }
+
     private static void 解析全局动作(
         剧情数据库.全局动作类型 动作类型,
         string 角色ID,
@@ -446,6 +497,9 @@ public sealed class 剧情运行时 : MonoBehaviour
                 break;
             case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
                 yield return 播放已配置动作节点协程(节点);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.角色转向:
+                yield return 角色转向节点协程(节点);
                 break;
             case 剧情数据库.剧情蓝图节点类型.隐藏界面:
                 Canvas界面显隐服务.隐藏普通界面();

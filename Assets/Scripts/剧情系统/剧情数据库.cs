@@ -30,7 +30,16 @@ public sealed class 剧情数据库 : ScriptableObject
         播放小对话组,
         播放已配置动作,
         隐藏界面,
-        显示界面
+        显示界面,
+        角色转向
+    }
+
+    public enum 模型朝向
+    {
+        北,
+        东,
+        南,
+        西
     }
 
     public enum 已配置动作来源
@@ -76,6 +85,7 @@ public sealed class 剧情数据库 : ScriptableObject
         public 已配置动作来源 动作来源 = 已配置动作来源.技能动作栏;
         public string 技能ID = string.Empty;
         public 全局动作类型 全局动作 = 全局动作类型.待机;
+        public 模型朝向 朝向 = 模型朝向.北;
         [TextArea(2, 5)] public string 节点备注 = string.Empty;
     }
 
