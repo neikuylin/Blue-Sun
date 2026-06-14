@@ -377,7 +377,7 @@ MonoBehaviour:
     hitEffectPrefab: {fileID: 7807918891874290601, guid: b156e27e5191488fbc2d927a88bbdc52, type: 3}
     useProjectile: 1
     projectilePrefab: {fileID: 7807918891874290601, guid: d1c703e292483a34d9a5c33c33ffecff, type: 3}
-    projectileStartFrame: 0
+    projectileStartFrame: 25
     enableHitFeel: 0
     resolveFrame: 0
     castCount: 1
@@ -419,7 +419,7 @@ MonoBehaviour:
       targetSelectionYawOffset: 0
       actionStateName: "\u65BD\u6CD5"
       actionYawOffset: 0
-      postUseYawOffset: 0
+      postUseYawOffset: -30
       actionSound: {fileID: 0}
       actionSoundPrefab: {fileID: 0}
       hitSound: {fileID: 0}
