@@ -42,6 +42,18 @@ public sealed class 剧情数据库 : ScriptableObject
         西
     }
 
+    public enum 转向面向对象
+    {
+        方向,
+        敌人
+    }
+
+    public enum 敌人选择方式
+    {
+        确切敌人,
+        最近敌人
+    }
+
     public enum 已配置动作来源
     {
         技能动作栏,
@@ -85,7 +97,10 @@ public sealed class 剧情数据库 : ScriptableObject
         public 已配置动作来源 动作来源 = 已配置动作来源.技能动作栏;
         public string 技能ID = string.Empty;
         public 全局动作类型 全局动作 = 全局动作类型.待机;
+        public 转向面向对象 面向对象 = 转向面向对象.方向;
         public 模型朝向 朝向 = 模型朝向.北;
+        public 敌人选择方式 敌人选择 = 敌人选择方式.确切敌人;
+        public string 目标角色ID = string.Empty;
         [TextArea(2, 5)] public string 节点备注 = string.Empty;
     }
 

@@ -36,6 +36,7 @@ public sealed class 格子模板数据库 : ScriptableObject
         public string slotName = string.Empty;
         public CellPosition cell;
         public int encounterEnemyIndex = -1;
+        public 剧情数据库.模型朝向 initialFacing = 剧情数据库.模型朝向.西;
     }
 
     public enum WallSide

@@ -839,16 +839,45 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private void 绘制角色转向字段(SerializedProperty 节点属性)
     {
         SerializedProperty 角色ID属性 = 节点属性.FindPropertyRelative("角色ID");
+        SerializedProperty 面向对象属性 = 节点属性.FindPropertyRelative("面向对象");
         SerializedProperty 朝向属性 = 节点属性.FindPropertyRelative("朝向");
+        SerializedProperty 敌人选择属性 = 节点属性.FindPropertyRelative("敌人选择");
+        SerializedProperty 目标角色ID属性 = 节点属性.FindPropertyRelative("目标角色ID");
 
         if (角色ID属性 != null)
         {
             绘制ID选择或输入(角色ID属性, "角色ID", 读取战斗角色ID列表());
         }
 
-        if (朝向属性 != null)
+        if (面向对象属性 != null)
         {
-            EditorGUILayout.PropertyField(朝向属性, new GUIContent("朝向"));
+            EditorGUILayout.PropertyField(面向对象属性, new GUIContent("面向对象"));
+        }
+
+        剧情数据库.转向面向对象 面向对象 = 面向对象属性 != null
+            ? (剧情数据库.转向面向对象)面向对象属性.enumValueIndex
+            : 剧情数据库.转向面向对象.方向;
+        if (面向对象 == 剧情数据库.转向面向对象.方向)
+        {
+            if (朝向属性 != null)
+            {
+                EditorGUILayout.PropertyField(朝向属性, new GUIContent("方向"));
+            }
+        }
+        else
+        {
+            if (敌人选择属性 != null)
+            {
+                EditorGUILayout.PropertyField(敌人选择属性, new GUIContent("敌人"));
+            }
+
+            剧情数据库.敌人选择方式 敌人选择 = 敌人选择属性 != null
+                ? (剧情数据库.敌人选择方式)敌人选择属性.enumValueIndex
+                : 剧情数据库.敌人选择方式.确切敌人;
+            if (敌人选择 == 剧情数据库.敌人选择方式.确切敌人 && 目标角色ID属性 != null)
+            {
+                绘制ID选择或输入(目标角色ID属性, "敌人ID", 读取战斗角色ID列表());
+            }
         }
 
         EditorGUILayout.HelpBox(
@@ -1085,6 +1114,20 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         {
             朝向属性.enumValueIndex = (int)剧情数据库.模型朝向.北;
         }
+
+        SerializedProperty 面向对象属性 = 节点属性.FindPropertyRelative("面向对象");
+        if (面向对象属性 != null)
+        {
+            面向对象属性.enumValueIndex = (int)剧情数据库.转向面向对象.方向;
+        }
+
+        SerializedProperty 敌人选择属性 = 节点属性.FindPropertyRelative("敌人选择");
+        if (敌人选择属性 != null)
+        {
+            敌人选择属性.enumValueIndex = (int)剧情数据库.敌人选择方式.确切敌人;
+        }
+
+        设置字符串值(节点属性.FindPropertyRelative("目标角色ID"), string.Empty);
 
         设置字符串值(节点属性.FindPropertyRelative("节点备注"), string.Empty);
     }

@@ -18,6 +18,7 @@ public class BattleBootstrap : MonoBehaviour
         public Vector2Int spawnCell = new Vector2Int(13, 12);
         public BattleTeam team = BattleTeam.Enemy;
         public bool isPlayerControlled;
+        public 剧情数据库.模型朝向 initialFacing = 剧情数据库.模型朝向.西;
     }
 
     private const string SceneName = "战斗副本";
@@ -1383,6 +1384,7 @@ public class BattleBootstrap : MonoBehaviour
             }
 
             entries[i].spawnCell = slot.cell.ToVector2Int();
+            entries[i].initialFacing = slot.initialFacing;
         }
 
         return entries;

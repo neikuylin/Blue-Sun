@@ -151,8 +151,7 @@ public sealed class BattleUnitFactory
             unit.Setup(enemyEntry.enemyId, enemyEntry.team, ResolveDisplayName(enemyEntry.enemyId, binding), spawnCell);
             unit.isPlayerControlled = enemyEntry.isPlayerControlled;
             unit.SetCell(spawnCell, grid.GetWorldPosition(spawnCell));
-            Vector2Int facingCell = enemyEntry.team == BattleTeam.Enemy ? spawnCell + Vector2Int.left : spawnCell + Vector2Int.right;
-            unit.FaceToward(grid.GetWorldPosition(facingCell));
+            unit.transform.rotation = 模型转向服务.计算方向基础旋转(unit.transform, enemyEntry.initialFacing);
             string resolvedIdleStateName = unit.GetIdleAnimationStateName(BattleAnimationSettingsResolver.ResolveIdleStateName(enemyEntry.enemyId));
             unit.PlayAnimationState(resolvedIdleStateName);
             unit.ApplyYawOffset(idleYawOffset);

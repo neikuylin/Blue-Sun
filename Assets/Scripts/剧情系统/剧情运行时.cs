@@ -342,28 +342,28 @@ public sealed class 剧情运行时 : MonoBehaviour
             yield break;
         }
 
-        float 基础角度;
-        switch (节点.朝向)
+        Quaternion 目标旋转;
+        if (节点.面向对象 == 剧情数据库.转向面向对象.方向)
         {
-            case 剧情数据库.模型朝向.东:
-                基础角度 = 90f;
-                break;
-            case 剧情数据库.模型朝向.南:
-                基础角度 = 180f;
-                break;
-            case 剧情数据库.模型朝向.西:
-                基础角度 = 270f;
-                break;
-            default:
-                基础角度 = 0f;
-                break;
+            目标旋转 = 模型转向服务.计算方向旋转(单位.transform, 节点.朝向);
+        }
+        else
+        {
+            BattleUnit 目标敌人 = 节点.敌人选择 == 剧情数据库.敌人选择方式.最近敌人
+                ? 模型转向服务.查找最近敌人(单位)
+                : 模型转向服务.查找确切敌人(单位, 节点.目标角色ID);
+            if (目标敌人 == null)
+            {
+                string 目标描述 = 节点.敌人选择 == 剧情数据库.敌人选择方式.最近敌人
+                    ? "最近敌人"
+                    : $"敌人“{节点.目标角色ID}”";
+                Debug.LogError($"剧情运行时：角色“{节点.角色ID}”找不到{目标描述}。");
+                yield break;
+            }
+
+            目标旋转 = 模型转向服务.计算面向单位旋转(单位, 目标敌人);
         }
 
-        Vector3 目标欧拉角 = 单位.transform.eulerAngles;
-        目标欧拉角.y = Mathf.Repeat(
-            基础角度 + BattleAnimationSettingsResolver.ResolveIdleYawOffset(),
-            360f);
-        Quaternion 目标旋转 = Quaternion.Euler(目标欧拉角);
         float 每秒角度 = 90f / BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
 
         while (Quaternion.Angle(单位.transform.rotation, 目标旋转) > 0.01f)

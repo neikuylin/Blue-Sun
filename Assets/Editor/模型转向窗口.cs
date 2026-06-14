@@ -12,6 +12,9 @@ public sealed class 模型转向窗口 : EditorWindow
     private int 选中对象索引;
     private int 选中对象实例ID;
     private float 转动九十度时间 = 0.3f;
+    private 剧情数据库.转向面向对象 面向对象 = 剧情数据库.转向面向对象.方向;
+    private 剧情数据库.敌人选择方式 敌人选择 = 剧情数据库.敌人选择方式.确切敌人;
+    private string 目标敌人ID = string.Empty;
 
     private Transform 正在转向对象;
     private Quaternion 目标旋转;
@@ -45,7 +48,7 @@ public sealed class 模型转向窗口 : EditorWindow
     {
         EditorGUILayout.LabelField("模型转向", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "列出当前战场中已经生成的角色模型。选择模型后，按项目定义的东、南、西、北设置世界朝向。只修改世界 Y 轴旋转。",
+            "列出当前战场中已经生成的角色模型。可以按项目方向转向，也可以面向确切敌人或最近敌人。只修改世界 Y 轴旋转。",
             MessageType.Info);
 
         EditorGUI.BeginChangeCheck();
@@ -105,37 +108,124 @@ public sealed class 模型转向窗口 : EditorWindow
                 EditorGUILayout.Vector3Field("当前世界旋转", 当前对象.transform.eulerAngles);
             }
 
-            EditorGUILayout.Space(8f);
-            using (new EditorGUILayout.HorizontalScope())
+            面向对象 = (剧情数据库.转向面向对象)EditorGUILayout.EnumPopup("面向对象", 面向对象);
+            if (面向对象 == 剧情数据库.转向面向对象.方向)
             {
-                GUILayout.FlexibleSpace();
-                if (GUILayout.Button("北", GUILayout.Width(90f), GUILayout.Height(30f)))
-                {
-                    开始模型转向(当前对象, 0f, "模型转向：北");
-                }
-                GUILayout.FlexibleSpace();
+                绘制方向按钮(当前对象);
             }
-
-            using (new EditorGUILayout.HorizontalScope())
+            else
             {
-                if (GUILayout.Button("西", GUILayout.Height(30f)))
-                {
-                    开始模型转向(当前对象, 270f, "模型转向：西");
-                }
-
-                if (GUILayout.Button("南", GUILayout.Height(30f)))
-                {
-                    开始模型转向(当前对象, 180f, "模型转向：南");
-                }
-
-                if (GUILayout.Button("东", GUILayout.Height(30f)))
-                {
-                    开始模型转向(当前对象, 90f, "模型转向：东");
-                }
+                绘制敌人转向(当前单位);
             }
         }
 
         绘制共享转向配置();
+    }
+
+    private void 绘制方向按钮(GameObject 当前对象)
+    {
+        EditorGUILayout.Space(8f);
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("北", GUILayout.Width(90f), GUILayout.Height(30f)))
+            {
+                开始模型转向(
+                    当前对象,
+                    模型转向服务.计算方向旋转(当前对象.transform, 剧情数据库.模型朝向.北),
+                    "模型转向：北");
+            }
+            GUILayout.FlexibleSpace();
+        }
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("西", GUILayout.Height(30f)))
+            {
+                开始模型转向(
+                    当前对象,
+                    模型转向服务.计算方向旋转(当前对象.transform, 剧情数据库.模型朝向.西),
+                    "模型转向：西");
+            }
+
+            if (GUILayout.Button("南", GUILayout.Height(30f)))
+            {
+                开始模型转向(
+                    当前对象,
+                    模型转向服务.计算方向旋转(当前对象.transform, 剧情数据库.模型朝向.南),
+                    "模型转向：南");
+            }
+
+            if (GUILayout.Button("东", GUILayout.Height(30f)))
+            {
+                开始模型转向(
+                    当前对象,
+                    模型转向服务.计算方向旋转(当前对象.transform, 剧情数据库.模型朝向.东),
+                    "模型转向：东");
+            }
+        }
+    }
+
+    private void 绘制敌人转向(BattleUnit 当前单位)
+    {
+        敌人选择 = (剧情数据库.敌人选择方式)EditorGUILayout.EnumPopup("敌人", 敌人选择);
+        BattleUnit 目标敌人;
+        if (敌人选择 == 剧情数据库.敌人选择方式.确切敌人)
+        {
+            List<BattleUnit> 敌人列表 = new List<BattleUnit>();
+            List<string> 敌人显示名列表 = new List<string>();
+            for (int i = 1; i < 场景对象列表.Count; i++)
+            {
+                GameObject 对象 = 场景对象列表[i];
+                BattleUnit 单位 = 对象 != null ? 对象.GetComponent<BattleUnit>() : null;
+                if (!模型转向服务.是有效敌人(当前单位, 单位))
+                {
+                    continue;
+                }
+
+                敌人列表.Add(单位);
+                敌人显示名列表.Add($"{单位.unitName} ({单位.characterId})");
+            }
+
+            if (敌人列表.Count == 0)
+            {
+                EditorGUILayout.HelpBox("当前战场中没有可选择的敌人。", MessageType.Warning);
+                return;
+            }
+
+            int 目标索引 = 0;
+            for (int i = 0; i < 敌人列表.Count; i++)
+            {
+                if (string.Equals(敌人列表[i].characterId, 目标敌人ID, System.StringComparison.Ordinal))
+                {
+                    目标索引 = i;
+                    break;
+                }
+            }
+
+            目标索引 = EditorGUILayout.Popup("敌人 ID", 目标索引, 敌人显示名列表.ToArray());
+            目标敌人 = 敌人列表[目标索引];
+            目标敌人ID = 目标敌人.characterId;
+        }
+        else
+        {
+            目标敌人 = 模型转向服务.查找最近敌人(当前单位);
+            if (目标敌人 == null)
+            {
+                EditorGUILayout.HelpBox("当前单位没有可用的最近敌人。", MessageType.Warning);
+                return;
+            }
+
+            EditorGUILayout.ObjectField("最近敌人", 目标敌人.gameObject, typeof(GameObject), true);
+        }
+
+        if (GUILayout.Button("面向敌人", GUILayout.Height(30f)))
+        {
+            开始模型转向(
+                当前单位.gameObject,
+                模型转向服务.计算面向单位旋转(当前单位, 目标敌人),
+                $"模型转向：面向{目标敌人.characterId}");
+        }
     }
 
     private void 绘制共享转向配置()
@@ -265,7 +355,7 @@ public sealed class 模型转向窗口 : EditorWindow
             : null;
     }
 
-    private void 开始模型转向(GameObject 对象, float 基础角度, string 撤销名称)
+    private void 开始模型转向(GameObject 对象, Quaternion 新目标旋转, string 撤销名称)
     {
         if (对象 == null)
         {
@@ -278,12 +368,8 @@ public sealed class 模型转向窗口 : EditorWindow
             Undo.RecordObject(变换, 撤销名称);
         }
 
-        Vector3 世界欧拉角 = 变换.eulerAngles;
-        世界欧拉角.y = Mathf.Repeat(
-            基础角度 + BattleAnimationSettingsResolver.ResolveIdleYawOffset(),
-            360f);
         正在转向对象 = 变换;
-        目标旋转 = Quaternion.Euler(世界欧拉角);
+        目标旋转 = 新目标旋转;
         上次更新时间 = EditorApplication.timeSinceStartup;
     }
 

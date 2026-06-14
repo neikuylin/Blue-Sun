@@ -1788,6 +1788,10 @@ public sealed class 格子编辑器窗口 : EditorWindow
                         slot.encounterEnemyIndex = newIndex - 1;
                     }
                 }
+
+                slot.initialFacing = (剧情数据库.模型朝向)EditorGUILayout.EnumPopup(
+                    "初始朝向",
+                    slot.initialFacing);
             }
         }
     }
@@ -2144,7 +2148,8 @@ public sealed class 格子编辑器窗口 : EditorWindow
         {
             slotName = $"敌人位{entry.enemySpawnSlots.Count + 1}",
             cell = 格子模板数据库.CellPosition.FromVector2Int(target),
-            encounterEnemyIndex = -1
+            encounterEnemyIndex = -1,
+            initialFacing = 剧情数据库.模型朝向.西
         });
     }
 
