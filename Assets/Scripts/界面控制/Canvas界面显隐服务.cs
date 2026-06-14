@@ -21,6 +21,7 @@ public static class Canvas界面显隐服务
     }
 
     private static readonly List<物体状态> 物体状态列表 = new List<物体状态>();
+    private static readonly WaitForEndOfFrame 等待帧末 = new WaitForEndOfFrame();
     private static 动画驱动器 驱动器;
     private static Coroutine 当前动画;
 
@@ -196,6 +197,7 @@ public static class Canvas界面显隐服务
         float 已过时间 = 0f;
         while (已过时间 < 最长时间)
         {
+            yield return 等待帧末;
             已过时间 += Time.unscaledDeltaTime;
             for (int i = 0; i < 物体状态列表.Count; i++)
             {
@@ -209,8 +211,6 @@ public static class Canvas界面显隐服务
                 float 进度 = 时间 <= 0f ? 1f : Mathf.Clamp01(已过时间 / 时间);
                 状态.矩形.anchoredPosition = Vector2.Lerp(状态.动画起始位置, 状态.隐藏位置, 平滑进度(进度));
             }
-
-            yield return null;
         }
 
         立即应用隐藏状态();
@@ -235,6 +235,7 @@ public static class Canvas界面显隐服务
         float 已过时间 = 0f;
         while (已过时间 < 最长时间)
         {
+            yield return 等待帧末;
             已过时间 += Time.unscaledDeltaTime;
             for (int i = 0; i < 物体状态列表.Count; i++)
             {
@@ -248,8 +249,6 @@ public static class Canvas界面显隐服务
                 float 进度 = 时间 <= 0f ? 1f : Mathf.Clamp01(已过时间 / 时间);
                 状态.矩形.anchoredPosition = Vector2.Lerp(状态.动画起始位置, 状态.原位置, 平滑进度(进度));
             }
-
-            yield return null;
         }
 
         for (int i = 0; i < 物体状态列表.Count; i++)
