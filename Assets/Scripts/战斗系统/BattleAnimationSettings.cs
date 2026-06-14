@@ -14,6 +14,7 @@ public sealed class BattleAnimationSettings : ScriptableObject
         public AudioClip sound;
         public GameObject soundPrefab;
         public bool compensateMotion;
+        public float yawCorrection;
     }
 
     public string idleStateName = string.Empty;
@@ -44,10 +45,12 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public AudioClip explorationIdleSound;
     public GameObject explorationIdleSoundPrefab;
     public bool explorationIdleCompensateMotion;
+    public float explorationIdleYawCorrection;
     public string explorationMoveStateName = string.Empty;
     public AudioClip explorationMoveSound;
     public GameObject explorationMoveSoundPrefab;
     public bool explorationMoveCompensateMotion;
+    public float explorationMoveYawCorrection;
     public float idleYawOffset;
     [Min(0.01f)] public float modelTurn90Duration = 0.3f;
 

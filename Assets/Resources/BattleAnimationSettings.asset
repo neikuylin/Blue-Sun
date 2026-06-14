@@ -22,30 +22,35 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 1
     stateName: "\u5355\u624B\u6B66\u5668\u5F85\u673A\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 2
     stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 4
     stateName: "\u5F13\u7BAD\u5F85\u673A\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   enterBattleStateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
   enterBattleSound: {fileID: 0}
   enterBattleSoundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
@@ -57,30 +62,35 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 1
     stateName: "\u5355\u624B\u6B66\u5668\u8FDB\u6218\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
     compensateMotion: 0
+    yawCorrection: 36
   - enabled: 1
     weaponCategory: 2
     stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u8FDB\u6218\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 4
     stateName: "\u5F13\u7BAD\u8FDB\u6218\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   exitBattleStateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
   exitBattleSound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
   exitBattleSoundPrefab: {fileID: 0}
@@ -92,30 +102,35 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 1
     stateName: "\u5355\u624B\u6B66\u5668\u9000\u6218\u52A8\u753B"
     sound: {fileID: 8300000, guid: dec3c0792f985ed47a71628348e891ff, type: 3}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 2
     stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u9000\u6218\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 4
     stateName: "\u5F13\u7BAD\u9000\u6218\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   hitReactionStateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
   hitReactionSound: {fileID: 0}
   hitReactionSoundPrefab: {fileID: 0}
@@ -127,30 +142,35 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 1
     stateName: "\u5355\u624B\u6B66\u5668\u53D7\u51FB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 2
     stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 3
     stateName: "\u5F13\u7BAD\u53D7\u51FB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 4
     stateName: "\u5F13\u7BAD\u53D7\u51FB\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   dodgeStateName: "\u5355\u624B\u6B66\u5668\u4FA7\u8EAB\u95EA\u907F"
   dodgeSound: {fileID: 0}
   dodgeSoundPrefab: {fileID: 0}
@@ -162,37 +182,44 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 1
     stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 2
     stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 3
     stateName: "\u95EA\u907F\u52A8\u753B"
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 4
     stateName: 
     sound: {fileID: 0}
     soundPrefab: {fileID: 0}
     compensateMotion: 0
+    yawCorrection: 0
   explorationIdleStateName: "\u63A2\u7D22\u5F85\u673A"
   explorationIdleSound: {fileID: 0}
   explorationIdleSoundPrefab: {fileID: 0}
   explorationIdleCompensateMotion: 0
+  explorationIdleYawCorrection: 0
   explorationMoveStateName: "\u63A2\u7D22\u79FB\u52A8"
   explorationMoveSound: {fileID: 0}
   explorationMoveSoundPrefab: {fileID: 2428638727268532093, guid: 16182c7b8dc8b494682f80d220398bd1, type: 3}
   explorationMoveCompensateMotion: 0
+  explorationMoveYawCorrection: 0
   idleYawOffset: 45
   modelTurn90Duration: 0.3

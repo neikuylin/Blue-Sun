@@ -71,6 +71,8 @@ public class BattleUnit : MonoBehaviour
     private bool initialized;
     private Coroutine moveRoutine;
     private Coroutine timedAnimationRoutine;
+    private Transform animationYawCorrectionTarget;
+    private Quaternion animationYawCorrectionBaseLocalRotation;
     private Renderer[] cachedRenderers;
     private Color[] originalRendererColors;
     private Renderer[] gridOcclusionRenderers;
@@ -848,6 +850,7 @@ public class BattleUnit : MonoBehaviour
             SetAnimationPositionCompensation(false);
         }
 
+        ApplyAnimationYawCorrection(animator, ResolveGlobalAnimationYawCorrection(stateName));
         animator.Play(stateName, 0, 0f);
     }
 
@@ -910,6 +913,36 @@ public class BattleUnit : MonoBehaviour
         }
 
         transform.rotation = transform.rotation * Quaternion.Euler(0f, yawOffsetDegrees, 0f);
+    }
+
+    private float ResolveGlobalAnimationYawCorrection(string stateName)
+    {
+        return BattleAnimationSettingsResolver.ResolveGlobalYawCorrectionForState(stateName, characterId);
+    }
+
+    private void ApplyAnimationYawCorrection(Animator animator, float yawCorrection)
+    {
+        ClearAnimationYawCorrection();
+        if (animator == null || Mathf.Abs(yawCorrection) <= 0.01f)
+        {
+            return;
+        }
+
+        animationYawCorrectionTarget = animator.transform;
+        animationYawCorrectionBaseLocalRotation = animationYawCorrectionTarget.localRotation;
+        animationYawCorrectionTarget.localRotation =
+            animationYawCorrectionBaseLocalRotation * Quaternion.Euler(0f, yawCorrection, 0f);
+    }
+
+    private void ClearAnimationYawCorrection()
+    {
+        if (animationYawCorrectionTarget != null)
+        {
+            animationYawCorrectionTarget.localRotation = animationYawCorrectionBaseLocalRotation;
+        }
+
+        animationYawCorrectionTarget = null;
+        animationYawCorrectionBaseLocalRotation = Quaternion.identity;
     }
 
     public void ApplyTint(Color tintColor, float strength)
@@ -1013,16 +1046,19 @@ public class BattleUnit : MonoBehaviour
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        ApplyAnimationYawCorrection(animator, ResolveGlobalAnimationYawCorrection(stateName));
         animator.Play(stateName, 0, 0f);
 
         yield return new WaitForSeconds(duration);
 
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
+            ApplyAnimationYawCorrection(animator, ResolveGlobalAnimationYawCorrection(idleStateName));
             animator.Play(idleStateName, 0, 0f);
         }
         else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
+            ClearAnimationYawCorrection();
             animator.Play(previousStateHash, 0, 0f);
         }
 
@@ -1053,6 +1089,7 @@ public class BattleUnit : MonoBehaviour
 
         AnimatorStateInfo previousState = animator.GetCurrentAnimatorStateInfo(0);
         int previousStateHash = previousState.fullPathHash != 0 ? previousState.fullPathHash : previousState.shortNameHash;
+        ApplyAnimationYawCorrection(animator, ResolveGlobalAnimationYawCorrection(stateName));
         animator.Play(stateName, 0, 0f);
 
         yield return null;
@@ -1066,10 +1103,12 @@ public class BattleUnit : MonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(idleStateName) && animator.isActiveAndEnabled)
         {
+            ApplyAnimationYawCorrection(animator, ResolveGlobalAnimationYawCorrection(idleStateName));
             animator.Play(idleStateName, 0, 0f);
         }
         else if (previousStateHash != 0 && animator.isActiveAndEnabled)
         {
+            ClearAnimationYawCorrection();
             animator.Play(previousStateHash, 0, 0f);
         }
 

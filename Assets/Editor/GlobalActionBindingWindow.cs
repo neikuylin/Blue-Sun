@@ -58,8 +58,8 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         DrawScopedSection(ref showExitBattle, "退战", "exitBattleOverrides", actionOptions);
         DrawScopedSection(ref showHitReaction, "受击", "hitReactionOverrides", actionOptions);
         DrawScopedSection(ref showDodge, "闪避", "dodgeOverrides", actionOptions);
-        DrawSimpleSection(ref showExplorationIdle, "探索待机", "explorationIdleStateName", "explorationIdleSound", "explorationIdleSoundPrefab", "explorationIdleCompensateMotion", actionOptions);
-        DrawSimpleSection(ref showExplorationMove, "探索移动", "explorationMoveStateName", "explorationMoveSound", "explorationMoveSoundPrefab", "explorationMoveCompensateMotion", actionOptions);
+        DrawSimpleSection(ref showExplorationIdle, "探索待机", "explorationIdleStateName", "explorationIdleSound", "explorationIdleSoundPrefab", "explorationIdleCompensateMotion", "explorationIdleYawCorrection", actionOptions);
+        DrawSimpleSection(ref showExplorationMove, "探索移动", "explorationMoveStateName", "explorationMoveSound", "explorationMoveSoundPrefab", "explorationMoveCompensateMotion", "explorationMoveYawCorrection", actionOptions);
 
         using (new EditorGUILayout.VerticalScope("box"))
         {
@@ -117,6 +117,7 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         string soundPropertyName,
         string soundPrefabPropertyName,
         string compensateMotionPropertyName,
+        string yawCorrectionPropertyName,
         List<string> actionOptions)
     {
         using (new EditorGUILayout.VerticalScope("box"))
@@ -131,6 +132,7 @@ public sealed class GlobalActionBindingWindow : EditorWindow
             SerializedProperty soundProperty = settingsObject.FindProperty(soundPropertyName);
             SerializedProperty soundPrefabProperty = settingsObject.FindProperty(soundPrefabPropertyName);
             SerializedProperty compensateMotionProperty = settingsObject.FindProperty(compensateMotionPropertyName);
+            SerializedProperty yawCorrectionProperty = settingsObject.FindProperty(yawCorrectionPropertyName);
 
             DrawStatePopup("动画", stateProperty, actionOptions);
             if (soundProperty != null)
@@ -146,6 +148,11 @@ public sealed class GlobalActionBindingWindow : EditorWindow
             if (compensateMotionProperty != null)
             {
                 compensateMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateMotionProperty.boolValue);
+            }
+
+            if (yawCorrectionProperty != null)
+            {
+                yawCorrectionProperty.floatValue = EditorGUILayout.FloatField("角度修正", yawCorrectionProperty.floatValue);
             }
         }
     }
@@ -163,6 +170,7 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         SerializedProperty soundProperty = entry.FindPropertyRelative("sound");
         SerializedProperty soundPrefabProperty = entry.FindPropertyRelative("soundPrefab");
         SerializedProperty compensateMotionProperty = entry.FindPropertyRelative("compensateMotion");
+        SerializedProperty yawCorrectionProperty = entry.FindPropertyRelative("yawCorrection");
 
         if (weaponCategoryProperty != null)
         {
@@ -194,6 +202,11 @@ public sealed class GlobalActionBindingWindow : EditorWindow
             if (compensateMotionProperty != null)
             {
                 compensateMotionProperty.boolValue = EditorGUILayout.Toggle("位移补偿", compensateMotionProperty.boolValue);
+            }
+
+            if (yawCorrectionProperty != null)
+            {
+                yawCorrectionProperty.floatValue = EditorGUILayout.FloatField("角度修正", yawCorrectionProperty.floatValue);
             }
         }
     }
@@ -279,6 +292,12 @@ public sealed class GlobalActionBindingWindow : EditorWindow
         if (compensateMotionProperty != null)
         {
             compensateMotionProperty.boolValue = false;
+        }
+
+        SerializedProperty yawCorrectionProperty = entry.FindPropertyRelative("yawCorrection");
+        if (yawCorrectionProperty != null)
+        {
+            yawCorrectionProperty.floatValue = 0f;
         }
     }
 

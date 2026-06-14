@@ -23,6 +23,11 @@ public static class BattleAnimationSettingsResolver
         return ResolveCompensateMotion(characterId, settings => settings.idleOverrides);
     }
 
+    public static float ResolveIdleYawCorrection(string characterId)
+    {
+        return ResolveYawCorrection(characterId, settings => settings.idleOverrides);
+    }
+
     public static string ResolveEnterBattleStateName(string characterId)
     {
         return ResolveStateName(characterId, settings => settings.enterBattleOverrides);
@@ -41,6 +46,11 @@ public static class BattleAnimationSettingsResolver
     public static bool ResolveEnterBattleCompensateMotion(string characterId)
     {
         return ResolveCompensateMotion(characterId, settings => settings.enterBattleOverrides);
+    }
+
+    public static float ResolveEnterBattleYawCorrection(string characterId)
+    {
+        return ResolveYawCorrection(characterId, settings => settings.enterBattleOverrides);
     }
 
     public static string ResolveExplorationIdleStateName()
@@ -67,6 +77,12 @@ public static class BattleAnimationSettingsResolver
         return settings != null && settings.explorationIdleCompensateMotion;
     }
 
+    public static float ResolveExplorationIdleYawCorrection()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.explorationIdleYawCorrection : 0f;
+    }
+
     public static string ResolveExplorationMoveStateName()
     {
         BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
@@ -91,6 +107,12 @@ public static class BattleAnimationSettingsResolver
         return settings != null && settings.explorationMoveCompensateMotion;
     }
 
+    public static float ResolveExplorationMoveYawCorrection()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings != null ? settings.explorationMoveYawCorrection : 0f;
+    }
+
     public static string ResolveExitBattleStateName(string characterId)
     {
         return ResolveStateName(characterId, settings => settings.exitBattleOverrides);
@@ -109,6 +131,11 @@ public static class BattleAnimationSettingsResolver
     public static bool ResolveExitBattleCompensateMotion(string characterId)
     {
         return ResolveCompensateMotion(characterId, settings => settings.exitBattleOverrides);
+    }
+
+    public static float ResolveExitBattleYawCorrection(string characterId)
+    {
+        return ResolveYawCorrection(characterId, settings => settings.exitBattleOverrides);
     }
 
     public static float ResolveIdleYawOffset()
@@ -133,6 +160,11 @@ public static class BattleAnimationSettingsResolver
         return ResolveCompensateMotion(characterId, settings => settings.hitReactionOverrides);
     }
 
+    public static float ResolveHitReactionYawCorrection(string characterId)
+    {
+        return ResolveYawCorrection(characterId, settings => settings.hitReactionOverrides);
+    }
+
     public static AudioClip ResolveHitReactionSound(string characterId)
     {
         return ResolveSound(characterId, settings => settings.hitReactionOverrides);
@@ -151,6 +183,11 @@ public static class BattleAnimationSettingsResolver
     public static bool ResolveDodgeCompensateMotion(string characterId)
     {
         return ResolveCompensateMotion(characterId, settings => settings.dodgeOverrides);
+    }
+
+    public static float ResolveDodgeYawCorrection(string characterId)
+    {
+        return ResolveYawCorrection(characterId, settings => settings.dodgeOverrides);
     }
 
     public static AudioClip ResolveDodgeSound(string characterId)
@@ -185,6 +222,65 @@ public static class BattleAnimationSettingsResolver
         return false;
     }
 
+    public static float ResolveGlobalYawCorrectionForState(string stateName, string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return 0f;
+        }
+
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        if (settings == null)
+        {
+            return 0f;
+        }
+
+        ItemDatabase.WeaponCategory weaponCategory = ResolveWeaponCategory(characterId);
+        BattleAnimationSettings.WeaponScopedActionOverride entry;
+
+        entry = FindEnabledOverride(weaponCategory, settings.idleOverrides);
+        if (entry != null && string.Equals(stateName, entry.stateName, StringComparison.Ordinal))
+        {
+            return entry.yawCorrection;
+        }
+
+        entry = FindEnabledOverride(weaponCategory, settings.enterBattleOverrides);
+        if (entry != null && string.Equals(stateName, entry.stateName, StringComparison.Ordinal))
+        {
+            return entry.yawCorrection;
+        }
+
+        entry = FindEnabledOverride(weaponCategory, settings.exitBattleOverrides);
+        if (entry != null && string.Equals(stateName, entry.stateName, StringComparison.Ordinal))
+        {
+            return entry.yawCorrection;
+        }
+
+        entry = FindEnabledOverride(weaponCategory, settings.hitReactionOverrides);
+        if (entry != null && string.Equals(stateName, entry.stateName, StringComparison.Ordinal))
+        {
+            return entry.yawCorrection;
+        }
+
+        entry = FindEnabledOverride(weaponCategory, settings.dodgeOverrides);
+        if (entry != null && string.Equals(stateName, entry.stateName, StringComparison.Ordinal))
+        {
+            return entry.yawCorrection;
+        }
+
+        if (string.Equals(stateName, settings.explorationIdleStateName, StringComparison.Ordinal))
+        {
+            return settings.explorationIdleYawCorrection;
+        }
+
+        if (string.Equals(stateName, settings.explorationMoveStateName, StringComparison.Ordinal))
+        {
+            return settings.explorationMoveYawCorrection;
+        }
+
+        return 0f;
+    }
+
     private static string ResolveStateName(
         string characterId,
         Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
@@ -217,6 +313,14 @@ public static class BattleAnimationSettingsResolver
         return entry != null && entry.compensateMotion;
     }
 
+    private static float ResolveYawCorrection(
+        string characterId,
+        Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
+    {
+        BattleAnimationSettings.WeaponScopedActionOverride entry = FindEnabledOverride(characterId, selector);
+        return entry != null ? entry.yawCorrection : 0f;
+    }
+
     private static BattleAnimationSettings.WeaponScopedActionOverride FindEnabledOverride(
         string characterId,
         Func<BattleAnimationSettings, BattleAnimationSettings.WeaponScopedActionOverride[]> selector)
@@ -228,12 +332,18 @@ public static class BattleAnimationSettingsResolver
         }
 
         BattleAnimationSettings.WeaponScopedActionOverride[] entries = selector(settings);
+        return FindEnabledOverride(ResolveWeaponCategory(characterId), entries);
+    }
+
+    private static BattleAnimationSettings.WeaponScopedActionOverride FindEnabledOverride(
+        ItemDatabase.WeaponCategory weaponCategory,
+        BattleAnimationSettings.WeaponScopedActionOverride[] entries)
+    {
         if (entries == null || entries.Length == 0)
         {
             return null;
         }
 
-        ItemDatabase.WeaponCategory weaponCategory = ResolveWeaponCategory(characterId);
         for (int i = 0; i < entries.Length; i++)
         {
             BattleAnimationSettings.WeaponScopedActionOverride entry = entries[i];
