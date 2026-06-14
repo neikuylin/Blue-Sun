@@ -7,7 +7,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private const string 资源目录 = "Assets/Resources";
     private const string 数据库路径 = 资源目录 + "/剧情数据库.asset";
     private const string 战斗副本场景名 = "战斗副本";
-    private const float 蓝图画布宽度 = 1800f;
+    private const float 蓝图画布宽度 = 3600f;
     private const float 蓝图画布高度 = 900f;
     private const float 蓝图节点宽度 = 180f;
     private const float 蓝图节点高度 = 74f;
@@ -44,6 +44,28 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private string 节点ID编辑来源 = string.Empty;
     private string 节点ID保存提示 = string.Empty;
     private MessageType 节点ID保存提示类型 = MessageType.None;
+    private string 正在拖动节点ID = string.Empty;
+    private Vector2 正在拖动节点位置;
+
+    private void OnEnable()
+    {
+        Undo.undoRedoPerformed += 撤销重做后刷新;
+    }
+
+    private void OnDisable()
+    {
+        Undo.undoRedoPerformed -= 撤销重做后刷新;
+    }
+
+    private void 撤销重做后刷新()
+    {
+        if (数据库对象 != null)
+        {
+            数据库对象.UpdateIfRequiredOrScript();
+        }
+
+        Repaint();
+    }
 
     [MenuItem("Tools/剧情/剧情编辑器")]
     private static void 打开()
@@ -407,6 +429,15 @@ public sealed class 剧情编辑器窗口 : EditorWindow
     private void 绘制蓝图节点(SerializedProperty 节点列表属性, SerializedProperty 连线列表属性)
     {
         Event 当前事件 = Event.current;
+        if (当前事件 != null &&
+            当前事件.type == EventType.MouseUp &&
+            当前事件.button == 0 &&
+            !string.IsNullOrWhiteSpace(正在拖动节点ID))
+        {
+            提交拖动节点位置(节点列表属性);
+            当前事件.Use();
+        }
+
         for (int i = 0; i < 节点列表属性.arraySize; i++)
         {
             SerializedProperty 节点属性 = 节点列表属性.GetArrayElementAtIndex(i);
@@ -414,19 +445,22 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             SerializedProperty 节点类型属性 = 节点属性.FindPropertyRelative("节点类型");
             SerializedProperty 位置属性 = 节点属性.FindPropertyRelative("位置");
             string 节点ID = 读取字符串(节点ID属性);
-            Rect 节点矩形 = 取得蓝图节点矩形(位置属性);
+            Rect 节点矩形 = 取得蓝图节点矩形(节点ID, 位置属性);
             bool 已选中 = string.Equals(选中蓝图节点ID, 节点ID, System.StringComparison.Ordinal);
-            Color 原颜色 = GUI.color;
-            GUI.color = 已选中 ? new Color(1f, 0.86f, 0.45f, 1f) : Color.white;
+            Color 节点颜色 = 取得蓝图节点颜色(节点类型属性);
             GUI.Box(节点矩形, GUIContent.none);
-            GUI.color = 原颜色;
+            EditorGUI.DrawRect(new Rect(节点矩形.x + 1f, 节点矩形.y + 1f, 节点矩形.width - 2f, 节点矩形.height - 2f), 节点颜色);
+            if (已选中)
+            {
+                绘制节点边框(节点矩形, new Color(1f, 0.78f, 0.12f, 1f), 3f);
+            }
 
             Rect 标题矩形 = new Rect(节点矩形.x + 8f, 节点矩形.y + 6f, 节点矩形.width - 16f, 20f);
             Rect ID矩形 = new Rect(节点矩形.x + 8f, 节点矩形.y + 30f, 节点矩形.width - 16f, 18f);
             Rect 提示矩形 = new Rect(节点矩形.x + 8f, 节点矩形.y + 50f, 节点矩形.width - 16f, 18f);
-            GUI.Label(标题矩形, 取得蓝图节点类型名字(节点类型属性), EditorStyles.boldLabel);
-            GUI.Label(ID矩形, 节点ID, EditorStyles.miniLabel);
-            GUI.Label(提示矩形, $"入 {统计输入线数量(连线列表属性, 节点ID)} / 出 {统计输出线数量(连线列表属性, 节点ID)}", EditorStyles.miniLabel);
+            GUI.Label(标题矩形, 取得蓝图节点类型名字(节点类型属性), 取得节点标题样式());
+            GUI.Label(ID矩形, 节点ID, 取得节点文字样式());
+            GUI.Label(提示矩形, $"入 {统计输入线数量(连线列表属性, 节点ID)} / 出 {统计输出线数量(连线列表属性, 节点ID)}", 取得节点文字样式());
 
             if (当前事件 == null)
             {
@@ -442,20 +476,35 @@ public sealed class 剧情编辑器窗口 : EditorWindow
                 }
 
                 选中蓝图节点ID = 节点ID;
+                正在拖动节点ID = 节点ID;
+                正在拖动节点位置 = 位置属性 != null ? 位置属性.vector2Value : Vector2.zero;
                 当前事件.Use();
             }
-            else if (当前事件.type == EventType.MouseDrag && 当前事件.button == 0 && 已选中 && 节点矩形.Contains(当前事件.mousePosition))
+            else if (当前事件.type == EventType.MouseDrag &&
+                     当前事件.button == 0 &&
+                     string.Equals(正在拖动节点ID, 节点ID, System.StringComparison.Ordinal))
             {
-                Vector2 当前位置 = 位置属性.vector2Value;
-                位置属性.vector2Value = new Vector2(
-                    Mathf.Clamp(当前位置.x + 当前事件.delta.x, 0f, 蓝图画布宽度 - 蓝图节点宽度),
-                    Mathf.Clamp(当前位置.y + 当前事件.delta.y, 0f, 蓝图画布高度 - 蓝图节点高度));
-                数据库对象.ApplyModifiedProperties();
-                EditorUtility.SetDirty(数据库对象.targetObject);
+                正在拖动节点位置 = new Vector2(
+                    Mathf.Clamp(正在拖动节点位置.x + 当前事件.delta.x, 0f, 蓝图画布宽度 - 蓝图节点宽度),
+                    Mathf.Clamp(正在拖动节点位置.y + 当前事件.delta.y, 0f, 蓝图画布高度 - 蓝图节点高度));
                 Repaint();
                 当前事件.Use();
             }
         }
+    }
+
+    private void 提交拖动节点位置(SerializedProperty 节点列表属性)
+    {
+        SerializedProperty 节点属性 = 查找蓝图节点属性(节点列表属性, 正在拖动节点ID);
+        SerializedProperty 位置属性 = 节点属性 != null ? 节点属性.FindPropertyRelative("位置") : null;
+        if (位置属性 != null)
+        {
+            位置属性.vector2Value = 正在拖动节点位置;
+            数据库对象.ApplyModifiedProperties();
+            EditorUtility.SetDirty(数据库对象.targetObject);
+        }
+
+        正在拖动节点ID = string.Empty;
     }
 
     private void 绘制选中蓝图节点详情(SerializedProperty 节点列表属性, SerializedProperty 连线列表属性)
@@ -532,6 +581,66 @@ public sealed class 剧情编辑器窗口 : EditorWindow
                 GUIUtility.ExitGUI();
             }
         }
+    }
+
+    private static Color 取得蓝图节点颜色(SerializedProperty 节点类型属性)
+    {
+        if (节点类型属性 == null)
+        {
+            return new Color(0.25f, 0.28f, 0.32f, 1f);
+        }
+
+        剧情数据库.剧情蓝图节点类型 节点类型 =
+            (剧情数据库.剧情蓝图节点类型)节点类型属性.enumValueIndex;
+        switch (节点类型)
+        {
+            case 剧情数据库.剧情蓝图节点类型.开始:
+            case 剧情数据库.剧情蓝图节点类型.汇合:
+                return new Color(0.16f, 0.38f, 0.62f, 1f);
+            case 剧情数据库.剧情蓝图节点类型.播放一句对话:
+            case 剧情数据库.剧情蓝图节点类型.播放对话组:
+            case 剧情数据库.剧情蓝图节点类型.播放一句小对话:
+            case 剧情数据库.剧情蓝图节点类型.播放小对话组:
+                return new Color(0.16f, 0.48f, 0.35f, 1f);
+            case 剧情数据库.剧情蓝图节点类型.设置事件:
+            case 剧情数据库.剧情蓝图节点类型.切换场景:
+            case 剧情数据库.剧情蓝图节点类型.添加物品到装备栏:
+                return new Color(0.65f, 0.36f, 0.12f, 1f);
+            case 剧情数据库.剧情蓝图节点类型.黑幕淡入:
+            case 剧情数据库.剧情蓝图节点类型.黑幕淡出:
+            case 剧情数据库.剧情蓝图节点类型.隐藏界面:
+            case 剧情数据库.剧情蓝图节点类型.显示界面:
+                return new Color(0.42f, 0.25f, 0.58f, 1f);
+            case 剧情数据库.剧情蓝图节点类型.角色播放动画:
+            case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
+                return new Color(0.58f, 0.22f, 0.24f, 1f);
+            case 剧情数据库.剧情蓝图节点类型.等待:
+                return new Color(0.27f, 0.38f, 0.48f, 1f);
+            default:
+                return new Color(0.25f, 0.28f, 0.32f, 1f);
+        }
+    }
+
+    private static GUIStyle 取得节点标题样式()
+    {
+        GUIStyle 样式 = new GUIStyle(EditorStyles.boldLabel);
+        样式.normal.textColor = Color.white;
+        return 样式;
+    }
+
+    private static GUIStyle 取得节点文字样式()
+    {
+        GUIStyle 样式 = new GUIStyle(EditorStyles.miniLabel);
+        样式.normal.textColor = new Color(0.94f, 0.94f, 0.94f, 1f);
+        return 样式;
+    }
+
+    private static void 绘制节点边框(Rect 矩形, Color 颜色, float 宽度)
+    {
+        EditorGUI.DrawRect(new Rect(矩形.x, 矩形.y, 矩形.width, 宽度), 颜色);
+        EditorGUI.DrawRect(new Rect(矩形.x, 矩形.yMax - 宽度, 矩形.width, 宽度), 颜色);
+        EditorGUI.DrawRect(new Rect(矩形.x, 矩形.y, 宽度, 矩形.height), 颜色);
+        EditorGUI.DrawRect(new Rect(矩形.xMax - 宽度, 矩形.y, 宽度, 矩形.height), 颜色);
     }
 
     private void 保存蓝图节点ID(
@@ -1498,13 +1607,15 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         return 节点类型.ToString();
     }
 
-    private static Rect 取得蓝图节点矩形(SerializedProperty 位置属性)
+    private Rect 取得蓝图节点矩形(string 节点ID, SerializedProperty 位置属性)
     {
-        Vector2 位置 = 位置属性 != null ? 位置属性.vector2Value : Vector2.zero;
+        Vector2 位置 = string.Equals(正在拖动节点ID, 节点ID, System.StringComparison.Ordinal)
+            ? 正在拖动节点位置
+            : 位置属性 != null ? 位置属性.vector2Value : Vector2.zero;
         return new Rect(位置.x, 位置.y, 蓝图节点宽度, 蓝图节点高度);
     }
 
-    private static bool 尝试取得蓝图节点矩形(SerializedProperty 节点列表属性, string 节点ID, out Rect 节点矩形)
+    private bool 尝试取得蓝图节点矩形(SerializedProperty 节点列表属性, string 节点ID, out Rect 节点矩形)
     {
         SerializedProperty 节点属性 = 查找蓝图节点属性(节点列表属性, 节点ID);
         if (节点属性 == null)
@@ -1513,7 +1624,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             return false;
         }
 
-        节点矩形 = 取得蓝图节点矩形(节点属性.FindPropertyRelative("位置"));
+        节点矩形 = 取得蓝图节点矩形(节点ID, 节点属性.FindPropertyRelative("位置"));
         return true;
     }
 
