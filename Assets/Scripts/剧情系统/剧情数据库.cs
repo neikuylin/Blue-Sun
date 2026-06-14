@@ -28,7 +28,9 @@ public sealed class 剧情数据库 : ScriptableObject
         汇合,
         播放一句小对话,
         播放小对话组,
-        播放已配置动作
+        播放已配置动作,
+        隐藏界面,
+        显示界面
     }
 
     public enum 已配置动作来源

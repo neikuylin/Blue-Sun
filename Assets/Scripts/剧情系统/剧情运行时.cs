@@ -447,6 +447,12 @@ public sealed class 剧情运行时 : MonoBehaviour
             case 剧情数据库.剧情蓝图节点类型.播放已配置动作:
                 yield return 播放已配置动作节点协程(节点);
                 break;
+            case 剧情数据库.剧情蓝图节点类型.隐藏界面:
+                Canvas界面显隐服务.隐藏普通界面();
+                break;
+            case 剧情数据库.剧情蓝图节点类型.显示界面:
+                Canvas界面显隐服务.显示普通界面();
+                break;
             case 剧情数据库.剧情蓝图节点类型.等待:
                 yield return new WaitForSecondsRealtime(Mathf.Max(0f, 节点.持续时间));
                 break;

@@ -72,7 +72,7 @@ public sealed class 剧情编辑器窗口 : EditorWindow
         数据库对象.Update();
 
         EditorGUILayout.LabelField("剧情编辑器", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("当前编辑剧情蓝图节点数据：播放对话、设置事件、切换场景、添加物品到装备栏、黑幕淡入淡出、角色播放动画、播放已配置动作。这里不会直接执行剧情。", MessageType.Info);
+        EditorGUILayout.HelpBox("当前编辑剧情蓝图节点数据：播放对话、设置事件、切换场景、添加物品到装备栏、黑幕淡入淡出、角色播放动画、播放已配置动作、隐藏或显示界面。这里不会直接执行剧情。", MessageType.Info);
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -739,6 +739,12 @@ public sealed class 剧情编辑器窗口 : EditorWindow
             case 剧情数据库.剧情蓝图节点类型.开始:
             case 剧情数据库.剧情蓝图节点类型.汇合:
                 EditorGUILayout.HelpBox("这个节点只负责流程连接，不需要额外参数。", MessageType.None);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.隐藏界面:
+                EditorGUILayout.HelpBox("隐藏所有挂有“可被隐藏UI”组件的物体，并在切换场景后继续保持隐藏。", MessageType.None);
+                break;
+            case 剧情数据库.剧情蓝图节点类型.显示界面:
+                EditorGUILayout.HelpBox("结束全局隐藏状态，并恢复当前仍存在的标记物体。", MessageType.None);
                 break;
             case 剧情数据库.剧情蓝图节点类型.播放一句对话:
                 绘制播放一句对话字段(节点属性);
