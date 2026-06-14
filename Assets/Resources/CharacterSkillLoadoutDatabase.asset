@@ -15,14 +15,15 @@ MonoBehaviour:
   entries:
   - characterId: "\u73A9\u5BB6"
     memorizedSkillIds:
-    - 
+    - "\u706B\u7403"
     - 
     - 
     memorizedSkillWeights: 000000000000000000000000
     warehouseSkillIds:
     - "\u706B\u7130\u9644\u9B54"
     - "\u70B9\u71C3"
-    warehouseSkillWeights: 0000000000000000
+    - 
+    warehouseSkillWeights: 000000000000000000000000
   - characterId: "\u7D22\u62C9\u5A1C"
     memorizedSkillIds:
     - 

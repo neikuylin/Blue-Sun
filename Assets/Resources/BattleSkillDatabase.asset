@@ -124,6 +124,22 @@ MonoBehaviour:
       hitSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
       compensateActionMotion: 0
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u666E\u901A\u653B\u51FB"
     skillSource: 
     description: "\u6734\u5B9E\u65E0\u534E"
@@ -188,6 +204,22 @@ MonoBehaviour:
       actionSoundPrefab: {fileID: 0}
       hitSound: {fileID: 0}
       hitSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
       compensateActionMotion: 0
   - skillId: "\u56DE\u65CB\u65A9"
@@ -256,6 +288,22 @@ MonoBehaviour:
       hitSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
       soundDelayFrame: 0
       compensateActionMotion: 1
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u5C04\u51FB"
     skillSource: 
     description: 
@@ -307,6 +355,22 @@ MonoBehaviour:
       hitSoundPrefab: {fileID: 0}
       soundDelayFrame: 0
       compensateActionMotion: 0
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u706B\u7403"
     skillSource: 
     description: "\u5BF9\u4E8E\u795E\u804C\u8005\u6765\u8BF4\uFF0C\u8FD9\u64AE\u706B\u7130\u627F\u8F7D\u7740\u4ED6\u4EEC\u7684\u4FE1\u4EF0\u3002"
@@ -346,6 +410,22 @@ MonoBehaviour:
       applyChancePercent: 30
     requiredWeaponCategories: 
     weaponActionOverrides: []
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: "\u65BD\u6CD5"
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u96C6\u4E2D"
     skillSource: 
     description: 
@@ -385,6 +465,22 @@ MonoBehaviour:
       applyChancePercent: 100
     requiredWeaponCategories: 
     weaponActionOverrides: []
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u53CC\u6301\u666E\u901A\u653B\u51FB"
     skillSource: 
     description: "2\u4E0B\u6734\u5B9E\u65E0\u534E"
@@ -436,6 +532,22 @@ MonoBehaviour:
       hitSoundPrefab: {fileID: 4453231123608382319, guid: e202746310a4a4244bbe48b1c1a648f2, type: 3}
       soundDelayFrame: 0
       compensateActionMotion: 0
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u706B\u7130\u9644\u9B54"
     skillSource: 
     description: "\u70B9\u71C3\u624B\u4E2D\u7684\u6B66\u5668\uFF0C\u4F7F\u653B\u51FB\u9020\u6210\u989D\u5916\u7684\u706B\u7130\u4F24\u5BB3"
@@ -475,6 +587,22 @@ MonoBehaviour:
       applyChancePercent: 100
     requiredWeaponCategories: 
     weaponActionOverrides: []
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0
   - skillId: "\u70B9\u71C3"
     skillSource: 
     description: "\u70B9\u71C3\u5468\u56F4\u89D2\u8272"
@@ -514,3 +642,19 @@ MonoBehaviour:
       applyChancePercent: 100
     requiredWeaponCategories: 
     weaponActionOverrides: []
+    spellActionOverride:
+      enabled: 1
+      weaponCategory: 0
+      raiseHandStateName: 
+      raiseHandYawOffset: 0
+      targetSelectionStateName: 
+      targetSelectionYawOffset: 0
+      actionStateName: 
+      actionYawOffset: 0
+      postUseYawOffset: 0
+      actionSound: {fileID: 0}
+      actionSoundPrefab: {fileID: 0}
+      hitSound: {fileID: 0}
+      hitSoundPrefab: {fileID: 0}
+      soundDelayFrame: 0
+      compensateActionMotion: 0

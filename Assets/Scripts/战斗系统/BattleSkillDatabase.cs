@@ -118,6 +118,7 @@ public sealed class BattleSkillDatabase : ScriptableObject
         public List<AttachedEffectEntry> attachedEffects = new List<AttachedEffectEntry>();
         public List<ItemDatabase.WeaponCategory> requiredWeaponCategories = new List<ItemDatabase.WeaponCategory>();
         public List<WeaponScopedActionOverride> weaponActionOverrides = new List<WeaponScopedActionOverride>();
+        public WeaponScopedActionOverride spellActionOverride = new WeaponScopedActionOverride();
 
         public int ResolveActionPointCost()
         {
@@ -235,6 +236,13 @@ public sealed class BattleSkillDatabase : ScriptableObject
             }
 
             return null;
+        }
+
+        public WeaponScopedActionOverride FindEnabledSpellActionOverride()
+        {
+            return spellActionOverride != null && spellActionOverride.enabled
+                ? spellActionOverride
+                : null;
         }
 
         public bool HasRequiredWeaponCategory(ItemDatabase.WeaponCategory weaponCategory)

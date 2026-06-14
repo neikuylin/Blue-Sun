@@ -87,6 +87,11 @@ internal sealed class 战斗技能动作解析服务
             return null;
         }
 
+        if (skill.group == BattleSkillDatabase.SkillGroup.Spell)
+        {
+            return skill.FindEnabledSpellActionOverride();
+        }
+
         ItemDatabase.WeaponCategory weaponCategory = InventoryShortcutRuntimeBinder.GetCharacterEquippedWeaponCategory(unit.characterId);
         bool isMoveSkill = string.Equals(skill.skillId, BattleSkillDatabase.MoveSkillId, System.StringComparison.Ordinal);
         if (!isMoveSkill && !skill.HasRequiredWeaponCategory(weaponCategory))

@@ -75,7 +75,32 @@ public sealed class SkillActionBindingWindow : EditorWindow
             EditorGUILayout.LabelField(string.IsNullOrWhiteSpace(skillId) ? "（未命名技能）" : skillId, EditorStyles.boldLabel);
             EditorGUILayout.LabelField("分组", groupLabel);
 
-            DrawWeaponOverrides(entry, skillId, requiredWeaponCategoriesProperty, actionOptions);
+            bool isSpell = groupProperty != null &&
+                groupProperty.enumValueIndex == (int)BattleSkillDatabase.SkillGroup.Spell;
+            if (isSpell)
+            {
+                DrawSpellAction(entry, actionOptions);
+            }
+            else
+            {
+                DrawWeaponOverrides(entry, skillId, requiredWeaponCategoriesProperty, actionOptions);
+            }
+        }
+    }
+
+    private static void DrawSpellAction(SerializedProperty entry, List<string> actionOptions)
+    {
+        SerializedProperty spellActionProperty = entry.FindPropertyRelative("spellActionOverride");
+        if (spellActionProperty == null)
+        {
+            return;
+        }
+
+        EditorGUILayout.Space(4f);
+        using (new EditorGUILayout.VerticalScope("box"))
+        {
+            EditorGUILayout.HelpBox("法术固定读取“法术类动作”，不受角色当前是否装备武器或装备何种武器影响。", MessageType.Info);
+            DrawActionOverrideEntry(spellActionProperty, "法术类动作", actionOptions);
         }
     }
 
@@ -176,6 +201,11 @@ public sealed class SkillActionBindingWindow : EditorWindow
 
     private static void DrawWeaponOverrideEntry(SerializedProperty entry, ItemDatabase.WeaponCategory weaponCategory, List<string> actionOptions)
     {
+        DrawActionOverrideEntry(entry, GetWeaponCategoryLabel(weaponCategory), actionOptions);
+    }
+
+    private static void DrawActionOverrideEntry(SerializedProperty entry, string label, List<string> actionOptions)
+    {
         if (entry == null)
         {
             return;
@@ -197,7 +227,7 @@ public sealed class SkillActionBindingWindow : EditorWindow
         using (new EditorGUI.IndentLevelScope())
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField(GetWeaponCategoryLabel(weaponCategory), EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
 
             if (enabledProperty != null)
             {
