@@ -3963,12 +3963,11 @@ public class BattleTurnSystem : MonoBehaviour
         }
 
         bool playedAny = false;
-        BattleUnit leadUnit = pendingEnterBattleLeadUnit;
-        Animator leadAnimator = null;
+        List<Animator> playedAnimators = new List<Animator>();
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
-            if (unit == null)
+            if (unit == null || !unit.IsAlive)
             {
                 continue;
             }
@@ -3990,11 +3989,7 @@ public class BattleTurnSystem : MonoBehaviour
                 enterBattleStateName,
                 unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)),
                 ResolveEnterBattleCompensateMotion(unit));
-            if (unit == leadUnit)
-            {
-                leadAnimator = animator;
-            }
-
+            playedAnimators.Add(animator);
             playedAny = true;
         }
 
@@ -4013,15 +4008,21 @@ public class BattleTurnSystem : MonoBehaviour
 
         yield return null;
 
-        float leadDuration = 0f;
-        if (leadAnimator != null && leadAnimator.runtimeAnimatorController != null && leadAnimator.isActiveAndEnabled)
+        float longestDuration = 0f;
+        for (int i = 0; i < playedAnimators.Count; i++)
         {
-            leadDuration = leadAnimator.GetCurrentAnimatorStateInfo(0).length;
+            Animator animator = playedAnimators[i];
+            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            longestDuration = Mathf.Max(longestDuration, animator.GetCurrentAnimatorStateInfo(0).length);
         }
 
-        if (leadDuration > 0.01f)
+        if (longestDuration > 0.01f)
         {
-            yield return new WaitForSeconds(leadDuration);
+            yield return new WaitForSeconds(longestDuration);
         }
 
         enterBattleAnimationInProgress = false;
