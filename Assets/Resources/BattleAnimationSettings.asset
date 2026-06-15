@@ -223,4 +223,4 @@ MonoBehaviour:
   explorationMoveYawCorrection: 0
   idleYawOffset: 45
   modelTurn90Duration: 0.3
-  enterBattleModelTurnEnabled: 0
+  enterBattleModelTurnEnabled: 1
