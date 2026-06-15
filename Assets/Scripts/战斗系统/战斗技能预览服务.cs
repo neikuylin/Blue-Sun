@@ -209,8 +209,9 @@ internal sealed class 战斗技能预览服务
         Color hoveredAllyFlashColor)
     {
         HashSet<Vector2Int> hoveredCells = new HashSet<Vector2Int>();
-        Color overlayColor = 解析悬停闪烁颜色(hoveredSkillTarget, hoveredEnemyFlashColor, hoveredAllyFlashColor);
-        overlayColor.a = Mathf.Lerp(0.18f, overlayColor.a, pulse);
+        Color overlayColor = hoveredSkillTarget != null && hoveredSkillTarget.team == BattleTeam.Enemy
+            ? new Color(0.95f, 0.28f, 0.20f, 1f)
+            : Color.white;
 
         for (int i = 0; i < hoveredSkillTargets.Count; i++)
         {

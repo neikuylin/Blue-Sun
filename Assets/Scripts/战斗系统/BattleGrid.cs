@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class BattleGrid : MonoBehaviour
 {
-    private const string Below3DNoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不写深度Sprite材质";
+    private const string Below3DUnlitNoDepthSpriteMaterialResourcePath = "渲染层级_低于3D不受光不写深度Sprite材质";
     private const string OcclusionOccupiedCellShadowShaderName = "项目/战斗/挖空内占用格黑底";
     private const int GridOutlineSortingOrderBase = -9000;
     private const int GridOutlineSortingOrderRelativeLimit = 999;
@@ -82,10 +82,9 @@ public class BattleGrid : MonoBehaviour
     private static readonly int DissolveScrollSpeedId = Shader.PropertyToID("_DissolveScrollSpeed");
     private static readonly int DissolveSmoothEdgesId = Shader.PropertyToID("_DissolveSmoothEdges");
 
-    private Color reachableColor = new Color(0.20f, 0.70f, 1.00f, 0.12f);
-    private Color reachableOutlineColor = new Color(0.20f, 0.70f, 1.00f, 0.57f);
-    private Color attackColor = new Color(1.00f, 0.25f, 0.20f, 0.26f);
-    private Color activeColor = new Color(1.00f, 0.90f, 0.20f, 0.30f);
+    private static readonly Color RangeOutlineColor = Color.white;
+    private static readonly Color SelectionFillColor = new Color(0f, 0f, 0f, 0.32f);
+    private static readonly Color SelectionOutlineColor = Color.white;
 
     public static BattleGrid ActiveGrid => activeGrid;
 
@@ -158,9 +157,10 @@ public class BattleGrid : MonoBehaviour
         ClearChildren(hoverHighlightRoot);
         ClearChildren(occlusionShadowRoot);
 
-        fillMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
-        lineMaterialTemplate = new Material(Shader.Find("Sprites/Default"));
-        gridOutlineMaterialTemplate = Resources.Load<Material>(Below3DNoDepthSpriteMaterialResourcePath);
+        Material unlitGridMaterial = Resources.Load<Material>(Below3DUnlitNoDepthSpriteMaterialResourcePath);
+        fillMaterialTemplate = new Material(unlitGridMaterial);
+        lineMaterialTemplate = new Material(unlitGridMaterial);
+        gridOutlineMaterialTemplate = unlitGridMaterial;
         DestroyOcclusionOccupiedCellShadowSources();
         RebuildOcclusionOccupiedCellShadowMesh();
 
@@ -703,7 +703,7 @@ public class BattleGrid : MonoBehaviour
     public void HighlightActive(Vector2Int cell)
     {
         HashSet<Vector2Int> cells = new HashSet<Vector2Int> { cell };
-        CreateOverlay(cells, activeColor, "Active");
+        CreateSelectionOverlay(cells, "Active");
     }
 
     public void HighlightFootprint(BattleUnit unit, Color color)
@@ -713,7 +713,7 @@ public class BattleGrid : MonoBehaviour
             return;
         }
 
-        CreateOverlay(CollectFootprintCells(unit.currentCell, unit.footprintSize), color, "Footprint");
+        CreateOutlineOverlay(CollectFootprintCells(unit.currentCell, unit.footprintSize), color, "Footprint");
     }
 
     public void SetHoveredFootprint(BattleUnit unit, Color color)
@@ -790,7 +790,7 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
-        CreateOverlay(cells, attackColor, "AttackTargets");
+        CreateOutlineOverlay(cells, RangeOutlineColor, "AttackTargets");
     }
 
     public void HighlightOccupiedCells(BattleUnit ignoredUnit, Color color)
@@ -809,7 +809,7 @@ public class BattleGrid : MonoBehaviour
             AddFootprintCells(cells, occupant.currentCell, occupant.footprintSize);
         }
 
-        CreateOverlay(cells, color, "Occupied");
+        CreateOutlineOverlay(cells, color, "Occupied");
     }
 
     public void HighlightOccupiedCellsWithinRange(BattleUnit activeUnit, int range, Color color)
@@ -838,7 +838,7 @@ public class BattleGrid : MonoBehaviour
             AddFootprintCells(cells, occupant.currentCell, occupant.footprintSize);
         }
 
-        CreateOverlay(cells, color, "OccupiedInRange");
+        CreateOutlineOverlay(cells, color, "OccupiedInRange");
     }
 
     public void HighlightOccupiedUnitsWithinRange(BattleUnit activeUnit, int range, Color selfColor, Color allyColor, Color enemyColor)
@@ -880,9 +880,9 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
-        CreateOverlay(selfCells, selfColor, "OccupiedSelf");
-        CreateOverlay(allyCells, allyColor, "OccupiedAlly");
-        CreateOverlay(enemyCells, enemyColor, "OccupiedEnemy");
+        CreateOutlineOverlay(selfCells, selfColor, "OccupiedSelf");
+        CreateOutlineOverlay(allyCells, allyColor, "OccupiedAlly");
+        CreateOutlineOverlay(enemyCells, enemyColor, "OccupiedEnemy");
     }
 
     public void HighlightReachable(BattleUnit unit, int range)
@@ -893,7 +893,7 @@ public class BattleGrid : MonoBehaviour
         }
 
         HashSet<Vector2Int> cells = CollectReachableCells(unit, range);
-        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Reachable");
+        CreateOutlineOverlay(cells, RangeOutlineColor, "Reachable");
     }
 
     public void HighlightRange(BattleUnit unit, int range)
@@ -904,7 +904,7 @@ public class BattleGrid : MonoBehaviour
         }
 
         HashSet<Vector2Int> cells = CollectCellsWithinRange(unit, range);
-        CreateOverlay(cells, reachableColor, reachableOutlineColor, "Range");
+        CreateOutlineOverlay(cells, RangeOutlineColor, "Range");
     }
 
     public void HighlightCircularRange(BattleUnit unit, int range)
@@ -917,8 +917,9 @@ public class BattleGrid : MonoBehaviour
         CreateCircleOverlay(
             GetWorldPosition(unit.currentCell),
             GetCastRadiusWorld(unit, range),
-            reachableColor,
-            reachableOutlineColor,
+            Color.clear,
+            RangeOutlineColor,
+            false,
             "CircularRange");
     }
 
@@ -932,8 +933,9 @@ public class BattleGrid : MonoBehaviour
         CreateCircleOverlay(
             GetWorldPosition(centerCell),
             Mathf.Max(0f, radiusWorld),
-            color,
-            ResolveOutlineColor(color),
+            SelectionFillColor,
+            SelectionOutlineColor,
+            true,
             "Circle");
     }
 
@@ -944,8 +946,9 @@ public class BattleGrid : MonoBehaviour
             direction,
             Mathf.Max(0f, lengthWorld),
             Mathf.Max(cellSize, widthWorld),
-            color,
-            ResolveOutlineColor(color),
+            SelectionFillColor,
+            SelectionOutlineColor,
+            true,
             "AxisRay");
     }
 
@@ -956,8 +959,9 @@ public class BattleGrid : MonoBehaviour
             direction,
             Mathf.Max(0f, radiusWorld),
             Mathf.Clamp(angleDegrees, 1f, 360f),
-            color,
-            ResolveOutlineColor(color),
+            SelectionFillColor,
+            SelectionOutlineColor,
+            true,
             "AxisFan");
     }
 
@@ -1009,12 +1013,12 @@ public class BattleGrid : MonoBehaviour
 
     public void HighlightFootprintAt(Vector2Int centerCell, int footprintSize, Color color)
     {
-        CreateOverlay(CollectFootprintCells(centerCell, footprintSize), color, "FootprintAt");
+        CreateSelectionOverlay(CollectFootprintCells(centerCell, footprintSize), "FootprintAt");
     }
 
     public void HighlightCells(HashSet<Vector2Int> cells, Color color)
     {
-        CreateOverlay(cells, color, "Cells");
+        CreateSelectionOverlay(cells, "Cells");
     }
 
     public void HighlightPartialCells(HashSet<Vector2Int> cells, BattleUnit ignoredUnit, Color color)
@@ -1041,7 +1045,7 @@ public class BattleGrid : MonoBehaviour
             visibleCells.Add(cell);
         }
 
-        CreateOverlay(visibleCells, color, "PartialCells");
+        CreateSelectionOverlay(visibleCells, "PartialCells");
     }
 
     public void HighlightPartialFootprint(int footprintSize, Vector2Int centerCell, Color color)
@@ -1068,7 +1072,7 @@ public class BattleGrid : MonoBehaviour
             }
         }
 
-        CreateOverlay(cells, color, "PartialFootprint");
+        CreateSelectionOverlay(cells, "PartialFootprint");
     }
 
     private void EnsureVisualRoots()
@@ -1464,12 +1468,22 @@ public class BattleGrid : MonoBehaviour
         }
     }
 
-    private void CreateOverlay(HashSet<Vector2Int> cells, Color color, string name)
+    private void CreateSelectionOverlay(HashSet<Vector2Int> cells, string name)
     {
-        CreateOverlay(cells, color, ResolveOutlineColor(color), name);
+        CreateOverlay(cells, SelectionFillColor, SelectionOutlineColor, name);
+    }
+
+    private void CreateOutlineOverlay(HashSet<Vector2Int> cells, Color outlineColor, string name)
+    {
+        CreateOverlay(cells, Color.clear, outlineColor, name, false);
     }
 
     private void CreateOverlay(HashSet<Vector2Int> cells, Color fillColor, Color outlineColor, string name)
+    {
+        CreateOverlay(cells, fillColor, outlineColor, name, true);
+    }
+
+    private void CreateOverlay(HashSet<Vector2Int> cells, Color fillColor, Color outlineColor, string name, bool drawFill)
     {
         if (cells == null || cells.Count == 0)
         {
@@ -1484,12 +1498,15 @@ public class BattleGrid : MonoBehaviour
         GameObject overlay = new GameObject(name + "_" + layerOrder);
         overlay.transform.SetParent(root, false);
 
-        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildFillMesh(cells, layerY);
-        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-        meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = FootprintOverlaySortingOrder;
+        if (drawFill)
+        {
+            MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+            meshFilter.sharedMesh = BuildFillMesh(cells, layerY);
+            meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            meshRenderer.sharedMaterial.color = fillColor;
+            meshRenderer.sortingOrder = FootprintOverlaySortingOrder;
+        }
 
         List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
         for (int i = 0; i < loops.Count; i++)
@@ -1533,7 +1550,13 @@ public class BattleGrid : MonoBehaviour
         highlightLayerOrder++;
     }
 
-    private void CreateCircleOverlay(Vector3 center, float radiusWorld, Color fillColor, Color outlineColor, string name)
+    private void CreateCircleOverlay(
+        Vector3 center,
+        float radiusWorld,
+        Color fillColor,
+        Color outlineColor,
+        bool drawFill,
+        string name)
     {
         if (radiusWorld <= 0.001f)
         {
@@ -1548,12 +1571,15 @@ public class BattleGrid : MonoBehaviour
         GameObject overlay = new GameObject(name + "_" + layerOrder);
         overlay.transform.SetParent(root, false);
 
-        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildCircleFillMesh(center, radiusWorld, layerY);
-        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-        meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = layerOrder * 10;
+        if (drawFill)
+        {
+            MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+            meshFilter.sharedMesh = BuildCircleFillMesh(center, radiusWorld, layerY);
+            meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            meshRenderer.sharedMaterial.color = fillColor;
+            meshRenderer.sortingOrder = layerOrder * 10;
+        }
 
         CreateCircleOutline(
             overlay.transform,
@@ -1566,7 +1592,15 @@ public class BattleGrid : MonoBehaviour
         IncrementActiveHighlightLayerOrder();
     }
 
-    private void CreateClippedRayOverlay(Vector3 origin, Vector3 direction, float lengthWorld, float widthWorld, Color fillColor, Color outlineColor, string name)
+    private void CreateClippedRayOverlay(
+        Vector3 origin,
+        Vector3 direction,
+        float lengthWorld,
+        float widthWorld,
+        Color fillColor,
+        Color outlineColor,
+        bool drawFill,
+        string name)
     {
         if (lengthWorld <= 0.001f || widthWorld <= 0.001f)
         {
@@ -1581,12 +1615,15 @@ public class BattleGrid : MonoBehaviour
         GameObject overlay = new GameObject(name + "_" + layerOrder);
         overlay.transform.SetParent(root, false);
 
-        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildClippedRayFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, layerY);
-        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-        meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = layerOrder * 10;
+        if (drawFill)
+        {
+            MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+            meshFilter.sharedMesh = BuildClippedRayFillMesh(origin, direction, lengthWorld, widthWorld * 0.5f, layerY);
+            meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            meshRenderer.sharedMaterial.color = fillColor;
+            meshRenderer.sortingOrder = layerOrder * 10;
+        }
 
         CreateClippedRayOutline(
             overlay.transform,
@@ -1601,7 +1638,15 @@ public class BattleGrid : MonoBehaviour
         IncrementActiveHighlightLayerOrder();
     }
 
-    private void CreateSectorOverlay(Vector3 origin, Vector3 direction, float radiusWorld, float angleDegrees, Color fillColor, Color outlineColor, string name)
+    private void CreateSectorOverlay(
+        Vector3 origin,
+        Vector3 direction,
+        float radiusWorld,
+        float angleDegrees,
+        Color fillColor,
+        Color outlineColor,
+        bool drawFill,
+        string name)
     {
         if (radiusWorld <= 0.001f || angleDegrees <= 0.001f)
         {
@@ -1616,12 +1661,15 @@ public class BattleGrid : MonoBehaviour
         GameObject overlay = new GameObject(name + "_" + layerOrder);
         overlay.transform.SetParent(root, false);
 
-        MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
-        meshFilter.sharedMesh = BuildSectorFillMesh(origin, direction, radiusWorld, angleDegrees, layerY);
-        meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
-        meshRenderer.sharedMaterial.color = fillColor;
-        meshRenderer.sortingOrder = layerOrder * 10;
+        if (drawFill)
+        {
+            MeshFilter meshFilter = overlay.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = overlay.AddComponent<MeshRenderer>();
+            meshFilter.sharedMesh = BuildSectorFillMesh(origin, direction, radiusWorld, angleDegrees, layerY);
+            meshRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            meshRenderer.sharedMaterial.color = fillColor;
+            meshRenderer.sortingOrder = layerOrder * 10;
+        }
 
         CreateSectorOutline(
             overlay.transform,
@@ -1749,7 +1797,7 @@ public class BattleGrid : MonoBehaviour
         return mesh;
     }
 
-    private void ApplyHoveredFootprint(HashSet<Vector2Int> cells, Color fillColor)
+    private void ApplyHoveredFootprint(HashSet<Vector2Int> cells, Color outlineColor)
     {
         if (cells == null || cells.Count == 0)
         {
@@ -1758,8 +1806,6 @@ public class BattleGrid : MonoBehaviour
         }
 
         EnsureVisualRoots();
-        Color outlineColor = ResolveOutlineColor(fillColor);
-
         if (hoverOverlayObject == null || hoverOverlayCells == null || !hoverOverlayCells.SetEquals(cells))
         {
             ClearHoveredFootprint();
@@ -1771,6 +1817,7 @@ public class BattleGrid : MonoBehaviour
             hoverOverlayRenderer = hoverOverlayObject.AddComponent<MeshRenderer>();
             meshFilter.sharedMesh = BuildFillMesh(cells, overlayY + 0.02f);
             hoverOverlayRenderer.sharedMaterial = new Material(fillMaterialTemplate);
+            hoverOverlayRenderer.sharedMaterial.color = SelectionFillColor;
             hoverOverlayRenderer.sortingOrder = HoverFootprintOverlaySortingOrder;
 
             List<List<Vector2Int>> loops = BuildBoundaryLoops(cells);
@@ -1793,7 +1840,7 @@ public class BattleGrid : MonoBehaviour
 
         if (hoverOverlayRenderer != null && hoverOverlayRenderer.sharedMaterial != null)
         {
-            hoverOverlayRenderer.sharedMaterial.color = fillColor;
+            hoverOverlayRenderer.sharedMaterial.color = SelectionFillColor;
         }
 
         for (int i = 0; i < hoverOutlineRenderers.Count; i++)
@@ -2004,13 +2051,6 @@ public class BattleGrid : MonoBehaviour
         }
 
         return simplified;
-    }
-
-    private static Color ResolveOutlineColor(Color fillColor)
-    {
-        Color lineColor = fillColor;
-        lineColor.a = Mathf.Clamp01(fillColor.a + 0.35f);
-        return lineColor;
     }
 
     private void CreateOutlineLoop(Transform parent, List<Vector2Int> loop, Color lineColor, float y, int sortingOrder, bool useAbsoluteSortingOrder = false)

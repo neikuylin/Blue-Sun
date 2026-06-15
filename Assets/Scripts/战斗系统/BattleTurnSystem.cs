@@ -41,13 +41,13 @@ public class BattleTurnSystem : MonoBehaviour
     [HideInInspector] public Color enemyTimelineColor = new Color(0.85f, 0.25f, 0.20f, 1f);
     [HideInInspector] public Color activePlayerTimelineColor = Color.white;
 
-    private readonly Color skillPreviewValidColor = new Color(1.00f, 0.90f, 0.20f, 0.70f);
-    private readonly Color skillPreviewInvalidColor = new Color(1.00f, 0.25f, 0.20f, 0.60f);
-    private readonly Color skillSelfOccupiedColor = new Color(1.00f, 1.00f, 1.00f, 0.32f);
-    private readonly Color skillAllyOccupiedColor = new Color(0.20f, 0.85f, 0.42f, 0.28f);
-    private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 0.28f);
-    private readonly Color activePlayerFootprintColor = new Color(1.00f, 1.00f, 1.00f, 0.15f);
-    private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 0.15f);
+    private readonly Color skillPreviewValidColor = Color.white;
+    private readonly Color skillPreviewInvalidColor = Color.white;
+    private readonly Color skillSelfOccupiedColor = Color.white;
+    private readonly Color skillAllyOccupiedColor = Color.white;
+    private readonly Color skillEnemyOccupiedColor = new Color(0.95f, 0.28f, 0.20f, 1f);
+    private readonly Color activePlayerFootprintColor = Color.white;
+    private readonly Color activeEnemyFootprintColor = new Color(0.95f, 0.28f, 0.20f, 1f);
     private readonly Color targetHealthBarColor = new Color(0.90f, 0.18f, 0.22f, 1f);
     private readonly Color physicalDamageColor = Color.white;
     private readonly Color fireDamageColor = new Color(1.00f, 0.55f, 0.12f, 1f);
