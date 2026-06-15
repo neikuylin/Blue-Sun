@@ -3968,6 +3968,7 @@ public class BattleTurnSystem : MonoBehaviour
         List<Animator> playedAnimators = new List<Animator>();
         List<BattleUnit> turningUnits = new List<BattleUnit>();
         List<Quaternion> targetRotations = new List<Quaternion>();
+        bool enterBattleModelTurnEnabled = BattleAnimationSettingsResolver.ResolveEnterBattleModelTurnEnabled();
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -3976,12 +3977,15 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
-            BattleUnit nearestEnemy = 模型转向服务.查找最近敌人(unit);
-            if (nearestEnemy != null)
+            if (enterBattleModelTurnEnabled)
             {
-                turningUnits.Add(unit);
-                targetRotations.Add(模型转向服务.计算面向单位旋转(unit, nearestEnemy));
-                performedAny = true;
+                BattleUnit nearestEnemy = 模型转向服务.查找最近敌人(unit);
+                if (nearestEnemy != null)
+                {
+                    turningUnits.Add(unit);
+                    targetRotations.Add(模型转向服务.计算面向单位旋转(unit, nearestEnemy));
+                    performedAny = true;
+                }
             }
 
             string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName(unit));

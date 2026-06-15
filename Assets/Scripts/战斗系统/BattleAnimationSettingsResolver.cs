@@ -150,6 +150,12 @@ public static class BattleAnimationSettingsResolver
         return settings != null ? Mathf.Max(0.01f, settings.modelTurn90Duration) : 0.3f;
     }
 
+    public static bool ResolveEnterBattleModelTurnEnabled()
+    {
+        BattleAnimationSettings settings = BattleAnimationSettings.LoadDefault();
+        return settings == null || settings.enterBattleModelTurnEnabled;
+    }
+
     public static string ResolveHitReactionStateName(string characterId)
     {
         return ResolveStateName(characterId, settings => settings.hitReactionOverrides);

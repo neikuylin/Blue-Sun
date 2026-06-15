@@ -53,6 +53,7 @@ public sealed class BattleAnimationSettings : ScriptableObject
     public float explorationMoveYawCorrection;
     public float idleYawOffset;
     [Min(0.01f)] public float modelTurn90Duration = 0.3f;
+    public bool enterBattleModelTurnEnabled = true;
 
     public static BattleAnimationSettings LoadDefault()
     {

@@ -69,7 +69,7 @@ MonoBehaviour:
     sound: {fileID: 0}
     soundPrefab: {fileID: 1718846533788478101, guid: 7b0561c0f4846494c9ee60ad1daffd14, type: 3}
     compensateMotion: 0
-    yawCorrection: 36
+    yawCorrection: 0
   - enabled: 1
     weaponCategory: 2
     stateName: 
@@ -223,3 +223,4 @@ MonoBehaviour:
   explorationMoveYawCorrection: 0
   idleYawOffset: 45
   modelTurn90Duration: 0.3
+  enterBattleModelTurnEnabled: 0
