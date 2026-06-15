@@ -3962,14 +3962,26 @@ public class BattleTurnSystem : MonoBehaviour
             yield break;
         }
 
-        bool playedAny = false;
+        yield return null;
+
+        bool performedAny = false;
         List<Animator> playedAnimators = new List<Animator>();
+        List<BattleUnit> turningUnits = new List<BattleUnit>();
+        List<Quaternion> targetRotations = new List<Quaternion>();
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
             if (unit == null || !unit.IsAlive)
             {
                 continue;
+            }
+
+            BattleUnit nearestEnemy = 模型转向服务.查找最近敌人(unit);
+            if (nearestEnemy != null)
+            {
+                turningUnits.Add(unit);
+                targetRotations.Add(模型转向服务.计算面向单位旋转(unit, nearestEnemy));
+                performedAny = true;
             }
 
             string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName(unit));
@@ -3990,10 +4002,10 @@ public class BattleTurnSystem : MonoBehaviour
                 unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)),
                 ResolveEnterBattleCompensateMotion(unit));
             playedAnimators.Add(animator);
-            playedAny = true;
+            performedAny = true;
         }
 
-        if (!playedAny)
+        if (!performedAny)
         {
             enterBattleAnimationInProgress = false;
             BattleUnit currentLeadUnit = pendingEnterBattleLeadUnit;
@@ -4020,9 +4032,40 @@ public class BattleTurnSystem : MonoBehaviour
             longestDuration = Mathf.Max(longestDuration, animator.GetCurrentAnimatorStateInfo(0).length);
         }
 
-        if (longestDuration > 0.01f)
+        float elapsed = 0f;
+        float degreesPerSecond = 90f / BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
+        while (true)
         {
-            yield return new WaitForSeconds(longestDuration);
+            bool allTurnsComplete = true;
+            for (int i = 0; i < turningUnits.Count; i++)
+            {
+                BattleUnit unit = turningUnits[i];
+                if (unit == null || !unit.IsAlive)
+                {
+                    continue;
+                }
+
+                Quaternion targetRotation = targetRotations[i];
+                if (Quaternion.Angle(unit.transform.rotation, targetRotation) <= 0.01f)
+                {
+                    unit.transform.rotation = targetRotation;
+                    continue;
+                }
+
+                unit.transform.rotation = Quaternion.RotateTowards(
+                    unit.transform.rotation,
+                    targetRotation,
+                    degreesPerSecond * Time.deltaTime);
+                allTurnsComplete = false;
+            }
+
+            if (allTurnsComplete && elapsed >= longestDuration)
+            {
+                break;
+            }
+
+            yield return null;
+            elapsed += Time.deltaTime;
         }
 
         enterBattleAnimationInProgress = false;
