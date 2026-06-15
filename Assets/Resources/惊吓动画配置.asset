@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "\u60CA\u5413\u52A8\u753B\u914D\u7F6E"
   m_EditorClassIdentifier: 
   "\u52A8\u753B\u9884\u5236\u4F53": {fileID: 58809187474701712, guid: 8a67016b04d76ad4a825252bb85f1f94, type: 3}
-  "\u53F3\u4FA7\u504F\u79FB": 0
+  "\u53F3\u4FA7\u504F\u79FB": 1
   "\u9876\u90E8\u504F\u79FB": 1
-  "\u6574\u4F53\u7F29\u653E": 1
+  "\u6574\u4F53\u7F29\u653E": 1.5
   "\u6E32\u67D3\u987A\u5E8F": 100

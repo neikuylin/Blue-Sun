@@ -3,39 +3,9 @@ using UnityEngine;
 
 public sealed class 惊吓动画跟随器 : MonoBehaviour
 {
-    private BattleUnit 目标单位;
-    private Camera 目标摄像机;
-
-    public void 初始化(BattleUnit 单位, Camera 摄像机)
+    public void 初始化()
     {
-        目标单位 = 单位;
-        目标摄像机 = 摄像机 != null ? 摄像机 : Camera.main;
-        更新朝向();
         StartCoroutine(等待动画结束后销毁());
-    }
-
-    private void LateUpdate()
-    {
-        if (目标单位 == null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        if (目标摄像机 == null)
-        {
-            目标摄像机 = Camera.main;
-        }
-
-        更新朝向();
-    }
-
-    private void 更新朝向()
-    {
-        if (目标摄像机 != null)
-        {
-            transform.rotation = 目标摄像机.transform.rotation;
-        }
     }
 
     private IEnumerator 等待动画结束后销毁()
