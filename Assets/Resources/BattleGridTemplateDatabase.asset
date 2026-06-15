@@ -1367,8 +1367,6 @@ MonoBehaviour:
     - x: 4
       y: 14
     - x: 4
-      y: 15
-    - x: 4
       y: 12
     - x: 4
       y: 11
@@ -1823,8 +1821,6 @@ MonoBehaviour:
     - x: 13
       y: 15
     - x: 14
-      y: 15
-    - x: 15
       y: 15
     - x: 16
       y: 15
@@ -1934,17 +1930,21 @@ MonoBehaviour:
       y: 20
     - x: 14
       y: 8
+    - x: 4
+      y: 15
+    - x: 15
+      y: 15
     enemySpawnSlots:
     - slotName: "\u654C\u4EBA\u4F4D1"
       cell:
-        x: 4
-        y: 15
+        x: 9
+        y: 14
       encounterEnemyIndex: 0
       initialFacing: 1
     - slotName: "\u654C\u4EBA\u4F4D2"
       cell:
-        x: 15
-        y: 15
+        x: 12
+        y: 14
       encounterEnemyIndex: 1
       initialFacing: 3
     defaultFloorPrefab: {fileID: 5598969195761890678, guid: 1b0a727c2bb52db43ae61db4def229cb, type: 3}
