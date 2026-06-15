@@ -4030,6 +4030,11 @@ public class BattleTurnSystem : MonoBehaviour
             yield break;
         }
 
+        if (unit.team == BattleTeam.Enemy)
+        {
+            惊吓动画播放服务.播放(unit);
+        }
+
         if (shouldTurn)
         {
             while (unit != null &&
