@@ -3964,11 +3964,9 @@ public class BattleTurnSystem : MonoBehaviour
 
         yield return null;
 
-        bool performedAny = false;
-        List<Animator> playedAnimators = new List<Animator>();
-        List<BattleUnit> turningUnits = new List<BattleUnit>();
-        List<Quaternion> targetRotations = new List<Quaternion>();
         bool enterBattleModelTurnEnabled = BattleAnimationSettingsResolver.ResolveEnterBattleModelTurnEnabled();
+        float degreesPerSecond = 90f / BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
+        int runningUnitFlows = 0;
         for (int i = 0; i < units.Count; i++)
         {
             BattleUnit unit = units[i];
@@ -3977,99 +3975,34 @@ public class BattleTurnSystem : MonoBehaviour
                 continue;
             }
 
+            bool shouldTurn = false;
+            Quaternion targetRotation = unit.transform.rotation;
             if (enterBattleModelTurnEnabled)
             {
                 BattleUnit nearestEnemy = 模型转向服务.查找最近敌人(unit);
                 if (nearestEnemy != null)
                 {
-                    turningUnits.Add(unit);
-                    targetRotations.Add(模型转向服务.计算面向单位旋转(unit, nearestEnemy));
-                    performedAny = true;
+                    targetRotation = 模型转向服务.计算面向单位旋转(unit, nearestEnemy);
+                    shouldTurn = true;
                 }
             }
 
             string enterBattleStateName = unit.GetEnterBattleAnimationStateName(ResolveEnterBattleStateName(unit));
-            if (string.IsNullOrWhiteSpace(enterBattleStateName))
-            {
-                continue;
-            }
-
-            Animator animator = unit.GetComponentInChildren<Animator>(true);
-            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
-            {
-                continue;
-            }
-
-            BattleAudioUtility.PlayOnce(ResolveEnterBattleSound(unit), ResolveEnterBattleSoundPrefab(unit), unit, battleCamera);
-            unit.PlayAnimationStateForCurrentClipDuration(
+            string idleStateName = unit.GetIdleAnimationStateName(ResolveIdleStateName(unit));
+            runningUnitFlows++;
+            StartCoroutine(PlayUnitEnterBattleFlow(
+                unit,
+                shouldTurn,
+                targetRotation,
+                degreesPerSecond,
                 enterBattleStateName,
-                unit.GetIdleAnimationStateName(ResolveIdleStateName(unit)),
-                ResolveEnterBattleCompensateMotion(unit));
-            playedAnimators.Add(animator);
-            performedAny = true;
+                idleStateName,
+                () => runningUnitFlows--));
         }
 
-        if (!performedAny)
+        while (runningUnitFlows > 0)
         {
-            enterBattleAnimationInProgress = false;
-            BattleUnit currentLeadUnit = pendingEnterBattleLeadUnit;
-            pendingEnterBattleLeadUnit = null;
-            if (beginTurnAfterEnterBattle && currentLeadUnit != null)
-            {
-                beginTurnAfterEnterBattle = false;
-                BeginCurrentTurn();
-            }
-            yield break;
-        }
-
-        yield return null;
-
-        float longestDuration = 0f;
-        for (int i = 0; i < playedAnimators.Count; i++)
-        {
-            Animator animator = playedAnimators[i];
-            if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
-            {
-                continue;
-            }
-
-            longestDuration = Mathf.Max(longestDuration, animator.GetCurrentAnimatorStateInfo(0).length);
-        }
-
-        float elapsed = 0f;
-        float degreesPerSecond = 90f / BattleAnimationSettingsResolver.ResolveModelTurn90Duration();
-        while (true)
-        {
-            bool allTurnsComplete = true;
-            for (int i = 0; i < turningUnits.Count; i++)
-            {
-                BattleUnit unit = turningUnits[i];
-                if (unit == null || !unit.IsAlive)
-                {
-                    continue;
-                }
-
-                Quaternion targetRotation = targetRotations[i];
-                if (Quaternion.Angle(unit.transform.rotation, targetRotation) <= 0.01f)
-                {
-                    unit.transform.rotation = targetRotation;
-                    continue;
-                }
-
-                unit.transform.rotation = Quaternion.RotateTowards(
-                    unit.transform.rotation,
-                    targetRotation,
-                    degreesPerSecond * Time.deltaTime);
-                allTurnsComplete = false;
-            }
-
-            if (allTurnsComplete && elapsed >= longestDuration)
-            {
-                break;
-            }
-
             yield return null;
-            elapsed += Time.deltaTime;
         }
 
         enterBattleAnimationInProgress = false;
@@ -4080,6 +4013,83 @@ public class BattleTurnSystem : MonoBehaviour
             beginTurnAfterEnterBattle = false;
             BeginCurrentTurn();
         }
+    }
+
+    private IEnumerator PlayUnitEnterBattleFlow(
+        BattleUnit unit,
+        bool shouldTurn,
+        Quaternion targetRotation,
+        float degreesPerSecond,
+        string enterBattleStateName,
+        string idleStateName,
+        System.Action onCompleted)
+    {
+        if (unit == null || !unit.IsAlive)
+        {
+            onCompleted?.Invoke();
+            yield break;
+        }
+
+        if (shouldTurn)
+        {
+            while (unit != null &&
+                   unit.IsAlive &&
+                   Quaternion.Angle(unit.transform.rotation, targetRotation) > 0.01f)
+            {
+                unit.transform.rotation = Quaternion.RotateTowards(
+                    unit.transform.rotation,
+                    targetRotation,
+                    degreesPerSecond * Time.deltaTime);
+                yield return null;
+            }
+
+            if (unit == null || !unit.IsAlive)
+            {
+                onCompleted?.Invoke();
+                yield break;
+            }
+
+            unit.transform.rotation = targetRotation;
+        }
+
+        if (string.IsNullOrWhiteSpace(enterBattleStateName))
+        {
+            onCompleted?.Invoke();
+            yield break;
+        }
+
+        Animator animator = unit.GetComponentInChildren<Animator>(true);
+        if (animator == null || animator.runtimeAnimatorController == null || !animator.isActiveAndEnabled)
+        {
+            onCompleted?.Invoke();
+            yield break;
+        }
+
+        BattleAudioUtility.PlayOnce(
+            ResolveEnterBattleSound(unit),
+            ResolveEnterBattleSoundPrefab(unit),
+            unit,
+            battleCamera);
+        unit.PlayAnimationStateForCurrentClipDuration(
+            enterBattleStateName,
+            idleStateName,
+            ResolveEnterBattleCompensateMotion(unit));
+
+        yield return null;
+
+        if (animator != null && animator.isActiveAndEnabled)
+        {
+            float duration = animator.GetCurrentAnimatorStateInfo(0).length;
+            if (duration > 0.01f)
+            {
+                yield return new WaitForSeconds(duration);
+            }
+
+            // BattleUnit 在同一时刻切回待机，额外等一帧确保 Animator 已应用待机姿势。
+            yield return null;
+        }
+
+        onCompleted?.Invoke();
     }
 
     private BattleUnit GetNextLivingRoundUnit()
