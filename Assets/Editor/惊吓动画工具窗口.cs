@@ -89,7 +89,6 @@ public sealed class 惊吓动画工具窗口 : EditorWindow
         EditorGUILayout.PropertyField(配置序列化对象.FindProperty("右侧偏移"), new GUIContent("右侧偏移"));
         EditorGUILayout.PropertyField(配置序列化对象.FindProperty("顶部偏移"), new GUIContent("顶部偏移"));
         EditorGUILayout.PropertyField(配置序列化对象.FindProperty("整体缩放"), new GUIContent("整体缩放"));
-        EditorGUILayout.PropertyField(配置序列化对象.FindProperty("显示时长"), new GUIContent("显示时长（秒）"));
         EditorGUILayout.PropertyField(配置序列化对象.FindProperty("渲染顺序"), new GUIContent("渲染顺序"));
         if (配置序列化对象.ApplyModifiedProperties())
         {

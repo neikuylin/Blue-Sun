@@ -1,20 +1,17 @@
-using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 public sealed class 惊吓动画跟随器 : MonoBehaviour
 {
     private BattleUnit 目标单位;
     private Camera 目标摄像机;
-    private float 右侧偏移;
-    private float 顶部偏移;
 
-    public void 初始化(BattleUnit 单位, Camera 摄像机, 惊吓动画配置 配置)
+    public void 初始化(BattleUnit 单位, Camera 摄像机)
     {
         目标单位 = 单位;
         目标摄像机 = 摄像机 != null ? 摄像机 : Camera.main;
-        右侧偏移 = 配置 != null ? 配置.右侧偏移量 : 0f;
-        顶部偏移 = 配置 != null ? 配置.顶部偏移量 : 0f;
-        更新位置和朝向();
+        更新朝向();
+        StartCoroutine(等待动画结束后销毁());
     }
 
     private void LateUpdate()
@@ -30,59 +27,56 @@ public sealed class 惊吓动画跟随器 : MonoBehaviour
             目标摄像机 = Camera.main;
         }
 
-        更新位置和朝向();
+        更新朝向();
     }
 
-    private void 更新位置和朝向()
+    private void 更新朝向()
     {
-        if (目标单位 == null)
-        {
-            return;
-        }
-
-        Bounds 模型边界;
-        Vector3 顶部中心 = 尝试获取模型边界(目标单位, out 模型边界)
-            ? new Vector3(模型边界.center.x, 模型边界.max.y, 模型边界.center.z)
-            : 目标单位.transform.position + Vector3.up * 2f;
-
-        Vector3 右方向 = 目标摄像机 != null ? 目标摄像机.transform.right : Vector3.right;
-        transform.position = 顶部中心 + 右方向 * 右侧偏移 + Vector3.up * 顶部偏移;
-
         if (目标摄像机 != null)
         {
             transform.rotation = 目标摄像机.transform.rotation;
         }
     }
 
-    private static bool 尝试获取模型边界(BattleUnit 单位, out Bounds 合并边界)
+    private IEnumerator 等待动画结束后销毁()
     {
-        Renderer[] 渲染器列表 = 单位.GetComponentsInChildren<Renderer>(true);
-        List<Renderer> 有效渲染器 = new List<Renderer>();
-        for (int i = 0; i < 渲染器列表.Length; i++)
+        yield return null;
+
+        Animator 动画器 = GetComponentInChildren<Animator>(true);
+        float 动画时长 = 读取动画时长(动画器);
+        if (动画时长 > 0.01f)
         {
-            Renderer 渲染器 = 渲染器列表[i];
-            if (渲染器 == null ||
-                !渲染器.enabled ||
-                渲染器.GetComponent<BattleUnitOutlineMarker>() != null)
+            yield return new WaitForSeconds(动画时长);
+        }
+
+        Destroy(gameObject);
+    }
+
+    private static float 读取动画时长(Animator 动画器)
+    {
+        if (动画器 == null || 动画器.runtimeAnimatorController == null)
+        {
+            return 0f;
+        }
+
+        AnimatorStateInfo 状态 = 动画器.GetCurrentAnimatorStateInfo(0);
+        float 播放速度 = Mathf.Abs(动画器.speed * 状态.speed);
+        if (状态.length > 0.01f)
+        {
+            return 状态.length / Mathf.Max(0.01f, 播放速度);
+        }
+
+        float 最长时长 = 0f;
+        AnimationClip[] 动画片段 = 动画器.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < 动画片段.Length; i++)
+        {
+            AnimationClip 动画片段资源 = 动画片段[i];
+            if (动画片段资源 != null)
             {
-                continue;
+                最长时长 = Mathf.Max(最长时长, 动画片段资源.length);
             }
-
-            有效渲染器.Add(渲染器);
         }
 
-        if (有效渲染器.Count == 0)
-        {
-            合并边界 = default;
-            return false;
-        }
-
-        合并边界 = 有效渲染器[0].bounds;
-        for (int i = 1; i < 有效渲染器.Count; i++)
-        {
-            合并边界.Encapsulate(有效渲染器[i].bounds);
-        }
-
-        return true;
+        return 最长时长;
     }
 }

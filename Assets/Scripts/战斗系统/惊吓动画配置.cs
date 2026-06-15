@@ -14,14 +14,12 @@ public sealed class 惊吓动画配置 : ScriptableObject
     [SerializeField] private float 整体缩放 = 1f;
 
     [Header("播放")]
-    [SerializeField] private float 显示时长 = 1f;
     [SerializeField] private int 渲染顺序 = 100;
 
     public GameObject 动画预制体资源 => 动画预制体;
     public float 右侧偏移量 => 右侧偏移;
     public float 顶部偏移量 => 顶部偏移;
     public float 整体缩放值 => Mathf.Max(0.01f, 整体缩放);
-    public float 显示时长秒数 => Mathf.Max(0.01f, 显示时长);
     public int 渲染顺序值 => 渲染顺序;
 
     public static 惊吓动画配置 加载默认配置()
