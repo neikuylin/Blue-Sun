@@ -721,7 +721,10 @@ public sealed class 对话运行时 : MonoBehaviour
         }
 
         对话语音播放器.clip = contentEntry.voiceClip;
-        对话语音播放器.Play();
+        对话语音播放器.volume = 1f;
+        对话语音播放器.PlayOneShot(
+            contentEntry.voiceClip,
+            Mathf.Clamp(contentEntry.voiceVolume, 0f, 2f));
     }
 
     private void StopDialogueVoice()

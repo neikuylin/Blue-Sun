@@ -228,7 +228,10 @@ public sealed class 小对话运行时 : MonoBehaviour
         if (内容.配音 != null)
         {
             配音播放器.clip = 内容.配音;
-            配音播放器.Play();
+            配音播放器.volume = 1f;
+            配音播放器.PlayOneShot(
+                内容.配音,
+                Mathf.Clamp(内容.配音音量, 0f, 2f));
             持续时间 = 内容.配音.length + 配音额外停留秒数;
         }
 

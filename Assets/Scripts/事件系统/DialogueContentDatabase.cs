@@ -38,6 +38,7 @@ public sealed class DialogueContentDatabase : ScriptableObject
         public DialogueViewSide viewSide = DialogueViewSide.Main;
         [TextArea(3, 8)] public string content = string.Empty;
         [HideInInspector] public AudioClip voiceClip;
+        [HideInInspector, Range(0f, 2f)] public float voiceVolume = 1f;
         [HideInInspector] public List<InteractionEntry> interactions = new List<InteractionEntry>();
     }
 

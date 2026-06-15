@@ -22,6 +22,7 @@ public sealed class 小对话内容数据库 : ScriptableObject
         public string 说话者文本 = string.Empty;
         [TextArea(2, 6)] public string 对话文本 = string.Empty;
         public AudioClip 配音;
+        [HideInInspector, Range(0f, 2f)] public float 配音音量 = 1f;
     }
 
     [SerializeField] private List<小对话内容> 内容列表 = new List<小对话内容>();
